@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='UTF-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>Kas Amarta Residence (Blok E)</title>
+
+<style>
+/* existing css (unchanged except sortable removed) */
+:root{--font-base:clamp(14px,1.4vw,16px);--font-small:clamp(12px,1.2vw,14px);--font-large:clamp(18px,2vw,22px);--radius:8px;--shadow:0 1px 3px rgba(0,0,0,0.08);}
+body{font-family:Arial,sans-serif;padding:16px;max-width:900px;margin:0 auto;background:#fafafa;color:#222;line-height:1.42;font-size:var(--font-base);}
+h2{margin-bottom:16px;font-size:var(--font-large);font-weight:700;}
+.tab{display:flex;gap:8px;margin-bottom:16px;}
+button{padding:8px 14px;border-radius:var(--radius);border:1px solid #dcdcdc;background:#f3f3f3;cursor:pointer;font-size:var(--font-base);transition:.15s;}
+button:hover{background:#e9e9e9;}button.active{background:#007bff;color:white;border-color:#007bff;}
+.hidden{display:none;}
+input,select{padding:10px 12px;border-radius:var(--radius);border:1px solid #cfcfcf;font-size:var(--font-base);width:100%;box-sizing:border-box;background:white;margin-top:6px;}
+.pay-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.pay-item{padding:12px;border-radius:var(--radius);border:1px solid #e5e5e5;background:white;box-shadow:var(--shadow);font-size:var(--font-base);}
+.table-container{overflow-x:auto;border:1px solid #e5e5e5;border-radius:var(--radius);background:white;margin-top:12px;-webkit-overflow-scrolling:touch;}
+table{min-width:100%;border-collapse:collapse;white-space:nowrap;}
+th,td{padding:12px;border-bottom:1px solid #eee;text-align:left;}
+th{background:#f7f7f7;font-weight:600;}
+tr:nth-child(even){background:#fafafa;}
+.badge{padding:4px 10px;border-radius:var(--radius);color:white;font-size:var(--font-small);}
+.income{background:#28a745;}
+.expense{background:#dc3545;}
+.summary{display:flex;justify-content:space-between;align-items:center;width:100%;margin:14px 0;}
+.summary-item{display:flex;flex-direction:column;}
+.summary-label{color:#666;font-size:var(--font-small);}
+.summary-value{font-weight:600;}
+.sum-inc{color:#28a745;font-weight:700;}
+.sum-exp{color:#dc3545;font-weight:700;}
+.sum-net{color:#007bff;font-weight:700;}
+#paginationPay,#paginationInsight{display:flex;gap:14px;align-items:center;justify-content:center;margin-top:12px;}
+@media(max-width:700px){.pay-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:480px){.pay-grid{grid-template-columns:1fr;}}
+
+.insight-card{background:white;border-radius:6px;padding:10px 12px;margin-bottom:10px;box-shadow:0 1px 2px rgba(0,0,0,0.06);}
+
+/* dark mode */
+:root{--bg:#fafafa;--text:#222;--surface:#fff;--border:#e5e5e5;}
+.dark{--bg:#141414;--text:#e5e5e5;--surface:#1f1f1f;--border:#333;}
+
+body{background:var(--bg);color:var(--text);}
+.table-container,.pay-item,.insight-card{background:var(--surface);border:1px solid var(--border);}
+th,td{border-bottom:1px solid var(--border);}
+.dark tr:nth-child(even),.dark tr:nth-child(odd){background:var(--surface);}
+.dark .summary-label{color:#aaa;}
+.dark .income{background:#1d8b3a;}
+.dark .expense{background:#b52a36;}
+.dark #cashflow th{color:#fff!important;}
+
+/* viewport 10 rows */
+.cashflow-body{max-height:calc(10 * 48px);overflow-y:auto;}
+
+/* sticky */
+#cashflow th{position:sticky;top:0;z-index:2;background:var(--surface)!important;}
+
+</style>
+</head>
+<body>
+
+<h2>Kas Amarta Residence (Blok E)</h2>
+
+<div class='tab'>
+<button onclick='tab("payment")' id='btnPay' class='active'>Payment</button>
+<button onclick='tab("cashflow")' id='btnCash'>Cashflow</button>
+<button onclick='tab("insight")' id='btnInsight'>Insight</button>
+</div>
+
+<div id='payment'>
+<label>Pilih Periode:</label>
+<select id='periodSelect' onchange='renderPayment()'></select>
+<div id='payGrid' class='pay-grid'></div>
+<div id='paginationPay'></div>
+</div>
+
+<div id='cashflow' class='hidden'>
+<input id='search' placeholder='search note...' oninput='onSearch()'>
+<div id='summary' class='summary'>
+  <div class='summary-item'><span class='summary-label'>Income</span><span id='sumInc' class='summary-value sum-inc'>Rp -</span></div>
+  <div class='summary-item'><span class='summary-label'>Expense</span><span id='sumExp' class='summary-value sum-exp'>Rp -</span></div>
+  <div class='summary-item'><span class='summary-label'>Net</span><span id='sumNet' class='summary-value sum-net'>Rp -</span></div>
+</div>
+
+<div class='table-container cashflow-body'>
+<table>
+<thead>
+<tr>
+<th>Date</th><th>Type</th><th>Amount</th><th>Note</th>
+</tr>
+</thead>
+<tbody id='cashList'></tbody>
+</table>
+</div>
+</div>
+
+<div id='insight' class='hidden'>
+<h3>Laporan Tunggakan Saat ini</h3>
+<div id='insightList'></div>
+<div id='paginationInsight'></div>
+</div>
+
+<script>
+/* ==== CONFIG URL ==== */
+const FETCH_URL = "https://n8n-jwskbckc.ap-southeast-1.clawcloudrun.com/webhook/cashflow"; // <= URL WEBHOOK/SOURCE
+
+/* ==== STATE ==== */
+let payments=[], cashflows=[], persons=[], periods=[];
+let term='', pagePay=1,pageInsight=1,perPagePay=9,perPageInsight=6,loaded=20,chunk=20;
+
+/* ==== INIT ==== */
+async function load(){
+  const res = await fetch(FETCH_URL);
+  const data = await res.json();
+  payments=data.payments; cashflows=data.cashflows; persons=data.persons; periods=data.periods;
+  initUI();
+}
+
+function initUI(){
+  periodSelect.innerHTML=periods.map(p=>`<option>${p}</option>`).join('');
+  renderPayment(); renderCashflow(); renderInsight(); autofill();
+}
+
+/* ==== PAYMENT ==== */
+function renderPayment(){
+  const per=periodSelect.value;
+  const list=persons.map(p=>{
+    const paid=payments.some(pay=>pay.person_id===p.id&&pay.period===per);
+    return{house:p.house,name:p.name,paid};
+  }).sort((a,b)=>a.house.localeCompare(b.house));
+  const total=Math.max(1,Math.ceil(list.length/perPagePay));
+  if(pagePay>total)pagePay=total;
+  const paged=list.slice((pagePay-1)*perPagePay,(pagePay-1)*perPagePay+perPagePay);
+  payGrid.innerHTML=paged.map(p=>`<div class='pay-item'><div style='display:flex;justify-content:space-between'><span>${p.house} (${p.name})</span><span style='font-weight:700;color:${p.paid?"#28a745":"#dc3545"}'>${p.paid?"Sudah Bayar":"Belum Bayar"}</span></div></div>`).join('');
+  paginationPay.innerHTML=`<button ${pagePay===1?"disabled":""} onclick='pagePay--;renderPayment()'>Prev</button><span>Page ${pagePay}/${total}</span><button ${pagePay===total?"disabled":""} onclick='pagePay++;renderPayment()'>Next</button>`;
+}
+
+/* ==== CASHFLOW ==== */
+function onSearch(){term=search.value.toLowerCase();loaded=chunk;renderCashflow();autofill();}
+function format(n){return 'Rp'+Number(n).toLocaleString('id-ID');}
+function renderCashflow(){
+  const filtered=cashflows.filter(c=>(c.note||"").toLowerCase().includes(term));
+  let inc=0,exp=0;cashflows.forEach(c=>c.type==='income'?inc+=c.amount:exp+=c.amount);
+  sumInc.innerText=format(inc);sumExp.innerText=format(exp);sumNet.innerText=format(inc-exp);
+  const sliced=filtered.slice(0,loaded);
+  cashList.innerHTML=sliced.map(c=>`<tr><td>${c.date||"-"}</td><td><span class='badge ${c.type}'>${c.type}</span></td><td>${format(c.amount)}</td><td>${c.note||"-"}</td></tr>`).join('');
+}
+function autofill(){
+  requestAnimationFrame(()=>{
+    const box=document.querySelector('.cashflow-body');
+    if(!box)return;
+    const filtered=cashflows.filter(c=>(c.note||"").toLowerCase().includes(term));
+    if(box.scrollHeight<=box.clientHeight && loaded<filtered.length){
+      loaded+=chunk;renderCashflow();autofill();
+    }
+  });
+}
+setTimeout(()=>{
+  const box=document.querySelector('.cashflow-body');
+  if(!box)return;
+  box.addEventListener('scroll',()=>{if(box.scrollTop+box.clientHeight>=box.scrollHeight-1){loaded+=chunk;renderCashflow();}});
+},0);
+
+/* ==== INSIGHT ==== */
+function renderInsight(){
+  const result=persons.map(p=>{
+    const paid=payments.filter(pay=>pay.person_id===p.id).map(pay=>pay.period);
+    const unpaid=periods.filter(pr=>!paid.includes(pr));
+    return{house:p.house,name:p.name,unpaid,jumlah:unpaid.length};
+  }).filter(r=>r.jumlah>=1).sort((a,b)=>b.jumlah-a.jumlah);
+  if(!result.length){insightList.innerHTML="Tidak ada tunggakan";paginationInsight.innerHTML="";return;}
+  const total=Math.max(1,Math.ceil(result.length/perPageInsight));
+  if(pageInsight>total)pageInsight=total;
+  const start=(pageInsight-1)*perPageInsight;
+  const paged=result.slice(start,start+perPageInsight);
+  insightList.innerHTML=paged.map((r,i)=>`<div class='insight-card'><b>${(start+i)+1}. ${r.house} (${r.name})</b><div>&bull; Nunggak: ${r.jumlah} periode</div><div>&bull; Periode: ${r.unpaid.join(", ")}</div></div>`).join('');
+  paginationInsight.innerHTML=`<button ${pageInsight===1?"disabled":""} onclick='pageInsight--;renderInsight()'>Prev</button><span>Page ${pageInsight}/${total}</span><button ${pageInsight===total?"disabled":""} onclick='pageInsight++;renderInsight()'>Next</button>`;
+}
+
+/* ==== TAB ==== */
+function tab(m){
+  payment.classList.toggle('hidden',m!=='payment');
+  cashflow.classList.toggle('hidden',m!=='cashflow');
+  insight.classList.toggle('hidden',m!=='insight');
+  btnPay.classList.toggle('active',m==='payment');
+  btnCash.classList.toggle('active',m==='cashflow');
+  btnInsight.classList.toggle('active',m==='insight');
+  if(m==='insight')renderInsight();
+}
+
+load();
+</script>
+</body>
+</html>
