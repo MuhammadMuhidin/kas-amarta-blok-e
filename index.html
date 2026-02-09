@@ -337,8 +337,6 @@ function renderInsight(){
 
 /* ==== TAB ==== */
 function tab(m){
-  showLoader("Switching view…");
-  setTimeout(()=>{
     payment.classList.toggle('hidden',m!=='payment');
     cashflow.classList.toggle('hidden',m!=='cashflow');
     insight.classList.toggle('hidden',m!=='insight');
@@ -346,8 +344,6 @@ function tab(m){
     btnCash.classList.toggle('active',m==='cashflow');
     btnInsight.classList.toggle('active',m==='insight');
     if(m==='insight')renderInsight();
-    hideLoader(150);
-  },100);
 }
 load();
 </script>
