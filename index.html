@@ -83,22 +83,26 @@ th,td{border-bottom:1px solid var(--border);}
   text-align:center;
   box-shadow:0 10px 30px rgba(0,0,0,.25);
 }
-.spinner{
-  width:34px;
-  height:34px;
-  border:4px solid var(--border);
-  border-top-color:#007bff;
-  border-radius:50%;
-  margin:0 auto 12px;
-  animation:spin 1s linear infinite;
+.loader-icon {
+  display: flex;
+  gap: 4px;
 }
-@keyframes spin{
-  to{transform:rotate(360deg)}
+
+.loader-icon span {
+  width: 6px;
+  height: 18px;
+  background: #2563eb;
+  border-radius: 6px;
+  animation: pulse 1s ease-in-out infinite;
 }
-.loader-text{
-  font-size:14px;
-  font-weight:600;
-  }
+
+.loader-icon span:nth-child(2) { animation-delay: .15s }
+.loader-icon span:nth-child(3) { animation-delay: .3s }
+
+@keyframes pulse {
+  0%,100% { transform: scaleY(.4); opacity: .5 }
+  50%     { transform: scaleY(1); opacity: 1 }
+                                  }
 
 </style>
 </head>
@@ -147,20 +151,23 @@ th,td{border-bottom:1px solid var(--border);}
 
 <div id="actionLoader" class="action-loader">
   <div class="loader-card">
-    <div class="spinner"></div>
-    <div id="loaderText" class="loader-text">Loading…</div>
+    <div class="loader-icon">
+      <span></span><span></span><span></span>
+    </div>
+    <div id="loaderText" class="loader-text">Processing…</div>
   </div>
 </div>
 
 <script>
-function showLoader(text="Loading…"){
-  const el=document.getElementById("actionLoader");
-  document.getElementById("loaderText").textContent=text;
+function showLoader(text = "Processing…") {
+  const el = document.getElementById("actionLoader");
+  document.getElementById("loaderText").innerHTML = text;
   el.classList.add("show");
 }
-function hideLoader(delay=0){
-  setTimeout(()=> {
-    document.getElementById("actionLoader").classList.remove("show");
+
+function hideLoader(delay = 0) {
+  setTimeout(() => {
+    document.getElementById("actionLoader")?.classList.remove("show");
   }, delay);
 }
 </script>
@@ -175,26 +182,29 @@ let term='', pagePay=1,pageInsight=1,perPagePay=9,perPageInsight=6,loaded=20,chu
 
 /* ==== INIT ==== */
 async function load(){
-  try{
-    showLoader("📡 Loading cash data…");
+  try {
+    showLoader("📡 Fetching cashflow data…");
+
     const res = await fetch(FETCH_URL);
-    if(!res.ok) throw new Error("Failed to load data");
+    if (!res.ok) throw new Error("Failed to load data");
 
     showLoader("📊 Processing records…");
-    const data = await res.json();
 
-    payments=data.payments;
-    cashflows=data.cashflows;
-    persons=data.persons;
-    periods=data.periods;
+    const data = await res.json();
+    payments = data.payments;
+    cashflows = data.cashflows;
+    persons = data.persons;
+    periods = data.periods;
 
     initUI();
-  }catch(err){
-    alert(err.message); // atau Swal jika nanti mau
-  }finally{
-    hideLoader(300);
+  } catch (err) {
+    hideLoader();
+    alert(err.message); // atau Swal error jika nanti mau
+    return;
   }
-}
+
+  hideLoader(300);
+  }
 
 function initUI(){
   periodSelect.innerHTML=periods.map(p=>`<option>${p}</option>`).join('');
@@ -270,7 +280,7 @@ function tab(m){
     if(m==='insight')renderInsight();
     hideLoader(150);
   },100);
-                                      }
+}
 load();
 </script>
 </body>
