@@ -102,8 +102,51 @@ th,td{border-bottom:1px solid var(--border);}
 @keyframes pulse {
   0%,100% { transform: scaleY(.4); opacity: .5 }
   50%     { transform: scaleY(1); opacity: 1 }
-                                  }
+}
 
+/* ===== FIX LOADER ALIGNMENT (FINAL) ===== */
+
+.loader-card {
+  padding: 22px 26px;
+}
+
+.loader-row {
+  display: flex;
+  align-items: center;     /* kunci sejajar */
+  gap: 12px;
+}
+
+.loader-icon {
+  display: flex;
+  align-items: center;
+  height: 18px;            /* referensi tinggi tetap */
+}
+
+.loader-icon span {
+  width: 6px;
+  height: 18px;
+  background: #2563eb;
+  border-radius: 6px;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+.loader-icon span:nth-child(2) { animation-delay: .15s }
+.loader-icon span:nth-child(3) { animation-delay: .3s }
+
+@keyframes pulse {
+  0%,100% { transform: scaleY(.4); opacity: .5 }
+  50%     { transform: scaleY(1); opacity: 1 }
+}
+
+.loader-text {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;          /* ⬅️ ini kunci utama */
+  display: flex;
+  align-items: center;
+  color: var(--text);
+}
+  
 </style>
 </head>
 <body>
@@ -151,10 +194,12 @@ th,td{border-bottom:1px solid var(--border);}
 
 <div id="actionLoader" class="action-loader">
   <div class="loader-card">
-    <div class="loader-icon">
-      <span></span><span></span><span></span>
+    <div class="loader-row">
+      <div class="loader-icon">
+        <span></span><span></span><span></span>
+      </div>
+      <div id="loaderText" class="loader-text">Processing…</div>
     </div>
-    <div id="loaderText" class="loader-text">Processing…</div>
   </div>
 </div>
 
@@ -183,12 +228,12 @@ let term='', pagePay=1,pageInsight=1,perPagePay=9,perPageInsight=6,loaded=20,chu
 /* ==== INIT ==== */
 async function load(){
   try {
-    showLoader("📡 Fetching cashflow data…");
+    showLoader("Fetching cashflow data…");
 
     const res = await fetch(FETCH_URL);
     if (!res.ok) throw new Error("Failed to load data");
 
-    showLoader("📊 Processing records…");
+    showLoader("Processing records…");
 
     const data = await res.json();
     payments = data.payments;
