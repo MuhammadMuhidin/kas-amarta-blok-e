@@ -254,13 +254,10 @@ let term='', pagePay=1,pageInsight=1,perPagePay=9,perPageInsight=6,loaded=20,chu
 /* ==== INIT ==== */
 async function load(){
   try {
-    showLoader("Fetching cashflow data…");
+    showLoader("Loading data…");
 
     const res = await fetch(FETCH_URL);
     if (!res.ok) throw new Error("Failed to load data");
-
-    showLoader("Processing records…");
-
     const data = await res.json();
     payments = data.payments;
     cashflows = data.cashflows;
