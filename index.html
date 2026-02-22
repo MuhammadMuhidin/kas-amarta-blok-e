@@ -292,7 +292,7 @@ function renderPayment(){
         pay.person_id === p.id && pay.period === per
                           );
     }
-    return{house:p.house,name:p.name,paid};
+    return{house:p.house,name:p.name,paid,notApplicable};
   }).sort((a,b)=>a.house.localeCompare(b.house));
   const total=Math.max(1,Math.ceil(list.length/perPagePay));
   if(pagePay>total)pagePay=total;
