@@ -283,13 +283,21 @@ function initUI(){
 function renderPayment(){
   const per=periodSelect.value;
   const list=persons.map(p=>{
-    const paid=payments.some(pay=>pay.person_id===p.id&&pay.period===per);
+    let paid = false;
+    let notApplicable = false;
+    if (p.join_periode && per < p.join_periode) {
+      notApplicable = true;
+    } else {
+      paid = payments.some(pay =>
+        pay.person_id === p.id && pay.period === per
+                          );
+    }
     return{house:p.house,name:p.name,paid};
   }).sort((a,b)=>a.house.localeCompare(b.house));
   const total=Math.max(1,Math.ceil(list.length/perPagePay));
   if(pagePay>total)pagePay=total;
   const paged=list.slice((pagePay-1)*perPagePay,(pagePay-1)*perPagePay+perPagePay);
-  payGrid.innerHTML=paged.map(p=>`<div class='pay-item'><div style='display:flex;justify-content:space-between'><span>${p.house} (${p.name})</span><span style='font-weight:700;color:${p.paid?"#28a745":"#dc3545"}'>${p.paid?"Sudah Bayar":"Belum Bayar"}</span></div></div>`).join('');
+  payGrid.innerHTML=paged.map(p=>`<div class='pay-item'><div style='display:flex;justify-content:space-between'><span>${p.house} (${p.name})</span><span style='font-weight:700;color:${notApplicable ? "#6c757d" : paid ? "#28a745" : "#dc3545"}'>${notApplicable ? "Belum Bergabung" : paid ? "Sudah Bayar" : "Belum Bayar"}</span></div></div>`).join('');
   paginationPay.innerHTML=`<button ${pagePay===1?"disabled":""} onclick='pagePay--;renderPayment()'>Prev</button><span>Page ${pagePay}/${total}</span><button ${pagePay===total?"disabled":""} onclick='pagePay++;renderPayment()'>Next</button>`;
 }
 
@@ -322,8 +330,14 @@ setTimeout(()=>{
 /* ==== INSIGHT ==== */
 function renderInsight(){
   const result=persons.map(p=>{
-    const paid=payments.filter(pay=>pay.person_id===p.id).map(pay=>pay.period);
-    const unpaid=periods.filter(pr=>!paid.includes(pr));
+    const validPeriods = periods.filter(pr => {
+      if (!p.join_periode) return true; // kalau kosong, anggap semua berlaku
+      return pr >= p.join_periode;
+    });
+    const paid = payments
+      .filter(pay => pay.person_id === p.id)
+      .map(pay => pay.period);
+    const unpaid = validPeriods.filter(pr => !paid.includes(pr));
     return{house:p.house,name:p.name,unpaid,jumlah:unpaid.length};
   }).filter(r=>r.jumlah>=1).sort((a,b)=>b.jumlah-a.jumlah);
   if(!result.length){insightList.innerHTML="Tidak ada tunggakan";paginationInsight.innerHTML="";return;}
