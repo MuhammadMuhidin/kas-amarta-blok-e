@@ -345,7 +345,7 @@ function renderInsight(){
   if(pageInsight>total)pageInsight=total;
   const start=(pageInsight-1)*perPageInsight;
   const paged=result.slice(start,start+perPageInsight);
-  insightList.innerHTML=paged.map((r,i)=>`<div class='insight-card'><b>${(start+i)+1}. ${r.house} (${r.name})</b><div>&bull; Nunggak: ${r.jumlah} periode</div><div>&bull; Periode: ${r.unpaid.join(", ")}</div></div>`).join('');
+  insightList.innerHTML=paged.map((r,i)=>`<div class='insight-card'><b>${(start+i)+1}. ${r.house}</b><div>&bull; Nunggak: ${r.jumlah} periode</div><div>&bull; Periode: ${r.unpaid.join(", ")}</div></div>`).join('');
   paginationInsight.innerHTML=`<button ${pageInsight===1?"disabled":""} onclick='pageInsight--;renderInsight()'>Prev</button><span>Page ${pageInsight}/${total}</span><button ${pageInsight===total?"disabled":""} onclick='pageInsight++;renderInsight()'>Next</button>`;
 }
 
