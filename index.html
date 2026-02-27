@@ -293,7 +293,7 @@ function renderPayment(){
                           );
     }
     return{house:p.house,paid,notApplicable};
-  }).sort((a,b)=>a.house.localeCompare(b.house));
+  }).sort((a, b) => a.house.localeCompare(b.house, undefined, { numeric: true }));
   const total=Math.max(1,Math.ceil(list.length/perPagePay));
   if(pagePay>total)pagePay=total;
   const paged=list.slice((pagePay-1)*perPagePay,(pagePay-1)*perPagePay+perPagePay);
