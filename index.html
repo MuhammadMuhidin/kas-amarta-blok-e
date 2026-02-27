@@ -297,7 +297,7 @@ function renderPayment(){
   const total=Math.max(1,Math.ceil(list.length/perPagePay));
   if(pagePay>total)pagePay=total;
   const paged=list.slice((pagePay-1)*perPagePay,(pagePay-1)*perPagePay+perPagePay);
-  payGrid.innerHTML=paged.map(p=>`<div class='pay-item'><div style='display:flex;justify-content:space-between'><span>${p.house} (${p.name})</span><span style='font-weight:700;color:${p.notApplicable ? "#6c757d" : p.paid ? "#28a745" : "#dc3545"}'>${p.notApplicable ? "Belum Bergabung" : p.paid ? "Sudah Bayar" : "Belum Bayar"}</span></div></div>`).join('');
+  payGrid.innerHTML=paged.map(p=>`<div class='pay-item'><div style='display:flex;justify-content:space-between'><span>${p.house}</span><span style='font-weight:700;color:${p.notApplicable ? "#6c757d" : p.paid ? "#28a745" : "#dc3545"}'>${p.notApplicable ? "Belum Bergabung" : p.paid ? "Sudah Bayar" : "Belum Bayar"}</span></div></div>`).join('');
   paginationPay.innerHTML=`<button ${pagePay===1?"disabled":""} onclick='pagePay--;renderPayment()'>Prev</button><span>Page ${pagePay}/${total}</span><button ${pagePay===total?"disabled":""} onclick='pagePay++;renderPayment()'>Next</button>`;
 }
 
