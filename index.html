@@ -154,6 +154,16 @@ tr:nth-child(odd){
 background:var(--surface);
 }
 
+/* Disable hover effect for tab buttons in dark mode */
+.tab button:hover{
+  background:#2a2a2a;   /* sama seperti default dark */
+}
+
+/* Optional: pastikan tidak ada perubahan warna border */
+.tab button{
+  transition:none;
+}
+
 .summary-label{color:#aaa;}
 .income{background:#1d8b3a;}
 .expense{background:#b52a36;}
