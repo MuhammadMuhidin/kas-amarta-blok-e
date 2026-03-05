@@ -384,7 +384,7 @@ function renderInsight(){
       .map(pay => pay.period);  
     const unpaid = validPeriods.filter(pr => !paid.includes(pr));  
     return{house:p.house,name:p.name,unpaid,jumlah:unpaid.length};  
-  }).filter(r=>r.jumlah>=1).sort((a,b)=>b.jumlah-a.jumlah);  
+  }).filter(r=>r.jumlah>=1).sort((a,b)=>a.house.localeCompare(b.house, undefined, {numeric:true}));
   if(!result.length){insightList.innerHTML="Tidak ada tunggakan";paginationInsight.innerHTML="";return;}  
   const total=Math.max(1,Math.ceil(result.length/perPageInsight));  
   if(pageInsight>total)pageInsight=total;  
