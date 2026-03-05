@@ -349,7 +349,9 @@ function renderPayment(){
 function onSearch(){term=search.value.toLowerCase();loaded=chunk;renderCashflow();autofill();}  
 function format(n){return 'Rp'+Number(n).toLocaleString('id-ID');}  
 function renderCashflow(){  
-  const filtered=cashflows.filter(c=>(c.note||"").toLowerCase().includes(term));  
+  const filtered = cashflows
+  .filter(c => (c.note || "").toLowerCase().includes(term))
+  .sort((a, b) => new Date(b.date) - new Date(a.date));
   let inc=0,exp=0;cashflows.forEach(c=>c.type==='income'?inc+=c.amount:exp+=c.amount);  
   sumInc.innerText=format(inc);sumExp.innerText=format(exp);sumNet.innerText=format(inc-exp);  
   const sliced=filtered.slice(0,loaded);  
