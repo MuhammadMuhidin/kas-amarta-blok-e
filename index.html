@@ -357,16 +357,22 @@ function renderCashflow(){
   const sliced=filtered.slice(0,loaded);  
   cashList.innerHTML=sliced.map(c=>`<tr><td>${c.date||"-"}</td><td><span class='badge ${c.type}'>${c.type}</span></td><td>${format(c.amount)}</td><td>${c.note||"-"}</td></tr>`).join('');  
 }  
-function autofill(){  
-  requestAnimationFrame(()=>{  
-    const box=document.querySelector('.cashflow-body');  
-    if(!box)return;  
-    const filtered=cashflows.filter(c=>(c.note||"").toLowerCase().includes(term));  
-    if(box.scrollHeight<=box.clientHeight && loaded<filtered.length){  
-      loaded+=chunk;renderCashflow();autofill();  
-    }  
-  });  
-}  
+function autofill(){
+  requestAnimationFrame(()=>{
+    const box=document.querySelector('.cashflow-body');
+    if(!box)return;
+
+    const filtered = cashflows
+      .filter(c => (c.note || "").toLowerCase().includes(term))
+      .sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+    if(box.scrollHeight<=box.clientHeight && loaded<filtered.length){
+      loaded+=chunk;
+      renderCashflow();
+      autofill();
+    }
+  });
+}
 setTimeout(()=>{  
   const box=document.querySelector('.cashflow-body');  
   if(!box)return;  
