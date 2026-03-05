@@ -381,7 +381,7 @@ function renderInsight(){
     });  
     const paid = payments  
       .filter(pay => pay.person_id === p.id && pay.person_house === p.house)
-      .map(pay => pay.period);  
+      .map(pay => pay.period.slice(0,7));  
     const unpaid = validPeriods.filter(pr => !paid.includes(pr));  
     return{house:p.house,name:p.name,unpaid,jumlah:unpaid.length};  
   }).filter(r=>r.jumlah>=1).sort((a,b)=>a.house.localeCompare(b.house, undefined, {numeric:true}));
