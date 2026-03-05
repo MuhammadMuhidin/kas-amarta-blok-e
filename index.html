@@ -376,10 +376,10 @@ function renderInsight(){
   const result=persons.map(p=>{  
     const validPeriods = periods.filter(pr => {  
       if (!p.join_periode) return true; // kalau kosong, anggap semua berlaku  
-      return pr >= p.join_periode;  
+      return pr >= p.join_periode.slice(0,7); 
     });  
     const paid = payments  
-      .filter(pay => pay.person_id === p.id)  
+      .filter(pay => pay.person_id === p.id && pay.person_house === p.house)
       .map(pay => pay.period);  
     const unpaid = validPeriods.filter(pr => !paid.includes(pr));  
     return{house:p.house,name:p.name,unpaid,jumlah:unpaid.length};  
