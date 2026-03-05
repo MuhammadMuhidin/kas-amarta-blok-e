@@ -319,7 +319,8 @@ async function load(){
   }  
   
 function initUI(){  
-  periodSelect.innerHTML=periods.map(p=>`<option>${p}</option>`).join('');  
+  periodSelect.innerHTML = periods.map(p=>`<option>${p}</option>`).join('');
+  periodSelect.value = [...periods].sort().pop();
   renderPayment(); renderCashflow(); renderInsight(); autofill();  
 }  
   
