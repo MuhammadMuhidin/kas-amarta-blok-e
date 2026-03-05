@@ -330,7 +330,7 @@ function renderPayment(){
   const list=persons.map(p=>{  
     let paid = false;  
     let notApplicable = false;  
-    if (p.join_periode && per < p.join_periode.slice(0,7)) { 
+    if (p.join_date && per < p.join_date.slice(0,7)) { 
       notApplicable = true;  
     } else {  
       paid = payments.some(pay =>  
@@ -376,8 +376,8 @@ setTimeout(()=>{
 function renderInsight(){  
   const result=persons.map(p=>{  
     const validPeriods = periods.filter(pr => {  
-      if (!p.join_periode) return true; // kalau kosong, anggap semua berlaku  
-      return pr >= p.join_periode.slice(0,7); 
+      if (!p.join_date) return true; // kalau kosong, anggap semua berlaku  
+      return pr >= p.join_date.slice(0,7); 
     });  
     const paid = payments  
       .filter(pay => pay.person_id === p.id && pay.person_house === p.house)
