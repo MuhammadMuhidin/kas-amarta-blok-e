@@ -235,33 +235,23 @@ color:var(--text);
 }  
   
 html,body{overflow-x:hidden;}  
-</style>
-</head>  
-<body>
-  <h2>Uang Kas Amarta Residence (Blok E)</h2>  <div class='tab'>  
+</style>  </head>  
+<body>  <h2>Uang Kas Amarta Residence (Blok E)</h2>  <div class='tab'>  
 <button onclick='tab("payment")' id='btnPay' class='active'>Payment</button>  
 <button onclick='tab("cashflow")' id='btnCash'>Cashflow</button>  
 <button onclick='tab("insight")' id='btnInsight'>Insight</button>  
-</div>
-<div id='payment'>  
-<label>Pilih Periode</label>  
+</div>  <div id='payment'>  
+<label>Pilih Periode:</label>  
 <select id='periodSelect' onchange='renderPayment()'></select>  
 <div id='payGrid' class='pay-grid'></div>  
 <div id='paginationPay'></div>  
-</div>  
-<div id='cashflow' class='hidden'>  
-<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
-<input id='search' placeholder='search note...' oninput='onSearch()' style="flex:1">
-<select id="cashPeriod" onchange="renderCashflow()" style="width:auto">
-<option value="all">Semua Periode</option>
-</select>
-</div>
+</div>  <div id='cashflow' class='hidden'>  
+<input id='search' placeholder='search note...' oninput='onSearch()'>  
 <div id='summary' class='summary'>  
   <div class='summary-item'><span class='summary-label'>Income</span><span id='sumInc' class='summary-value sum-inc'>Rp -</span></div>  
   <div class='summary-item'><span class='summary-label'>Expense</span><span id='sumExp' class='summary-value sum-exp'>Rp -</span></div>  
   <div class='summary-item'><span class='summary-label'>Net</span><span id='sumNet' class='summary-value sum-net'>Rp -</span></div>  
-</div>
-<div class='table-container cashflow-body'>  
+</div>  <div class='table-container cashflow-body'>  
 <table>  
 <thead>  
 <tr>  
@@ -271,13 +261,11 @@ html,body{overflow-x:hidden;}
 <tbody id='cashList'></tbody>  
 </table>  
 </div>  
-</div>  
-<div id='insight' class='hidden'>  
+</div>  <div id='insight' class='hidden'>  
 <h3>Laporan Tunggakan Saat ini</h3>  
 <div id='insightList'></div>  
 <div id='paginationInsight'></div>  
-</div>  
-<div id="actionLoader" class="action-loader">  
+</div>  <div id="actionLoader" class="action-loader">  
   <div class="loader-card">  
     <div class="loader-row">  
       <div class="loader-icon">  
@@ -299,8 +287,7 @@ function hideLoader(delay = 0) {
     document.getElementById("actionLoader")?.classList.remove("show");  
   }, delay);  
 }  
-</script>
-<script>  
+</script>  <script>  
 /* ==== CONFIG URL ==== */  
 const FETCH_URL = "https://n8n-jwskbckc.ap-southeast-1.clawcloudrun.com/webhook/cashflow"; // <= URL WEBHOOK/SOURCE  
   
@@ -334,11 +321,6 @@ async function load(){
 function initUI(){  
   periodSelect.innerHTML = periods.map(p=>`<option>${p}</option>`).join('');
   periodSelect.value = [...periods].sort().pop();
-
-  cashPeriod.innerHTML += periods
-  .map(p=>`<option value="${p.slice(0,7)}">${p.slice(0,7)}</option>`)
-  .join('');
-  
   renderPayment(); renderCashflow(); renderInsight(); autofill();  
 }  
   
@@ -367,14 +349,9 @@ function renderPayment(){
 /* ==== CASHFLOW ==== */  
 function onSearch(){term=search.value.toLowerCase();loaded=chunk;renderCashflow();autofill();}  
 function format(n){return 'Rp'+Number(n).toLocaleString('id-ID');}  
-function renderCashflow(){
-  const per = cashPeriod.value;
-  const filtered=cashflows.filter(c=>{
-    const matchSearch=(c.note||"").toLowerCase().includes(term);
-    if(per==="all") return matchSearch;
-    return matchSearch && (c.date||"").slice(0,7)===per;
-  });
-  let inc=0,exp=0;filtered.forEach(c=>c.type==='income'?inc+=c.amount:exp+=c.amount);  
+function renderCashflow(){  
+  const filtered=cashflows.filter(c=>(c.note||"").toLowerCase().includes(term));  
+  let inc=0,exp=0;cashflows.forEach(c=>c.type==='income'?inc+=c.amount:exp+=c.amount);  
   sumInc.innerText=format(inc);sumExp.innerText=format(exp);sumNet.innerText=format(inc-exp);  
   const sliced=filtered.slice(0,loaded);  
   cashList.innerHTML=sliced.map(c=>`<tr><td>${c.date||"-"}</td><td><span class='badge ${c.type}'>${c.type}</span></td><td>${format(c.amount)}</td><td>${c.note||"-"}</td></tr>`).join('');  
