@@ -1,23 +1,28 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
-export function middleware(req) {
+export function middleware(request) {
+  const token = request.cookies.get("admin")?.value;
+  const { pathname } = request.nextUrl;
 
-  const { pathname } = req.nextUrl
-  const hasToken = req.cookies.has("admin")
-
-  /* akses /admin tanpa token → login */
-  if (pathname.startsWith("/admin") && !hasToken) {
-    return NextResponse.redirect(new URL("/login", req.url))
+  /* LOGIN PAGE */
+  if (pathname.startsWith("/login")) {
+    if (token) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    }
+    return NextResponse.next();
   }
 
-  /* sudah login tapi buka login → admin */
-  if (pathname.startsWith("/login") && hasToken) {
-    return NextResponse.redirect(new URL("/admin", req.url))
+  /* ADMIN PAGE */
+  if (pathname.startsWith("/admin")) {
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+    return NextResponse.next();
   }
 
-  return NextResponse.next()
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/login"]
-}
+  matcher: ["/((?!api|_next|favicon.ico).*)"],
+};
