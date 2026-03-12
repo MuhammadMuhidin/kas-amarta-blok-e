@@ -380,6 +380,7 @@
     </head>
     <body>
         <h2>Uang Kas Amarta Residence (Blok E)</h2>
+        <div id="netToast" class="net-toast"></div>
         <div class="tab">
             <button onclick='tab("payment")' id="btnPay" class="active">Payment</button>
             <button onclick='tab("cashflow")' id="btnCash">Cashflow</button>
@@ -432,7 +433,6 @@
                 </div>
             </div>
         </div>
-        <div id="netToast" class="net-toast"></div>
         <script>
             function showLoader(text = "Processing…") {
                 const el = document.getElementById("actionLoader");
