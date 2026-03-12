@@ -7,6 +7,17 @@ const STATIC_FILES = [
   "/manifest.json"
 ];
 
+
+  /* biarkan Next.js handle routing */
+  if (
+    url.pathname.startsWith("/admin") ||
+    url.pathname.startsWith("/login") ||
+    url.pathname.startsWith("/api") ||
+    url.pathname.startsWith("/_next")
+  ) {
+    return;
+  }
+
 /* INSTALL */
 self.addEventListener("install", event => {
   event.waitUntil(
