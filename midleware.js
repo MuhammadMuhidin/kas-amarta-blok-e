@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server"
 
-export function middleware(req){
+export function middleware(req) {
 
   const { pathname } = req.nextUrl
-  const token = req.cookies.get("admin")?.value
+  const hasToken = req.cookies.has("admin")
 
-  /* jika akses admin tanpa token → login */
-  if(pathname.startsWith("/admin") && !token){
+  /* akses /admin tanpa token → login */
+  if (pathname.startsWith("/admin") && !hasToken) {
     return NextResponse.redirect(new URL("/login", req.url))
   }
 
-  /* jika sudah login lalu buka /login → admin */
-  if(pathname.startsWith("/login") && token){
+  /* sudah login tapi buka login → admin */
+  if (pathname.startsWith("/login") && hasToken) {
     return NextResponse.redirect(new URL("/admin", req.url))
   }
 
