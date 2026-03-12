@@ -1,10 +1,14 @@
-export default function Admin(){
+import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
-  return(
-    <div>
-      <h1>Admin Panel</h1>
-      <p>halaman ini anda dapat mengelola seluruh data pembayaran kas.</p>
-    </div>
-  )
+export default function AdminPage(){
 
+  const cookieStore = cookies()
+  const token = cookieStore.get("admin")
+
+  if(!token){
+    redirect("/login")
+  }
+
+  return <div>Admin Panel</div>
 }
