@@ -1,0 +1,8 @@
+{
+  "name": "Uang Kas Amarta Residence",
+  "short_name": "Kas Amarta",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafafa",
+  "theme_color": "#007bff"
+}
