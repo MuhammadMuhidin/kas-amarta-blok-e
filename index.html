@@ -305,7 +305,27 @@ function hideLoader(delay = 0) {
 }  
 </script>  <script>  
 /* ==== CONFIG URL ==== */  
-const FETCH_URL = "https://n8n-jwskbckc.ap-southeast-1.clawcloudrun.com/webhook/cashflow"; // <= URL WEBHOOK/SOURCE  
+const FETCH_URL = "https://n8n-jwskbckc.ap-southeast-1.clawcloudrun.com/webhook/cashflow"; // <= URL WEBHOOK/SOURCE 
+
+let networkState = "online";
+
+async function checkConnection() {
+  try {
+    const res = await fetch(FETCH_URL, { method: "HEAD", cache: "no-store" });
+
+    if (!res.ok) throw new Error();
+
+    if (networkState === "offline") {
+      networkState = "online";
+      showToast("Anda online kembali");
+    }
+  } catch {
+    if (networkState === "online") {
+      networkState = "offline";
+      showToast("Anda sedang offline");
+    }
+  }
+}
   
 /* ==== STATE ==== */  
 let payments=[], cashflows=[], persons=[], periods=[];  
@@ -421,6 +441,7 @@ function tab(m){
     if(m==='insight')renderInsight();  
 }  
 load();  
+setInterval(checkConnection, 5000);
 </script> 
 <script>
 if ("serviceWorker" in navigator) {
