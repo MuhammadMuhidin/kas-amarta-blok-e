@@ -347,8 +347,8 @@
             .net-toast {
                 position: fixed;
                 left: 50%;
-                top: calc(env(safe-area-inset-top) + 16px);
-                transform: translateX(-50%);
+                top: calc(env(safe-area-inset-top) - 80px);
+                transform: translate(-50%, -20px);
                 color: #fff;
                 padding: 12px 18px;
                 border-radius: 10px;
@@ -363,7 +363,8 @@
             }
 
             .net-toast.show {
-                bottom: 24px;
+                top: calc(env(safe-area-inset-top) - 80px);
+                transform: translate(-50%, 0);
                 opacity: 1;
             }
 
