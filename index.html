@@ -433,16 +433,19 @@ if ("serviceWorker" in navigator) {
 </script>
 <script>
 const toast = document.getElementById("netToast");
+let toastTimer;
 
 function showToast(msg){
+  clearTimeout(toastTimer);
   toast.innerText = msg;
   toast.style.display = "block";
 
-  setTimeout(()=>{
+  toastTimer = setTimeout(()=>{
     toast.style.display = "none";
   },4000);
 }
 
+/* EVENT NETWORK */
 window.addEventListener("offline", () => {
   showToast("Anda sedang offline");
 });
@@ -450,6 +453,21 @@ window.addEventListener("offline", () => {
 window.addEventListener("online", () => {
   showToast("Anda online kembali");
 });
+
+/* FALLBACK CHECK (lebih stabil di Android) */
+let lastStatus = navigator.onLine;
+
+setInterval(()=>{
+  if(navigator.onLine !== lastStatus){
+    lastStatus = navigator.onLine;
+
+    if(lastStatus){
+      showToast("Anda online kembali");
+    }else{
+      showToast("Anda sedang offline");
+    }
+  }
+},2000);
 </script>
 </body>  
 </html>
