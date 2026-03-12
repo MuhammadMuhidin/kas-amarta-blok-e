@@ -2,20 +2,22 @@ import { NextResponse } from "next/server"
 
 export function middleware(req){
 
-  if(req.nextUrl.pathname.startsWith("/admin")){
+  const { pathname } = req.nextUrl
+  const token = req.cookies.get("admin")?.value
 
-    const token = req.cookies.get("admin")
+  /* jika akses admin tanpa token → login */
+  if(pathname.startsWith("/admin") && !token){
+    return NextResponse.redirect(new URL("/login", req.url))
+  }
 
-    if(!token){
-      return NextResponse.redirect(new URL("/login",req.url))
-    }
-
+  /* jika sudah login lalu buka /login → admin */
+  if(pathname.startsWith("/login") && token){
+    return NextResponse.redirect(new URL("/admin", req.url))
   }
 
   return NextResponse.next()
-
 }
 
 export const config = {
-  matcher:["/admin/:path*"]
+  matcher: ["/admin/:path*", "/login"]
 }
