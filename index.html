@@ -1,11 +1,12 @@
 <html>  
-<head>  
+<head> 
 <meta charset='UTF-8'>  
 <meta name='viewport' content='width=device-width, initial-scale=1'>  
 <meta name="color-scheme" content="light dark">  
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#007bff">
-<title>Uang Kas Amarta Residence (Blok E)</title>  <style>  
+<title>Uang Kas Amarta Residence (Blok E)</title>  
+<style>  
 :root{  
 --font-base:clamp(14px,1.4vw,16px);  
 --font-small:clamp(12px,1.2vw,14px);  
@@ -277,20 +278,6 @@ html,body{overflow-x:hidden;}
     </div>  
   </div>  
 </div>  
-<div id="netToast" style="
-position:fixed;
-bottom:20px;
-left:50%;
-transform:translateX(-50%);
-background:#323232;
-color:#fff;
-padding:10px 16px;
-border-radius:6px;
-font-size:14px;
-box-shadow:0 3px 10px rgba(0,0,0,.25);
-display:none;
-z-index:9999;">
-</div>
 <script>  
 function showLoader(text = "Processing…") {  
   const el = document.getElementById("actionLoader");  
@@ -306,26 +293,6 @@ function hideLoader(delay = 0) {
 </script>  <script>  
 /* ==== CONFIG URL ==== */  
 const FETCH_URL = "https://n8n-jwskbckc.ap-southeast-1.clawcloudrun.com/webhook/cashflow"; // <= URL WEBHOOK/SOURCE 
-
-let networkState = "online";
-
-async function checkConnection() {
-  try {
-    const res = await fetch(FETCH_URL, { method: "HEAD", cache: "no-store" });
-
-    if (!res.ok) throw new Error();
-
-    if (networkState === "offline") {
-      networkState = "online";
-      showToast("Anda online kembali");
-    }
-  } catch {
-    if (networkState === "online") {
-      networkState = "offline";
-      showToast("Anda sedang offline");
-    }
-  }
-}
   
 /* ==== STATE ==== */  
 let payments=[], cashflows=[], persons=[], periods=[];  
@@ -440,8 +407,7 @@ function tab(m){
     btnInsight.classList.toggle('active',m==='insight');  
     if(m==='insight')renderInsight();  
 }  
-load();  
-setInterval(checkConnection, 5000);
+load(); 
 </script> 
 <script>
 if ("serviceWorker" in navigator) {
@@ -451,44 +417,6 @@ if ("serviceWorker" in navigator) {
       .catch(err => console.log("SW failed", err));
   });
 }
-</script>
-<script>
-const toast = document.getElementById("netToast");
-let toastTimer;
-
-function showToast(msg){
-  clearTimeout(toastTimer);
-  toast.innerText = msg;
-  toast.style.display = "block";
-
-  toastTimer = setTimeout(()=>{
-    toast.style.display = "none";
-  },4000);
-}
-
-/* EVENT NETWORK */
-window.addEventListener("offline", () => {
-  showToast("Anda sedang offline");
-});
-
-window.addEventListener("online", () => {
-  showToast("Anda online kembali");
-});
-
-/* FALLBACK CHECK (lebih stabil di Android) */
-let lastStatus = navigator.onLine;
-
-setInterval(()=>{
-  if(navigator.onLine !== lastStatus){
-    lastStatus = navigator.onLine;
-
-    if(lastStatus){
-      showToast("Anda online kembali");
-    }else{
-      showToast("Anda sedang offline");
-    }
-  }
-},2000);
 </script>
 </body>  
 </html>
