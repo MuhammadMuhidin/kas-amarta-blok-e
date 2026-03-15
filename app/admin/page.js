@@ -124,6 +124,18 @@ export default function AdminPage(){
 
   return (
 
+        <style jsx global>{`
+        html{
+          background:#f1f5f9;
+        }
+
+        @media (prefers-color-scheme: dark){
+          html{
+            filter: invert(1) hue-rotate(180deg);
+          }
+        }
+      `}</style>
+
     <div style={styles.wrapper}>
 
       <div style={styles.header}>
