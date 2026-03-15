@@ -20,7 +20,7 @@ export default function AdminPage(){
   })
 
   const [cashflow,setCashflow] = useState({
-    type:"income"
+    type:""
   })
 
   const [msg,setMsg] = useState("")
@@ -48,11 +48,11 @@ export default function AdminPage(){
     })
 
     if(res.ok){
-      setMsg("Personal berhasil ditambahkan")
+      setMsg("Member added successfully")
       setMember({house:"",name:"",join_date:""})
       loadPersonal()
     }else{
-      setMsg("Gagal menambahkan personal")
+      setMsg("Failed to add member")
     }
 
     setTimeout(()=>setMsg(""),3000)
@@ -90,7 +90,7 @@ export default function AdminPage(){
       if(res.ok) success++
     }
 
-    setMsg(`Payment recorded for ${success} house`)
+    setMsg(`Payment recorded for ${success} house successfully`)
     setSelected([])
 
     setTimeout(()=>setMsg(""),3000)
@@ -107,10 +107,14 @@ export default function AdminPage(){
     })
 
     if(res.ok){
-      setMsg("Cashflow recorded")
-      setCashflow({type:"income"})
+      setMsg("Transaction recorded successfully")
+      setCashflow({
+        type:"",
+        amount:"",
+        note:""
+      })
     }else{
-      setMsg("Cashflow gagal dicatat")
+      setMsg("Failed to record transaction")
     }
 
     setTimeout(()=>setMsg(""),3000)
@@ -301,6 +305,7 @@ export default function AdminPage(){
               value={cashflow.type}
               onChange={e=>setCashflow({...cashflow,type:e.target.value})}
             >
+              <option value="">Choose Type</option>
               <option value="income">Income</option>
               <option value="expense">Expense</option>
             </select>
