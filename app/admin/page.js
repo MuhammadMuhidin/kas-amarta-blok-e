@@ -132,7 +132,7 @@ export default function AdminPage(){
           style={styles.homeBtn}
           onClick={()=>router.push("/")}
         >
-          Home
+          « Home
         </button>
 
         <h1 style={styles.title}>Cash Flow Management</h1>
@@ -351,16 +351,18 @@ const styles={
   },
 
   header:{
-    display:"flex",
-    alignItems:"center",
-    gap:12,
-    marginBottom:20
+  display:"flex",
+  flexDirection:"column",
+  alignItems:"flex-start",
+  gap:10,
+  marginBottom:20
   },
 
   title:{
-    fontSize:26,
-    fontWeight:700,
-    margin:0
+  fontSize:28,
+  fontWeight:700,
+  margin:0,
+  lineHeight:1.2
   },
 
   homeBtn:{
