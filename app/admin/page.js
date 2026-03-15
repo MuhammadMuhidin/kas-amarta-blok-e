@@ -1,9 +1,11 @@
 "use client"
 
 import { useState,useEffect } from "react"
+import { useRouter } from "next/navigation"
 
 export default function AdminPage(){
 
+  const router = useRouter()
   const [tab,setTab] = useState("personal")
   const [personal,setPersonal] = useState([])
 
@@ -124,8 +126,18 @@ export default function AdminPage(){
 
     <div style={styles.wrapper}>
 
-      <h1 style={styles.title}>Cash Flow Management</h1>
+      <div style={styles.header}>
 
+  <button
+    style={styles.homeBtn}
+    onClick={()=>router.push("/")}
+  >
+    Home
+  </button>
+
+  <h1 style={styles.title}>Cash Flow Management</h1>
+
+</div>
       {msg && <div style={styles.msg}>{msg}</div>}
 
       {/* TAB */}
@@ -453,6 +465,22 @@ const styles={
     background:"#fee2e2",
     color:"#991b1b",
     fontWeight:500
-  }
+  },
+
+  header:{
+  display:"flex",
+  justifyContent:"space-between",
+  alignItems:"center",
+  marginBottom:20
+},
+
+homeBtn:{
+  padding:"8px 14px",
+  border:"none",
+  borderRadius:6,
+  background:"#111",
+  color:"#fff",
+  cursor:"pointer"
+}
   
 }
