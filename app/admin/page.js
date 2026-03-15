@@ -25,27 +25,6 @@ export default function AdminPage(){
 
   const [msg,setMsg] = useState("")
 
-  const dark = typeof window !== "undefined" &&
-  window.matchMedia("(prefers-color-scheme: dark)").matches
-
-  const theme = dark ? {
-
-    bg:"#0f172a",
-    card:"#1e293b",
-    text:"#e5e7eb",
-    border:"#334155",
-    input:"#0f172a"
-
-  } : {
-
-    bg:"#ffffff",
-    card:"#ffffff",
-    text:"#111827",
-    border:"#e5e7eb",
-    input:"#ffffff"
-
-  }
-
   async function loadPersonal(){
 
     const res = await fetch("/api/sheets/personal/list",{cache:"no-store"})
@@ -143,11 +122,13 @@ export default function AdminPage(){
 
   return (
 
-    <div style={{...styles.wrapper,background:theme.bg,color:theme.text}}>
+    <div style={styles.wrapper}>
 
       <h1 style={styles.title}>Cash Flow Management</h1>
 
-      {msg && <div style={{...styles.msg,color:theme.text}}>{msg}</div>}
+      {msg && <div style={styles.msg}>{msg}</div>}
+
+      {/* TAB */}
 
       <div style={styles.tabs}>
 
@@ -174,30 +155,32 @@ export default function AdminPage(){
 
       </div>
 
+      {/* PERSONAL */}
+
       {tab==="personal" && (
 
-        <div style={{...styles.card,background:theme.card}}>
+        <div style={styles.card}>
 
           <h3>Add Personal</h3>
 
           <form onSubmit={addMember} style={styles.form}>
 
             <input
-              style={{...styles.input,background:theme.input,border:`1px solid ${theme.border}`,color:theme.text}}
+              style={styles.input}
               placeholder="House"
               value={member.house}
               onChange={e=>setMember({...member,house:e.target.value})}
             />
 
             <input
-              style={{...styles.input,background:theme.input,border:`1px solid ${theme.border}`,color:theme.text}}
+              style={styles.input}
               placeholder="Name"
               value={member.name}
               onChange={e=>setMember({...member,name:e.target.value})}
             />
 
             <input
-              style={{...styles.input,background:theme.input,border:`1px solid ${theme.border}`,color:theme.text}}
+              style={styles.input}
               type="date"
               value={member.join_date}
               onChange={e=>setMember({...member,join_date:e.target.value})}
@@ -211,7 +194,7 @@ export default function AdminPage(){
 
           <div style={styles.tableWrapper}>
 
-          <table style={{...styles.table,color:theme.text}}>
+          <table style={styles.table}>
 
             <thead>
               <tr>
@@ -254,22 +237,24 @@ export default function AdminPage(){
 
       )}
 
+      {/* PAYMENT */}
+
       {tab==="payment" && (
 
-        <div style={{...styles.card,background:theme.card}}>
+        <div style={styles.card}>
 
           <h3>Bulk Payment</h3>
 
           <form onSubmit={recordPayment} style={styles.form}>
 
             <input
-              style={{...styles.input,background:theme.input,border:`1px solid ${theme.border}`,color:theme.text}}
+              style={styles.input}
               placeholder="Period (2026-02)"
               onChange={e=>setPayment({...payment,period:e.target.value})}
             />
 
             <input
-              style={{...styles.input,background:theme.input,border:`1px solid ${theme.border}`,color:theme.text}}
+              style={styles.input}
               type="number"
               value={payment.amount}
               onChange={e=>setPayment({...payment,amount:e.target.value})}
@@ -305,16 +290,18 @@ export default function AdminPage(){
 
       )}
 
+      {/* CASHFLOW */}
+
       {tab==="cashflow" && (
 
-        <div style={{...styles.card,background:theme.card}}>
+        <div style={styles.card}>
 
           <h3>Cashflow</h3>
 
           <form onSubmit={addCashflow} style={styles.form}>
 
             <select
-              style={{...styles.input,background:theme.input,border:`1px solid ${theme.border}`,color:theme.text}}
+              style={styles.input}
               value={cashflow.type}
               onChange={e=>setCashflow({...cashflow,type:e.target.value})}
             >
@@ -324,13 +311,13 @@ export default function AdminPage(){
             </select>
 
             <input
-              style={{...styles.input,background:theme.input,border:`1px solid ${theme.border}`,color:theme.text}}
+              style={styles.input}
               placeholder="Amount"
               onChange={e=>setCashflow({...cashflow,amount:e.target.value})}
             />
 
             <input
-              style={{...styles.input,background:theme.input,border:`1px solid ${theme.border}`,color:theme.text}}
+              style={styles.input}
               placeholder="Note"
               onChange={e=>setCashflow({...cashflow,note:e.target.value})}
             />
@@ -385,6 +372,7 @@ const styles={
   },
 
   card:{
+    background:"#fff",
     padding:24,
     borderRadius:12,
     boxShadow:"0 4px 20px rgba(0,0,0,0.08)"
@@ -399,6 +387,7 @@ const styles={
 
   input:{
     padding:"12px",
+    border:"1px solid #ddd",
     borderRadius:6,
     fontSize:16,
     width:"100%",
@@ -465,5 +454,5 @@ const styles={
     color:"#991b1b",
     fontWeight:500
   }
-
+  
 }
