@@ -271,7 +271,7 @@ export default function AdminPage(){
 
               {personal
                .filter(p => p.active === "Y")
-               .sort((a,b)=>a.house.localeCompare(b.house))
+               .sort((a,b)=>a.house.localeCompare(b.house,undefined,{numeric:true}))
                .map(p=>(
 
                 <label key={p.id} style={styles.checkbox}>
