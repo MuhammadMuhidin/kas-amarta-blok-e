@@ -346,8 +346,9 @@ const styles={
     margin:"0 auto",
     padding:"20px",
     fontFamily:"system-ui",
-    background:"#f1f5f9",
-    minHeight:"100vh"
+    background:"var(--bg)",
+    minHeight:"100vh",
+    color:"var(--text)"
   },
 
   header:{
@@ -369,8 +370,8 @@ const styles={
     padding:"8px 12px",
     border:"none",
     borderRadius:8,
-    background:"#111",
-    color:"#fff",
+    background:"var(--text)",
+    color:"var(--bg)",
     cursor:"pointer",
     fontSize:14
   },
@@ -383,15 +384,16 @@ const styles={
 
   tab:{
     padding:"10px 18px",
-    background:"#e5e7eb",
+    background:"var(--tab)",
     border:"none",
     borderRadius:10,
-    cursor:"pointer"
+    cursor:"pointer",
+    color:"var(--text)"
   },
 
   tabActive:{
     padding:"10px 18px",
-    background:"#2563eb",
+    background:"var(--btn)",
     color:"#fff",
     border:"none",
     borderRadius:10,
@@ -400,7 +402,7 @@ const styles={
   },
 
   card:{
-    background:"#ffffff",
+    background:"var(--card)",
     padding:20,
     borderRadius:14,
     boxShadow:"0 2px 12px rgba(0,0,0,0.06)"
@@ -415,19 +417,21 @@ const styles={
 
   input:{
     padding:"12px",
-    border:"1px solid #d1d5db",
+    border:"1px solid var(--border)",
     borderRadius:8,
     fontSize:15,
     width:"100%",
-    boxSizing:"border-box"
+    boxSizing:"border-box",
+    background:"var(--input-bg)",
+    color:"var(--text)"
   },
 
   btn:{
     padding:"12px",
     border:"none",
     borderRadius:8,
-    background:"#2563eb",
-    color:"#fff",
+    background:"var(--btn)",
+    color:"var(--btn-text)",
     cursor:"pointer",
     fontSize:16,
     fontWeight:500
@@ -446,16 +450,16 @@ const styles={
   th:{
     textAlign:"left",
     padding:"10px",
-    borderBottom:"2px solid #e5e7eb"
+    borderBottom:"2px solid var(--border-soft)"
   },
 
   td:{
     padding:"10px",
-    borderBottom:"1px solid #f1f5f9"
+    borderBottom:"1px solid var(--border-soft)"
   },
 
   rowAlt:{
-    background:"#f9fafb"
+    background:"var(--row-alt)"
   },
 
   rowInactive:{
