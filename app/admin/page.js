@@ -120,7 +120,7 @@ export default function AdminPage(){
 
     <div style={styles.wrapper}>
 
-      <h1 style={styles.title}>Kas Admin</h1>
+      <h1 style={styles.title}>Cash Flow Management</h1>
 
       {msg && <div style={styles.msg}>{msg}</div>}
 
@@ -182,7 +182,7 @@ export default function AdminPage(){
               onChange={e=>setMember({...member,join_date:e.target.value})}
             />
 
-            <button style={styles.btn}>Add</button>
+            <button style={styles.btn}>Add Member</button>
 
           </form>
 
@@ -258,7 +258,9 @@ export default function AdminPage(){
 
             <div style={styles.houseList}>
 
-              {personal.map(p=>(
+              {personal
+               .filter(p => p.active === "Y")
+               .map(p=>(
 
                 <label key={p.id} style={styles.checkbox}>
 
@@ -276,7 +278,7 @@ export default function AdminPage(){
 
             </div>
 
-            <button style={styles.btn}>Pay</button>
+            <button style={styles.btn}>Record Payment</button>
 
           </form>
 
@@ -315,7 +317,7 @@ export default function AdminPage(){
               onChange={e=>setCashflow({...cashflow,note:e.target.value})}
             />
 
-            <button style={styles.btn}>Send</button>
+            <button style={styles.btn}>Record Transaction</button>
 
           </form>
 
