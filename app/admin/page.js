@@ -305,7 +305,7 @@ export default function AdminPage(){
               value={cashflow.type}
               onChange={e=>setCashflow({...cashflow,type:e.target.value})}
             >
-              <option value="">Choose Type</option>
+              <option value="">Type</option>
               <option value="income">Income</option>
               <option value="expense">Expense</option>
             </select>
