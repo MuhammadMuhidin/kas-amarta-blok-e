@@ -123,7 +123,7 @@ export default function AdminPage(){
   }
 
   return (
-
+    <>
         <style jsx global>{`
         html{
           background:#f1f5f9;
@@ -351,6 +351,7 @@ export default function AdminPage(){
       )}
 
     </div>
+  </>
   )
 }
 
