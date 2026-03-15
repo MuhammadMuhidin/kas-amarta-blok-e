@@ -129,7 +129,7 @@ export default function AdminPage(){
       <div style={styles.header}>
 
         <button
-          style={styles.homeBtn}
+          style={styles.btn}
           onClick={()=>router.push("/")}
         >
           « Home
