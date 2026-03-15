@@ -66,7 +66,7 @@ const styles = {
     display:"flex",
     justifyContent:"center",
     alignItems:"center",
-    background:"linear-gradient(135deg,#4f46e5,#6366f1)",
+    background:"#e5e7eb",
     fontFamily:"system-ui"
   },
 
