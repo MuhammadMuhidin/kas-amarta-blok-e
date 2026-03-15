@@ -369,8 +369,7 @@ const styles={
     padding:"8px 12px",
     border:"none",
     borderRadius:8,
-    background:"#2563eb",
-    color:"#fff",
+    background:"#e5e7eb",
     cursor:"pointer",
     fontSize:14
   },
