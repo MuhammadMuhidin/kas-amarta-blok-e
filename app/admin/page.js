@@ -331,8 +331,8 @@ const styles={
 
   wrapper:{
     maxWidth:1100,
-    margin:"40px auto",
-    padding:"0 16px",
+    margin:"20px auto",
+    padding:"0 14px",
     fontFamily:"system-ui"
   },
 
@@ -366,7 +366,7 @@ const styles={
 
   card:{
     background:"#fff",
-    padding:20,
+    padding:24,
     borderRadius:12,
     boxShadow:"0 4px 20px rgba(0,0,0,0.08)"
   },
@@ -375,7 +375,6 @@ const styles={
     display:"grid",
     gap:12,
     width:"100%",
-    maxWidth:400,
     marginBottom:25
   },
 
@@ -384,7 +383,8 @@ const styles={
     border:"1px solid #ddd",
     borderRadius:6,
     fontSize:16,
-    width:"100%"
+    width:"100%",
+    boxSizing:"border-box"
   },
 
   btn:{
