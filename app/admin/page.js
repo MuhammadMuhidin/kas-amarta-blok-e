@@ -128,19 +128,18 @@ export default function AdminPage(){
 
       <div style={styles.header}>
 
-  <button
-    style={styles.homeBtn}
-    onClick={()=>router.push("/")}
-  >
-    Home
-  </button>
+        <button
+          style={styles.homeBtn}
+          onClick={()=>router.push("/")}
+        >
+          Home
+        </button>
 
-  <h1 style={styles.title}>Cash Flow Management</h1>
+        <h1 style={styles.title}>Cash Flow Management</h1>
 
-</div>
+      </div>
+
       {msg && <div style={styles.msg}>{msg}</div>}
-
-      {/* TAB */}
 
       <div style={styles.tabs}>
 
@@ -166,8 +165,6 @@ export default function AdminPage(){
         </button>
 
       </div>
-
-      {/* PERSONAL */}
 
       {tab==="personal" && (
 
@@ -206,50 +203,48 @@ export default function AdminPage(){
 
           <div style={styles.tableWrapper}>
 
-          <table style={styles.table}>
+            <table style={styles.table}>
 
-            <thead>
-              <tr>
-                <th style={styles.th}>ID</th>
-                <th style={styles.th}>House</th>
-                <th style={styles.th}>Name</th>
-                <th style={styles.th}>Active</th>
-                <th style={styles.th}>Join Date</th>
-              </tr>
-            </thead>
+              <thead>
+                <tr>
+                  <th style={styles.th}>ID</th>
+                  <th style={styles.th}>House</th>
+                  <th style={styles.th}>Name</th>
+                  <th style={styles.th}>Active</th>
+                  <th style={styles.th}>Join Date</th>
+                </tr>
+              </thead>
 
-            <tbody>
+              <tbody>
 
-              {personal.map((p,i)=>{
+                {personal.map((p,i)=>{
 
-                let rowStyle = i % 2 ? styles.rowAlt : null
+                  let rowStyle = i % 2 ? styles.rowAlt : null
 
-                if(p.active === "N"){
-                  rowStyle = styles.rowInactive
-                }
+                  if(p.active === "N"){
+                    rowStyle = styles.rowInactive
+                  }
 
-                return (
-                  <tr key={p.id} style={rowStyle}>
-                    <td style={styles.td}>{p.id}</td>
-                    <td style={styles.td}>{p.house}</td>
-                    <td style={styles.td}>{p.name}</td>
-                    <td style={styles.td}>{p.active}</td>
-                    <td style={styles.td}>{p.join_date}</td>
-                  </tr>
-                )
-              })}
+                  return (
+                    <tr key={p.id} style={rowStyle}>
+                      <td style={styles.td}>{p.id}</td>
+                      <td style={styles.td}>{p.house}</td>
+                      <td style={styles.td}>{p.name}</td>
+                      <td style={styles.td}>{p.active}</td>
+                      <td style={styles.td}>{p.join_date}</td>
+                    </tr>
+                  )
+                })}
 
-            </tbody>
+              </tbody>
 
-          </table>
+            </table>
 
           </div>
 
         </div>
 
       )}
-
-      {/* PAYMENT */}
 
       {tab==="payment" && (
 
@@ -302,8 +297,6 @@ export default function AdminPage(){
 
       )}
 
-      {/* CASHFLOW */}
-
       {tab==="cashflow" && (
 
         <div style={styles.card}>
@@ -349,45 +342,66 @@ export default function AdminPage(){
 const styles={
 
   wrapper:{
-    maxWidth:1100,
-    margin:"20px auto",
-    padding:"0 14px",
-    fontFamily:"system-ui"
+    maxWidth:900,
+    margin:"0 auto",
+    padding:"20px",
+    fontFamily:"system-ui",
+    background:"#f1f5f9",
+    minHeight:"100vh"
+  },
+
+  header:{
+    display:"flex",
+    alignItems:"center",
+    gap:12,
+    marginBottom:20
   },
 
   title:{
-    marginBottom:20
+    fontSize:26,
+    fontWeight:700,
+    margin:0
+  },
+
+  homeBtn:{
+    padding:"8px 12px",
+    border:"none",
+    borderRadius:8,
+    background:"#111",
+    color:"#fff",
+    cursor:"pointer",
+    fontSize:14
   },
 
   tabs:{
     display:"flex",
     gap:10,
-    marginBottom:20,
-    flexWrap:"wrap"
+    marginBottom:20
   },
 
   tab:{
-    padding:"8px 16px",
-    background:"#eee",
+    padding:"10px 18px",
+    background:"#e5e7eb",
     border:"none",
-    borderRadius:6,
+    borderRadius:10,
     cursor:"pointer"
   },
 
   tabActive:{
-    padding:"8px 16px",
+    padding:"10px 18px",
     background:"#2563eb",
     color:"#fff",
     border:"none",
-    borderRadius:6,
-    cursor:"pointer"
+    borderRadius:10,
+    cursor:"pointer",
+    fontWeight:500
   },
 
   card:{
-    background:"#fff",
-    padding:24,
-    borderRadius:12,
-    boxShadow:"0 4px 20px rgba(0,0,0,0.08)"
+    background:"#ffffff",
+    padding:20,
+    borderRadius:14,
+    boxShadow:"0 2px 12px rgba(0,0,0,0.06)"
   },
 
   form:{
@@ -399,9 +413,9 @@ const styles={
 
   input:{
     padding:"12px",
-    border:"1px solid #ddd",
-    borderRadius:6,
-    fontSize:16,
+    border:"1px solid #d1d5db",
+    borderRadius:8,
+    fontSize:15,
     width:"100%",
     boxSizing:"border-box"
   },
@@ -409,11 +423,12 @@ const styles={
   btn:{
     padding:"12px",
     border:"none",
-    borderRadius:6,
+    borderRadius:8,
     background:"#2563eb",
     color:"#fff",
     cursor:"pointer",
-    fontSize:16
+    fontSize:16,
+    fontWeight:500
   },
 
   tableWrapper:{
@@ -441,6 +456,12 @@ const styles={
     background:"#f9fafb"
   },
 
+  rowInactive:{
+    background:"#fee2e2",
+    color:"#991b1b",
+    fontWeight:500
+  },
+
   houseList:{
     display:"grid",
     gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",
@@ -459,28 +480,6 @@ const styles={
     padding:10,
     borderRadius:6,
     marginBottom:20
-  },
+  }
 
-  rowInactive:{
-    background:"#fee2e2",
-    color:"#991b1b",
-    fontWeight:500
-  },
-
-  header:{
-  display:"flex",
-  justifyContent:"space-between",
-  alignItems:"center",
-  marginBottom:20
-},
-
-homeBtn:{
-  padding:"8px 14px",
-  border:"none",
-  borderRadius:6,
-  background:"#111",
-  color:"#fff",
-  cursor:"pointer"
-}
-  
 }
