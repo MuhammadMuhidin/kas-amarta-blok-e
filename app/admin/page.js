@@ -467,7 +467,6 @@ const styles={
   houseList:{
     display:"grid",
     gridTemplateColumns:"repeat(3,1fr)",
-    gridAutoFlow:"column",
     gap:8,
     marginTop:10
   },
