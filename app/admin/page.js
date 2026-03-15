@@ -188,15 +188,17 @@ export default function AdminPage(){
 
           <h4>Member List</h4>
 
+          <div style={styles.tableWrapper}>
+
           <table style={styles.table}>
 
             <thead>
               <tr>
-                <th>ID</th>
-                <th>House</th>
-                <th>Name</th>
-                <th>Active</th>
-                <th>Join Date</th>
+                <th style={styles.th}>ID</th>
+                <th style={styles.th}>House</th>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Active</th>
+                <th style={styles.th}>Join Date</th>
               </tr>
             </thead>
 
@@ -212,11 +214,11 @@ export default function AdminPage(){
 
                 return (
                   <tr key={p.id} style={rowStyle}>
-                    <td>{p.id}</td>
-                    <td>{p.house}</td>
-                    <td>{p.name}</td>
-                    <td>{p.active}</td>
-                    <td>{p.join_date}</td>
+                    <td style={styles.td}>{p.id}</td>
+                    <td style={styles.td}>{p.house}</td>
+                    <td style={styles.td}>{p.name}</td>
+                    <td style={styles.td}>{p.active}</td>
+                    <td style={styles.td}>{p.join_date}</td>
                   </tr>
                 )
               })}
@@ -224,6 +226,8 @@ export default function AdminPage(){
             </tbody>
 
           </table>
+
+          </div>
 
         </div>
 
@@ -328,6 +332,7 @@ const styles={
   wrapper:{
     maxWidth:1100,
     margin:"40px auto",
+    padding:"0 16px",
     fontFamily:"system-ui"
   },
 
@@ -338,7 +343,8 @@ const styles={
   tabs:{
     display:"flex",
     gap:10,
-    marginBottom:20
+    marginBottom:20,
+    flexWrap:"wrap"
   },
 
   tab:{
@@ -360,7 +366,7 @@ const styles={
 
   card:{
     background:"#fff",
-    padding:25,
+    padding:20,
     borderRadius:12,
     boxShadow:"0 4px 20px rgba(0,0,0,0.08)"
   },
@@ -368,28 +374,48 @@ const styles={
   form:{
     display:"grid",
     gap:12,
+    width:"100%",
     maxWidth:400,
     marginBottom:25
   },
 
   input:{
-    padding:"10px",
+    padding:"12px",
     border:"1px solid #ddd",
-    borderRadius:6
+    borderRadius:6,
+    fontSize:16,
+    width:"100%"
   },
 
   btn:{
-    padding:"10px",
+    padding:"12px",
     border:"none",
     borderRadius:6,
     background:"#2563eb",
     color:"#fff",
-    cursor:"pointer"
+    cursor:"pointer",
+    fontSize:16
+  },
+
+  tableWrapper:{
+    overflowX:"auto"
   },
 
   table:{
     width:"100%",
-    borderCollapse:"collapse"
+    borderCollapse:"collapse",
+    minWidth:500
+  },
+
+  th:{
+    textAlign:"left",
+    padding:"10px",
+    borderBottom:"2px solid #e5e7eb"
+  },
+
+  td:{
+    padding:"10px",
+    borderBottom:"1px solid #f1f5f9"
   },
 
   rowAlt:{
@@ -398,8 +424,8 @@ const styles={
 
   houseList:{
     display:"grid",
-    gridTemplateColumns:"repeat(4,1fr)",
-    gap:10,
+    gridTemplateColumns:"repeat(auto-fill,minmax(80px,1fr))",
+    gap:8,
     marginTop:10
   },
 
@@ -417,9 +443,9 @@ const styles={
   },
 
   rowInactive:{
-  background:"#fee2e2",
-  color:"#991b1b",
-  fontWeight:500
-},
-
+    background:"#fee2e2",
+    color:"#991b1b",
+    fontWeight:500
+  }
+  
 }
