@@ -4,7 +4,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="color-scheme" content="light dark" />
         <link rel="icon" href="data:,">
-        <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#007bff" />
         <title>Uang Kas Amarta Residence (Blok E)</title>
         <style>
@@ -341,47 +340,10 @@
             body {
                 overflow-x: hidden;
             }
-
-            /* ==== NETWORK TOAST ==== */
-
-            .net-toast {
-                position: fixed;
-                left: 50%;
-                top: -80px;
-                transform: translate(-50%, -20px);
-                color: #fff;
-                padding: 12px 18px;
-                border-radius: 10px;
-                font-size: 14px;
-                font-weight: 600;
-                box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-                opacity: 0;
-                transition: all 0.35s ease;
-                z-index: 9999;
-                max-width: 90%;
-                text-align: center;
-            }
-
-            .net-toast.show {
-                top: calc(env(safe-area-inset-top) + 16px);
-                transform: translate(-50%, 0);
-                opacity: 1;
-            }
-
-            .net-toast.offline{
-            background:#dc3545 !important;
-            color:#fff !important;
-            }
-            
-            .net-toast.online{
-            background:#28a745 !important;
-            color:#fff !important;
-            }
         </style>
     </head>
     <body>
         <h2>Uang Kas Amarta Residence (Blok E)</h2>
-        <div id="netToast" class="net-toast"></div>
         <div class="tab">
             <button onclick='tab("payment")' id="btnPay" class="active">Payment</button>
             <button onclick='tab("cashflow")' id="btnCash">Cashflow</button>
@@ -449,7 +411,6 @@
         </script>
         <script>
             /* ==== CONFIG URL ==== */
-            //const FETCH_URL = "https://n8n-jwskbckc.ap-southeast-1.clawcloudrun.com/webhook/cashflow"; // <= URL WEBHOOK/SOURCE
             const FETCH_URL = "/api/sheets/summary"; // <= URL WEBHOOK/SOURCE
 
             /* ==== STATE ==== */
@@ -618,42 +579,6 @@
                 if (m === "insight") renderInsight();
             }
             load();
-        </script>
-        <script>
-            if ("serviceWorker" in navigator) {
-                window.addEventListener("load", () => {
-                    navigator.serviceWorker
-                        .register("service-worker.js")
-                        .then((reg) => console.log("SW registered"))
-                        .catch((err) => console.log("SW failed", err));
-                });
-            }
-        </script>
-        <script>
-            const toast = document.getElementById("netToast");
-            let toastTimer;
-
-            function showToast(msg, type) {
-                clearTimeout(toastTimer);
-
-                toast.classList.remove("online", "offline");
-                toast.classList.add(type);
-
-                toast.innerText = msg;
-                toast.classList.add("show");
-
-                toastTimer = setTimeout(() => {
-                    toast.classList.remove("show");
-                }, 4000);
-            }
-
-            window.addEventListener("offline", () => {
-                showToast("Anda sedang offline", "offline");
-            });
-
-            window.addEventListener("online", () => {
-                showToast("Anda online kembali", "online");
-            });
         </script>
     </body>
 </html>
