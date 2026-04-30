@@ -2,37 +2,66 @@ import { getSheetData } from "@/lib/google";
 
 export async function GET() {
   try {
-    // Ambil semua data dari Google Sheets
     const rows = await getSheetData();
 
-    // --- Transform (ini dari webhook kamu) ---
-    const payments = rows.filter(r => r.person_id && r.period);
-
-    const persons = rows.filter(
-      r => r.house && r.name && r.active === "Y"
+    /* ========================= */
+    /* PAYMENTS */
+    /* ========================= */
+    const payments = rows.filter(
+      (r) =>
+        r.__type === "payment" &&
+        r.person_id &&
+        r.period
     );
 
+    /* ========================= */
+    /* PERSONS */
+    /* ========================= */
+    const persons = rows.filter(
+      (r) =>
+        r.__type === "personal" &&
+        r.house &&
+        r.name &&
+        ["y", "yes", "true", "1"].includes(
+          (r.active || "").toLowerCase()
+        )
+    );
+
+    /* ========================= */
+    /* PERIODS */
+    /* ========================= */
     const periods = [
-      ...new Set(payments.map(p => p.period))
+      ...new Set(
+        payments.map((p) => p.period).filter(Boolean)
+      ),
     ];
 
-    const cashflowsRaw = rows.filter(
-      r => r.type === "income" || r.type === "expense"
-    );
+    /* ========================= */
+    /* CASHFLOW */
+    /* ========================= */
+    const cashflows = rows
+      .filter(
+        (r) =>
+          r.__type === "cashflow" &&
+          ["income", "expense"].includes(
+            (r.type || "").toLowerCase()
+          )
+      )
+      .sort(
+        (a, b) =>
+          new Date(b.date || 0) - new Date(a.date || 0)
+      );
 
-    const cashflows = cashflowsRaw.sort((a, b) =>
-      (b.date || "").localeCompare(a.date || "")
-    );
-
-    // --- Response ---
     return Response.json({
       payments,
-      cashflows,
       persons,
-      periods
+      cashflows,
+      periods,
     });
 
   } catch (error) {
+    console.error("SUMMARY ERROR:", error);
+
     return Response.json(
       { error: "Failed to fetch data" },
       { status: 500 }
