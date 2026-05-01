@@ -22,7 +22,9 @@ export default function AdminPage(){
   })
 
   const [cashflow,setCashflow] = useState({
-    type:""
+    type:"",
+    amount:"",
+    note:""
   })
 
   const [msg,setMsg] = useState("")
