@@ -335,12 +335,14 @@ export default function AdminPage(){
             <input
               style={styles.input}
               placeholder="Amount"
+              value={cashflow.amount}
               onChange={e=>setCashflow({...cashflow,amount:e.target.value})}
             />
 
             <input
               style={styles.input}
               placeholder="Note"
+              value={cashflow.note}
               onChange={e=>setCashflow({...cashflow,note:e.target.value})}
             />
 
