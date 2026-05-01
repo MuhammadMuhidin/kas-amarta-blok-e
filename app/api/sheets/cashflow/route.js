@@ -4,17 +4,15 @@ import { generateId } from "@/lib/id"
 
 const spreadsheetId = process.env.SPREADSHEET_ID
 
-function toCamelCase(str = "") {
+function toTitleCase(str = "") {
   return str
     .toLowerCase()
     .trim()
-    .split(/[\s_-]+/)
-    .map((word, i) =>
-      i === 0
-        ? word
-        : word.charAt(0).toUpperCase() + word.slice(1)
+    .split(/\s+/)
+    .map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1)
     )
-    .join("")
+    .join(" ")
 }
 
 export async function POST(req){
@@ -35,7 +33,7 @@ export async function POST(req){
         generateId("DIRECT-"),
         body.type,
         body.amount,
-        toCamelCase(body.note),
+        toTitleCase(body.note),
         today
       ]]
     }
