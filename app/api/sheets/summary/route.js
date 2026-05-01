@@ -1,5 +1,7 @@
 import { getSheetData } from "@/lib/google";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const rows = await getSheetData();
