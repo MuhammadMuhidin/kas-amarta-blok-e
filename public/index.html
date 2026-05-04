@@ -544,8 +544,6 @@
                     return am.join_date.slice(0,7) <= [...periods].sort().pop();
                 }).length;
                 const insightSummary = document.getElementById("insightSummary");
-                insightSummary.innerHTML = `Jumlah anggota yang tergabung: <b>${activeMembers}</b>`;
-                
                 const result = persons
                     .map((p) => {
                         const validPeriods = periods.filter((pr) => {
@@ -565,10 +563,13 @@
                     paginationInsight.innerHTML = "";
                     return;
                 }
+                const totalNunggak = result.length;
                 const total = Math.max(1, Math.ceil(result.length / perPageInsight));
                 if (pageInsight > total) pageInsight = total;
                 const start = (pageInsight - 1) * perPageInsight;
                 const paged = result.slice(start, start + perPageInsight);
+                insightSummary.innerHTML = `Jumlah anggota yang tergabung: <b>${activeMembers}</b><br>
+                Menunggak: <b>${totalNunggak}</b> rumah`
                 insightList.innerHTML = paged
                     .map(
                         (r, i) =>
