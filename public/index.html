@@ -537,9 +537,9 @@
 
             /* ==== INSIGHT ==== */
             function renderInsight() {
-                const activeMembers = persons.filter(p => {
-                    if (!p.join_date) return true;
-                    return p.join_date.slice(0,7) <= periods.sort().pop();
+                const activeMembers = persons.filter(am => {
+                    if (!am.join_date) return true;
+                    return am.join_date.slice(0,7) <= [...periods].sort().pop();
                 }).length;
                 const insightSummary = document.getElementById("insightSummary");
                 insightSummary.innerHTML = `Jumlah anggota yang tergabung: <b>${activeMembers}</b>`;
