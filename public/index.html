@@ -385,6 +385,7 @@
         </div>
         <div id="insight" class="hidden">
             <h3>Laporan Tunggakan Saat ini</h3>
+            <div id="insightSummary" style="margin-bottom:10px;font-weight:600;"></div>
             <div id="insightList"></div>
             <div id="paginationInsight"></div>
         </div>
@@ -536,6 +537,12 @@
 
             /* ==== INSIGHT ==== */
             function renderInsight() {
+                const activeMembers = persons.filter(p => {
+                    if (!p.join_date) return true;
+                    return p.join_date.slice(0,7) <= periods.sort().pop();
+                }).length;
+                insightSummary.innerHTML = `Jumlah anggota yang tergabung: <b>${activeMembers}</b>`;
+                
                 const result = persons
                     .map((p) => {
                         const validPeriods = periods.filter((pr) => {
