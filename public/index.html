@@ -568,7 +568,7 @@
                 if (pageInsight > total) pageInsight = total;
                 const start = (pageInsight - 1) * perPageInsight;
                 const paged = result.slice(start, start + perPageInsight);
-                insightSummary.innerHTML = `Jumlah rumah: <b>${activeMembers}</b><br>
+                insightSummary.innerHTML = `Jumlah anggota: <b>${activeMembers}</b><br>
                 Menunggak: <b>${totalNunggak}</b> rumah`
                 insightList.innerHTML = paged
                     .map(
