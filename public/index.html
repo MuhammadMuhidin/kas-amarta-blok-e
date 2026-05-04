@@ -541,6 +541,7 @@
                     if (!p.join_date) return true;
                     return p.join_date.slice(0,7) <= periods.sort().pop();
                 }).length;
+                const insightSummary = document.getElementById("insightSummary");
                 insightSummary.innerHTML = `Jumlah anggota yang tergabung: <b>${activeMembers}</b>`;
                 
                 const result = persons
