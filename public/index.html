@@ -539,6 +539,7 @@
 
             /* ==== INSIGHT ==== */
             function renderInsight() {
+                const IURAN_PER_PERIODE = 25000;
                 const activeMembers = persons.filter(am => {
                     if (!am.join_date) return true;
                     return am.join_date.slice(0,7) <= [...periods].sort().pop();
@@ -564,12 +565,13 @@
                     return;
                 }
                 const totalNunggak = result.length;
+                const totalPeriode = result.reduce((sum, r) => sum + r.jumlah, 0);
+                const totalNominalTunggakan = totalPeriode * IURAN_PER_PERIODE;
                 const total = Math.max(1, Math.ceil(result.length / perPageInsight));
                 if (pageInsight > total) pageInsight = total;
                 const start = (pageInsight - 1) * perPageInsight;
                 const paged = result.slice(start, start + perPageInsight);
-                insightSummary.innerHTML = `Jumlah anggota: <b>${activeMembers}</b><br>
-                Menunggak: <b>${totalNunggak}</b> rumah`
+                insightSummary.innerHTML =`Rangkuman: dari ${activeMembers} anggota aktif, ${totalNunggak} rumah menunggak (dengan total akumulasi ${totalPeriode} periode); estimasi kas masuk jika seluruh tunggakan dilunasi: ${format(totalNominalTunggakan)}`;
                 insightList.innerHTML = paged
                     .map(
                         (r, i) =>
