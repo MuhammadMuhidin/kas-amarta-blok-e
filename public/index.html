@@ -571,7 +571,7 @@
                 if (pageInsight > total) pageInsight = total;
                 const start = (pageInsight - 1) * perPageInsight;
                 const paged = result.slice(start, start + perPageInsight);
-                insightSummary.innerHTML =`Rangkuman: dari ${activeMembers} anggota aktif, ${totalNunggak} rumah menunggak (dengan total akumulasi ${totalPeriode} periode); estimasi kas masuk jika seluruh tunggakan dilunasi: ${format(totalNominalTunggakan)}`;
+                insightSummary.innerHTML =`Rangkuman: ${activeMembers} anggota aktif, ${totalNunggak} rumah menunggak (total akumulasi ${totalPeriode} periode), estimasi kas masuk jika seluruhnya dilunasi: ${format(totalNominalTunggakan)}`;
                 insightList.innerHTML = paged
                     .map(
                         (r, i) =>
