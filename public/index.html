@@ -556,6 +556,7 @@
                     })
                     .filter((r) => r.jumlah >= 1)
                     .sort((a, b) => a.house.localeCompare(b.house, undefined, { numeric: true }));
+                document.getElementById("insightSummary").innerHTML=`Total member aktif: ${activeMembers} rumah`;
                 if (!result.length) {
                     insightList.innerHTML = "Tidak ada tunggakan";
                     paginationInsight.innerHTML = "";
@@ -572,7 +573,6 @@
                 const totalNominalTunggakan = totalPeriode * IURAN_PER_PERIODE;
                 const insightSummary = document.getElementById("insightSummary");
                 insightSummary.innerHTML =`Rangkuman: ${activeMembers} anggota aktif, ${totalNunggak} rumah menunggak (total akumulasi ${totalPeriode} periode), estimasi kas masuk jika seluruhnya dilunasi: ${format(totalNominalTunggakan)}`; */
-                document.getElementById("insightSummary").innerHTML=`Total member aktif: ${activeMembers} rumah`;
                 insightList.innerHTML = paged
                     .map(
                         (r, i) =>
