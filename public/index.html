@@ -542,6 +542,10 @@
                     if (!am.join_date) return true;
                     return am.join_date.slice(0,7) <= [...periods].sort().pop();
                 }).length;
+                document.getElementById("insightSummary").innerHTML = `
+                    <div>&bull; Total member aktif: ${activeMembers} rumah</div>
+                `;
+                
                 const result = persons
                     .map((p) => {
                         const validPeriods = periods.filter((pr) => {
@@ -556,9 +560,12 @@
                     })
                     .filter((r) => r.jumlah >= 1)
                     .sort((a, b) => a.house.localeCompare(b.house, undefined, { numeric: true }));
-                document.getElementById("insightSummary").innerHTML=`Total member aktif: ${activeMembers} rumah`;
                 if (!result.length) {
-                    insightList.innerHTML = "Tidak ada tunggakan";
+                    insightList.innerHTML = `
+                        <div class="insight-card">
+                            Tidak ada tunggakan.
+                        </div>
+                    `;
                     paginationInsight.innerHTML = "";
                     return;
                 }
