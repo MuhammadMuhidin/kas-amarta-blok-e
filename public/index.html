@@ -562,17 +562,18 @@
                 if (pageInsight > total) pageInsight = total;
                 const start = (pageInsight - 1) * perPageInsight;
                 const paged = result.slice(start, start + perPageInsight);
-                /* -- this is insightSummary --
+                /* -- this is insightSummary -- */
                 const activeMembers = persons.filter(am => {
                     if (!am.join_date) return true;
                     return am.join_date.slice(0,7) <= [...periods].sort().pop();
                 }).length;
-                const IURAN_PER_PERIODE = 25000;
+                /* const IURAN_PER_PERIODE = 25000;
                 const totalNunggak = result.length;
                 const totalPeriode = result.reduce((sum, r) => sum + r.jumlah, 0);
-                const totalNominalTunggakan = totalPeriode * IURAN_PER_PERIODE;
+                const totalNominalTunggakan = totalPeriode * IURAN_PER_PERIODE; */
                 const insightSummary = document.getElementById("insightSummary");
-                insightSummary.innerHTML =`Rangkuman: ${activeMembers} anggota aktif, ${totalNunggak} rumah menunggak (total akumulasi ${totalPeriode} periode), estimasi kas masuk jika seluruhnya dilunasi: ${format(totalNominalTunggakan)}`; */
+                /* insightSummary.innerHTML =`Rangkuman: ${activeMembers} anggota aktif, ${totalNunggak} rumah menunggak (total akumulasi ${totalPeriode} periode), estimasi kas masuk jika seluruhnya dilunasi: ${format(totalNominalTunggakan)}`; */
+                insightSummary.innerHTML =`Total member aktif: ${activeMembers} rumah`;
                 insightList.innerHTML = paged
                     .map(
                         (r, i) =>
