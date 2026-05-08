@@ -21,6 +21,7 @@ export async function POST(req){
         id,
         body.house,
         body.name,
+        body.trash,
         "Y",
         body.join_date
       ]]
