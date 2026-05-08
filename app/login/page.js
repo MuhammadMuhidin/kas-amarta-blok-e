@@ -19,7 +19,7 @@ export default function Login(){
     if(res.ok){
       router.push("/admin")
     }else{
-      alert("Password salah")
+      alert("Password salah!")
     }
   }
 
