@@ -156,6 +156,10 @@ async function recordPayment(e){
 
     setMsg(`Payment recorded for ${success} house successfully`)
     setSelected([])
+    setPayment({
+      period:"",
+      amount:25000
+    })
 
   }finally{
 
