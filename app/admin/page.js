@@ -389,6 +389,7 @@ async function addCashflow(e){
             <input
               style={styles.input}
               placeholder="Period (2026-02)"
+              value={payment.period}
               onChange={e=>setPayment({...payment,period:e.target.value})}
             />
 
