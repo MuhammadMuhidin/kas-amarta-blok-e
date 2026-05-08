@@ -13,7 +13,7 @@ export default function AdminPage(){
     house:"",
     name:"",
     join_date:"",
-    trash:"N"
+    trash:""
   })
 
   const [selected,setSelected] = useState([])
@@ -54,7 +54,7 @@ export default function AdminPage(){
 
     if(res.ok){
       setMsg("Member added successfully")
-      setMember({house:"",name:"",join_date:"",trash:"N"})
+      setMember({house:"",name:"",join_date:"",trash:""})
       loadPersonal()
     }else{
       setMsg("Failed to add member")
@@ -208,8 +208,9 @@ export default function AdminPage(){
               value={member.trash}
               onChange={e=>setMember({...member,trash:e.target.value})}
             >
-              <option value="N">Trash No</option>
-              <option value="Y">Trash Yes</option>
+              <option value="">Choose Trash</option>
+              <option value="Y">Yes</option>  
+              <option value="N">No</option>
             </select>
 
             <input
