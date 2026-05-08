@@ -25,6 +25,9 @@ export async function GET() {
         r.house &&
         r.name &&
         ["y", "yes", "true", "1"].includes(
+          (r.trash || "").toLowerCase()
+        ) &&
+        ["y", "yes", "true", "1"].includes(
           (r.active || "").toLowerCase()
         )
     );
