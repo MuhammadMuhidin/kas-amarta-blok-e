@@ -319,6 +319,15 @@ async function addCashflow(e){
           </form>
 
           <h4>Member List</h4>
+          <p style={styles.summary}>
+            Member active: {
+              personal.filter(p=>p.active==="Y").length
+            }
+            {" | "}
+            Member nonactive: {
+              personal.filter(p=>p.active==="N").length
+            }
+          </p>
 
           <div style={styles.tableWrapper}>
 
@@ -629,6 +638,12 @@ const styles={
     padding:10,
     borderRadius:6,
     marginBottom:20
+  },
+
+  summary:{
+    marginBottom:12,
+    fontSize:14,
+    color:"#475569"
   }
 
 }
