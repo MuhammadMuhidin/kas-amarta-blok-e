@@ -12,7 +12,8 @@ export default function AdminPage(){
   const [member,setMember] = useState({
     house:"",
     name:"",
-    join_date:""
+    join_date:"",
+    trash:"N"
   })
 
   const [selected,setSelected] = useState([])
@@ -53,7 +54,7 @@ export default function AdminPage(){
 
     if(res.ok){
       setMsg("Member added successfully")
-      setMember({house:"",name:"",join_date:""})
+      setMember({house:"",name:"",join_date:"",trash:"N"})
       loadPersonal()
     }else{
       setMsg("Failed to add member")
@@ -202,6 +203,15 @@ export default function AdminPage(){
               onChange={e=>setMember({...member,name:e.target.value})}
             />
 
+            <select
+              style={styles.input}
+              value={member.trash}
+              onChange={e=>setMember({...member,trash:e.target.value})}
+            >
+              <option value="N">Trash No</option>
+              <option value="Y">Trash Yes</option>
+            </select>
+
             <input
               style={styles.input}
               type="date"
@@ -224,6 +234,7 @@ export default function AdminPage(){
                   <th style={styles.th}>ID</th>
                   <th style={styles.th}>House</th>
                   <th style={styles.th}>Name</th>
+                  <th style={styles.th}>Trash</th>
                   <th style={styles.th}>Active</th>
                   <th style={styles.th}>Join Date</th>
                 </tr>
@@ -246,6 +257,7 @@ export default function AdminPage(){
                       <td style={styles.td}>{p.id}</td>
                       <td style={styles.td}>{p.house}</td>
                       <td style={styles.td}>{p.name}</td>
+                      <td style={styles.td}>{p.trash}</td>
                       <td style={styles.td}>{p.active}</td>
                       <td style={styles.td}>{p.join_date}</td>
                     </tr>
