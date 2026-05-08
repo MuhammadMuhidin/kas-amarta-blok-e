@@ -30,6 +30,10 @@ export default function AdminPage(){
 
   const [msg,setMsg] = useState("")
 
+  const [loadingAdd,setLoadingAdd] = useState(false)
+  const [loadingPayment,setLoadingPayment] = useState(false)
+  const [loadingCashflow,setLoadingCashflow] = useState(false)
+
   async function loadPersonal(){
 
     const res = await fetch("/api/sheets/personal/list",{cache:"no-store"})
@@ -42,9 +46,17 @@ export default function AdminPage(){
     loadPersonal()
   },[])
 
-  async function addMember(e){
+const [loadingAdd,setLoadingAdd] = useState(false)
+const [loadingPayment,setLoadingPayment] = useState(false)
+const [loadingCashflow,setLoadingCashflow] = useState(false)
 
-    e.preventDefault()
+async function addMember(e){
+
+  e.preventDefault()
+
+  setLoadingAdd(true)
+
+  try{
 
     const res = await fetch("/api/sheets/personal",{
       method:"POST",
@@ -53,28 +65,41 @@ export default function AdminPage(){
     })
 
     if(res.ok){
+
       setMsg("Member added successfully")
-      setMember({house:"",name:"",join_date:"",trash:""})
+
+      setMember({
+        house:"",
+        name:"",
+        join_date:"",
+        trash:""
+      })
+
       loadPersonal()
+
     }else{
+
       setMsg("Failed to add member")
+
     }
+
+  }finally{
+
+    setLoadingAdd(false)
 
     setTimeout(()=>setMsg(""),3000)
+
   }
 
-  function toggleHouse(id){
+}
 
-    if(selected.includes(id)){
-      setSelected(selected.filter(x=>x!==id))
-    }else{
-      setSelected([...selected,id])
-    }
-  }
+async function recordPayment(e){
 
-  async function recordPayment(e){
+  e.preventDefault()
 
-    e.preventDefault()
+  setLoadingPayment(true)
+
+  try{
 
     let success = 0
 
@@ -92,18 +117,49 @@ export default function AdminPage(){
         })
       })
 
-      if(res.ok) success++
+      if(res.ok){
+
+        success++
+
+        const paymentData = await res.json()
+
+        if((p.trash || "").toUpperCase() === "Y"){
+
+          await fetch("/api/sheets/trash",{
+            method:"POST",
+            headers:{ "Content-Type":"application/json" },
+            body:JSON.stringify({
+              payment_id:paymentData.payment_id,
+              amount:payment.amount
+            })
+          })
+
+        }
+
+      }
+
     }
 
     setMsg(`Payment recorded for ${success} house successfully`)
     setSelected([])
 
+  }finally{
+
+    setLoadingPayment(false)
+
     setTimeout(()=>setMsg(""),3000)
+
   }
 
-  async function addCashflow(e){
+}
 
-    e.preventDefault()
+async function addCashflow(e){
+
+  e.preventDefault()
+
+  setLoadingCashflow(true)
+
+  try{
 
     const res = await fetch("/api/sheets/cashflow",{
       method:"POST",
@@ -112,18 +168,30 @@ export default function AdminPage(){
     })
 
     if(res.ok){
+
       setMsg("Transaction recorded successfully")
+
       setCashflow({
         type:"",
         amount:"",
         note:""
       })
+
     }else{
+
       setMsg("Failed to record transaction")
+
     }
 
+  }finally{
+
+    setLoadingCashflow(false)
+
     setTimeout(()=>setMsg(""),3000)
+
   }
+
+}
 
   return (
     <>
@@ -220,7 +288,15 @@ export default function AdminPage(){
               onChange={e=>setMember({...member,join_date:e.target.value})}
             />
 
-            <button style={styles.btn}>Add Member</button>
+            <button
+              style={{
+                ...styles.btn,
+                ...(loadingAdd ? styles.btnDisabled : {})
+              }}
+              disabled={loadingAdd}
+            >
+              {loadingAdd ? "Adding..." : "Add Member"}
+            </button>
 
           </form>
 
@@ -319,7 +395,15 @@ export default function AdminPage(){
 
             </div>
 
-            <button style={styles.btn}>Record Payment</button>
+            <button
+              style={{
+                ...styles.btn,
+                ...(loadingPayment ? styles.btnDisabled : {})
+              }}
+              disabled={loadingPayment}
+            >
+              {loadingPayment ? "Recording..." : "Record Payment"}
+            </button>
 
           </form>
 
@@ -359,7 +443,15 @@ export default function AdminPage(){
               onChange={e=>setCashflow({...cashflow,note:e.target.value})}
             />
 
-            <button style={styles.btn}>Record Transaction</button>
+            <button
+              style={{
+                ...styles.btn,
+                ...(loadingCashflow ? styles.btnDisabled : {})
+              }}
+              disabled={loadingCashflow}
+            >
+              {loadingCashflow ? "Recording..." : "Record Transaction"}
+            </button>
 
           </form>
 
@@ -463,6 +555,11 @@ const styles={
     cursor:"pointer",
     fontSize:16,
     fontWeight:500
+  },
+
+  btnDisabled:{
+    opacity:0.6,
+    cursor:"not-allowed"
   },
 
   tableWrapper:{
