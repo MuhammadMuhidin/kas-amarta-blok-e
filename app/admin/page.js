@@ -208,7 +208,7 @@ export default function AdminPage(){
               value={member.trash}
               onChange={e=>setMember({...member,trash:e.target.value})}
             >
-              <option value="">Choose Trash</option>
+              <option value="">Join trash collection?</option>
               <option value="Y">Yes</option>  
               <option value="N">No</option>
             </select>
