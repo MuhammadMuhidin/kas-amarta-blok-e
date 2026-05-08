@@ -88,6 +88,25 @@ async function addMember(e){
 
 }
 
+function toggleHouse(id){
+
+  if(selected.includes(id)){
+
+    setSelected(
+      selected.filter(x=>x!==id)
+    )
+
+  }else{
+
+    setSelected([
+      ...selected,
+      id
+    ])
+
+  }
+
+}
+
 async function recordPayment(e){
 
   e.preventDefault()
