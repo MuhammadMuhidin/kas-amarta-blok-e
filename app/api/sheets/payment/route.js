@@ -18,7 +18,7 @@ export async function POST(req){
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range:"personal!A:E"
+    range:"personal!A:F"
   })
 
   const rows = res.data.values || []

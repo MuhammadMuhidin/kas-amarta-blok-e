@@ -11,7 +11,7 @@ export async function GET(){
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range:"personal!A:E"
+    range:"personal!A:F"
   })
 
   const rows = res.data.values || []
@@ -20,8 +20,9 @@ export async function GET(){
     id:r[0],
     house:r[1],
     name:r[2],
-    active:r[3],
-    join_date:r[4]
+    trash:r[3],
+    active:r[4],
+    join_date:r[5]
   }))
 
   return NextResponse.json(data)

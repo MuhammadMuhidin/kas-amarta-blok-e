@@ -14,13 +14,14 @@ export async function POST(req){
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range:"personal!A:E",
+    range:"personal!A:F",
     valueInputOption:"USER_ENTERED",
     requestBody:{
       values:[[
         id,
         body.house,
         body.name,
+        body.trash,
         "Y",
         body.join_date
       ]]
