@@ -29,7 +29,6 @@ export default function AdminPage(){
   })
 
   const [msg,setMsg] = useState("")
-
   const [loadingAdd,setLoadingAdd] = useState(false)
   const [loadingPayment,setLoadingPayment] = useState(false)
   const [loadingCashflow,setLoadingCashflow] = useState(false)
@@ -45,10 +44,6 @@ export default function AdminPage(){
   useEffect(()=>{
     loadPersonal()
   },[])
-
-const [loadingAdd,setLoadingAdd] = useState(false)
-const [loadingPayment,setLoadingPayment] = useState(false)
-const [loadingCashflow,setLoadingCashflow] = useState(false)
 
 async function addMember(e){
 
