@@ -570,15 +570,15 @@ async function loadSummaryBackup(){
                     </td>
     
                     <td style={styles.td}>
-                      Rp {Number(x.total_income || 0).toLocaleString()}
+                      Rp{Number(x.total_income || 0).toLocaleString()}
                     </td>
     
                     <td style={styles.td}>
-                      Rp {Number(x.total_expense || 0).toLocaleString()}
+                      Rp{Number(x.total_expense || 0).toLocaleString()}
                     </td>
     
                     <td style={styles.td}>
-                      Rp {Number(x.net_saldo || 0).toLocaleString()}
+                      Rp{Number(x.net_saldo || 0).toLocaleString()}
                     </td>
     
                     <td style={styles.td}>
