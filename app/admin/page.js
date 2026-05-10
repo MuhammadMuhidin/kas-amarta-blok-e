@@ -609,12 +609,12 @@ async function loadSummaryBackup(){
 const styles={
 
   wrapper:{
-    maxWidth:900,
-    margin:"0 auto",
-    padding:"20px",
-    fontFamily:"system-ui",
-    background:"#f1f5f9",
-    minHeight:"100vh"
+  width:"100%",
+  maxWidth:900,
+  margin:"0 auto",
+  padding:"20px",
+  boxSizing:"border-box",
+  overflowX:"hidden"
   },
 
   header:{
@@ -708,12 +708,7 @@ const styles={
   },
 
   tableWrapper:{
-    width:"100%",
-    maxWidth:900,
-    margin:"0 auto",
-    padding:"20px",
-    boxSizing:"border-box",
-    overflowX:"hidden"
+    overflowX:"auto"
   },
 
   table:{
