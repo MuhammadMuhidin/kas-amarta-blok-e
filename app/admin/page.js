@@ -666,10 +666,11 @@ const styles={
   },
 
   card:{
-    background:"#ffffff",
-    padding:20,
-    borderRadius:14,
-    boxShadow:"0 2px 12px rgba(0,0,0,0.06)"
+  background:"#ffffff",
+  padding:20,
+  borderRadius:14,
+  boxShadow:"0 2px 12px rgba(0,0,0,0.06)",
+  overflow:"hidden"
   },
 
   form:{
@@ -705,13 +706,17 @@ const styles={
   },
 
   tableWrapper:{
-    overflowX:"auto"
+  width:"100%",
+  overflowX:"auto",
+  borderRadius:12,
+  border:"1px solid #e5e7eb",
+  boxSizing:"border-box"
   },
 
   table:{
-    width:"100%",
-    borderCollapse:"collapse",
-    minWidth:500
+  width:"100%",
+  borderCollapse:"collapse",
+  minWidth:700
   },
 
   th:{
