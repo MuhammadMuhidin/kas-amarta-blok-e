@@ -721,13 +721,16 @@ const styles={
   },
 
   th:{
-    textAlign:"left",
+    textAlign:"center",
+    verticalAlign:"middle",
     padding:"10px",
     borderBottom:"2px solid #e5e7eb",
     whiteSpace:"nowrap"
   },
 
   td:{
+    textAlign:"center",
+    verticalAlign:"middle",
     padding:"10px",
     borderBottom:"1px solid #f1f5f9",
     whiteSpace:"nowrap"
