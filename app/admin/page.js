@@ -614,7 +614,9 @@ const styles={
   margin:"0 auto",
   padding:"20px",
   boxSizing:"border-box",
-  overflowX:"hidden"
+  overflowX:"hidden",
+  fontFamily:"system-ui",
+  background:"#f1f5f9"
   },
 
   header:{
