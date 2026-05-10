@@ -642,35 +642,37 @@ const styles={
   },
 
   tabs:{
-    display:"flex",
-    gap:10,
-    marginBottom:20
+  display:"flex",
+  gap:10,
+  marginBottom:20,
+  flexWrap:"wrap"
   },
 
   tab:{
-    padding:"10px 18px",
-    background:"#e5e7eb",
-    border:"none",
-    borderRadius:10,
-    cursor:"pointer"
+  padding:"10px 18px",
+  background:"#e5e7eb",
+  border:"none",
+  borderRadius:10,
+  cursor:"pointer",
+  flexShrink:0
   },
 
   tabActive:{
-    padding:"10px 18px",
-    background:"#2563eb",
-    color:"#fff",
-    border:"none",
-    borderRadius:10,
-    cursor:"pointer",
-    fontWeight:500
+  padding:"10px 18px",
+  background:"#2563eb",
+  color:"#fff",
+  border:"none",
+  borderRadius:10,
+  cursor:"pointer",
+  fontWeight:500,
+  flexShrink:0
   },
 
   card:{
-  background:"#ffffff",
-  padding:20,
-  borderRadius:14,
-  boxShadow:"0 2px 12px rgba(0,0,0,0.06)",
-  overflow:"hidden"
+    background:"#ffffff",
+    padding:20,
+    borderRadius:14,
+    boxShadow:"0 2px 12px rgba(0,0,0,0.06)"
   },
 
   form:{
@@ -706,17 +708,18 @@ const styles={
   },
 
   tableWrapper:{
-  width:"100%",
-  overflowX:"auto",
-  borderRadius:12,
-  border:"1px solid #e5e7eb",
-  boxSizing:"border-box"
+    width:"100%",
+    maxWidth:900,
+    margin:"0 auto",
+    padding:"20px",
+    boxSizing:"border-box",
+    overflowX:"hidden"
   },
 
   table:{
-  width:"100%",
-  borderCollapse:"collapse",
-  minWidth:700
+    width:"100%",
+    borderCollapse:"collapse",
+    minWidth:500
   },
 
   th:{
