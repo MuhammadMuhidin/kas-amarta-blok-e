@@ -28,6 +28,9 @@ export default function AdminPage(){
     note:""
   })
 
+  const [summaryBackup,setSummaryBackup] = useState([])
+  const [loadingSummary,setLoadingSummary] = useState(false)
+
   const [msg,setMsg] = useState("")
   const [loadingAdd,setLoadingAdd] = useState(false)
   const [loadingPayment,setLoadingPayment] = useState(false)
@@ -43,6 +46,7 @@ export default function AdminPage(){
 
   useEffect(()=>{
     loadPersonal()
+    loadSummaryBackup()
   },[])
 
 async function addMember(e){
@@ -211,6 +215,28 @@ async function addCashflow(e){
 
 }
 
+async function loadSummaryBackup(){
+
+  setLoadingSummary(true)
+
+  try{
+
+    const res = await fetch("/api/summary-backup",{
+      cache:"no-store"
+    })
+
+    const data = await res.json()
+
+    setSummaryBackup(data || [])
+
+  }finally{
+
+    setLoadingSummary(false)
+
+  }
+
+}
+
   return (
     <>
         <style jsx global>{`
@@ -263,6 +289,13 @@ async function addCashflow(e){
           onClick={()=>setTab("cashflow")}
         >
           Cashflow
+        </button>
+
+        <button
+          style={tab==="summary"?styles.tabActive:styles.tab}
+          onClick={()=>setTab("summary")}
+        >
+          Summary Backup
         </button>
 
       </div>
@@ -487,6 +520,87 @@ async function addCashflow(e){
 
       )}
 
+      {tab==="summary" && (
+
+      <div style={styles.card}>
+    
+        <div style={styles.summaryHeader}>
+    
+          <h3>Summary Backup</h3>
+    
+          <button
+            style={styles.refreshBtn}
+            onClick={loadSummaryBackup}
+          >
+            Refresh
+          </button>
+    
+        </div>
+    
+        {loadingSummary ? (
+    
+          <p>Loading summary...</p>
+    
+        ) : (
+    
+          <div style={styles.tableWrapper}>
+    
+            <table style={styles.table}>
+    
+              <thead>
+                <tr>
+                  <th style={styles.th}>Date</th>
+                  <th style={styles.th}>Income</th>
+                  <th style={styles.th}>Expense</th>
+                  <th style={styles.th}>Net</th>
+                  <th style={styles.th}>Personal Active</th>
+                </tr>
+              </thead>
+    
+              <tbody>
+    
+                {summaryBackup.map((x,i)=>(
+    
+                  <tr
+                    key={i}
+                    style={i % 2 ? styles.rowAlt : null}
+                  >
+                    <td style={styles.td}>
+                      {x.created_at}
+                    </td>
+    
+                    <td style={styles.td}>
+                      Rp {Number(x.total_income || 0).toLocaleString()}
+                    </td>
+    
+                    <td style={styles.td}>
+                      Rp {Number(x.total_expense || 0).toLocaleString()}
+                    </td>
+    
+                    <td style={styles.td}>
+                      Rp {Number(x.net_saldo || 0).toLocaleString()}
+                    </td>
+    
+                    <td style={styles.td}>
+                      {x.total_personal_active}
+                    </td>
+    
+                  </tr>
+    
+                ))}
+    
+              </tbody>
+    
+            </table>
+    
+          </div>
+    
+        )}
+    
+      </div>
+    
+    )}
+
     </div>
   </>
   )
@@ -495,12 +609,14 @@ async function addCashflow(e){
 const styles={
 
   wrapper:{
-    maxWidth:900,
-    margin:"0 auto",
-    padding:"20px",
-    fontFamily:"system-ui",
-    background:"#f1f5f9",
-    minHeight:"100vh"
+  width:"100%",
+  maxWidth:900,
+  margin:"0 auto",
+  padding:"20px",
+  boxSizing:"border-box",
+  overflowX:"hidden",
+  fontFamily:"system-ui",
+  background:"#f1f5f9"
   },
 
   header:{
@@ -528,27 +644,30 @@ const styles={
   },
 
   tabs:{
-    display:"flex",
-    gap:10,
-    marginBottom:20
+  display:"flex",
+  gap:10,
+  marginBottom:20,
+  flexWrap:"wrap"
   },
 
   tab:{
-    padding:"10px 18px",
-    background:"#e5e7eb",
-    border:"none",
-    borderRadius:10,
-    cursor:"pointer"
+  padding:"10px 18px",
+  background:"#e5e7eb",
+  border:"none",
+  borderRadius:10,
+  cursor:"pointer",
+  flexShrink:0
   },
 
   tabActive:{
-    padding:"10px 18px",
-    background:"#2563eb",
-    color:"#fff",
-    border:"none",
-    borderRadius:10,
-    cursor:"pointer",
-    fontWeight:500
+  padding:"10px 18px",
+  background:"#2563eb",
+  color:"#fff",
+  border:"none",
+  borderRadius:10,
+  cursor:"pointer",
+  fontWeight:500,
+  flexShrink:0
   },
 
   card:{
@@ -645,6 +764,22 @@ const styles={
     marginBottom:12,
     fontSize:14,
     color:"#475569"
-  }
+  },
+
+  summaryHeader:{
+  display:"flex",
+  justifyContent:"space-between",
+  alignItems:"center",
+  marginBottom:16
+},
+
+  refreshBtn:{
+  padding:"8px 12px",
+  border:"none",
+  borderRadius:8,
+  background:"#0f172a",
+  color:"#fff",
+  cursor:"pointer"
+},
 
 }
