@@ -2,8 +2,9 @@ import { supabase } from "@/lib/supabase"
 
 export async function GET(){
 
-  const { data,error } = await supabase
-    .rpc("tracelog_backup_summary")
+  const { data,error } = await supabase.rpc("tracelog_backup_summary", {
+  _ts: Date.now()
+})
 
   if(error){
 
