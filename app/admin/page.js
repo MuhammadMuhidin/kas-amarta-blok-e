@@ -716,18 +716,24 @@ const styles={
   table:{
     width:"100%",
     borderCollapse:"collapse",
-    minWidth:500
+    minWidth:500,
+    tableLayout:"auto"
   },
 
   th:{
-    textAlign:"left",
+    textAlign:"center",
+    verticalAlign:"middle",
     padding:"10px",
-    borderBottom:"2px solid #e5e7eb"
+    borderBottom:"2px solid #e5e7eb",
+    whiteSpace:"nowrap"
   },
 
   td:{
+    textAlign:"center",
+    verticalAlign:"middle",
     padding:"10px",
-    borderBottom:"1px solid #f1f5f9"
+    borderBottom:"1px solid #f1f5f9",
+    whiteSpace:"nowrap"
   },
 
   rowAlt:{
