@@ -577,12 +577,7 @@ async function loadSummaryBackup(){
                       Rp {Number(x.total_expense || 0).toLocaleString()}
                     </td>
     
-                    <td
-                      style={{
-                        ...styles.td,
-                        fontWeight:600
-                      }}
-                    >
+                    <td style={styles.td}>
                       Rp {Number(x.net_saldo || 0).toLocaleString()}
                     </td>
     
