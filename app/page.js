@@ -674,125 +674,49 @@ export default function CashflowPage() {
   <h3>Laporan Tunggakan Saat ini</h3>
 
 <div className="insight-summary">
-
+  {/* Baris 1: Pemasukan Bulan Lalu */}
   <div className="insight-row">
-    <span>
-      Pemasukan {insight?.lastMonth?.month}
-    </span>
-
-    <strong>
-      {format(
-        insight?.lastMonth?.income || 0
-      )}
-    </strong>
+    <span>Pemasukan {insight?.lastMonth?.month}</span>
+    <strong>{format(insight?.lastMonth?.income || 0)}</strong>
   </div>
 
+  {/* Baris 2: Pengeluaran Bulan Lalu */}
   <div className="insight-row">
-    <span>
-      Pengeluaran {insight?.lastMonth?.month}
-    </span>
-
-    <div
-      style={{
-        display: "flex",
-        gap: "8px",
-        alignItems: "center",
-      }}
-    >
-      <strong style={{ color: "#dc3545" }}>
-        {format(
-          insight?.lastMonth
-            ?.expenseTotal || 0
-        )}
-      </strong>
-
-      <button
-        type="button"
-        className="insight-link"
-        onClick={() => {
-          setModalType("last");
-          setShowInsightModal(true);
-        }}
-      >
-        lihat detail
-      </button>
+    <span>Pengeluaran {insight?.lastMonth?.month}</span>
+    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+      <strong style={{ color: "#dc3545" }}>{format(insight?.lastMonth?.expenseTotal || 0)}</strong>
+      <button className="insight-link" onClick={() => { setModalType("last"); setShowInsightModal(true); }}>lihat detail</button>
     </div>
   </div>
 
+  {/* Baris 3: Saldo Akhir Bulan Lalu (KUMULATIF) */}
   <div className="insight-row highlight-blue">
-    <span>
-      Sisa saldo{" "}
-      {insight?.lastMonth?.month}
-    </span>
-
-    <strong>
-      {format(
-        insight?.lastMonth
-          ?.remaining || 0
-      )}
-    </strong>
+    <span>Total seluruh saldo per {insight?.lastMonth?.month}</span>
+    <strong>{format(insight?.lastMonth?.remaining || 0)}</strong>
   </div>
 
   <hr className="insight-divider" />
 
+  {/* Baris 4: Pemasukan Bulan Ini + Sisa Saldo Lalu */}
   <div className="insight-row">
-    <span>
-      Uang masuk bulan ini
-      <br />
-      + sisa bulan lalu
-    </span>
-
-    <strong>
-      {format(
-        insight?.summary
-          ?.currentIncomePlusLastRemaining || 0
-      )}
-    </strong>
+    <span>Uang masuk bulan ini <br/> + sisa bulan lalu</span>
+    <strong>{format(insight?.summary?.currentIncomePlusLastRemaining || 0)}</strong>
   </div>
 
+  {/* Baris 5: Pengeluaran Bulan Ini */}
   <div className="insight-row">
-    <span>
-      Pengeluaran bulan ini
-    </span>
-    <div
-      style={{
-        display: "flex",
-        gap: "8px",
-        alignItems: "center",
-      }}
-    >
-    <strong style={{ color: "#dc3545" }}>
-      {format(
-        insight?.currentMonth
-          ?.expenseTotal || 0
-      )}
-    </strong>
-      <button
-        type="button"
-        className="insight-link"
-        onClick={() => {
-          setModalType("current");
-          setShowInsightModal(true);
-        }}
-      >
-        lihat detail
-      </button>
+    <span>Pengeluaran bulan ini</span>
+    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+      <strong style={{ color: "#dc3545" }}>{format(insight?.currentMonth?.expenseTotal || 0)}</strong>
+      <button className="insight-link" onClick={() => { setModalType("current"); setShowInsightModal(true); }}>lihat detail</button>
     </div>
   </div>
 
+  {/* Baris 6: Saldo Real Saat Ini */}
   <div className="insight-row final-balance">
-    <span>
-      Total saldo saat ini
-    </span>
-
-    <strong>
-      {format(
-        insight?.summary
-          ?.currentBalance || 0
-      )}
-    </strong>
+    <span>Total saldo saat ini</span>
+    <strong>{format(insight?.summary?.currentBalance || 0)}</strong>
   </div>
-
 </div>
 
   <div>
