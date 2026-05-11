@@ -754,7 +754,13 @@ export default function CashflowPage() {
     <span>
       Pengeluaran bulan ini
     </span>
-
+    <div
+      style={{
+        display: "flex",
+        gap: "8px",
+        alignItems: "center",
+      }}
+    >
     <strong style={{ color: "#dc3545" }}>
       {format(
         insight?.currentMonth
@@ -771,6 +777,7 @@ export default function CashflowPage() {
       >
         lihat detail
       </button>
+    </div>
   </div>
 
   <div className="insight-row final-balance">
