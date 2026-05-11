@@ -316,7 +316,10 @@ export default function CashflowPage() {
                     border-color: #333;
                     color: #eee;
                 }
-
+                    
+                button:hover {
+                    background: #e9e9e9;
+                }
                 button:disabled {
                     background: #1f1f1f;
                     border-color: #333;
