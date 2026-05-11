@@ -593,6 +593,15 @@ export default function CashflowPage() {
               border-bottom:1px dashed var(--border);
           }
 
+          .insight-row-final{
+              display:flex;
+              justify-content:space-between;
+              align-items:center;
+              gap:16px;
+              padding:12px 0;
+              border-bottom:none;
+          }
+
           .insight-row:last-child{
               border-bottom:none;
           }
@@ -718,7 +727,7 @@ export default function CashflowPage() {
   </div>
 
   {/* Baris 3: Saldo Akhir Bulan Lalu (KUMULATIF) */}
-  <div className="insight-row highlight-blue">
+  <div className="insight-row-final highlight-blue">
     <span>Sisa saldo kumulatif per {insight?.lastMonth?.month}</span>
     <strong>{format(insight?.lastMonth?.remaining || 0)}</strong>
   </div>
