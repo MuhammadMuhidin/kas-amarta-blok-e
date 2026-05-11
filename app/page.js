@@ -703,10 +703,10 @@ export default function CashflowPage() {
 
 <div className="insight-summary">
   {/* Baris 1: Pemasukan Bulan Lalu */}
-  /*<div className="insight-row">
+{/*<div className="insight-row">
     <span>Pemasukan {insight?.lastMonth?.month}</span>
     <strong>{format(insight?.lastMonth?.income || 0)}</strong>
-  </div>*/
+  </div>*/}
 
   {/* Baris 2: Pengeluaran Bulan Lalu */}
   <div className="insight-row">
