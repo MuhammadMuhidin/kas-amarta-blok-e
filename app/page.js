@@ -546,6 +546,54 @@ export default function CashflowPage() {
             .modal-section {
                 margin-bottom: 24px;
             }
+
+  .insight-summary{
+    background: var(--surface);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px;
+    margin-bottom:20px;
+}
+
+.insight-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    padding:12px 0;
+    border-bottom:1px dashed var(--border);
+}
+
+.insight-row:last-child{
+    border-bottom:none;
+}
+
+.insight-row span{
+    line-height:1.5;
+}
+
+.insight-row strong{
+    font-size:16px;
+}
+
+.highlight-blue strong{
+    color:#2563eb;
+}
+
+.final-balance{
+    margin-top:4px;
+}
+
+.final-balance strong{
+    font-size:22px;
+    color:#16a34a;
+}
+
+.insight-divider{
+    margin:18px 0;
+    border:none;
+    border-top:2px solid var(--border);
+}
   `}</style>
 
       {loading && (
@@ -624,26 +672,38 @@ export default function CashflowPage() {
 <div className={activeTab !== "insight" ? "hidden" : ""}>
   <h3>Laporan Tunggakan Saat ini</h3>
 
-  <div
-    style={{
-      marginBottom: "14px",
-      fontWeight: 600,
-    }}
-  >
-    <div className="insight-bullet">
-      • Total pemasukan bulan{" "}
-      {insight?.lastMonth?.month}:{" "}
+<div className="insight-summary">
+
+  <div className="insight-row">
+    <span>
+      Pemasukan {insight?.lastMonth?.month}
+    </span>
+
+    <strong>
       {format(
         insight?.lastMonth?.income || 0
       )}
-    </div>
+    </strong>
+  </div>
 
-    <div className="insight-bullet">
-      • Total pengeluaran bulan{" "}
-      {insight?.lastMonth?.month}:{" "}
-      {format(
-        insight?.lastMonth?.expenseTotal || 0
-      )}
+  <div className="insight-row">
+    <span>
+      Pengeluaran {insight?.lastMonth?.month}
+    </span>
+
+    <div
+      style={{
+        display: "flex",
+        gap: "8px",
+        alignItems: "center",
+      }}
+    >
+      <strong style={{ color: "#dc3545" }}>
+        {format(
+          insight?.lastMonth
+            ?.expenseTotal || 0
+        )}
+      </strong>
 
       <button
         type="button"
@@ -652,50 +712,69 @@ export default function CashflowPage() {
           setShowInsightModal(true)
         }
       >
-        detail
+        lihat detail
       </button>
     </div>
+  </div>
 
-    <div className="insight-bullet">
-      • Total sisa bulan{" "}
-      {insight?.lastMonth?.month}:{" "}
+  <div className="insight-row highlight-blue">
+    <span>
+      Sisa saldo{" "}
+      {insight?.lastMonth?.month}
+    </span>
+
+    <strong>
       {format(
-        insight?.lastMonth?.remaining || 0
+        insight?.lastMonth
+          ?.remaining || 0
       )}
-    </div>
+    </strong>
+  </div>
 
-    <div className="insight-bullet">
-      • Total pemasukan bulan berjalan
-      + sisa bulan lalu:{" "}
+  <hr className="insight-divider" />
+
+  <div className="insight-row">
+    <span>
+      Uang masuk bulan ini
+      <br />
+      + sisa bulan lalu
+    </span>
+
+    <strong>
       {format(
         insight?.summary
           ?.currentIncomePlusLastRemaining || 0
       )}
-    </div>
+    </strong>
+  </div>
 
-    <div className="insight-bullet">
-      • Total pengeluaran bulan berjalan:{" "}
+  <div className="insight-row">
+    <span>
+      Pengeluaran bulan ini
+    </span>
+
+    <strong style={{ color: "#dc3545" }}>
       {format(
         insight?.currentMonth
           ?.expenseTotal || 0
       )}
-    </div>
-
-    <div className="insight-bullet">
-      • Total sisa saldo saat ini:{" "}
-      <span
-        style={{
-          color: "#007bff",
-          fontWeight: 700,
-        }}
-      >
-        {format(
-          insight?.summary
-            ?.currentBalance || 0
-        )}
-      </span>
-    </div>
+    </strong>
   </div>
+
+  <div className="insight-row final-balance">
+    <span>
+      Total saldo saat ini
+    </span>
+
+    <strong>
+      {format(
+        insight?.summary
+          ?.currentBalance || 0
+      )}
+    </strong>
+  </div>
+
+</div>
 
   <div>
     {pagedInsight.length > 0 ? (
