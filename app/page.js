@@ -735,13 +735,12 @@ export default function CashflowPage() {
     <span>Total saldo saat ini</span>
     <strong>{format(insight?.summary?.currentBalance || 0)}</strong>
   </div>
-
-  <div style={{marginBottom:'10px', fontWeight:600}}>
-    <div>• Total member aktif: {activeMembersCount} rumah</div>
-  </div>
 </div>
 <h2>Laporan Tunggakan Saat ini</h2>
   <div>
+    <div style={{marginBottom:'8px', fontWeight:600}}>
+    <div>• Total member aktif: {activeMembersCount} rumah</div>
+  </div>
     {pagedInsight.length > 0 ? (
       pagedInsight.map((r, i) => (
         <div
