@@ -593,6 +593,15 @@ export default function CashflowPage() {
               border-bottom:1px dashed var(--border);
           }
 
+          .insight-row-final{
+              display:flex;
+              justify-content:space-between;
+              align-items:center;
+              gap:16px;
+              padding:12px 0;
+              border-bottom:none;
+          }
+
           .insight-row:last-child{
               border-bottom:none;
           }
@@ -703,10 +712,10 @@ export default function CashflowPage() {
 
 <div className="insight-summary">
   {/* Baris 1: Pemasukan Bulan Lalu */}
-  <div className="insight-row">
+{/*<div className="insight-row">
     <span>Pemasukan {insight?.lastMonth?.month}</span>
     <strong>{format(insight?.lastMonth?.income || 0)}</strong>
-  </div>
+  </div>*/}
 
   {/* Baris 2: Pengeluaran Bulan Lalu */}
   <div className="insight-row">
@@ -718,8 +727,8 @@ export default function CashflowPage() {
   </div>
 
   {/* Baris 3: Saldo Akhir Bulan Lalu (KUMULATIF) */}
-  <div className="insight-row highlight-blue">
-    <span>Total saldo kumulatif per {insight?.lastMonth?.month}</span>
+  <div className="insight-row-final highlight-blue">
+    <span>Sisa saldo kumulatif per {insight?.lastMonth?.month}</span>
     <strong>{format(insight?.lastMonth?.remaining || 0)}</strong>
   </div>
 
