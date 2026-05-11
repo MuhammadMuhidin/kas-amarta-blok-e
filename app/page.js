@@ -498,11 +498,6 @@ export default function CashflowPage() {
                 font-size: inherit;
             }
 
-            .insight-link:hover {
-                text-decoration: underline;
-                background: none;
-            }
-
             .modal-overlay {
                 position: fixed;
                 inset: 0;
