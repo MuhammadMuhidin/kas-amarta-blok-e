@@ -185,13 +185,30 @@ export async function GET() {
       );
 
     /* ========================= */
-    /* CURRENT BALANCE */
+    /* ALL TIME BALANCE */
     /* ========================= */
 
+    const totalIncomeAllTime =
+      cashflows
+        .filter((c) => c.type === "income")
+        .reduce(
+          (sum, c) =>
+            sum + Number(c.amount || 0),
+          0
+        );
+
+    const totalExpenseAllTime =
+      cashflows
+        .filter((c) => c.type === "expense")
+        .reduce(
+          (sum, c) =>
+            sum + Number(c.amount || 0),
+          0
+        );
+
     const currentBalance =
-      currentMonthIncome +
-      lastMonthRemaining -
-      currentMonthExpenseTotal;
+      totalIncomeAllTime -
+      totalExpenseAllTime;
 
     /* ========================= */
     /* INSIGHT */
