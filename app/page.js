@@ -366,37 +366,9 @@ export default function CashflowPage() {
                     background: #b52a36;
                 }
 
-            /* Pastikan box modal menggunakan variabel teks */
-                .modal-box {
-                    background: var(--surface);
-                    color: var(--text); 
-                }
-
-                /* Memperbaiki tombol close (tanda silang) agar tidak hitam */
-                .modal-header button {
-                    background: transparent;
-                    border: none;
-                    color: var(--text); /* Mengikuti warna teks tema (putih/abu terang) */
-                    font-size: 24px;
-                    padding: 4px 8px;
-                    line-height: 1;
-                }
-
-                .modal-header button:hover {
-                    background: rgba(255, 255, 255, 0.1);
-                    color: #fff;
-                }
-
-                /* Memastikan teks judul modal juga putih */
-                .modal-title {
-                    color: var(--text);
-                }
-
-                /* Memastikan tabel di dalam modal terlihat jelas */
                 .detail-table th {
-                    background: #2d2d2d;
+                    background: var(--surface);
                     color: var(--text);
-                    border-color: #444;
                 }
 
                 .detail-table td {
@@ -546,6 +518,7 @@ export default function CashflowPage() {
                 width: 100%;
                 max-width: 760px;
                 background: var(--surface);
+                color: var(--text);
                 border-radius: 12px;
                 padding: 18px;
                 max-height: 85vh;
@@ -558,6 +531,8 @@ export default function CashflowPage() {
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 18px;
+                background: var(--surface);
+                color: var(--text);
             }
 
             .modal-title {
@@ -586,53 +561,53 @@ export default function CashflowPage() {
                 margin-bottom: 24px;
             }
 
-  .insight-summary{
-    background: var(--surface);
-    border:1px solid var(--border);
-    border-radius:12px;
-    padding:16px;
-    margin-bottom:20px;
-}
+            .insight-summary{
+              background: var(--surface);
+              border:1px solid var(--border);
+              border-radius:12px;
+              padding:16px;
+              margin-bottom:20px;
+          }
 
-.insight-row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:16px;
-    padding:12px 0;
-    border-bottom:1px dashed var(--border);
-}
+          .insight-row{
+              display:flex;
+              justify-content:space-between;
+              align-items:center;
+              gap:16px;
+              padding:12px 0;
+              border-bottom:1px dashed var(--border);
+          }
 
-.insight-row:last-child{
-    border-bottom:none;
-}
+          .insight-row:last-child{
+              border-bottom:none;
+          }
 
-.insight-row span{
-    line-height:1.5;
-}
+          .insight-row span{
+              line-height:1.5;
+          }
 
-.insight-row strong{
-    font-size:16px;
-}
+          .insight-row strong{
+              font-size:16px;
+          }
 
-.highlight-blue strong{
-    color:#2563eb;
-}
+          .highlight-blue strong{
+              color:#2563eb;
+          }
 
-.final-balance{
-    margin-top:4px;
-}
+          .final-balance{
+              margin-top:4px;
+          }
 
-.final-balance strong{
-    font-size:22px;
-    color:#16a34a;
-}
+          .final-balance strong{
+              font-size:22px;
+              color:#16a34a;
+          }
 
-.insight-divider{
-    margin:18px 0;
-    border:none;
-    border-top:2px solid var(--border);
-}
+          .insight-divider{
+              margin:18px 0;
+              border:none;
+              border-top:2px solid var(--border);
+          }
   `}</style>
 
       {loading && (
