@@ -161,9 +161,11 @@ export default function CashflowPage() {
                 font-size: var(--font-base);
                 transition: 0.15s;
             }
+
             button:hover {
                 background: #e9e9e9;
             }
+
             button.active {
                 background: #007bff;
                 color: white;
@@ -317,12 +319,22 @@ export default function CashflowPage() {
                     color: #eee;
                 }
 
+                button:hover {
+                    background: #353535;
+                }
+
                 button:disabled {
                     background: #1f1f1f;
                     border-color: #333;
                     color: #555;
                     opacity: 1;
                     cursor: not-allowed;
+                }
+
+                button.active {
+                    background: #007bff;
+                    color: white;
+                    border-color: #007bff;
                 }
 
                 input,
