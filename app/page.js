@@ -366,21 +366,41 @@ export default function CashflowPage() {
                     background: #b52a36;
                 }
 
+            /* Pastikan box modal menggunakan variabel teks */
                 .modal-box {
                     background: var(--surface);
-                    color: var(--text); /* Tambahkan ini agar teks otomatis putih */
+                    color: var(--text); 
                 }
 
-                .modal-header {
-                    border-bottom: 1px solid var(--border); /* Opsional: agar ada garis pemisah tipis */
+                /* Memperbaiki tombol close (tanda silang) agar tidak hitam */
+                .modal-header button {
+                    background: transparent;
+                    border: none;
+                    color: var(--text); /* Mengikuti warna teks tema (putih/abu terang) */
+                    font-size: 24px;
+                    padding: 4px 8px;
+                    line-height: 1;
                 }
 
+                .modal-header button:hover {
+                    background: rgba(255, 255, 255, 0.1);
+                    color: #fff;
+                }
+
+                /* Memastikan teks judul modal juga putih */
+                .modal-title {
+                    color: var(--text);
+                }
+
+                /* Memastikan tabel di dalam modal terlihat jelas */
                 .detail-table th {
-                    background: #2a2a2a; /* Warna header tabel saat dark mode */
-                    color: #eee;
+                    background: #2d2d2d;
+                    color: var(--text);
+                    border-color: #444;
                 }
 
                 .detail-table td {
+                    border-color: #333;
                     color: #ccc;
                 }
             }
