@@ -489,7 +489,9 @@ export default function CashflowPage() {
             }
 
             .insight-link {
-                all: unset;
+                -webkit-tap-highlight-color: transparent;
+                outline: none;
+                user-select: none;
                 border: none;
                 background: none;
                 color: #007bff;
@@ -499,9 +501,10 @@ export default function CashflowPage() {
                 font-size: inherit;
             }
 
-            .insight-link:hover {
-                text-decoration: underline;
-                background: none;
+            .insight-link:focus,
+            .insight-link:active {
+              outline: none;
+              box-shadow: none;
             }
 
             .modal-overlay {
