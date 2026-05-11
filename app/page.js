@@ -694,7 +694,7 @@ export default function CashflowPage() {
     <span>Pengeluaran {insight?.lastMonth?.month}</span>
     <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
       <strong style={{ color: "#dc3545" }}>{format(insight?.lastMonth?.expenseTotal || 0)}</strong>
-      <button className="insight-link" onClick={() => { setModalType("last"); setShowInsightModal(true); }}>lihat detail</button>
+      <div className="insight-link" onClick={() => { setModalType("last"); setShowInsightModal(true); }}>lihat detail</div>
     </div>
   </div>
 
@@ -717,7 +717,7 @@ export default function CashflowPage() {
     <span>Pengeluaran bulan ini</span>
     <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
       <strong style={{ color: "#dc3545" }}>{format(insight?.currentMonth?.expenseTotal || 0)}</strong>
-      <button className="insight-link" onClick={() => { setModalType("current"); setShowInsightModal(true); }}>lihat detail</button>
+      <div className="insight-link" onClick={() => { setModalType("current"); setShowInsightModal(true); }}>lihat detail</div>
     </div>
   </div>
 
