@@ -134,6 +134,9 @@ export default function CashflowPage() {
           :root { --bg: #141414; --text: #e5e5e5; --surface: #1f1f1f; --border: #333; }
         }
         html, body {
+          overflow-x: hidden;
+        }
+        body {
           font-family: Arial, sans-serif;
           padding: 16px;
           max-width: 900px;
@@ -142,7 +145,6 @@ export default function CashflowPage() {
           color: var(--text);
           line-height: 1.42;
           font-size: var(--font-base);
-          overflow-x: hidden;
         }
         h2 { margin-bottom: 16px; font-size: var(--font-large); font-weight: 700; }
         .tab { display: flex; gap: 8px; margin-bottom: 16px; }
