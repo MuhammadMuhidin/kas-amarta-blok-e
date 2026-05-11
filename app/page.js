@@ -98,6 +98,16 @@ export default function CashflowPage() {
     }).length;
   }, [data]);
 
+  const paidInLastPeriodCount = useMemo(() => {
+  if (!data.periods.length) return 0;
+  const last = [...data.periods].sort((a, b) => a.localeCompare(b)).pop();
+  return new Set(
+    data.payments
+        .filter(p => (p.period || "").slice(0, 7) === last)
+        .map(p => `${p.person_id}-${p.person_house}`)
+    ).size;
+  }, [data]);
+
   const insightResult = useMemo(() => {
     if (!data.periods.length) return [];
     return data.persons
@@ -717,7 +727,7 @@ export default function CashflowPage() {
 
   {/* Baris 4: Pemasukan Bulan Ini + Sisa Saldo Lalu */}
   <div className="insight-row">
-    <span>Kas bulan {insight?.currentMonth?.month} dari {activeMembersCount} rumah <br/> + sisa bulan lalu</span>
+    <span>Kas bulan {insight?.currentMonth?.month} dari {paidInLastPeriodCount} rumah <br/> + sisa bulan lalu</span>
     <strong>{format(insight?.summary?.currentIncomePlusLastRemaining || 0)}</strong>
   </div>
 
