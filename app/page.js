@@ -119,374 +119,339 @@ export default function CashflowPage() {
   return (
     <>
   <style jsx global>{`
-    :root {
-        --font-base: clamp(14px, 1.3vw, 16px);
-        --font-small: clamp(12px, 1vw, 14px);
-        --font-large: clamp(22px, 2vw, 28px);
-
-        --radius: 14px;
-        --shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-
-        --bg: #f4f7fb;
-        --text: #1f2937;
-        --surface: #ffffff;
-        --border: #e5e7eb;
-
-        --primary: #2563eb;
-        --success: #16a34a;
-        --danger: #dc2626;
-    }
-
-    * {
-        box-sizing: border-box;
-    }
-
-    html,
-    body {
-        overflow-x: hidden;
-    }
-
-    body {
-        font-family: Inter, Arial, sans-serif;
-        padding: 20px;
-        max-width: 1200px;
-        margin: 0 auto;
-        background: linear-gradient(to bottom, #f8fafc, #eef2ff);
-        color: var(--text);
-        line-height: 1.5;
-        font-size: var(--font-base);
-    }
-
-    h2 {
-        margin-bottom: 20px;
-        font-size: var(--font-large);
-        font-weight: 800;
-        letter-spacing: -0.4px;
-    }
-
-    h3 {
-        margin-bottom: 14px;
-    }
-
-    /* ===== TAB ===== */
-
-    .tab {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-        flex-wrap: wrap;
-    }
-
-    button {
-        padding: 10px 16px;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        background: var(--surface);
-        cursor: pointer;
-        font-size: var(--font-base);
-        font-weight: 600;
-        transition: all 0.2s ease;
-        color: var(--text);
-    }
-
-    button:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 10px rgba(37, 99, 235, 0.08);
-    }
-
-    button.active {
-        background: var(--primary);
-        color: white;
-        border-color: var(--primary);
-    }
-
-    button:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .hidden {
-        display: none;
-    }
-
-    /* ===== FORM ===== */
-
-    input,
-    select {
-        padding: 11px 14px;
-        border-radius: var(--radius);
-        border: 1px solid #d1d5db;
-        font-size: var(--font-base);
-        width: 100%;
-        background: white;
-        margin-top: 6px;
-        transition: 0.2s;
-    }
-
-    input:focus,
-    select:focus {
-        outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
-    }
-
-    /* ===== PAYMENT GRID ===== */
-
-    .pay-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 14px;
-        margin-top: 16px;
-    }
-
-    .pay-item {
-        padding: 16px;
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        background: var(--surface);
-        box-shadow: var(--shadow);
-        transition: 0.2s;
-    }
-
-    .pay-item:hover {
-        transform: translateY(-2px);
-    }
-
-    /* ===== SUMMARY ===== */
-
-    .summary {
-        display: flex;
-        align-items: stretch;
-        gap: 14px;
-        margin: 18px 0;
-        flex-wrap: nowrap;
-        width: 100%;
-    }
-
-    .summary-item {
-        flex: 1;
-        min-width: 0;
-
-        background: var(--surface);
-        border-radius: var(--radius);
-        padding: 14px 16px;
-
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
-
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-
-        transition: 0.2s ease;
-    }
-
-    .summary-item:hover {
-        transform: translateY(-1px);
-    }
-
-    .summary-label {
-        color: #6b7280;
-        font-size: var(--font-small);
-        font-weight: 600;
-        white-space: nowrap;
-    }
-
-    .summary-value {
-        font-size: 18px;
-        font-weight: 800;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .sum-inc {
-        color: var(--success);
-    }
-
-    .sum-exp {
-        color: var(--danger);
-    }
-
-    .sum-net {
-        color: var(--primary);
-    }
-
-    /* ===== TABLE ===== */
-
-    .table-container {
-        overflow-x: auto;
-        border-radius: 16px;
-        background: var(--surface);
-        margin-top: 14px;
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
-        -webkit-overflow-scrolling: touch;
-    }
-
-    table {
-        width: max-content;
-        min-width: 100%;
-        border-collapse: collapse;
-    }
-
-    th,
-    td {
-        padding: 14px 16px;
-        border-bottom: 1px solid var(--border);
-        text-align: left;
-        vertical-align: top;
-    }
-
-    th {
-        background: #f8fafc;
-        font-weight: 700;
-        position: sticky;
-        top: 0;
-        zIndex: 2;
-    }
-
-    tr {
-        transition: background 0.15s ease;
-    }
-
-    tr:hover {
-        background: #f9fafb;
-    }
-
-    /* ===== NOTE COLUMN ===== */
-
-    .note-cell {
-        white-space: normal !important;
-        word-break: break-word;
-        line-height: 1.45;
-        min-width: 260px;
-        max-width: 520px;
-    }
-
-    /* ===== BADGE ===== */
-
-    .badge {
-        padding: 5px 12px;
-        border-radius: 999px;
-        color: white;
-        font-size: var(--font-small);
-        font-weight: 600;
-        display: inline-block;
-    }
-
-    .income {
-        background: var(--success);
-    }
-
-    .expense {
-        background: var(--danger);
-    }
-
-    /* ===== PAGINATION ===== */
-
-    .pagination {
-        display: flex;
-        gap: 14px;
-        align-items: center;
-        justify-content: center;
-        margin-top: 18px;
-        flex-wrap: wrap;
-    }
-
-    /* ===== INSIGHT ===== */
-
-    .insight-card {
-        background: var(--surface);
-        border-radius: 14px;
-        padding: 16px;
-        margin-bottom: 12px;
-        border: 1px solid var(--border);
-        box-shadow: var(--shadow);
-    }
-
-    /* ===== CASHFLOW HEIGHT ===== */
-
-    .cashflow-body {
-        max-height: calc(10 * 56px);
-        overflow-y: auto;
-    }
-
-    /* ===== DARK MODE ===== */
-
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --bg: #0f172a;
-            --text: #f3f4f6;
-            --surface: #111827;
-            --border: #263041;
-        }
-
-        body {
-            background: linear-gradient(to bottom, #0f172a, #111827);
-        }
-
-        button {
-            background: #182233;
-            border-color: #2a3649;
-            color: #f3f4f6;
-        }
-
-        input,
-        select {
-            background: #111827;
-            border-color: #374151;
-            color: #f3f4f6;
-        }
-
-        th {
-            background: #172033;
-        }
-
-        tr:hover {
-            background: #182233;
-        }
-
-        .summary-label {
-            color: #9ca3af;
-        }
-    }
-
-    /* ===== MOBILE ===== */
-
-    @media (max-width: 640px) {
-        body {
-            padding: 14px;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            font-size: 13px;
-        }
-
-        .note-cell {
-            min-width: 180px;
-            max-width: 260px;
-        }
-
-        .summary {
-            gap: 8px;
-        }
-
-        .summary-item {
-            padding: 10px 12px;
-        }
-
-        .summary-label {
-            font-size: 11px;
-        }
-
-        .summary-value {
-            font-size: 13px;
-        }
-    }
+            :root {
+                --font-base: clamp(14px, 1.4vw, 16px);
+                --font-small: clamp(12px, 1.2vw, 14px);
+                --font-large: clamp(18px, 2vw, 22px);
+                --radius: 8px;
+                --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+
+                --bg: #fafafa;
+                --text: #222;
+                --surface: #fff;
+                --border: #e5e5e5;
+            }
+
+            body {
+                font-family: Arial, sans-serif;
+                padding: 16px;
+                max-width: 900px;
+                margin: 0 auto;
+                background: var(--bg);
+                color: var(--text);
+                line-height: 1.42;
+                font-size: var(--font-base);
+            }
+
+            h2 {
+                margin-bottom: 16px;
+                font-size: var(--font-large);
+                font-weight: 700;
+            }
+            .tab {
+                display: flex;
+                gap: 8px;
+                margin-bottom: 16px;
+            }
+
+            button {
+                padding: 8px 14px;
+                border-radius: var(--radius);
+                border: 1px solid #dcdcdc;
+                background: #f3f3f3;
+                cursor: pointer;
+                font-size: var(--font-base);
+                transition: 0.15s;
+            }
+            button:hover {
+                background: #e9e9e9;
+            }
+            button.active {
+                background: #007bff;
+                color: white;
+                border-color: #007bff;
+            }
+
+            .hidden {
+                display: none;
+            }
+
+            input,
+            select {
+                padding: 10px 12px;
+                border-radius: var(--radius);
+                border: 1px solid #cfcfcf;
+                font-size: var(--font-base);
+                width: 100%;
+                box-sizing: border-box;
+                background: white;
+                margin-top: 6px;
+            }
+
+            .pay-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                margin-top: 12px;
+            }
+            .pay-item {
+                padding: 12px;
+                border-radius: var(--radius);
+                border: 1px solid var(--border);
+                background: var(--surface);
+                box-shadow: var(--shadow);
+                font-size: var(--font-base);
+            }
+
+            .table-container {
+                overflow-x: auto;
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                background: var(--surface);
+                margin-top: 12px;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            table {
+                min-width: 100%;
+                border-collapse: collapse;
+                white-space: nowrap;
+            }
+            th,
+            td {
+                padding: 12px;
+                border-bottom: 1px solid var(--border);
+                text-align: left;
+            }
+            th {
+                background: #f7f7f7;
+                font-weight: 600;
+            }
+            tr:nth-child(even) {
+                background: #fafafa;
+            }
+
+            .badge {
+                padding: 4px 10px;
+                border-radius: var(--radius);
+                color: white;
+                font-size: var(--font-small);
+            }
+            .income {
+                background: #28a745;
+            }
+            .expense {
+                background: #dc3545;
+            }
+
+            .summary {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                width: 100%;
+                margin: 14px 0;
+            }
+            .summary-item {
+                display: flex;
+                flex-direction: column;
+            }
+            .summary-label {
+                color: #666;
+                font-size: var(--font-small);
+            }
+            .summary-value {
+                font-weight: 600;
+            }
+            .sum-inc {
+                color: #28a745;
+                font-weight: 700;
+            }
+            .sum-exp {
+                color: #dc3545;
+                font-weight: 700;
+            }
+            .sum-net {
+                color: #007bff;
+                font-weight: 700;
+            }
+
+            #paginationPay,
+            #paginationInsight {
+                display: flex;
+                gap: 14px;
+                align-items: center;
+                justify-content: center;
+                margin-top: 12px;
+            }
+
+            @media (max-width: 700px) {
+                .pay-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                }
+            }
+
+            @media (max-width: 480px) {
+                .pay-grid {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            .insight-card {
+                background: var(--surface);
+                border-radius: 6px;
+                padding: 10px 12px;
+                margin-bottom: 10px;
+                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+                border: 1px solid var(--border);
+            }
+
+            /* ===== AUTO DARK MODE ===== */
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #141414;
+                    --text: #e5e5e5;
+                    --surface: #1f1f1f;
+                    --border: #333;
+                }
+
+                button {
+                    background: #2a2a2a;
+                    border-color: #333;
+                    color: #eee;
+                }
+
+                button:disabled {
+                    background: #1f1f1f;
+                    border-color: #333;
+                    color: #555;
+                    opacity: 1;
+                    cursor: not-allowed;
+                }
+
+                input,
+                select {
+                    background: #1f1f1f;
+                    border: 1px solid #333;
+                    color: #eee;
+                }
+
+                th {
+                    background: #1f1f1f;
+                }
+
+                tr:nth-child(even),
+                tr:nth-child(odd) {
+                    background: var(--surface);
+                }
+
+                .summary-label {
+                    color: #aaa;
+                }
+                .income {
+                    background: #1d8b3a;
+                }
+                .expense {
+                    background: #b52a36;
+                }
+            }
+
+            /* viewport 10 rows */
+            .cashflow-body {
+                max-height: calc(10 * 48px);
+                overflow-y: auto;
+            }
+
+            /* sticky */
+            #cashflow th {
+                position: sticky;
+                top: 0;
+                zIndex: 2;
+                background: var(--surface) !important;
+            }
+
+            /* ==== GLOBAL LOADER ==== */
+            .action-loader {
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.25);
+                backdrop-filter: blur(8px);
+                -webkit-backdrop-filter: blur(8px);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                zIndex: 9999;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.25s ease;
+            }
+
+            .action-loader.show {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .loader-card {
+                background: var(--surface);
+                color: var(--text);
+                padding: 22px 26px;
+                border-radius: 12px;
+                min-width: 220px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            }
+
+            .loader-row {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+
+            .loader-icon {
+                display: flex;
+                align-items: center;
+                height: 18px;
+            }
+
+            .loader-icon span {
+                width: 6px;
+                height: 18px;
+                background: #2563eb;
+                border-radius: 6px;
+                animation: pulse 1s ease-in-out infinite;
+            }
+
+            .loader-icon span:nth-child(2) {
+                animation-delay: 0.15s;
+            }
+            .loader-icon span:nth-child(3) {
+                animation-delay: 0.3s;
+            }
+
+            @keyframes pulse {
+                0%,
+                100% {
+                    transform: scaleY(0.4);
+                    opacity: 0.5;
+                }
+                50% {
+                    transform: scaleY(1);
+                    opacity: 1;
+                }
+            }
+
+            .loader-text {
+                font-size: 14px;
+                font-weight: 600;
+                line-height: 1;
+                display: flex;
+                align-items: center;
+                color: var(--text);
+            }
+
+            html,
+            body {
+                overflow-x: hidden;
+            }
   `}</style>
 
       {loading && (
@@ -553,7 +518,7 @@ export default function CashflowPage() {
                   <td>{c.date || "-"}</td>
                   <td><span className={`badge ${c.type}`}>{c.type}</span></td>
                   <td>{format(c.amount)}</td>
-                  <td className="note-cell">{c.note || "-"}</td>
+                  <td>{c.note || "-"}</td>
                 </tr>
               ))}
             </tbody>
