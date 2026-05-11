@@ -554,7 +554,8 @@ export default function CashflowPage() {
             }
 
             .detail-table th {
-                background: #f5f5f5;
+                background: var(--surface);
+                color: var(--text);
             }
 
             .modal-section {
