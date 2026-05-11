@@ -270,4 +270,5 @@ export default function CashflowPage() {
         </div>
       )}
     </div>
-
+  );
+}
