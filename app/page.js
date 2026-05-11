@@ -365,6 +365,24 @@ export default function CashflowPage() {
                 .expense {
                     background: #b52a36;
                 }
+
+                .modal-box {
+                    background: var(--surface);
+                    color: var(--text); /* Tambahkan ini agar teks otomatis putih */
+                }
+
+                .modal-header {
+                    border-bottom: 1px solid var(--border); /* Opsional: agar ada garis pemisah tipis */
+                }
+
+                .detail-table th {
+                    background: #2a2a2a; /* Warna header tabel saat dark mode */
+                    color: #eee;
+                }
+
+                .detail-table td {
+                    color: #ccc;
+                }
             }
 
             /* viewport 10 rows */
