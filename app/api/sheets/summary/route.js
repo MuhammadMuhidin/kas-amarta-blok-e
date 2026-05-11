@@ -60,121 +60,183 @@ export async function GET() {
 
     const now = new Date();
 
-    const previousDate = new Date(
+    /* ========================= */
+    /* MONTH KEY */
+    /* ========================= */
+
+    const lastMonthDate = new Date(
       now.getFullYear(),
       now.getMonth() - 1,
       1
     );
 
-    const currentDate = new Date(
+    const currentMonthDate = new Date(
       now.getFullYear(),
       now.getMonth(),
       1
     );
 
-    const previousMonthKey =
-      previousDate.toISOString().slice(0, 7);
+    const lastMonthKey =
+      lastMonthDate.toISOString().slice(0, 7);
 
     const currentMonthKey =
-      currentDate.toISOString().slice(0, 7);
+      currentMonthDate.toISOString().slice(0, 7);
 
-    const previousMonthName =
-      previousDate.toLocaleString("id-ID", {
+    const lastMonthName =
+      lastMonthDate.toLocaleString("id-ID", {
         month: "long",
       });
 
     const currentMonthName =
-      currentDate.toLocaleString("id-ID", {
+      currentMonthDate.toLocaleString("id-ID", {
         month: "long",
       });
 
     /* ========================= */
-    /* PREVIOUS MONTH */
+    /* FILTER CASHFLOW */
     /* ========================= */
 
-    const previousMonthCashflow = cashflows.filter(
-      (c) =>
-        (c.date || "").slice(0, 7) ===
-        previousMonthKey
-    );
+    const lastMonthCashflow =
+      cashflows.filter(
+        (c) =>
+          (c.date || "").slice(0, 7) ===
+          lastMonthKey
+      );
 
-    const previousIncome =
-      previousMonthCashflow
+    const currentMonthCashflow =
+      cashflows.filter(
+        (c) =>
+          (c.date || "").slice(0, 7) ===
+          currentMonthKey
+      );
+
+    /* ========================= */
+    /* LAST MONTH INCOME */
+    /* ========================= */
+
+    const lastMonthIncome =
+      lastMonthCashflow
         .filter((c) => c.type === "income")
         .reduce(
-          (sum, c) => sum + Number(c.amount || 0),
+          (sum, c) =>
+            sum + Number(c.amount || 0),
           0
         );
 
-    const previousExpenses =
-      previousMonthCashflow.filter(
-        (c) => c.type === "expense"
-      );
+    /* ========================= */
+    /* LAST MONTH EXPENSE */
+    /* ========================= */
 
-    const previousExpenseItems =
-      previousExpenses.map((e) => {
-        const qty = Number(e.qty || 1);
+    const lastMonthExpenses =
+      lastMonthCashflow
+        .filter((c) => c.type === "expense")
+        .map((c) => ({
+          date: c.date || "-",
+          note: c.note || "-",
+          amount: Number(c.amount || 0),
+        }));
 
-        const total = Number(e.amount || 0);
-
-        return {
-          name: e.note || "-",
-          qty,
-          price: total / qty,
-          total,
-        };
-      });
-
-    const previousExpenseTotal =
-      previousExpenseItems.reduce(
-        (sum, e) => sum + e.total,
+    const lastMonthExpenseTotal =
+      lastMonthExpenses.reduce(
+        (sum, item) =>
+          sum + Number(item.amount || 0),
         0
       );
 
-    const previousRemaining =
-      previousIncome - previousExpenseTotal;
-
     /* ========================= */
-    /* CURRENT MONTH */
+    /* LAST MONTH REMAINING */
     /* ========================= */
 
-    const currentMonthCashflow = cashflows.filter(
-      (c) =>
-        (c.date || "").slice(0, 7) ===
-        currentMonthKey
-    );
+    const lastMonthRemaining =
+      lastMonthIncome -
+      lastMonthExpenseTotal;
 
-    const currentIncome =
+    /* ========================= */
+    /* CURRENT MONTH INCOME */
+    /* ========================= */
+
+    const currentMonthIncome =
       currentMonthCashflow
         .filter((c) => c.type === "income")
         .reduce(
-          (sum, c) => sum + Number(c.amount || 0),
+          (sum, c) =>
+            sum + Number(c.amount || 0),
           0
         );
 
     /* ========================= */
-    /* FINAL */
+    /* CURRENT MONTH EXPENSE */
+    /* ========================= */
+
+    const currentMonthExpenses =
+      currentMonthCashflow
+        .filter((c) => c.type === "expense")
+        .map((c) => ({
+          date: c.date || "-",
+          note: c.note || "-",
+          amount: Number(c.amount || 0),
+        }));
+
+    const currentMonthExpenseTotal =
+      currentMonthExpenses.reduce(
+        (sum, item) =>
+          sum + Number(item.amount || 0),
+        0
+      );
+
+    /* ========================= */
+    /* CURRENT BALANCE */
+    /* ========================= */
+
+    const currentBalance =
+      currentMonthIncome +
+      lastMonthRemaining -
+      currentMonthExpenseTotal;
+
+    /* ========================= */
+    /* INSIGHT */
     /* ========================= */
 
     const insight = {
-      previousMonth: {
-        key: previousMonthKey,
-        month: previousMonthName,
-        income: previousIncome,
-        expenses: previousExpenseItems,
-        expenseTotal: previousExpenseTotal,
-        remaining: previousRemaining,
+      lastMonth: {
+        key: lastMonthKey,
+        month: lastMonthName,
+
+        income: lastMonthIncome,
+
+        expenses: lastMonthExpenses,
+
+        expenseTotal:
+          lastMonthExpenseTotal,
+
+        remaining:
+          lastMonthRemaining,
       },
 
       currentMonth: {
         key: currentMonthKey,
         month: currentMonthName,
-        income: currentIncome,
+
+        income: currentMonthIncome,
+
+        expenses: currentMonthExpenses,
+
+        expenseTotal:
+          currentMonthExpenseTotal,
       },
 
-      carryForward:
-        currentIncome + previousRemaining,
+      summary: {
+        currentIncomePlusLastRemaining:
+          currentMonthIncome +
+          lastMonthRemaining,
+
+        currentBalance,
+      },
     };
+
+    /* ========================= */
+    /* RETURN */
+    /* ========================= */
 
     return Response.json({
       payments,

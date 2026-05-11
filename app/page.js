@@ -17,7 +17,7 @@ export default function CashflowPage() {
   const [pagePay, setPagePay] = useState(1);
   const [pageInsight, setPageInsight] = useState(1);
   const [loadedCashflow, setLoadedCashflow] = useState(20);
-  const [showInsightDetail, setShowInsightDetail] =  useState(false);
+  const [showInsightModal, setShowInsightModal] = useState(false);
 
   const FETCH_URL = "/api/sheets/summary";
   const perPagePay = 9;
@@ -474,20 +474,20 @@ export default function CashflowPage() {
 
             .insight-bullet {
                 margin-bottom: 12px;
-                line-height: 1.6;
+                line-height: 1.7;
             }
 
-            .link-detail {
+            .insight-link {
                 border: none;
                 background: none;
                 color: #007bff;
+                cursor: pointer;
                 padding: 0;
                 margin-left: 6px;
-                cursor: pointer;
                 font-size: inherit;
             }
 
-            .link-detail:hover {
+            .insight-link:hover {
                 text-decoration: underline;
                 background: none;
             }
@@ -505,7 +505,7 @@ export default function CashflowPage() {
 
             .modal-box {
                 width: 100%;
-                max-width: 720px;
+                max-width: 760px;
                 background: var(--surface);
                 border-radius: 12px;
                 padding: 18px;
@@ -518,7 +518,7 @@ export default function CashflowPage() {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-                margin-bottom: 16px;
+                margin-bottom: 18px;
             }
 
             .modal-title {
@@ -529,7 +529,7 @@ export default function CashflowPage() {
             .detail-table {
                 width: 100%;
                 border-collapse: collapse;
-                margin-top: 10px;
+                margin-top: 12px;
             }
 
             .detail-table th,
@@ -544,7 +544,7 @@ export default function CashflowPage() {
             }
 
             .modal-section {
-                margin-bottom: 20px;
+                margin-bottom: 24px;
             }
   `}</style>
 
@@ -620,157 +620,219 @@ export default function CashflowPage() {
         </div>
       </div>
 
-      {/* INSIGHT TAB */}
-      <div className={activeTab !== "insight" ? "hidden" : ""}>
-        <h3>Laporan Tunggakan Saat ini</h3>
-        <div style={{marginBottom:'10px', fontWeight:600}}>
-          <div className="insight-bullet">
-          • Total sisa bulan{" "}
-          {insight?.previousMonth?.month}:{" "}
-          {format(
-            insight?.previousMonth?.remaining || 0
-          )}
+{/* INSIGHT TAB */}
+<div className={activeTab !== "insight" ? "hidden" : ""}>
+  <h3>Laporan Tunggakan Saat ini</h3>
 
-          <button
-            className="link-detail"
-            onClick={() => setShowInsightDetail(true)}
-          >
-            detail
-          </button>
-        </div>
+  <div
+    style={{
+      marginBottom: "14px",
+      fontWeight: 600,
+    }}
+  >
+    <div className="insight-bullet">
+      • Total pemasukan bulan{" "}
+      {insight?.lastMonth?.month}:{" "}
+      {format(
+        insight?.lastMonth?.income || 0
+      )}
+    </div>
 
-        <div className="insight-bullet">
-          • Pemasukan bulan ini + sisa bulan lalu ={" "}
-          {format(insight?.carryForward || 0)}
-        </div>
-          <div>• Total member aktif: {activeMembersCount} rumah</div>
-        </div>
-        <div>
-          {pagedInsight.length > 0 ? (
-            pagedInsight.map((r, i) => (
-              <div key={i} className="insight-card">
-                <b>{(pageInsight-1)*perPageInsight + i + 1}. {r.house}</b>
-                <div>• Nunggak: {r.jumlah} periode</div>
-                <div>• Periode: {r.unpaid.join(", ")}</div>
-              </div>
-            ))
-          ) : (
-            <div className="insight-card">Tidak ada tunggakan.</div>
-          )}
-        </div>
-        {insightResult.length > 0 && (
-          <div className="pagination">
-            <button disabled={pageInsight === 1} onClick={() => setPageInsight(p => p - 1)}>Prev</button>
-            <span>Page {pageInsight}/{totalPageInsight}</span>
-            <button disabled={pageInsight === totalPageInsight} onClick={() => setPageInsight(p => p + 1)}>Next</button>
-          </div>
-        )}
-      </div>
-      </div>
-      {showInsightDetail && (
-      <div
-        className="modal-overlay"
+    <div className="insight-bullet">
+      • Total pengeluaran bulan{" "}
+      {insight?.lastMonth?.month}:{" "}
+      {format(
+        insight?.lastMonth?.expenseTotal || 0
+      )}
+
+      <button
+        type="button"
+        className="insight-link"
         onClick={() =>
-          setShowInsightDetail(false)
+          setShowInsightModal(true)
         }
       >
+        detail
+      </button>
+    </div>
+
+    <div className="insight-bullet">
+      • Total sisa bulan{" "}
+      {insight?.lastMonth?.month}:{" "}
+      {format(
+        insight?.lastMonth?.remaining || 0
+      )}
+    </div>
+
+    <div className="insight-bullet">
+      • Total pemasukan bulan berjalan
+      + sisa bulan lalu:{" "}
+      {format(
+        insight?.summary
+          ?.currentIncomePlusLastRemaining || 0
+      )}
+    </div>
+
+    <div className="insight-bullet">
+      • Total pengeluaran bulan berjalan:{" "}
+      {format(
+        insight?.currentMonth
+          ?.expenseTotal || 0
+      )}
+    </div>
+
+    <div className="insight-bullet">
+      • Total sisa saldo saat ini:{" "}
+      <span
+        style={{
+          color: "#007bff",
+          fontWeight: 700,
+        }}
+      >
+        {format(
+          insight?.summary
+            ?.currentBalance || 0
+        )}
+      </span>
+    </div>
+  </div>
+
+  <div>
+    {pagedInsight.length > 0 ? (
+      pagedInsight.map((r, i) => (
         <div
-          className="modal-box"
-          onClick={(e) => e.stopPropagation()}
+          key={i}
+          className="insight-card"
         >
-          <div className="modal-header">
-            <div className="modal-title">
-              Detail Bulan{" "}
-              {insight?.previousMonth?.month}
-            </div>
+          <b>
+            {(pageInsight - 1) *
+              perPageInsight +
+              i +
+              1}
+            . {r.house}
+          </b>
 
-            <button
-              onClick={() =>
-                setShowInsightDetail(false)
-              }
-            >
-              ✕
-            </button>
+          <div>
+            • Nunggak: {r.jumlah} periode
           </div>
 
-          {/* SECTION 1 */}
-          <div className="modal-section">
-            <b>
-              1. Total pemasukan bulan{" "}
-              {insight?.previousMonth?.month}
-            </b>
-
-            <div style={{marginTop:8}}>
-              {format(
-                insight?.previousMonth?.income || 0
-              )}
-            </div>
-          </div>
-
-          {/* SECTION 2 */}
-          <div className="modal-section">
-            <b>2. Pengeluaran</b>
-
-            <table className="detail-table">
-              <thead>
-                <tr>
-                  <th>Nama Barang</th>
-                  <th>Jumlah</th>
-                  <th>Harga</th>
-                  <th>Total</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {(
-                  insight?.previousMonth?.expenses ||
-                  []
-                ).map((e, i) => (
-                  <tr key={i}>
-                    <td>{e.name}</td>
-                    <td>{e.qty}</td>
-                    <td>{format(e.price)}</td>
-                    <td>{format(e.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div
-              style={{
-                marginTop:12,
-                textAlign:"right",
-                fontWeight:700,
-              }}
-            >
-              Grand Total Pengeluaran:{" "}
-              {format(
-                insight?.previousMonth
-                  ?.expenseTotal || 0
-              )}
-            </div>
-          </div>
-
-          {/* SECTION 3 */}
-          <div className="modal-section">
-            <b>3. Sisa</b>
-
-            <div
-              style={{
-                marginTop:8,
-                fontWeight:700,
-                color:"#007bff",
-              }}
-            >
-              {format(
-                insight?.previousMonth
-                  ?.remaining || 0
-              )}
-            </div>
+          <div>
+            • Periode:{" "}
+            {r.unpaid.join(", ")}
           </div>
         </div>
+      ))
+    ) : (
+      <div className="insight-card">
+        Tidak ada tunggakan.
       </div>
     )}
-    </>
-  );
+  </div>
+
+  {insightResult.length > 0 && (
+    <div className="pagination">
+      <button
+        disabled={pageInsight === 1}
+        onClick={() =>
+          setPageInsight((p) => p - 1)
+        }
+      >
+        Prev
+      </button>
+
+      <span>
+        Page {pageInsight}/
+        {totalPageInsight}
+      </span>
+
+      <button
+        disabled={
+          pageInsight ===
+          totalPageInsight
+        }
+        onClick={() =>
+          setPageInsight((p) => p + 1)
+        }
+      >
+        Next
+      </button>
+    </div>
+  )}
+</div>
+
+{/* MODAL DETAIL */}
+{showInsightModal && (
+  <div
+    className="modal-overlay"
+    onClick={() =>
+      setShowInsightModal(false)
+    }
+  >
+    <div
+      className="modal-box"
+      onClick={(e) =>
+        e.stopPropagation()
+      }
+    >
+      <div className="modal-header">
+        <div className="modal-title">
+          Detail Pengeluaran Bulan{" "}
+          {insight?.lastMonth?.month}
+        </div>
+
+        <button
+          type="button"
+          onClick={() =>
+            setShowInsightModal(false)
+          }
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="modal-section">
+        <div
+          style={{
+            marginBottom: 12,
+            fontWeight: 700,
+          }}
+        >
+          Total Pengeluaran:{" "}
+          {format(
+            insight?.lastMonth
+              ?.expenseTotal || 0
+          )}
+        </div>
+
+        <table className="detail-table">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Keterangan</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {(
+              insight?.lastMonth
+                ?.expenses || []
+            ).map((e, i) => (
+              <tr key={i}>
+                <td>{e.date}</td>
+                <td>{e.note}</td>
+                <td>
+                  {format(e.amount)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  )}
+    </div>
+  </>
+);
 }
