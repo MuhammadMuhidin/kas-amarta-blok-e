@@ -19,7 +19,7 @@ export default function CashflowPage() {
   const [loadedCashflow, setLoadedCashflow] = useState(20);
 
   const FETCH_URL = "/api/sheets/summary";
-  const perPagePay = 10;
+  const perPagePay = 9;
   const perPageInsight = 6;
   const chunk = 20;
 
@@ -141,6 +141,8 @@ export default function CashflowPage() {
                 color: var(--text);
                 line-height: 1.42;
                 font-size: var(--font-base);
+                display: flex;
+                justify-content: center;
             }
 
             h2 {
