@@ -275,8 +275,7 @@ export default function CashflowPage() {
                 font-weight: 700;
             }
 
-            #paginationPay,
-            #paginationInsight {
+            #pagination {
                 display: flex;
                 gap: 14px;
                 align-items: center;
