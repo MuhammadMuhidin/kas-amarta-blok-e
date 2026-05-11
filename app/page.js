@@ -17,6 +17,7 @@ export default function CashflowPage() {
   const [pagePay, setPagePay] = useState(1);
   const [pageInsight, setPageInsight] = useState(1);
   const [loadedCashflow, setLoadedCashflow] = useState(20);
+  const [showInsightDetail, setShowInsightDetail] =  useState(false);
 
   const FETCH_URL = "/api/sheets/summary";
   const perPagePay = 9;
@@ -45,6 +46,7 @@ export default function CashflowPage() {
 
   /* ==== HELPERS ==== */
   const format = (n) => "Rp" + Number(n).toLocaleString("id-ID");
+  const insight = data.insight || {};
 
   /* ==== LOGIC: PAYMENT ==== */
   const paymentList = useMemo(() => {
@@ -469,6 +471,81 @@ export default function CashflowPage() {
               padding:16px;
               box-sizing:border-box;
             }
+
+            .insight-bullet {
+                margin-bottom: 12px;
+                line-height: 1.6;
+            }
+
+            .link-detail {
+                border: none;
+                background: none;
+                color: #007bff;
+                padding: 0;
+                margin-left: 6px;
+                cursor: pointer;
+                font-size: inherit;
+            }
+
+            .link-detail:hover {
+                text-decoration: underline;
+                background: none;
+            }
+
+            .modal-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.45);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                padding: 16px;
+            }
+
+            .modal-box {
+                width: 100%;
+                max-width: 720px;
+                background: var(--surface);
+                border-radius: 12px;
+                padding: 18px;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-sizing: border-box;
+            }
+
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 16px;
+            }
+
+            .modal-title {
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            .detail-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 10px;
+            }
+
+            .detail-table th,
+            .detail-table td {
+                border: 1px solid var(--border);
+                padding: 10px;
+                text-align: left;
+            }
+
+            .detail-table th {
+                background: #f5f5f5;
+            }
+
+            .modal-section {
+                margin-bottom: 20px;
+            }
   `}</style>
 
       {loading && (
@@ -547,6 +624,25 @@ export default function CashflowPage() {
       <div className={activeTab !== "insight" ? "hidden" : ""}>
         <h3>Laporan Tunggakan Saat ini</h3>
         <div style={{marginBottom:'10px', fontWeight:600}}>
+          <div className="insight-bullet">
+          • Total sisa bulan{" "}
+          {insight?.previousMonth?.month}:{" "}
+          {format(
+            insight?.previousMonth?.remaining || 0
+          )}
+
+          <button
+            className="link-detail"
+            onClick={() => setShowInsightDetail(true)}
+          >
+            detail
+          </button>
+        </div>
+
+        <div className="insight-bullet">
+          • Pemasukan bulan ini + sisa bulan lalu ={" "}
+          {format(insight?.carryForward || 0)}
+        </div>
           <div>• Total member aktif: {activeMembersCount} rumah</div>
         </div>
         <div>
@@ -571,6 +667,110 @@ export default function CashflowPage() {
         )}
       </div>
       </div>
+      {showInsightDetail && (
+      <div
+        className="modal-overlay"
+        onClick={() =>
+          setShowInsightDetail(false)
+        }
+      >
+        <div
+          className="modal-box"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="modal-header">
+            <div className="modal-title">
+              Detail Bulan{" "}
+              {insight?.previousMonth?.month}
+            </div>
+
+            <button
+              onClick={() =>
+                setShowInsightDetail(false)
+              }
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* SECTION 1 */}
+          <div className="modal-section">
+            <b>
+              1. Total pemasukan bulan{" "}
+              {insight?.previousMonth?.month}
+            </b>
+
+            <div style={{marginTop:8}}>
+              {format(
+                insight?.previousMonth?.income || 0
+              )}
+            </div>
+          </div>
+
+          {/* SECTION 2 */}
+          <div className="modal-section">
+            <b>2. Pengeluaran</b>
+
+            <table className="detail-table">
+              <thead>
+                <tr>
+                  <th>Nama Barang</th>
+                  <th>Jumlah</th>
+                  <th>Harga</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {(
+                  insight?.previousMonth?.expenses ||
+                  []
+                ).map((e, i) => (
+                  <tr key={i}>
+                    <td>{e.name}</td>
+                    <td>{e.qty}</td>
+                    <td>{format(e.price)}</td>
+                    <td>{format(e.total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div
+              style={{
+                marginTop:12,
+                textAlign:"right",
+                fontWeight:700,
+              }}
+            >
+              Grand Total Pengeluaran:{" "}
+              {format(
+                insight?.previousMonth
+                  ?.expenseTotal || 0
+              )}
+            </div>
+          </div>
+
+          {/* SECTION 3 */}
+          <div className="modal-section">
+            <b>3. Sisa</b>
+
+            <div
+              style={{
+                marginTop:8,
+                fontWeight:700,
+                color:"#007bff",
+              }}
+            >
+              {format(
+                insight?.previousMonth
+                  ?.remaining || 0
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   );
 }
