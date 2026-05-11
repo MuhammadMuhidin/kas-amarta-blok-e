@@ -18,6 +18,7 @@ export default function CashflowPage() {
   const [pageInsight, setPageInsight] = useState(1);
   const [loadedCashflow, setLoadedCashflow] = useState(20);
   const [showInsightModal, setShowInsightModal] = useState(false);
+  const [modalType, setModalType] = useState("last");
 
   const FETCH_URL = "/api/sheets/summary";
   const perPagePay = 9;
@@ -681,7 +682,11 @@ export default function CashflowPage() {
 
     <strong>
       {format(
-        insight?.lastMonth?.income || 0
+        modalType === "last"
+          ? insight?.lastMonth
+              ?.expenseTotal || 0
+          : insight?.currentMonth
+              ?.expenseTotal || 0
       )}
     </strong>
   </div>
@@ -700,17 +705,21 @@ export default function CashflowPage() {
     >
       <strong style={{ color: "#dc3545" }}>
         {format(
-          insight?.lastMonth
-            ?.expenseTotal || 0
+          modalType === "last"
+            ? insight?.lastMonth
+                ?.expenseTotal || 0
+            : insight?.currentMonth
+                ?.expenseTotal || 0
         )}
       </strong>
 
       <button
         type="button"
         className="insight-link"
-        onClick={() =>
-          setShowInsightModal(true)
-        }
+        onClick={() => {
+          setModalType("last");
+          setShowInsightModal(true);
+        }}
       >
         lihat detail
       </button>
@@ -724,10 +733,13 @@ export default function CashflowPage() {
     </span>
 
     <strong>
-      {format(
-        insight?.lastMonth
-          ?.remaining || 0
-      )}
+        {format(
+          modalType === "last"
+            ? insight?.lastMonth
+                ?.expenseTotal || 0
+            : insight?.currentMonth
+                ?.expenseTotal || 0
+        )}
     </strong>
   </div>
 
@@ -753,12 +765,31 @@ export default function CashflowPage() {
       Pengeluaran bulan ini
     </span>
 
-    <strong style={{ color: "#dc3545" }}>
-      {format(
-        insight?.currentMonth
-          ?.expenseTotal || 0
-      )}
-    </strong>
+    <div
+      style={{
+        display: "flex",
+        gap: "8px",
+        alignItems: "center",
+      }}
+    >
+      <strong style={{ color: "#dc3545" }}>
+        {format(
+          insight?.currentMonth
+            ?.expenseTotal || 0
+        )}
+      </strong>
+
+      <button
+        type="button"
+        className="insight-link"
+        onClick={() => {
+          setModalType("current");
+          setShowInsightModal(true);
+        }}
+      >
+        lihat detail
+      </button>
+    </div>
   </div>
 
   <div className="insight-row final-balance">
@@ -856,7 +887,9 @@ export default function CashflowPage() {
       <div className="modal-header">
         <div className="modal-title">
           Detail Pengeluaran Bulan{" "}
-          {insight?.lastMonth?.month}
+          {modalType === "last"
+          ? insight?.lastMonth?.month
+          : insight?.currentMonth?.month}
         </div>
 
         <button
@@ -877,10 +910,13 @@ export default function CashflowPage() {
           }}
         >
           Total Pengeluaran:{" "}
-          {format(
-            insight?.lastMonth
-              ?.expenseTotal || 0
-          )}
+        {format(
+          modalType === "last"
+            ? insight?.lastMonth
+                ?.expenseTotal || 0
+            : insight?.currentMonth
+                ?.expenseTotal || 0
+        )}
         </div>
 
         <table className="detail-table">
@@ -894,8 +930,11 @@ export default function CashflowPage() {
 
           <tbody>
             {(
-              insight?.lastMonth
-                ?.expenses || []
+              modalType === "last"
+                ? insight?.lastMonth
+                    ?.expenses || []
+                : insight?.currentMonth
+                    ?.expenses || []
             ).map((e, i) => (
               <tr key={i}>
                 <td>{e.date}</td>
