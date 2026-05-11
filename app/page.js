@@ -659,7 +659,7 @@ export default function CashflowPage() {
 
       {/* CASHFLOW TAB */}
       <div className={activeTab !== "cashflow" ? "hidden" : ""}>
-        <input placeholder="search note..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setLoadedCashflow(20); }} />
+        <input placeholder="cari catatan..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setLoadedCashflow(20); }} />
         <div className="summary">
           <div className="summary-item"><span className="summary-label">Total Pemasukan</span><span style={{color: "#28a745"}} className="summary-value">{format(totals.inc)}</span></div>
           <div className="summary-item"><span className="summary-label">Total Pengeluaran</span><span style={{color: "#dc3545"}} className="summary-value">{format(totals.exp)}</span></div>
