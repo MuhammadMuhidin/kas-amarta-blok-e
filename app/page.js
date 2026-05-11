@@ -141,8 +141,11 @@ export default function CashflowPage() {
                 color: var(--text);
                 line-height: 1.42;
                 font-size: var(--font-base);
-                display: flex;
-                justify-content: center;
+                box-sizing: border-box;
+            }
+                
+            * {
+                box-sizing: border-box;
             }
 
             h2 {
