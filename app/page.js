@@ -489,6 +489,7 @@ export default function CashflowPage() {
             }
 
             .insight-link {
+                all: unset;
                 border: none;
                 background: none;
                 color: #007bff;
@@ -496,6 +497,11 @@ export default function CashflowPage() {
                 padding: 0;
                 margin-left: 6px;
                 font-size: inherit;
+            }
+
+            .insight-link:hover {
+                text-decoration: underline;
+                background: none;
             }
 
             .modal-overlay {
@@ -668,7 +674,7 @@ export default function CashflowPage() {
               {filteredCashflow.slice(0, loadedCashflow).map((c, i) => (
                 <tr key={i}>
                   <td>{c.date || "-"}</td>
-                  <td><span className={`badge ${c.type}`}>{c.type}</span></td>
+                  <td><span className={`badge ${c.type}`}>{({ income: "Pemasukan", expense: "Pengeluaran" }[c.type] || c.type)}</span></td>
                   <td>{format(c.amount)}</td>
                   <td>{c.note || "-"}</td>
                 </tr>
@@ -694,7 +700,7 @@ export default function CashflowPage() {
     <span>Pengeluaran {insight?.lastMonth?.month}</span>
     <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
       <strong style={{ color: "#dc3545" }}>{format(insight?.lastMonth?.expenseTotal || 0)}</strong>
-      <div className="insight-link" onClick={() => { setModalType("last"); setShowInsightModal(true); }}>lihat detail</div>
+      <button className="insight-link" onClick={() => { setModalType("last"); setShowInsightModal(true); }}>lihat detail</button>
     </div>
   </div>
 
@@ -717,7 +723,7 @@ export default function CashflowPage() {
     <span>Pengeluaran bulan ini</span>
     <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
       <strong style={{ color: "#dc3545" }}>{format(insight?.currentMonth?.expenseTotal || 0)}</strong>
-      <div className="insight-link" onClick={() => { setModalType("current"); setShowInsightModal(true); }}>lihat detail</div>
+      <button className="insight-link" onClick={() => { setModalType("current"); setShowInsightModal(true); }}>lihat detail</button>
     </div>
   </div>
 
