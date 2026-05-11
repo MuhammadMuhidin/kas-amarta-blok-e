@@ -525,16 +525,7 @@ async function loadSummaryBackup(){
       <div style={styles.card}>
     
         <div style={styles.summaryHeader}>
-    
           <h3>Summary Backup</h3>
-    
-          <button
-            style={styles.refreshBtn}
-            onClick={loadSummaryBackup}
-          >
-            Refresh
-          </button>
-    
         </div>
     
         {loadingSummary ? (
@@ -777,15 +768,5 @@ const styles={
   justifyContent:"space-between",
   alignItems:"center",
   marginBottom:16
-},
-
-  refreshBtn:{
-  padding:"8px 12px",
-  border:"none",
-  borderRadius:8,
-  background:"#0f172a",
-  color:"#fff",
-  cursor:"pointer"
-},
-
+  }
 }
