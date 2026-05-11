@@ -520,10 +520,6 @@ export default function CashflowPage() {
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 18px;
-                background: var(--surface);
-                color: var(--text);
-                padding: 12px 0;
-                border-bottom: 1px solid var(--border);
             }
 
             .modal-title {
@@ -686,11 +682,7 @@ export default function CashflowPage() {
 
     <strong>
       {format(
-        modalType === "last"
-          ? insight?.lastMonth
-              ?.expenseTotal || 0
-          : insight?.currentMonth
-              ?.expenseTotal || 0
+        insight?.lastMonth?.income || 0
       )}
     </strong>
   </div>
@@ -709,11 +701,8 @@ export default function CashflowPage() {
     >
       <strong style={{ color: "#dc3545" }}>
         {format(
-          modalType === "last"
-            ? insight?.lastMonth
-                ?.expenseTotal || 0
-            : insight?.currentMonth
-                ?.expenseTotal || 0
+          insight?.lastMonth
+            ?.expenseTotal || 0
         )}
       </strong>
 
@@ -737,13 +726,10 @@ export default function CashflowPage() {
     </span>
 
     <strong>
-        {format(
-          modalType === "last"
-            ? insight?.lastMonth
-                ?.expenseTotal || 0
-            : insight?.currentMonth
-                ?.expenseTotal || 0
-        )}
+      {format(
+        insight?.lastMonth
+          ?.remaining || 0
+      )}
     </strong>
   </div>
 
@@ -769,20 +755,12 @@ export default function CashflowPage() {
       Pengeluaran bulan ini
     </span>
 
-    <div
-      style={{
-        display: "flex",
-        gap: "8px",
-        alignItems: "center",
-      }}
-    >
-      <strong style={{ color: "#dc3545" }}>
-        {format(
-          insight?.currentMonth
-            ?.expenseTotal || 0
-        )}
-      </strong>
-
+    <strong style={{ color: "#dc3545" }}>
+      {format(
+        insight?.currentMonth
+          ?.expenseTotal || 0
+      )}
+    </strong>
       <button
         type="button"
         className="insight-link"
@@ -793,7 +771,6 @@ export default function CashflowPage() {
       >
         lihat detail
       </button>
-    </div>
   </div>
 
   <div className="insight-row final-balance">
@@ -892,8 +869,8 @@ export default function CashflowPage() {
         <div className="modal-title">
           Detail Pengeluaran Bulan{" "}
           {modalType === "last"
-          ? insight?.lastMonth?.month
-          : insight?.currentMonth?.month}
+            ? insight?.lastMonth?.month
+            : insight?.currentMonth?.month}
         </div>
 
         <button
@@ -914,13 +891,13 @@ export default function CashflowPage() {
           }}
         >
           Total Pengeluaran:{" "}
-        {format(
-          modalType === "last"
-            ? insight?.lastMonth
-                ?.expenseTotal || 0
-            : insight?.currentMonth
-                ?.expenseTotal || 0
-        )}
+          {format(
+            modalType === "last"
+              ? insight?.lastMonth
+                  ?.expenseTotal || 0
+              : insight?.currentMonth
+                  ?.expenseTotal || 0
+          )}
         </div>
 
         <table className="detail-table">
@@ -934,12 +911,12 @@ export default function CashflowPage() {
 
           <tbody>
             {(
-              modalType === "last"
-                ? insight?.lastMonth
-                    ?.expenses || []
-                : insight?.currentMonth
-                    ?.expenses || []
-            ).map((e, i) => (
+                modalType === "last"
+                  ? insight?.lastMonth
+                      ?.expenses || []
+                  : insight?.currentMonth
+                      ?.expenses || []
+              ).map((e, i) => (
               <tr key={i}>
                 <td>{e.date}</td>
                 <td>{e.note}</td>
