@@ -717,7 +717,7 @@ export default function CashflowPage() {
 
   {/* Baris 4: Pemasukan Bulan Ini + Sisa Saldo Lalu */}
   <div className="insight-row">
-    <span>Kas bulan berjalan dari {activeMembersCount} rumah <br/> + sisa bulan lalu</span>
+    <span>Kas bulan {insight?.currentMonth?.month} dari {activeMembersCount} rumah <br/> + sisa bulan lalu</span>
     <strong>{format(insight?.summary?.currentIncomePlusLastRemaining || 0)}</strong>
   </div>
 
