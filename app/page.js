@@ -531,7 +531,7 @@ export default function CashflowPage() {
                 justify-content: space-between;
                 align-items: center;
                 margin-bottom: 18px;
-                background: var(--surface);
+                background: var(--surface) !important;
                 color: var(--text);
             }
 
