@@ -118,6 +118,7 @@ export default function CashflowPage() {
 
   return (
     <>
+  <div className="page-wrap">
   <style jsx global>{`
             :root {
                 --font-base: clamp(14px, 1.4vw, 16px);
@@ -134,18 +135,10 @@ export default function CashflowPage() {
 
             body {
                 font-family: Arial, sans-serif;
-                padding: 16px;
-                max-width: 900px;
-                margin: 0 auto;
                 background: var(--bg);
                 color: var(--text);
                 line-height: 1.42;
                 font-size: var(--font-base);
-                box-sizing: border-box;
-            }
-                
-            * {
-                box-sizing: border-box;
             }
 
             h2 {
@@ -456,6 +449,14 @@ export default function CashflowPage() {
             body {
                 overflow-x: hidden;
             }
+
+            .page-wrap{
+              width:100%;
+              max-width:900px;
+              margin:0 auto;
+              padding:16px;
+              box-sizing:border-box;
+            }
   `}</style>
 
       {loading && (
@@ -556,6 +557,7 @@ export default function CashflowPage() {
             <button disabled={pageInsight === totalPageInsight} onClick={() => setPageInsight(p => p + 1)}>Next</button>
           </div>
         )}
+      </div>
       </div>
     </>
   );
