@@ -167,7 +167,7 @@ export default function CashflowPage() {
         .cashflow-body { max-height: calc(10 * 48px); overflow-y: auto; }
         table { min-width: 100%; border-collapse: collapse; white-space: nowrap; }
         th, td { padding: 12px; border-bottom: 1px solid var(--border); text-align: left; }
-        th { background: #f7f7f7; font-weight: 600; position: sticky; top: 0; z-index: 2; }
+        th { background: #f7f7f7; font-weight: 600; position: sticky; top: 0; zIndex: 2; }
         tr:nth-child(even) { background: #fafafa; }
         .badge { padding: 4px 10px; border-radius: var(--radius); color: white; font-size: var(--font-small); }
         .income { background: #28a745; } .expense { background: #dc3545; }
@@ -190,7 +190,7 @@ export default function CashflowPage() {
       `}</style>
 
       {loading && (
-        <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center', z-index:999}}>
+        <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:999}}>
           <div style={{background:'var(--surface)', padding:'20px', borderRadius:'8px'}}>Processing…</div>
         </div>
       )}
