@@ -620,9 +620,9 @@ export default function CashflowPage() {
       <h2>Uang Kas Amarta Residence (Blok E)</h2>
 
       <div className="tab">
-        <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Payment</button>
-        <button className={activeTab === "cashflow" ? "active" : ""} onClick={() => setActiveTab("cashflow")}>Cashflow</button>
-        <button className={activeTab === "insight" ? "active" : ""} onClick={() => setActiveTab("insight")}>Insight</button>
+        <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Status Pembayaran</button>
+        <button className={activeTab === "cashflow" ? "active" : ""} onClick={() => setActiveTab("cashflow")}>Arus Kas</button>
+        <button className={activeTab === "insight" ? "active" : ""} onClick={() => setActiveTab("insight")}>Laporan</button>
       </div>
 
       {/* PAYMENT TAB */}
@@ -657,9 +657,9 @@ export default function CashflowPage() {
       <div className={activeTab !== "cashflow" ? "hidden" : ""}>
         <input placeholder="search note..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setLoadedCashflow(20); }} />
         <div className="summary">
-          <div className="summary-item"><span className="summary-label">Income</span><span style={{color: "#28a745"}} className="summary-value">{format(totals.inc)}</span></div>
-          <div className="summary-item"><span className="summary-label">Expense</span><span style={{color: "#dc3545"}} className="summary-value">{format(totals.exp)}</span></div>
-          <div className="summary-item"><span className="summary-label">Net</span><span style={{color: "#007bff"}} className="summary-value">{format(totals.net)}</span></div>
+          <div className="summary-item"><span className="summary-label">Total Pemasukan</span><span style={{color: "#28a745"}} className="summary-value">{format(totals.inc)}</span></div>
+          <div className="summary-item"><span className="summary-label">Total Pengeluaran</span><span style={{color: "#dc3545"}} className="summary-value">{format(totals.exp)}</span></div>
+          <div className="summary-item"><span className="summary-label">Sisa Saldo</span><span style={{color: "#007bff"}} className="summary-value">{format(totals.net)}</span></div>
         </div>
         <div className="table-container cashflow-body" onScroll={(e) => {
           const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -667,7 +667,7 @@ export default function CashflowPage() {
         }}>
           <table>
             <thead>
-              <tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th></tr>
+              <tr><th>Tanggal</th><th>Tipe</th><th>Nominal</th><th>Catatan</th></tr>
             </thead>
             <tbody>
               {filteredCashflow.slice(0, loadedCashflow).map((c, i) => (
@@ -685,7 +685,7 @@ export default function CashflowPage() {
 
 {/* INSIGHT TAB */}
 <div className={activeTab !== "insight" ? "hidden" : ""}>
-  <h3>Laporan Tunggakan Saat ini</h3>
+  <h2>Rekap keuangan kas</h2>
 
 <div className="insight-summary">
   {/* Baris 1: Pemasukan Bulan Lalu */}
@@ -732,7 +732,7 @@ export default function CashflowPage() {
     <strong>{format(insight?.summary?.currentBalance || 0)}</strong>
   </div>
 </div>
-
+<h2>Laporan Tunggakan Saat ini</h2>
   <div>
     {pagedInsight.length > 0 ? (
       pagedInsight.map((r, i) => (
