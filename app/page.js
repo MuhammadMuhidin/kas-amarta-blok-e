@@ -854,7 +854,7 @@ export default function CashflowPage() {
             <tr>
               <th>Tanggal</th>
               <th>Keterangan</th>
-              <th>Amount</th>
+              <th>Nominal</th>
             </tr>
           </thead>
 
