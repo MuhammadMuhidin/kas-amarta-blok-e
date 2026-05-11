@@ -90,12 +90,21 @@ export default function CashflowPage() {
 
   const onScrollCashflow = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollTop + clientHeight >= scrollHeight - 5) {
+    if (scrollTop + clientHeight >= scrollHeight - 1) {
       setLoadedCashflow((prev) => prev + chunk);
     }
   };
 
   /* ==== LOGIC: INSIGHT ==== */
+  const activeMembersCount = useMemo(() => {
+    if (!data.periods.length) return 0;
+    const lastPeriod = [...data.periods].sort().pop();
+    return data.persons.filter(am => {
+        if (!am.join_date) return true;
+        return am.join_date.slice(0, 7) <= lastPeriod;
+    }).length;
+  }, [data]);
+
   const insightList = useMemo(() => {
     if (!data.periods.length) return [];
     return data.persons
@@ -119,13 +128,13 @@ export default function CashflowPage() {
 
   return (
     <div className="container">
-      {/* CSS Terintegrasi */}
       <style jsx global>{`
         :root {
           --font-base: clamp(14px, 1.4vw, 16px);
           --font-small: clamp(12px, 1.2vw, 14px);
           --font-large: clamp(18px, 2vw, 22px);
           --radius: 8px;
+          --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
           --bg: #fafafa;
           --text: #222;
           --surface: #fff;
@@ -136,7 +145,8 @@ export default function CashflowPage() {
             --bg: #141414; --text: #e5e5e5; --surface: #1f1f1f; --border: #333;
           }
         }
-        body {
+        html, body { 
+          overflow-x: hidden; 
           background: var(--bg);
           color: var(--text);
           font-family: Arial, sans-serif;
@@ -144,51 +154,75 @@ export default function CashflowPage() {
           padding: 16px;
         }
         .container { max-width: 900px; margin: 0 auto; }
+        h2 { margin-bottom: 16px; font-size: var(--font-large); font-weight: 700; }
         .tab { display: flex; gap: 8px; margin-bottom: 16px; }
         button {
-          padding: 8px 14px; border-radius: var(--radius); border: 1px solid var(--border);
-          background: var(--surface); color: var(--text); cursor: pointer; font-size: var(--font-base);
+          padding: 8px 14px; border-radius: var(--radius); border: 1px solid #dcdcdc;
+          background: #f3f3f3; color: var(--text); cursor: pointer; font-size: var(--font-base); transition: 0.15s;
         }
+        button:hover { background: #e9e9e9; }
         button.active { background: #007bff; color: white; border-color: #007bff; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; margin-top: 12px; }
-        .card { padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        
+        .pay-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+        .pay-item { padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); font-size: var(--font-base); }
+        
         .table-container { 
           overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); 
-          background: var(--surface); margin-top: 12px; max-height: 480px; overflow-y: auto; 
+          background: var(--surface); margin-top: 12px;
+          -webkit-overflow-scrolling: touch;
         }
-        table { width: 100%; border-collapse: collapse; white-space: nowrap; }
+        .cashflow-body {
+          max-height: calc(10 * 48px);
+          overflow-y: auto;
+        }
+        table { min-width: 100%; border-collapse: collapse; white-space: nowrap; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
-        th { background: var(--surface); position: sticky; top: 0; z-index: 2; font-weight: 600; }
+        th { background: #f7f7f7; font-weight: 600; position: sticky; top: 0; z-index: 2; }
+        
         .badge { padding: 4px 10px; border-radius: var(--radius); color: white; font-size: var(--font-small); }
         .income { background: #28a745; } .expense { background: #dc3545; }
-        .summary { display: flex; justify-content: space-between; margin: 14px 0; }
-        input, select { padding: 10px; border-radius: var(--radius); border: 1px solid var(--border); width: 100%; background: var(--surface); color: var(--text); margin-top: 6px; }
+        
+        .summary { display: flex; justify-content: space-between; align-items: center; width: 100%; margin: 14px 0; }
+        .summary-item { display: flex; flex-direction: column; }
+        .summary-label { color: #666; font-size: var(--font-small); }
+        .summary-value { font-weight: 600; }
+        
+        input, select { padding: 10px 12px; border-radius: var(--radius); border: 1px solid #cfcfcf; width: 100%; box-sizing: border-box; background: white; margin-top: 6px; font-size: var(--font-base); }
+        
         .pagination { display: flex; gap: 14px; align-items: center; justify-content: center; margin-top: 12px; }
-        .loader { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 99; color: white; }
+        .insight-card { background: var(--surface); border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.06); border: 1px solid var(--border); }
+
+        @media (max-width: 700px) { .pay-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 480px) { .pay-grid { grid-template-columns: 1fr; } }
+        
+        @media (prefers-color-scheme: dark) {
+            button { background: #2a2a2a; border-color: #333; color: #eee; }
+            input, select { background: #1f1f1f; border: 1px solid #333; color: #eee; }
+            th { background: #1f1f1f !important; }
+            .summary-label { color: #aaa; }
+        }
       `}</style>
 
-      {loading && <div className="loader">Loading Data...</div>}
+      {loading && <div style={{textAlign:'center', padding:'20px'}}>Processing...</div>}
 
       <h2>Uang Kas Amarta Residence (Blok E)</h2>
 
-      {/* TAB NAVIGATION */}
       <div className="tab">
         <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Payment</button>
         <button className={activeTab === "cashflow" ? "active" : ""} onClick={() => setActiveTab("cashflow")}>Cashflow</button>
         <button className={activeTab === "insight" ? "active" : ""} onClick={() => setActiveTab("insight")}>Insight</button>
       </div>
 
-      {/* PAYMENT CONTENT */}
       {activeTab === "payment" && (
-        <div>
+        <div id="payment">
           <label>Pilih Periode:</label>
           <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)}>
             {data.periods.map((p) => <option key={p} value={p}>{p}</option>)}
           </select>
-          <div className="grid">
+          <div className="pay-grid">
             {pagedPayments.map((p, idx) => (
-              <div key={idx} className="card">
+              <div key={idx} className="pay-item">
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span>{p.house}</span>
                   <span style={{ 
@@ -209,16 +243,15 @@ export default function CashflowPage() {
         </div>
       )}
 
-      {/* CASHFLOW CONTENT */}
       {activeTab === "cashflow" && (
-        <div>
-          <input placeholder="Search note..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        <div id="cashflow">
+          <input placeholder="search note..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
           <div className="summary">
-            <div><small>Income</small><div style={{color: "#28a745", fontWeight: 700}}>{formatCurrency(totals.inc)}</div></div>
-            <div><small>Expense</small><div style={{color: "#dc3545", fontWeight: 700}}>{formatCurrency(totals.exp)}</div></div>
-            <div><small>Net Balance</small><div style={{color: "#007bff", fontWeight: 700}}>{formatCurrency(totals.net)}</div></div>
+            <div className="summary-item"><span className="summary-label">Income</span><span style={{color: "#28a745"}} className="summary-value">{formatCurrency(totals.inc)}</span></div>
+            <div className="summary-item"><span className="summary-label">Expense</span><span style={{color: "#dc3545"}} className="summary-value">{formatCurrency(totals.exp)}</span></div>
+            <div className="summary-item"><span className="summary-label">Net</span><span style={{color: "#007bff"}} className="summary-value">{formatCurrency(totals.net)}</span></div>
           </div>
-          <div className="table-container" onScroll={onScrollCashflow}>
+          <div className="table-container cashflow-body" onScroll={onScrollCashflow}>
             <table>
               <thead>
                 <tr>
@@ -234,7 +267,7 @@ export default function CashflowPage() {
                     <td>{c.date || "-"}</td>
                     <td><span className={`badge ${c.type}`}>{c.type}</span></td>
                     <td>{formatCurrency(c.amount)}</td>
-                    <td>{c.note || "-"}</td>
+                    <td style={{whiteSpace:'normal'}}>{c.note || "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -243,21 +276,23 @@ export default function CashflowPage() {
         </div>
       )}
 
-      {/* INSIGHT CONTENT */}
       {activeTab === "insight" && (
-        <div>
+        <div id="insight">
           <h3>Laporan Tunggakan Saat Ini</h3>
-          <div className="grid" style={{gridTemplateColumns: "1fr"}}>
+          <div style={{marginBottom:'10px', fontWeight:600}}>
+            <div>• Total member aktif: {activeMembersCount} rumah</div>
+          </div>
+          <div id="insightList">
             {pagedInsight.length > 0 ? (
               pagedInsight.map((r, i) => (
-                <div key={i} className="card" style={{borderLeft: "4px solid #dc3545"}}>
-                  <b>{r.house} ({r.name})</b>
-                  <div>&bull; Nunggak: {r.jumlah} periode</div>
-                  <div style={{fontSize: "0.85em", color: "#666"}}>&bull; {r.unpaid.join(", ")}</div>
+                <div key={i} className="insight-card">
+                  <b>{(pageInsight-1)*perPageInsight + i + 1}. {r.house}</b>
+                  <div>• Nunggak: {r.jumlah} periode</div>
+                  <div>• Periode: {r.unpaid.join(", ")}</div>
                 </div>
               ))
             ) : (
-              <div className="card">Tidak ada tunggakan.</div>
+              <div className="insight-card">Tidak ada tunggakan.</div>
             )}
           </div>
           {insightList.length > 0 && (
