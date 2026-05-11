@@ -17,6 +17,8 @@ export default function CashflowPage() {
   const [pagePay, setPagePay] = useState(1);
   const [pageInsight, setPageInsight] = useState(1);
   const [loadedCashflow, setLoadedCashflow] = useState(20);
+  const [showInsightModal, setShowInsightModal] = useState(false);
+  const [modalType, setModalType] = useState("last");
 
   const FETCH_URL = "/api/sheets/summary";
   const perPagePay = 9;
@@ -45,6 +47,7 @@ export default function CashflowPage() {
 
   /* ==== HELPERS ==== */
   const format = (n) => "Rp" + Number(n).toLocaleString("id-ID");
+  const insight = data.insight || {};
 
   /* ==== LOGIC: PAYMENT ==== */
   const paymentList = useMemo(() => {
@@ -362,6 +365,16 @@ export default function CashflowPage() {
                 .expense {
                     background: #b52a36;
                 }
+
+                .detail-table th {
+                    background: var(--surface);
+                    color: var(--text);
+                }
+
+                .detail-table td {
+                    border-color: #333;
+                    color: #ccc;
+                }
             }
 
             /* viewport 10 rows */
@@ -469,6 +482,137 @@ export default function CashflowPage() {
               padding:16px;
               box-sizing:border-box;
             }
+
+            .insight-bullet {
+                margin-bottom: 12px;
+                line-height: 1.7;
+            }
+
+            .insight-link {
+                -webkit-tap-highlight-color: transparent;
+                outline: none;
+                user-select: none;
+                border: none;
+                background: none;
+                color: #007bff;
+                cursor: pointer;
+                padding: 0;
+                margin-left: 6px;
+                font-size: inherit;
+            }
+
+            .insight-link:focus,
+            .insight-link:active {
+              outline: none;
+              box-shadow: none;
+            }
+
+            .modal-overlay {
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.45);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 9999;
+                padding: 16px;
+            }
+
+            .modal-box {
+                width: 100%;
+                max-width: 760px;
+                background: var(--surface);
+                color: var(--text);
+                border-radius: 12px;
+                padding: 18px;
+                max-height: 85vh;
+                overflow-y: auto;
+                box-sizing: border-box;
+            }
+
+            .modal-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 18px;
+                background: var(--surface) !important;
+                color: var(--text);
+            }
+
+            .modal-title {
+                font-size: 18px;
+                font-weight: 700;
+            }
+
+            .detail-table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 12px;
+            }
+
+            .detail-table th,
+            .detail-table td {
+                border: 1px solid var(--border);
+                padding: 10px;
+                text-align: left;
+            }
+
+            .detail-table th {
+                background: var(--surface);
+                color: var(--text);
+            }
+
+            .modal-section {
+                margin-bottom: 24px;
+            }
+
+            .insight-summary{
+              background: var(--surface);
+              border:1px solid var(--border);
+              border-radius:12px;
+              padding:16px;
+              margin-bottom:20px;
+          }
+
+          .insight-row{
+              display:flex;
+              justify-content:space-between;
+              align-items:center;
+              gap:16px;
+              padding:12px 0;
+              border-bottom:1px dashed var(--border);
+          }
+
+          .insight-row:last-child{
+              border-bottom:none;
+          }
+
+          .insight-row span{
+              line-height:1.5;
+          }
+
+          .insight-row strong{
+              font-size:16px;
+          }
+
+          .highlight-blue strong{
+              color:#2563eb;
+          }
+
+          .final-balance{
+              margin-top:4px;
+          }
+
+          .final-balance strong{
+              font-size:22px;
+              color:#16a34a;
+          }
+
+          .insight-divider{
+              margin:18px 0;
+              border:none;
+              border-top:2px solid var(--border);
+          }
   `}</style>
 
       {loading && (
@@ -480,9 +624,9 @@ export default function CashflowPage() {
       <h2>Uang Kas Amarta Residence (Blok E)</h2>
 
       <div className="tab">
-        <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Payment</button>
-        <button className={activeTab === "cashflow" ? "active" : ""} onClick={() => setActiveTab("cashflow")}>Cashflow</button>
-        <button className={activeTab === "insight" ? "active" : ""} onClick={() => setActiveTab("insight")}>Insight</button>
+        <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Status Pembayaran</button>
+        <button className={activeTab === "cashflow" ? "active" : ""} onClick={() => setActiveTab("cashflow")}>Arus Kas</button>
+        <button className={activeTab === "insight" ? "active" : ""} onClick={() => setActiveTab("insight")}>Laporan</button>
       </div>
 
       {/* PAYMENT TAB */}
@@ -515,11 +659,11 @@ export default function CashflowPage() {
 
       {/* CASHFLOW TAB */}
       <div className={activeTab !== "cashflow" ? "hidden" : ""}>
-        <input placeholder="search note..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setLoadedCashflow(20); }} />
+        <input placeholder="cari catatan..." value={searchTerm} onChange={(e) => { setSearchTerm(e.target.value); setLoadedCashflow(20); }} />
         <div className="summary">
-          <div className="summary-item"><span className="summary-label">Income</span><span style={{color: "#28a745"}} className="summary-value">{format(totals.inc)}</span></div>
-          <div className="summary-item"><span className="summary-label">Expense</span><span style={{color: "#dc3545"}} className="summary-value">{format(totals.exp)}</span></div>
-          <div className="summary-item"><span className="summary-label">Net</span><span style={{color: "#007bff"}} className="summary-value">{format(totals.net)}</span></div>
+          <div className="summary-item"><span className="summary-label">Total Pemasukan</span><span style={{color: "#28a745"}} className="summary-value">{format(totals.inc)}</span></div>
+          <div className="summary-item"><span className="summary-label">Total Pengeluaran</span><span style={{color: "#dc3545"}} className="summary-value">{format(totals.exp)}</span></div>
+          <div className="summary-item"><span className="summary-label">Sisa Saldo</span><span style={{color: "#007bff"}} className="summary-value">{format(totals.net)}</span></div>
         </div>
         <div className="table-container cashflow-body" onScroll={(e) => {
           const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -527,13 +671,13 @@ export default function CashflowPage() {
         }}>
           <table>
             <thead>
-              <tr><th>Date</th><th>Type</th><th>Amount</th><th>Note</th></tr>
+              <tr><th>Tanggal</th><th>Tipe</th><th>Nominal</th><th>Catatan</th></tr>
             </thead>
             <tbody>
               {filteredCashflow.slice(0, loadedCashflow).map((c, i) => (
                 <tr key={i}>
                   <td>{c.date || "-"}</td>
-                  <td><span className={`badge ${c.type}`}>{c.type}</span></td>
+                  <td><span className={`badge ${c.type}`}>{({ income: "Pemasukan", expense: "Pengeluaran" }[c.type] || c.type)}</span></td>
                   <td>{format(c.amount)}</td>
                   <td>{c.note || "-"}</td>
                 </tr>
@@ -543,34 +687,200 @@ export default function CashflowPage() {
         </div>
       </div>
 
-      {/* INSIGHT TAB */}
-      <div className={activeTab !== "insight" ? "hidden" : ""}>
-        <h3>Laporan Tunggakan Saat ini</h3>
-        <div style={{marginBottom:'10px', fontWeight:600}}>
-          <div>• Total member aktif: {activeMembersCount} rumah</div>
+{/* INSIGHT TAB */}
+<div className={activeTab !== "insight" ? "hidden" : ""}>
+  <h2>Rekap keuangan kas</h2>
+
+<div className="insight-summary">
+  {/* Baris 1: Pemasukan Bulan Lalu */}
+  <div className="insight-row">
+    <span>Pemasukan {insight?.lastMonth?.month}</span>
+    <strong>{format(insight?.lastMonth?.income || 0)}</strong>
+  </div>
+
+  {/* Baris 2: Pengeluaran Bulan Lalu */}
+  <div className="insight-row">
+    <span>Pengeluaran {insight?.lastMonth?.month}</span>
+    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+      <strong style={{ color: "#dc3545" }}>{format(insight?.lastMonth?.expenseTotal || 0)}</strong>
+      <button className="insight-link" onClick={() => { setModalType("last"); setShowInsightModal(true); }}>lihat detail</button>
+    </div>
+  </div>
+
+  {/* Baris 3: Saldo Akhir Bulan Lalu (KUMULATIF) */}
+  <div className="insight-row highlight-blue">
+    <span>Total seluruh saldo per {insight?.lastMonth?.month}</span>
+    <strong>{format(insight?.lastMonth?.remaining || 0)}</strong>
+  </div>
+
+  <hr className="insight-divider" />
+
+  {/* Baris 4: Pemasukan Bulan Ini + Sisa Saldo Lalu */}
+  <div className="insight-row">
+    <span>Uang masuk bulan ini <br/> + sisa bulan lalu</span>
+    <strong>{format(insight?.summary?.currentIncomePlusLastRemaining || 0)}</strong>
+  </div>
+
+  {/* Baris 5: Pengeluaran Bulan Ini */}
+  <div className="insight-row">
+    <span>Pengeluaran bulan ini</span>
+    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+      <strong style={{ color: "#dc3545" }}>{format(insight?.currentMonth?.expenseTotal || 0)}</strong>
+      <button className="insight-link" onClick={() => { setModalType("current"); setShowInsightModal(true); }}>lihat detail</button>
+    </div>
+  </div>
+
+  {/* Baris 6: Saldo Real Saat Ini */}
+  <div className="insight-row final-balance">
+    <span>Total saldo saat ini</span>
+    <strong>{format(insight?.summary?.currentBalance || 0)}</strong>
+  </div>
+</div>
+<h2>Laporan Tunggakan Saat ini</h2>
+  <div>
+    {pagedInsight.length > 0 ? (
+      pagedInsight.map((r, i) => (
+        <div
+          key={i}
+          className="insight-card"
+        >
+          <b>
+            {(pageInsight - 1) *
+              perPageInsight +
+              i +
+              1}
+            . {r.house}
+          </b>
+
+          <div>
+            • Nunggak: {r.jumlah} periode
+          </div>
+
+          <div>
+            • Periode:{" "}
+            {r.unpaid.join(", ")}
+          </div>
         </div>
-        <div>
-          {pagedInsight.length > 0 ? (
-            pagedInsight.map((r, i) => (
-              <div key={i} className="insight-card">
-                <b>{(pageInsight-1)*perPageInsight + i + 1}. {r.house}</b>
-                <div>• Nunggak: {r.jumlah} periode</div>
-                <div>• Periode: {r.unpaid.join(", ")}</div>
-              </div>
-            ))
-          ) : (
-            <div className="insight-card">Tidak ada tunggakan.</div>
+      ))
+    ) : (
+      <div className="insight-card">
+        Tidak ada tunggakan.
+      </div>
+    )}
+  </div>
+
+  {insightResult.length > 0 && (
+    <div className="pagination">
+      <button
+        disabled={pageInsight === 1}
+        onClick={() =>
+          setPageInsight((p) => p - 1)
+        }
+      >
+        Prev
+      </button>
+
+      <span>
+        Page {pageInsight}/
+        {totalPageInsight}
+      </span>
+
+      <button
+        disabled={
+          pageInsight ===
+          totalPageInsight
+        }
+        onClick={() =>
+          setPageInsight((p) => p + 1)
+        }
+      >
+        Next
+      </button>
+    </div>
+  )}
+</div>
+
+{/* MODAL DETAIL */}
+{showInsightModal && (
+  <div
+    className="modal-overlay"
+    onClick={() =>
+      setShowInsightModal(false)
+    }
+  >
+    <div
+      className="modal-box"
+      onClick={(e) =>
+        e.stopPropagation()
+      }
+    >
+      <div className="modal-header">
+        <div className="modal-title">
+          Detail Pengeluaran Bulan{" "}
+          {modalType === "last"
+            ? insight?.lastMonth?.month
+            : insight?.currentMonth?.month}
+        </div>
+
+        <button
+          type="button"
+          onClick={() =>
+            setShowInsightModal(false)
+          }
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="modal-section">
+        <div
+          style={{
+            marginBottom: 12,
+            fontWeight: 700,
+          }}
+        >
+          Total Pengeluaran:{" "}
+          {format(
+            modalType === "last"
+              ? insight?.lastMonth
+                  ?.expenseTotal || 0
+              : insight?.currentMonth
+                  ?.expenseTotal || 0
           )}
         </div>
-        {insightResult.length > 0 && (
-          <div className="pagination">
-            <button disabled={pageInsight === 1} onClick={() => setPageInsight(p => p - 1)}>Prev</button>
-            <span>Page {pageInsight}/{totalPageInsight}</span>
-            <button disabled={pageInsight === totalPageInsight} onClick={() => setPageInsight(p => p + 1)}>Next</button>
-          </div>
-        )}
+
+        <table className="detail-table">
+          <thead>
+            <tr>
+              <th>Tanggal</th>
+              <th>Keterangan</th>
+              <th>Nominal</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {(
+                modalType === "last"
+                  ? insight?.lastMonth
+                      ?.expenses || []
+                  : insight?.currentMonth
+                      ?.expenses || []
+              ).map((e, i) => (
+              <tr key={i}>
+                <td>{e.date}</td>
+                <td>{e.note}</td>
+                <td>
+                  {format(e.amount)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      </div>
-    </>
-  );
+    </div>
+  </div>
+  )}
+    </div>
+  </>
+);
 }
