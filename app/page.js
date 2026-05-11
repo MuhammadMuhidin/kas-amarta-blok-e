@@ -709,7 +709,7 @@ export default function CashflowPage() {
 
   {/* Baris 3: Saldo Akhir Bulan Lalu (KUMULATIF) */}
   <div className="insight-row highlight-blue">
-    <span>Total seluruh saldo per {insight?.lastMonth?.month}</span>
+    <span>Total saldo kumulatif per {insight?.lastMonth?.month}</span>
     <strong>{format(insight?.lastMonth?.remaining || 0)}</strong>
   </div>
 
@@ -717,7 +717,7 @@ export default function CashflowPage() {
 
   {/* Baris 4: Pemasukan Bulan Ini + Sisa Saldo Lalu */}
   <div className="insight-row">
-    <span>Uang masuk bulan ini <br/> + sisa bulan lalu</span>
+    <span>Kas bulan berjalan dari {activeMembersCount} rumah <br/> + sisa bulan lalu</span>
     <strong>{format(insight?.summary?.currentIncomePlusLastRemaining || 0)}</strong>
   </div>
 
@@ -738,9 +738,6 @@ export default function CashflowPage() {
 </div>
 <h2>Laporan Tunggakan Saat ini</h2>
   <div>
-    <div style={{marginBottom:'8px', fontWeight:600}}>
-    <div>• Total member aktif: {activeMembersCount} rumah</div>
-  </div>
     {pagedInsight.length > 0 ? (
       pagedInsight.map((r, i) => (
         <div
