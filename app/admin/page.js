@@ -808,7 +808,7 @@ const styles={
 
 summaryCards: {
   display: "grid",
-  gridTemplateColumns: "repeat(4, 1fr)",
+  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
   gap: 10,
   marginBottom: 16
 },
