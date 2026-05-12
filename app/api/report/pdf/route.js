@@ -1205,7 +1205,7 @@ export async function GET(req) {
         287
       );
 
-      doc.setFontSize(12);
+      doc.setFontSize(8);
 
       doc.setTextColor(
         140
