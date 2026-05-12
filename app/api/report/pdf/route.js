@@ -309,14 +309,12 @@ export async function GET(req) {
       "F"
     );
 
-    doc.addImage(
-      `data:image/png;base64,${logoBase64}`,
-      "PNG",
-      158,
-      7,
-      36,
-      36
-    );
+    const headerPadding = 15;
+    const logoW = 30;
+    const logoH = 30;
+    const logoX = pageWidth - logoW - headerPadding;
+    const logoY = (42 - logoH) / 2;
+    doc.addImage(base64Logo, "PNG", logoX, logoY, logoW, logoH);
 
     doc.setTextColor(
       255,
