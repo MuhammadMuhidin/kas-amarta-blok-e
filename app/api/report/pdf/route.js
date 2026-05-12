@@ -48,11 +48,9 @@ export async function GET() {
     });
 
   } catch (err) {
-  if (browser) await browser.close();
-  return new Response(JSON.stringify({ error: err.message, stack: err.stack }), { 
-    status: 500,
-    headers: { 'Content-Type': 'application/json' }
-  });
+    if (browser) await browser.close();
+    console.error("PDF ERROR:", err);
+    return new Response("PDF failed", { status: 500 });
   }
 }
 
