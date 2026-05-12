@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import "@/app/page.css";
 
 export default function CashflowPage() {
   /* ==== STATE ==== */
@@ -11,6 +12,7 @@ export default function CashflowPage() {
     periods: [],
   });
   const [loading, setLoading] = useState(true);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [activeTab, setActiveTab] = useState("payment");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -26,7 +28,40 @@ export default function CashflowPage() {
   const chunk = 20;
 
   const downloadPDF = async () => {
-  window.location.href = "/api/report/pdf";
+    try {
+      setDownloadingPdf(true);
+
+      const res = await fetch("/api/report/pdf");
+
+      if (!res.ok) {
+        throw new Error("Gagal membuat laporan");
+      }
+
+      const blob = await res.blob();
+
+      const url = window.URL.createObjectURL(blob);
+
+      const safeMonth =
+      insight?.currentMonth?.month
+        ?.replace(/[\/\\]/g, "-")
+        ?.replace(/\s+/g, "_") ||
+      "laporan";
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Laporan_Kas_${safeMonth}.pdf`;
+
+      document.body.appendChild(a);
+      a.click();
+
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   /* ==== INIT & FETCH ==== */
@@ -136,513 +171,42 @@ export default function CashflowPage() {
   return (
     <>
   <div className="page-wrap">
-  <style jsx global>{`
-            :root {
-                --font-base: clamp(14px, 1.4vw, 16px);
-                --font-small: clamp(12px, 1.2vw, 14px);
-                --font-large: clamp(18px, 2vw, 22px);
-                --radius: 8px;
-                --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 
-                --bg: #fafafa;
-                --text: #222;
-                --surface: #fff;
-                --border: #e5e5e5;
-            }
+    {loading && (
+      <div className="action-loader show">
+        <div className="loader-card">
+          <div className="loader-row">
+            <div className="loader-icon">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
 
-            body {
-                font-family: Arial, sans-serif;
-                background: var(--bg);
-                color: var(--text);
-                line-height: 1.42;
-                font-size: var(--font-base);
-            }
-
-            h2 {
-                margin-bottom: 16px;
-                font-size: var(--font-large);
-                font-weight: 700;
-            }
-            .tab {
-                display: flex;
-                gap: 8px;
-                margin-bottom: 16px;
-            }
-
-            button {
-                padding: 8px 14px;
-                border-radius: var(--radius);
-                border: 1px solid #dcdcdc;
-                background: #f3f3f3;
-                cursor: pointer;
-                font-size: var(--font-base);
-                transition: 0.15s;
-            }
-
-            button:hover {
-                background: #e9e9e9;
-            }
-
-            button.active {
-                background: #007bff;
-                color: white;
-                border-color: #007bff;
-            }
-
-            .hidden {
-                display: none;
-            }
-
-            input,
-            select {
-                padding: 10px 12px;
-                border-radius: var(--radius);
-                border: 1px solid #cfcfcf;
-                font-size: var(--font-base);
-                width: 100%;
-                box-sizing: border-box;
-                background: white;
-                margin-top: 6px;
-            }
-
-            .pay-grid {
-                display: grid;
-                grid-template-columns: repeat(3, 1fr);
-                gap: 8px;
-                margin-top: 12px;
-            }
-            .pay-item {
-                padding: 12px;
-                border-radius: var(--radius);
-                border: 1px solid var(--border);
-                background: var(--surface);
-                box-shadow: var(--shadow);
-                font-size: var(--font-base);
-            }
-
-            .table-container {
-                overflow-x: auto;
-                border: 1px solid var(--border);
-                border-radius: var(--radius);
-                background: var(--surface);
-                margin-top: 12px;
-                -webkit-overflow-scrolling: touch;
-            }
-
-            table {
-                min-width: 100%;
-                border-collapse: collapse;
-                white-space: nowrap;
-            }
-            th,
-            td {
-                padding: 12px;
-                border-bottom: 1px solid var(--border);
-                text-align: left;
-            }
-            th {
-                background: #f7f7f7;
-                font-weight: 600;
-            }
-            tr:nth-child(even) {
-                background: #fafafa;
-            }
-
-            .badge {
-                padding: 4px 10px;
-                border-radius: var(--radius);
-                color: white;
-                font-size: var(--font-small);
-            }
-            .income {
-                background: #28a745;
-            }
-            .expense {
-                background: #dc3545;
-            }
-
-            .summary {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                width: 100%;
-                margin: 14px 0;
-            }
-            .summary-item {
-                display: flex;
-                flex-direction: column;
-            }
-            .summary-label {
-                color: #666;
-                font-size: var(--font-small);
-            }
-            .summary-value {
-                font-weight: 600;
-            }
-            .sum-inc {
-                color: #28a745;
-                font-weight: 700;
-            }
-            .sum-exp {
-                color: #dc3545;
-                font-weight: 700;
-            }
-            .sum-net {
-                color: #007bff;
-                font-weight: 700;
-            }
-
-            .pagination {
-                display: flex;
-                gap: 14px;
-                align-items: center;
-                justify-content: center;
-                margin-top: 12px;
-            }
-
-            @media (max-width: 700px) {
-                .pay-grid {
-                    grid-template-columns: repeat(2, 1fr);
-                }
-            }
-
-            @media (max-width: 480px) {
-                .pay-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-
-            .insight-card {
-                background: var(--surface);
-                border-radius: 6px;
-                padding: 10px 12px;
-                margin-bottom: 10px;
-                box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-                border: 1px solid var(--border);
-            }
-
-            /* ===== AUTO DARK MODE ===== */
-            @media (prefers-color-scheme: dark) {
-                :root {
-                    --bg: #141414;
-                    --text: #e5e5e5;
-                    --surface: #1f1f1f;
-                    --border: #333;
-                }
-
-                button {
-                    background: #2a2a2a;
-                    border-color: #333;
-                    color: #eee;
-                }
-
-                button:hover {
-                    background: #353535;
-                }
-
-                button:disabled {
-                    background: #1f1f1f;
-                    border-color: #333;
-                    color: #555;
-                    opacity: 1;
-                    cursor: not-allowed;
-                }
-
-                button.active {
-                    background: #007bff;
-                    color: white;
-                    border-color: #007bff;
-                }
-
-                input,
-                select {
-                    background: #1f1f1f;
-                    border: 1px solid #333;
-                    color: #eee;
-                }
-
-                th {
-                    background: #1f1f1f;
-                }
-
-                tr:nth-child(even),
-                tr:nth-child(odd) {
-                    background: var(--surface);
-                }
-
-                .summary-label {
-                    color: #aaa;
-                }
-                .income {
-                    background: #1d8b3a;
-                }
-                .expense {
-                    background: #b52a36;
-                }
-
-                .detail-table th {
-                    background: var(--surface);
-                    color: var(--text);
-                }
-
-                .detail-table td {
-                    border-color: #333;
-                    color: #ccc;
-                }
-            }
-
-            /* viewport 10 rows */
-            .cashflow-body {
-                max-height: calc(10 * 48px);
-                overflow-y: auto;
-            }
-
-            /* sticky */
-            #cashflow th {
-                position: sticky;
-                top: 0;
-                zIndex: 2;
-                background: var(--surface) !important;
-            }
-
-            /* ==== GLOBAL LOADER ==== */
-            .action-loader {
-                position: fixed;
-                inset: 0;
-                background: rgba(15, 23, 42, 0.25);
-                backdrop-filter: blur(8px);
-                -webkit-backdrop-filter: blur(8px);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                zIndex: 9999;
-                opacity: 0;
-                pointer-events: none;
-                transition: opacity 0.25s ease;
-            }
-
-            .action-loader.show {
-                opacity: 1;
-                pointer-events: auto;
-            }
-
-            .loader-card {
-                background: var(--surface);
-                color: var(--text);
-                padding: 22px 26px;
-                border-radius: 12px;
-                min-width: 220px;
-                text-align: center;
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-            }
-
-            .loader-row {
-                display: flex;
-                align-items: center;
-                gap: 12px;
-            }
-
-            .loader-icon {
-                display: flex;
-                align-items: center;
-                height: 18px;
-            }
-
-            .loader-icon span {
-                width: 6px;
-                height: 18px;
-                background: #2563eb;
-                border-radius: 6px;
-                animation: pulse 1s ease-in-out infinite;
-            }
-
-            .loader-icon span:nth-child(2) {
-                animation-delay: 0.15s;
-            }
-            .loader-icon span:nth-child(3) {
-                animation-delay: 0.3s;
-            }
-
-            @keyframes pulse {
-                0%,
-                100% {
-                    transform: scaleY(0.4);
-                    opacity: 0.5;
-                }
-                50% {
-                    transform: scaleY(1);
-                    opacity: 1;
-                }
-            }
-
-            .loader-text {
-                font-size: 14px;
-                font-weight: 600;
-                line-height: 1;
-                display: flex;
-                align-items: center;
-                color: var(--text);
-            }
-
-            html,
-            body {
-                overflow-x: hidden;
-            }
-
-            .page-wrap{
-              width:100%;
-              max-width:900px;
-              margin:0 auto;
-              padding:16px;
-              box-sizing:border-box;
-            }
-
-            .insight-bullet {
-                margin-bottom: 12px;
-                line-height: 1.7;
-            }
-
-            .insight-link {
-                -webkit-tap-highlight-color: transparent;
-                outline: none;
-                user-select: none;
-                border: none;
-                background: none;
-                color: #007bff;
-                cursor: pointer;
-                padding: 0;
-                margin-left: 6px;
-                font-size: inherit;
-            }
-
-            .insight-link:focus,
-            .insight-link:active {
-              outline: none;
-              box-shadow: none;
-            }
-
-            .modal-overlay {
-                position: fixed;
-                inset: 0;
-                background: rgba(0,0,0,0.45);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 9999;
-                padding: 16px;
-            }
-
-            .modal-box {
-                width: 100%;
-                max-width: 760px;
-                background: var(--surface);
-                color: var(--text);
-                border-radius: 12px;
-                padding: 18px;
-                max-height: 85vh;
-                overflow-y: auto;
-                box-sizing: border-box;
-            }
-
-            .modal-header {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 18px;
-                background: var(--surface) !important;
-                color: var(--text);
-            }
-
-            .modal-title {
-                font-size: 18px;
-                font-weight: 700;
-            }
-
-            .detail-table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 12px;
-            }
-
-            .detail-table th,
-            .detail-table td {
-                border: 1px solid var(--border);
-                padding: 10px;
-                text-align: left;
-            }
-
-            .detail-table th {
-                background: var(--surface);
-                color: var(--text);
-            }
-
-            .modal-section {
-                margin-bottom: 24px;
-            }
-
-            .insight-summary{
-              background: var(--surface);
-              border:1px solid var(--border);
-              border-radius:12px;
-              padding:16px;
-              margin-bottom:20px;
-          }
-
-          .insight-row{
-              display:flex;
-              justify-content:space-between;
-              align-items:center;
-              gap:16px;
-              padding:12px 0;
-              border-bottom:1px dashed var(--border);
-          }
-
-          .insight-row-final{
-              display:flex;
-              justify-content:space-between;
-              align-items:center;
-              gap:16px;
-              padding:12px 0;
-              border-bottom:none;
-          }
-
-          .insight-row:last-child{
-              border-bottom:none;
-          }
-
-          .insight-row span{
-              line-height:1.5;
-          }
-
-          .insight-row strong{
-              font-size:16px;
-          }
-
-          .highlight-blue strong{
-              color:#2563eb;
-          }
-
-          .final-balance{
-              margin-top:4px;
-          }
-
-          .final-balance strong{
-              font-size:22px;
-              color:#16a34a;
-          }
-
-          .insight-divider{
-              margin:18px 0;
-              border:none;
-              border-top:2px solid var(--border);
-          }
-  `}</style>
-
-      {loading && (
-        <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:999}}>
-          <div style={{background:'var(--surface)', padding:'20px', borderRadius:'8px'}}>Processing…</div>
+            <div className="loader-text">
+              Sedang memuat data...
+            </div>
+          </div>
         </div>
-      )}
+      </div>
+    )}
+
+    {downloadingPdf && (
+      <div className="action-loader show">
+        <div className="loader-card">
+          <div className="loader-row">
+            <div className="loader-icon">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+
+            <div className="loader-text">
+              Sedang memproses laporan..
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
 
       <h2>Uang Kas Amarta Residence (Blok E)</h2>
 
@@ -746,8 +310,8 @@ export default function CashflowPage() {
 
   {/* Baris 2: Pengeluaran Bulan Lalu */}
   <div className="insight-row">
-    <span>Pengeluaran {insight?.lastMonth?.month}</span>
-    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+    <span className="insight-label">Pengeluaran bulan {insight?.lastMonth?.month}</span>
+    <div className="insight-action">
       <strong style={{ color: "#dc3545" }}>{format(insight?.lastMonth?.expenseTotal || 0)}</strong>
       <button className="insight-link" onClick={() => { setModalType("last"); setShowInsightModal(true); }}>lihat detail</button>
     </div>
@@ -763,7 +327,7 @@ export default function CashflowPage() {
 
   {/* Baris 4: Pemasukan Bulan Ini + Sisa Saldo Lalu */}
   <div className="insight-row">
-    <span>Kas bulan {insight?.currentMonth?.month} dari {paidInLastPeriodCount} rumah <br/> + sisa bulan lalu</span>
+    <span>Kas bulan {insight?.currentMonth?.month} dari {paidInLastPeriodCount} rumah + sisa bulan lalu</span>
     <strong>{format(insight?.summary?.currentIncomePlusLastRemaining || 0)}</strong>
   </div>
 
@@ -867,15 +431,6 @@ export default function CashflowPage() {
             ? insight?.lastMonth?.month
             : insight?.currentMonth?.month}
         </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            setShowInsightModal(false)
-          }
-        >
-          ✕
-        </button>
       </div>
 
       <div className="modal-section">

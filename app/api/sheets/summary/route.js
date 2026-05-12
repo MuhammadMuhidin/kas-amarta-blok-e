@@ -62,9 +62,20 @@ export async function GET() {
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
     // Awal bulan ini (1 Mei)
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
-    const lastMonthName = endOfLastMonth.toLocaleString("id-ID", { month: "long" });
-    const currentMonthName = startOfCurrentMonth.toLocaleString("id-ID", { month: "long" });
+    const lastMonthName = endOfLastMonth.toLocaleString(
+      "id-ID",
+      {
+        month: "long",
+        year: "numeric",
+      }
+    );
+    const currentMonthName = startOfCurrentMonth.toLocaleString(
+      "id-ID",
+      {
+        month: "long",
+        year: "numeric",
+      }
+    );
     const currentMonthKey = startOfCurrentMonth.toISOString().slice(0, 7);
     const lastMonthKey = endOfLastMonth.toISOString().slice(0, 7);
 

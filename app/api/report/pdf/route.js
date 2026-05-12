@@ -1211,18 +1211,17 @@ export async function GET(req) {
         "arraybuffer"
       );
 
-    return new Response(
-      pdfBuffer,
-      {
-        headers: {
-          "Content-Type":
-            "application/pdf",
+    return new Response(pdfBuffer, {
+      headers: {
+        "Content-Type": "application/pdf",
 
-          "Content-Disposition":
-            `attachment; filename="Laporan_Kas_${safeMonth}.pdf"`,
-        },
-      }
-    );
+        "Content-Disposition":
+          `attachment; filename="Laporan_Kas_${safeMonth}.pdf"`,
+
+        "Access-Control-Expose-Headers":
+          "Content-Disposition",
+      },
+    });
   } catch (err) {
     console.error(err);
 
