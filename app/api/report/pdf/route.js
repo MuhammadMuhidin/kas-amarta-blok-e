@@ -1219,7 +1219,7 @@ export async function GET(req) {
             "application/pdf",
 
           "Content-Disposition":
-            `attachment; filename="Laporan_Kas_${safeMonth}.pdf"`,
+            `attachment; filename="Laporan_Kas_${safeMonth}_Tahun.pdf"`,
         },
       }
     );

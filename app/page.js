@@ -27,21 +27,36 @@ export default function CashflowPage() {
   const perPageInsight = 6;
   const chunk = 20;
 
-const downloadPDF = async () => {
-  try {
-    setDownloadingPdf(true);
+  const downloadPDF = async () => {
+    try {
+      setDownloadingPdf(true);
 
-    window.location.href = "/api/report/pdf";
+      const res = await fetch("/api/report/pdf");
 
-    setTimeout(() => {
+      if (!res.ok) {
+        throw new Error("Gagal membuat laporan");
+      }
+
+      const blob = await res.blob();
+
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "laporan-kas.pdf";
+
+      document.body.appendChild(a);
+      a.click();
+
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+    } catch (err) {
+      alert(err.message);
+    } finally {
       setDownloadingPdf(false);
-    }, 4000);
-
-  } catch (err) {
-    setDownloadingPdf(false);
-    alert("Gagal download laporan");
-  }
-};
+    }
+  };
 
   /* ==== INIT & FETCH ==== */
   useEffect(() => {
