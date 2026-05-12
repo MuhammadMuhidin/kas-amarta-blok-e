@@ -642,6 +642,32 @@ export default function CashflowPage() {
 
       <h2>Uang Kas Amarta Residence (Blok E)</h2>
 
+const downloadPDF = async () => {
+  try {
+    const res = await fetch("/api/report/pdf", {
+      method: "GET",
+    });
+
+    if (!res.ok) throw new Error("Gagal generate PDF");
+
+    const blob = await res.blob();
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "laporan-kas-amarta.pdf";
+
+    document.body.appendChild(a);
+    a.click();
+
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    alert("Download gagal");
+    console.error(err);
+  }
+};
       <div className="tab">
         <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Status Pembayaran</button>
         <button className={activeTab === "cashflow" ? "active" : ""} onClick={() => setActiveTab("cashflow")}>Arus Kas</button>
@@ -754,6 +780,20 @@ export default function CashflowPage() {
     <span>Total saldo saat ini</span>
     <strong>{format(insight?.summary?.currentBalance || 0)}</strong>
   </div>
+    <button
+  onClick={downloadPDF}
+  style={{
+    marginBottom: "12px",
+    padding: "10px 14px",
+    background: "#111",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    cursor: "pointer"
+  }}
+>
+  Download Laporan PDF
+</button>
 </div>
 <h2>Laporan Tunggakan Saat ini</h2>
   <div>
