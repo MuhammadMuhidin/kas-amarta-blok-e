@@ -1,6 +1,6 @@
 "use client"
 
-import { useState,useEffect } from "react"
+import { useState,useEffect,useMemo} from "react"
 import { useRouter } from "next/navigation"
 
 export default function AdminPage(){
@@ -237,6 +237,21 @@ async function loadSummaryBackup(){
 
 }
 
+  const stats = useMemo(() => {
+  return personal.reduce(
+    (acc, p) => {
+      if (p.active === "Y") acc.active++;
+      else acc.inactive++;
+
+      if (p.trash === "Y") acc.trashActive++;
+      else acc.trashInactive++;
+
+      return acc;
+    },
+    { active: 0, inactive: 0, trashActive: 0, trashInactive: 0 }
+  );
+}, [personal]);
+
   return (
     <>
         <style jsx global>{`
@@ -352,16 +367,28 @@ async function loadSummaryBackup(){
           </form>
 
           <h4>Member List</h4>
-          <p style={styles.summary}>
-            Member active: {
-              personal.filter(p=>p.active==="Y").length
-            }
-            {" | "}
-            Member nonactive: {
-              personal.filter(p=>p.active==="N").length
-            }
-          </p>
+            <div style={styles.summaryCards}>
+              <div style={styles.summaryCard}>
+              <div>Active</div>
+              <b>{stats.active}</b>
+              </div>
 
+              <div style={styles.summaryCard}>
+              <div>Inactive</div>
+              <b>{stats.inactive}</b>
+              </div>
+
+              <div style={styles.summaryCard}>
+              <div>Trash Active</div>
+              <b>{stats.trashActive}</b>
+              </div>
+
+              <div style={styles.summaryCard}>
+              <div>Trash Inactive</div>
+              <b>{stats.trashInactive}</b>
+              </div>
+            </div>
+              
           <div style={styles.tableWrapper}>
 
             <table style={styles.table}>
@@ -768,5 +795,29 @@ const styles={
   justifyContent:"space-between",
   alignItems:"center",
   marginBottom:16
-  }
+  },
+
+  summaryGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+  gap: 8,
+  fontSize: 14,
+  color: "#475569",
+  marginBottom: 16
+},
+
+summaryCards: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+  gap: 10,
+  marginBottom: 16
+},
+
+summaryCard: {
+  padding: 12,
+  borderRadius: 10,
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
+  textAlign: "center"
+}
 }
