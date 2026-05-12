@@ -11,6 +11,7 @@ export default function CashflowPage() {
     periods: [],
   });
   const [loading, setLoading] = useState(true);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [activeTab, setActiveTab] = useState("payment");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -25,9 +26,21 @@ export default function CashflowPage() {
   const perPageInsight = 6;
   const chunk = 20;
 
-  const downloadPDF = async () => {
-  window.location.href = "/api/report/pdf";
-  };
+const downloadPDF = async () => {
+  try {
+    setDownloadingPdf(true);
+
+    window.location.href = "/api/report/pdf";
+
+    setTimeout(() => {
+      setDownloadingPdf(false);
+    }, 4000);
+
+  } catch (err) {
+    setDownloadingPdf(false);
+    alert("Gagal download laporan");
+  }
+};
 
   /* ==== INIT & FETCH ==== */
   useEffect(() => {
@@ -643,6 +656,24 @@ export default function CashflowPage() {
           <div style={{background:'var(--surface)', padding:'20px', borderRadius:'8px'}}>Processing…</div>
         </div>
       )}
+
+{downloadingPdf && (
+  <div className="action-loader show">
+    <div className="loader-card">
+      <div className="loader-row">
+        <div className="loader-icon">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+
+        <div className="loader-text">
+          Sedang memproses file, mohon tunggu..
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
       <h2>Uang Kas Amarta Residence (Blok E)</h2>
 
