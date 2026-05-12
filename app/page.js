@@ -680,7 +680,7 @@ const downloadPDF = async () => {
         </div>
 
         <div className="loader-text">
-          Sedang membuat laporan, mohon tunggu..
+          Sedang memproses laporan..
         </div>
       </div>
     </div>
