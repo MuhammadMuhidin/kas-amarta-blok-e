@@ -497,3 +497,26 @@ margin:18px 0;
 border:none;
 border-top:2px solid var(--border);
 }
+
+.insight-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.insight-label {
+  flex: 1;
+  min-width: 0;
+}
+
+.insight-action {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.insight-link {
+  white-space: nowrap;
+}

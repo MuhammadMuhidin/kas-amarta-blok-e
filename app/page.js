@@ -310,8 +310,8 @@ export default function CashflowPage() {
 
   {/* Baris 2: Pengeluaran Bulan Lalu */}
   <div className="insight-row">
-    <span>Pengeluaran <br></br>bulan {insight?.lastMonth?.month}</span>
-    <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+    <span className="insight-label">Pengeluaran bulan {insight?.lastMonth?.month}</span>
+    <div className="insight-action">
       <strong style={{ color: "#dc3545" }}>{format(insight?.lastMonth?.expenseTotal || 0)}</strong>
       <button className="insight-link" onClick={() => { setModalType("last"); setShowInsightModal(true); }}>lihat detail</button>
     </div>
