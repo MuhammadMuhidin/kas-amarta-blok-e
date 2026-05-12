@@ -335,7 +335,7 @@ export async function GET(req) {
       18
     );
 
-    doc.setFontSize(13);
+    doc.setFontSize(15);
 
     doc.setFont(
       "helvetica",
@@ -348,7 +348,7 @@ export async function GET(req) {
       28
     );
 
-    doc.setFontSize(10);
+    doc.setFontSize(12);
 
     doc.text(
       `Dicetak ${jakartaTime}`,
@@ -388,7 +388,7 @@ export async function GET(req) {
         "FD"
       );
 
-      doc.setFontSize(10);
+      doc.setFontSize(12);
 
       doc.setTextColor(
         ...gray
@@ -400,7 +400,7 @@ export async function GET(req) {
         y + 8
       );
 
-      doc.setFontSize(15);
+      doc.setFontSize(17);
 
       doc.setFont(
         "helvetica",
@@ -465,7 +465,7 @@ export async function GET(req) {
 
       y += 10;
 
-      doc.setFontSize(17);
+      doc.setFontSize(19);
 
       doc.setFont(
         "helvetica",
@@ -494,7 +494,7 @@ export async function GET(req) {
     ) => {
       ensureSpace(10);
 
-      doc.setFontSize(12);
+      doc.setFontSize(14);
 
       doc.setFont(
         "helvetica",
@@ -621,7 +621,7 @@ export async function GET(req) {
       "FD"
     );
 
-    doc.setFontSize(12);
+    doc.setFontSize(14);
 
     doc.setTextColor(
       70
@@ -638,7 +638,7 @@ export async function GET(req) {
       y + 9
     );
 
-    doc.setFontSize(20);
+    doc.setFontSize(22);
 
     doc.setFont(
       "helvetica",
@@ -699,7 +699,7 @@ export async function GET(req) {
       "FD"
     );
 
-    doc.setFontSize(12);
+    doc.setFontSize(14);
 
     doc.setFont(
       "helvetica",
@@ -771,7 +771,7 @@ export async function GET(req) {
             "FD"
           );
     
-          doc.setFontSize(12);
+          doc.setFontSize(14);
     
           doc.setTextColor(
             ...navy
@@ -843,7 +843,7 @@ export async function GET(req) {
       `Detail Pengeluaran Bulan (${insight?.lastMonth?.month || "-"} & ${insight?.currentMonth?.month || "-"})`
     );
 
-    doc.setFontSize(14);
+    doc.setFontSize(16);
 
     doc.setFont(
       "helvetica",
@@ -911,7 +911,7 @@ export async function GET(req) {
       doc.lastAutoTable
         .finalY + 15;
 
-    doc.setFontSize(14);
+    doc.setFontSize(16);
 
     doc.setFont(
       "helvetica",
@@ -1005,7 +1005,7 @@ export async function GET(req) {
       "FD"
     );
 
-    doc.setFontSize(12);
+    doc.setFontSize(14);
 
     doc.setTextColor(
       80
@@ -1116,7 +1116,7 @@ export async function GET(req) {
           "FD"
         );
 
-        doc.setFontSize(12);
+        doc.setFontSize(14);
 
         doc.setFont(
           "helvetica",
@@ -1205,7 +1205,7 @@ export async function GET(req) {
         287
       );
 
-      doc.setFontSize(10);
+      doc.setFontSize(12);
 
       doc.setTextColor(
         140
