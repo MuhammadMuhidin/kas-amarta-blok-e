@@ -267,25 +267,6 @@ export async function GET(req) {
       );
 
     /* =========================================
-       BIGGEST EXPENSE
-    ========================================= */
-
-    const biggestExpense =
-      cashflows
-        .filter(
-          (c) =>
-            c.type ===
-            "expense"
-        )
-        .sort(
-          (a, b) =>
-            Number(
-              b.amount
-            ) -
-            Number(a.amount)
-        )[0];
-
-    /* =========================================
        HEADER
     ========================================= */
 
@@ -712,88 +693,108 @@ export async function GET(req) {
     y += 28;
 
     /* =========================================
-       BIGGEST EXPENSE
+       TOP 3 PENGELUARAN TERBESAR
     ========================================= */
-
-    if (biggestExpense) {
+    
+    const topExpenses = cashflows
+      .filter(
+        (c) =>
+          c.type === "expense"
+      )
+      .sort(
+        (a, b) =>
+          Number(
+            b.amount || 0
+          ) -
+          Number(
+            a.amount || 0
+          )
+      )
+      .slice(0, 3);
+    
+    if (topExpenses.length > 0) {
       sectionTitle(
-        "Pengeluaran Terbesar"
+        "Top 3 Pengeluaran Terbesar"
       );
-
-      ensureSpace(30);
-
-      doc.setFillColor(
-        250,
-        250,
-        250
-      );
-
-      doc.roundedRect(
-        15,
-        y,
-        180,
-        22,
-        4,
-        4,
-        "FD"
-      );
-
-      doc.setFontSize(10);
-
-      doc.setTextColor(
-        ...navy
-      );
-
-      doc.setFont(
-        "helvetica",
-        "bold"
-      );
-
-      doc.text(
-        biggestExpense.note ||
-          "-",
-        20,
-        y + 8
-      );
-
-      doc.setFont(
-        "helvetica",
-        "normal"
-      );
-
-      doc.setTextColor(
-        ...gray
-      );
-
-      doc.text(
-        biggestExpense.date ||
-          "-",
-        20,
-        y + 16
-      );
-
-      doc.setFont(
-        "helvetica",
-        "bold"
-      );
-
-      doc.setTextColor(
-        ...red
-      );
-
-      doc.text(
-        format(
-          biggestExpense.amount
-        ),
-        188,
-        y + 12,
-        {
-          align:
-            "right",
+    
+      topExpenses.forEach(
+        (expense, index) => {
+          ensureSpace(30);
+    
+          doc.setFillColor(
+            250,
+            250,
+            250
+          );
+    
+          doc.roundedRect(
+            15,
+            y,
+            180,
+            22,
+            4,
+            4,
+            "FD"
+          );
+    
+          doc.setFontSize(10);
+    
+          doc.setTextColor(
+            ...navy
+          );
+    
+          doc.setFont(
+            "helvetica",
+            "bold"
+          );
+    
+          doc.text(
+            `${index + 1}. ${
+              expense.note || "-"
+            }`,
+            20,
+            y + 8
+          );
+    
+          doc.setFont(
+            "helvetica",
+            "normal"
+          );
+    
+          doc.setTextColor(
+            ...gray
+          );
+    
+          doc.text(
+            expense.date || "-",
+            20,
+            y + 16
+          );
+    
+          doc.setFont(
+            "helvetica",
+            "bold"
+          );
+    
+          doc.setTextColor(
+            ...red
+          );
+    
+          doc.text(
+            format(
+              expense.amount
+            ),
+            188,
+            y + 12,
+            {
+              align:
+                "right",
+            }
+          );
+    
+          y += 28;
         }
       );
-
-      y += 32;
     }
 
     /* =========================================
