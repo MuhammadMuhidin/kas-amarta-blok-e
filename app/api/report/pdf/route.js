@@ -312,10 +312,10 @@ export async function GET(req) {
     doc.addImage(
       `data:image/png;base64,${logoBase64}`,
       "PNG",
-      165, // posisi X
-      8,   // posisi Y
-      28,  // width
-      28   // height
+      158,
+      7,
+      36,
+      36
     );
 
     doc.setTextColor(
