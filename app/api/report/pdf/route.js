@@ -4,51 +4,38 @@ import chromium from "@sparticuz/chromium";
 export const runtime = "nodejs";
 
 export async function GET() {
-  let browser = null;
+  let browser;
 
   try {
+    const executablePath = await chromium.executablePath();
+
     browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: chromium.headless,
     });
 
     const page = await browser.newPage();
 
-    // =========================
-    // FETCH SUMMARY DATA
-    // =========================
-    const res = await fetch(`${process.env.BASE_URL}/api/sheets/summary`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      throw new Error("Failed to fetch summary");
-    }
-
+    const res = await fetch(`${process.env.BASE_URL}/api/sheets/summary`);
     const json = await res.json();
 
-    // fleksibel: ambil dari insight/report
-    const report = json.insight || json.report || json;
+    const report = json.insight || json;
 
-    // =========================
-    // GENERATE HTML
-    // =========================
-    const html = generateHTML(report);
-
-    await page.setContent(html, {
+    await page.setContent(`
+      <html>
+        <body>
+          <h1>Laporan Kas</h1>
+          <pre>${JSON.stringify(report, null, 2)}</pre>
+        </body>
+      </html>
+    `, {
       waitUntil: "networkidle0",
     });
 
     const pdf = await page.pdf({
       format: "A4",
       printBackground: true,
-      margin: {
-        top: "12px",
-        bottom: "12px",
-        left: "12px",
-        right: "12px",
-      },
     });
 
     await browser.close();
@@ -56,16 +43,15 @@ export async function GET() {
     return new Response(pdf, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": "attachment; filename=laporan-kas.pdf",
+        "Content-Disposition": "attachment; filename=laporan.pdf",
       },
     });
 
   } catch (err) {
-    console.error("PDF ERROR:", err);
-
     if (browser) await browser.close();
 
-    return new Response("PDF generation failed", { status: 500 });
+    console.error(err);
+    return new Response("PDF error", { status: 500 });
   }
 }
 
