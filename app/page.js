@@ -41,9 +41,15 @@ export default function CashflowPage() {
 
       const url = window.URL.createObjectURL(blob);
 
+      const safeMonth =
+      insight?.currentMonth?.month
+        ?.replace(/[\/\\]/g, "-")
+        ?.replace(/\s+/g, "_") ||
+      "laporan";
+
       const a = document.createElement("a");
       a.href = url;
-      a.download = "laporan-kas.pdf";
+      a.download = `Laporan_Kas_${safeMonth}.pdf`;
 
       document.body.appendChild(a);
       a.click();
