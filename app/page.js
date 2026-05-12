@@ -290,7 +290,7 @@ export default function CashflowPage() {
         padding: "8px 14px",
         background: "var(--btn-primary)",
         color: "var(--btn-text)",
-        border: "none",
+        border: "1px solid var(--btn-download-border)",
         borderRadius: "8px",
         cursor: "pointer",
         fontSize: "var(--font-small)",
