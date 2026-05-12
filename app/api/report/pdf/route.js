@@ -1,4 +1,6 @@
 import { jsPDF } from "jspdf";
+import fs from "fs";
+import path from "path";
 import "jspdf-autotable";
 
 export const runtime = "nodejs";
@@ -39,6 +41,18 @@ export async function GET(req) {
       unit: "mm",
       format: "a4",
     });
+
+    const logoPath = path.join(
+      process.cwd(),
+      "public",
+      "logo.png"
+    );
+
+    const logoBase64 =
+      fs.readFileSync(
+        logoPath,
+        "base64"
+      );
 
     const pageWidth =
       doc.internal.pageSize.getWidth();
@@ -294,6 +308,13 @@ export async function GET(req) {
       42,
       "F"
     );
+
+    const headerPadding = 15;
+    const logoW = 30;
+    const logoH = 30;
+    const logoX = pageWidth - logoW - headerPadding;
+    const logoY = (42 - logoH) / 2;
+    doc.addImage(logoBase64, "PNG", logoX, logoY, logoW, logoH);
 
     doc.setTextColor(
       255,
