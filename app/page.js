@@ -288,8 +288,8 @@ export default function CashflowPage() {
       onClick={downloadPDF}
       style={{
         padding: "8px 14px",
-        background: "#111",
-        color: "#fff",
+        background: "var(--btn-primary)",
+        color: "var(--btn-text)",
         border: "none",
         borderRadius: "8px",
         cursor: "pointer",
