@@ -314,7 +314,7 @@ export async function GET(req) {
     const logoH = 30;
     const logoX = pageWidth - logoW - headerPadding;
     const logoY = (42 - logoH) / 2;
-    doc.addImage(base64Logo, "PNG", logoX, logoY, logoW, logoH);
+    doc.addImage(logoBase64, "PNG", logoX, logoY, logoW, logoH);
 
     doc.setTextColor(
       255,
