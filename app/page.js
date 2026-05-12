@@ -431,15 +431,6 @@ export default function CashflowPage() {
             ? insight?.lastMonth?.month
             : insight?.currentMonth?.month}
         </div>
-
-        <button
-          type="button"
-          onClick={() =>
-            setShowInsightModal(false)
-          }
-        >
-          ✕
-        </button>
       </div>
 
       <div className="modal-section">
