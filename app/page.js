@@ -712,14 +712,37 @@ export default function CashflowPage() {
 
 {/* INSIGHT TAB */}
 <div className={activeTab !== "insight" ? "hidden" : ""}>
-  <h2>Rekap keuangan kas</h2>
+  {/* PEMBUNGKUS HEADER (KIRI & KANAN) */}
+  <div style={{ 
+    display: "flex", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginBottom: "16px" 
+  }}>
+    <h2 style={{ margin: 0 }}>Rekap keuangan kas</h2>
+    <button
+      onClick={downloadPDF}
+      style={{
+        padding: "8px 14px",
+        background: "#111",
+        color: "#fff",
+        border: "none",
+        borderRadius: "8px",
+        cursor: "pointer",
+        fontSize: "var(--font-small)",
+        fontWeight: "600"
+      }}
+    >
+      Download Laporan PDF
+    </button>
+  </div>
 
 <div className="insight-summary">
   {/* Baris 1: Pemasukan Bulan Lalu */}
-{/*<div className="insight-row">
-    <span>Pemasukan {insight?.lastMonth?.month}</span>
-    <strong>{format(insight?.lastMonth?.income || 0)}</strong>
-  </div>*/}
+  {/*<div className="insight-row">
+      <span>Pemasukan {insight?.lastMonth?.month}</span>
+      <strong>{format(insight?.lastMonth?.income || 0)}</strong>
+    </div>*/}
 
   {/* Baris 2: Pengeluaran Bulan Lalu */}
   <div className="insight-row">
@@ -758,20 +781,6 @@ export default function CashflowPage() {
     <span>Total saldo saat ini</span>
     <strong>{format(insight?.summary?.currentBalance || 0)}</strong>
   </div>
-    <button
-  onClick={downloadPDF}
-  style={{
-    marginBottom: "12px",
-    padding: "10px 14px",
-    background: "#111",
-    color: "#fff",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer"
-  }}
->
-  Download Laporan PDF
-</button>
 </div>
 <h2>Laporan Tunggakan Saat ini</h2>
   <div>
