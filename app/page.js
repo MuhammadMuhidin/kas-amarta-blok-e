@@ -310,7 +310,7 @@ export default function CashflowPage() {
 
   {/* Baris 2: Pengeluaran Bulan Lalu */}
   <div className="insight-row">
-    <span>Pengeluaran {insight?.lastMonth?.month}</span>
+    <span>Pengeluaran <br></br>bulan {insight?.lastMonth?.month}</span>
     <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
       <strong style={{ color: "#dc3545" }}>{format(insight?.lastMonth?.expenseTotal || 0)}</strong>
       <button className="insight-link" onClick={() => { setModalType("last"); setShowInsightModal(true); }}>lihat detail</button>
@@ -327,7 +327,7 @@ export default function CashflowPage() {
 
   {/* Baris 4: Pemasukan Bulan Ini + Sisa Saldo Lalu */}
   <div className="insight-row">
-    <span>Kas {insight?.currentMonth?.month} dari {paidInLastPeriodCount} rumah + sisa bulan lalu</span>
+    <span>Kas bulan {insight?.currentMonth?.month} dari {paidInLastPeriodCount} rumah + sisa bulan lalu</span>
     <strong>{format(insight?.summary?.currentIncomePlusLastRemaining || 0)}</strong>
   </div>
 
