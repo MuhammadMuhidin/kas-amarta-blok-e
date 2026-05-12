@@ -361,6 +361,15 @@ async function loadSummaryBackup(){
               personal.filter(p=>p.active==="N").length
             }
           </p>
+          <p style={styles.summary}>
+            Trash active: {
+              personal.filter(p=>p.active==="Y").length
+            }
+            {" | "}
+            Trash nonactive: {
+              personal.filter(p=>p.active==="N").length
+            }
+          </p>
 
           <div style={styles.tableWrapper}>
 
