@@ -10,7 +10,7 @@
     --surface: #fff;
     --border: #e5e5e5;
 
-    --btn-primary: #fafafa;
+    --btn-primary: #fff;
     --btn-text: #222;
 }
 
@@ -193,7 +193,7 @@ tr:nth-child(even) {
         --surface: #1f1f1f;
         --border: #333;
         --btn-primary: #222;
-        --btn-text: #fafafa;
+        --btn-text: #fff;
     }
 
     button {
