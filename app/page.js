@@ -26,31 +26,8 @@ export default function CashflowPage() {
   const chunk = 20;
 
   const downloadPDF = async () => {
-  try {
-    const res = await fetch("/api/report/pdf", {
-      method: "GET",
-    });
-
-    if (!res.ok) throw new Error("Gagal generate PDF");
-
-    const blob = await res.blob();
-
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-
-    a.href = url;
-    a.download = "laporan-kas-amarta.pdf";
-
-    document.body.appendChild(a);
-    a.click();
-
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    alert("Download gagal");
-    console.error(err);
-  }
-};
+  window.location.href = "/api/report/pdf";
+  };
 
   /* ==== INIT & FETCH ==== */
   useEffect(() => {
