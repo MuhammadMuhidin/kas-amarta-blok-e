@@ -12,7 +12,7 @@
     "react-dom": "18.2.0",
     "googleapis": "^118.0.0",
     "@supabase/supabase-js": "^2.105.3",
-    "puppeteer-core": "^23.0.0",
-    "@sparticuz/chromium": "^123.0.0"
+    "puppeteer-core": "22.6.0",
+    "@sparticuz/chromium": "123.0.1"
   }
 }
