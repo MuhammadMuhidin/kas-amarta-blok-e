@@ -10,8 +10,8 @@
     --surface: #fff;
     --border: #e5e5e5;
 
-    --btn-primary: #111;
-    --btn-text: #fff;
+    --btn-primary: #fff;
+    --btn-text: #111;
 }
 
 body {
@@ -192,7 +192,7 @@ tr:nth-child(even) {
         --text: #e5e5e5;
         --surface: #1f1f1f;
         --border: #333;
-        --btn-primary: #2a2a2a;
+        --btn-primary: #111;
         --btn-text: #fff;
     }
 
