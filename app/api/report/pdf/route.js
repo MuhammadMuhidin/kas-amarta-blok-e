@@ -286,132 +286,6 @@ export async function GET(req) {
         )[0];
 
     /* =========================================
-       MONTHLY TREND
-    ========================================= */
-
-    const monthlyTrend =
-      periods
-        .sort()
-        .map((period) => {
-          const paid =
-            new Set(
-              payments
-                .filter(
-                  (p) =>
-                    p.period?.slice(
-                      0,
-                      7
-                    ) === period
-                )
-                .map(
-                  (p) =>
-                    p.person_house
-                )
-            ).size;
-
-          const income =
-            cashflows
-              .filter(
-                (c) =>
-                  c.type ===
-                    "income" &&
-                  (
-                    c.date || ""
-                  ).slice(
-                    0,
-                    7
-                  ) === period
-              )
-              .reduce(
-                (sum, c) =>
-                  sum +
-                  Number(
-                    c.amount || 0
-                  ),
-                0
-              );
-
-          const expense =
-            cashflows
-              .filter(
-                (c) =>
-                  c.type ===
-                    "expense" &&
-                  (
-                    c.date || ""
-                  ).slice(
-                    0,
-                    7
-                  ) === period
-              )
-              .reduce(
-                (sum, c) =>
-                  sum +
-                  Number(
-                    c.amount || 0
-                  ),
-                0
-              );
-
-          return {
-            period,
-            paid,
-            income,
-            expense,
-            balance:
-              income -
-              expense,
-          };
-        });
-
-    /* =========================================
-       AGING
-    ========================================= */
-
-    const aging = {
-      ringan:
-        unpaidList.filter(
-          (x) =>
-            x.jumlah >= 1 &&
-            x.jumlah <= 2
-        ).length,
-
-      sedang:
-        unpaidList.filter(
-          (x) =>
-            x.jumlah >= 3 &&
-            x.jumlah <= 5
-        ).length,
-
-      berat:
-        unpaidList.filter(
-          (x) =>
-            x.jumlah >= 6
-        ).length,
-    };
-
-    /* =========================================
-       PAID HOUSE LIST
-    ========================================= */
-
-    const paidHouseList =
-      persons
-        .filter((p) => {
-          return payments.some(
-            (pay) =>
-              pay.person_house ===
-                p.house &&
-              pay.period?.slice(
-                0,
-                7
-              ) ===
-                currentMonthKey
-          );
-        })
-        .map((p) => p.house)
-        .sort();
-
-    /* =========================================
        HEADER
     ========================================= */
 
@@ -441,7 +315,7 @@ export async function GET(req) {
     doc.setFontSize(24);
 
     doc.text(
-      "KAS AMARTA",
+      "KAS AMARTA RESIDENCE - BLOK E",
       15,
       18
     );
@@ -555,7 +429,7 @@ export async function GET(req) {
     y += 45;
 
     /* =========================================
-       SECTION TITLE
+       HELPERS
     ========================================= */
 
     const sectionTitle = (
@@ -595,10 +469,6 @@ export async function GET(req) {
 
       y += 12;
     };
-
-    /* =========================================
-       STAT ROW
-    ========================================= */
 
     const statRow = (
       label,
@@ -648,7 +518,7 @@ export async function GET(req) {
     };
 
     /* =========================================
-       PAYMENT
+       STATISTIK PEMBAYARAN
     ========================================= */
 
     sectionTitle(
@@ -935,8 +805,27 @@ export async function GET(req) {
     y = 20;
 
     sectionTitle(
-      "Detail Pengeluaran"
+      `Detail Pengeluaran (${insight?.lastMonth?.month || "-"} & ${insight?.currentMonth?.month || "-"})`
     );
+
+    doc.setFontSize(12);
+
+    doc.setFont(
+      "helvetica",
+      "bold"
+    );
+
+    doc.setTextColor(
+      ...navy
+    );
+
+    doc.text(
+      `Pengeluaran Bulan Lalu (${insight?.lastMonth?.month || "-"})`,
+      15,
+      y
+    );
+
+    y += 8;
 
     doc.autoTable({
       startY: y,
@@ -986,6 +875,25 @@ export async function GET(req) {
     y =
       doc.lastAutoTable
         .finalY + 15;
+
+    doc.setFontSize(12);
+
+    doc.setFont(
+      "helvetica",
+      "bold"
+    );
+
+    doc.setTextColor(
+      ...navy
+    );
+
+    doc.text(
+      `Pengeluaran Bulan Berjalan (${insight?.currentMonth?.month || "-"})`,
+      15,
+      y
+    );
+
+    y += 8;
 
     doc.autoTable({
       startY: y,
@@ -1126,26 +1034,26 @@ export async function GET(req) {
 
     statRow(
       "Ringan (1-2 periode)",
-      `${aging.ringan} rumah`,
+      `${unpaidList.filter((x) => x.jumlah >= 1 && x.jumlah <= 2).length} rumah`,
       blue
     );
 
     statRow(
       "Sedang (3-5 periode)",
-      `${aging.sedang} rumah`,
+      `${unpaidList.filter((x) => x.jumlah >= 3 && x.jumlah <= 5).length} rumah`,
       red
     );
 
     statRow(
       "Berat (> 6 periode)",
-      `${aging.berat} rumah`,
+      `${unpaidList.filter((x) => x.jumlah >= 6).length} rumah`,
       red
     );
 
     y += 5;
 
     /* =========================================
-       TOP DEBTORS
+       TOP PENUNGGAK
     ========================================= */
 
     sectionTitle(
@@ -1238,159 +1146,6 @@ export async function GET(req) {
       });
 
     /* =========================================
-       PAGE 4
-    ========================================= */
-
-    doc.addPage();
-
-    y = 20;
-
-    sectionTitle(
-      "Trend Bulanan"
-    );
-
-    doc.autoTable({
-      startY: y,
-
-      theme: "grid",
-
-      head: [
-        [
-          "Periode",
-          "Rumah Bayar",
-          "Pemasukan",
-          "Pengeluaran",
-          "Saldo",
-        ],
-      ],
-
-      body:
-        monthlyTrend.map(
-          (m) => [
-            m.period,
-            `${m.paid} rumah`,
-            format(
-              m.income
-            ),
-            format(
-              m.expense
-            ),
-            format(
-              m.balance
-            ),
-          ]
-        ),
-
-      headStyles: {
-        fillColor:
-          navy,
-      },
-
-      alternateRowStyles: {
-        fillColor: [
-          248,
-          250,
-          252,
-        ],
-      },
-
-      columnStyles: {
-        1: {
-          halign:
-            "center",
-        },
-
-        2: {
-          halign:
-            "right",
-        },
-
-        3: {
-          halign:
-            "right",
-        },
-
-        4: {
-          halign:
-            "right",
-        },
-      },
-    });
-
-    y =
-      doc.lastAutoTable
-        .finalY + 15;
-
-    /* =========================================
-       RUMAH LUNAS
-    ========================================= */
-
-    sectionTitle(
-      "Rumah Sudah Membayar"
-    );
-
-    ensureSpace(40);
-
-    doc.setFillColor(
-      240,
-      253,
-      244
-    );
-
-    doc.roundedRect(
-      15,
-      y,
-      180,
-      30,
-      4,
-      4,
-      "FD"
-    );
-
-    doc.setFontSize(10);
-
-    doc.setFont(
-      "helvetica",
-      "bold"
-    );
-
-    doc.setTextColor(
-      ...green
-    );
-
-    doc.text(
-      `${paidHouseList.length} rumah sudah membayar`,
-      20,
-      y + 10
-    );
-
-    doc.setFont(
-      "helvetica",
-      "normal"
-    );
-
-    doc.setTextColor(
-      70
-    );
-
-    const paidText =
-      paidHouseList.join(
-        ", "
-      ) || "-";
-
-    const splitText =
-      doc.splitTextToSize(
-        paidText,
-        165
-      );
-
-    doc.text(
-      splitText,
-      20,
-      y + 18
-    );
-
-    /* =========================================
        FOOTER
     ========================================= */
 
@@ -1463,7 +1218,7 @@ export async function GET(req) {
             "application/pdf",
 
           "Content-Disposition":
-            `attachment; filename="Laporan_Kas_Blok_E_${safeMonth}.pdf"`,
+            `attachment; filename="Laporan_Kas_${safeMonth}.pdf"`,
         },
       }
     );
