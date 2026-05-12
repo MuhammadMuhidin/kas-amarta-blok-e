@@ -651,11 +651,23 @@ const downloadPDF = async () => {
           }
   `}</style>
 
-      {loading && (
-        <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.1)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:999}}>
-          <div style={{background:'var(--surface)', padding:'20px', borderRadius:'8px'}}>Processing…</div>
+{loading && (
+  <div className="action-loader show">
+    <div className="loader-card">
+      <div className="loader-row">
+        <div className="loader-icon">
+          <span></span>
+          <span></span>
+          <span></span>
         </div>
-      )}
+
+        <div className="loader-text">
+          Sedang memuat data...
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
 {downloadingPdf && (
   <div className="action-loader show">
@@ -668,7 +680,7 @@ const downloadPDF = async () => {
         </div>
 
         <div className="loader-text">
-          Sedang memproses file, mohon tunggu..
+          Sedang membuat laporan, mohon tunggu..
         </div>
       </div>
     </div>
