@@ -6,146 +6,140 @@ export const runtime = "nodejs";
 export async function GET(req) {
   try {
     const { origin } = new URL(req.url);
-    const res = await fetch(`${origin}/api/sheets/summary`, { 
-      cache: 'no-store' 
-    });
+    const res = await fetch(`${origin}/api/sheets/summary`, { cache: 'no-store' });
+    if (!res.ok) throw new Error("Gagal mengambil data");
     
-    if (!res.ok) throw new Error("Gagal mengambil data dari sheets");
-    const json = await res.json();
-    const report = json.insight || json;
+    const data = await res.json();
+    const { insight, persons, payments, periods } = data;
 
-    // --- KALKULASI DATA (Dari Logika HTML) ---
-    const lastNet = (report.monthly?.lastMonth?.income || 0) - (report.monthly?.lastMonth?.expenseTotal || 0);
-    const currentNet = (report.monthly?.currentMonth?.income || 0) - (report.monthly?.currentMonth?.expenseTotal || 0);
-    
-    const growth = lastNet === 0 
-      ? 0 
-      : ((currentNet - lastNet) / Math.abs(lastNet)) * 100;
+    // --- LOGIC INTEGRATION (Pindahan dari Frontend) ---
+    const sortedPeriods = [...periods].sort((a, b) => a.localeCompare(b));
+    const lastPeriod = sortedPeriods[sortedPeriods.length - 1] || "";
 
-    const paymentRate = report.payment?.totalMembers
-      ? (report.payment.paidThisMonth / report.payment.totalMembers) * 100
-      : 0;
+    // 1. Hitung Rumah yang Aktif
+    const activeMembersCount = persons.filter(am => {
+        if (!am.join_date) return true;
+        return am.join_date.slice(0, 7) <= lastPeriod;
+    }).length;
 
-    const format = (n) => Number(n || 0).toLocaleString("id-ID");
+    // 2. Hitung Rumah yang Sudah Bayar bulan ini
+    const paidInLastPeriodCount = new Set(
+      payments
+        .filter(p => (p.period || "").slice(0, 7) === lastPeriod)
+        .map(p => `${p.person_id}-${p.person_house}`)
+    ).size;
 
-    // --- INISIALISASI PDF ---
+    // 3. Rekap Piutang/Tunggakan per Orang
+    const unpaidList = persons.map((p) => {
+        const validPeriods = periods.filter((pr) => {
+          if (!p.join_date) return true;
+          return pr >= p.join_date.slice(0, 7);
+        });
+        const paid = payments
+          .filter((pay) => pay.person_id === p.id && pay.person_house === p.house)
+          .map((pay) => pay.period.slice(0, 7));
+        const unpaid = validPeriods.filter((pr) => !paid.includes(pr));
+        return { house: p.house, name: p.name, jumlah: unpaid.length, detail: unpaid.join(", ") };
+      })
+      .filter((r) => r.jumlah >= 1)
+      .sort((a, b) => a.house.localeCompare(b.house, undefined, { numeric: true }));
+
+    // --- GENERATE PDF ---
     const doc = new jsPDF();
+    const format = (n) => `Rp ${Number(n || 0).toLocaleString("id-ID")}`;
     
-    // --- HEADER ---
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text("FINANCIAL REPORT", 14, 20);
-    
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    doc.text(`Generated: ${new Date().toLocaleDateString("id-ID")}`, 14, 26);
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.5);
-    doc.line(14, 30, 196, 30); // Garis header hitam tebal
+    // Header & Brand
+    doc.setFillColor(41, 128, 185);
+    doc.rect(0, 0, 210, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.text("LAPORAN EKSEKUTIF KAS AMARTA", 14, 25);
+    doc.setFontSize(10);
+    doc.text(`Periode Insight: ${insight.currentMonth.month} | Aktif: ${activeMembersCount} Rumah`, 14, 32);
 
-    // --- KPI GRID (3 KOLOM) ---
+    // --- SECTION 1: RINGKASAN KEUANGAN ---
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(12);
+    doc.text("Rekap Keuangan Kas", 14, 50);
+    
     doc.autoTable({
-      startY: 35,
-      theme: 'grid',
-      head: [['Total Income', 'Total Expense', 'Current Balance']],
+      startY: 55,
+      theme: 'plain',
+      body: [
+        [`Pengeluaran ${insight.lastMonth.month}`, { content: format(insight.lastMonth.expenseTotal), styles: { textColor: [192, 57, 43], fontStyle: 'bold' } }],
+        [`Sisa Saldo Kumulatif per ${insight.lastMonth.month}`, { content: format(insight.lastMonth.remaining), styles: { fontStyle: 'bold', fillColor: [240, 240, 240] } }],
+        [`Pemasukan ${insight.currentMonth.month} (${paidInLastPeriodCount} rumah) + Sisa Lalu`, format(insight.summary.currentIncomePlusLastRemaining)],
+        [`Pengeluaran ${insight.currentMonth.month}`, { content: format(insight.currentMonth.expenseTotal), styles: { textColor: [192, 57, 43] } }],
+        [`TOTAL SALDO SAAT INI`, { content: format(insight.summary.currentBalance), styles: { fontSize: 13, fontStyle: 'bold', textColor: [41, 128, 185] } }],
+      ],
+      styles: { fontSize: 10, cellPadding: 3 },
+      columnStyles: { 1: { halign: 'right' } }
+    });
+
+    // --- SECTION 2: STATISTIK KEPATUHAN ---
+    let finalY = doc.lastAutoTable.finalY + 15;
+    const kepatuhanPersen = ((paidInLastPeriodCount / activeMembersCount) * 100).toFixed(1);
+    
+    doc.setFontSize(12);
+    doc.text("Statistik Kepatuhan Iuran Bulan Ini", 14, finalY);
+    
+    doc.autoTable({
+      startY: finalY + 5,
+      head: [['Total Rumah Aktif', 'Sudah Bayar', 'Belum Bayar', 'Persentase']],
       body: [[
-        format(report.financial?.incomeAllTime),
-        format(report.financial?.expenseAllTime),
-        format(report.financial?.balance)
+        activeMembersCount, 
+        paidInLastPeriodCount, 
+        activeMembersCount - paidInLastPeriodCount,
+        `${kepatuhanPersen}%`
       ]],
-      headStyles: { fillColor: [245, 245, 245], textColor: [100], fontSize: 8, fontStyle: 'normal' },
-      bodyStyles: { fontSize: 12, fontStyle: 'bold', textColor: [0] },
+      theme: 'grid',
+      headStyles: { fillColor: [52, 73, 94] },
       styles: { halign: 'center' }
     });
 
-    // --- MONTHLY PERFORMANCE ---
-    let finalY = doc.lastAutoTable.finalY + 15;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0);
-    doc.text("MONTHLY PERFORMANCE", 17, finalY);
-    doc.setLineWidth(0.8);
-    doc.line(14, finalY - 4, 14, finalY + 1); // Variasi border-left ala HTML
+    // --- SECTION 3: DAFTAR TUNGGAKAN (PIUTANG) ---
+    finalY = doc.lastAutoTable.finalY + 15;
+    if (finalY > 230) { doc.addPage(); finalY = 20; }
+
+    doc.setFontSize(12);
+    doc.setTextColor(192, 57, 43); // Red
+    doc.text("Daftar Detail Tunggakan Warga", 14, finalY);
+
+    const unpaidRows = unpaidList.map(u => [
+        u.house, 
+        u.name, 
+        u.jumlah, 
+        { content: u.detail, styles: { fontSize: 7 } }
+    ]);
 
     doc.autoTable({
       startY: finalY + 5,
-      theme: 'grid',
-      head: [['Month', 'Income', 'Expense', 'Net']],
-      body: [
-        [
-          report.monthly?.lastMonth?.month || "Last Month",
-          format(report.monthly?.lastMonth?.income),
-          format(report.monthly?.lastMonth?.expenseTotal),
-          format(lastNet)
-        ],
-        [
-          report.monthly?.currentMonth?.month || "Current Month",
-          format(report.monthly?.currentMonth?.income),
-          format(report.monthly?.currentMonth?.expenseTotal),
-          format(currentNet)
-        ]
-      ],
-      headStyles: { fillColor: [245, 245, 245], textColor: [0] },
+      head: [['Rumah', 'Nama', 'Bulan', 'Detail Periode']],
+      body: unpaidRows,
+      headStyles: { fillColor: [192, 57, 43] },
+      columnStyles: { 2: { halign: 'center' }, 3: { cellWidth: 80 } },
       styles: { fontSize: 9 }
     });
 
-    // --- PAYMENT STATUS & RISK ANALYSIS (2 KOLOM) ---
-    finalY = doc.lastAutoTable.finalY + 15;
-    
-    // Sub-header Payment
-    doc.text("PAYMENT STATUS", 17, finalY);
-    doc.line(14, finalY - 4, 14, finalY + 1);
-    
-    // Sub-header Risk (Geser ke kanan)
-    doc.text("RISK ANALYSIS", 110, finalY);
-    doc.line(107, finalY - 4, 107, finalY + 1);
-
-    doc.autoTable({
-      startY: finalY + 5,
-      theme: 'plain',
-      body: [
-        [
-          `• Total Members: ${report.payment?.totalMembers || 0}\n` +
-          `• Paid: ${report.payment?.paidThisMonth || 0}\n` +
-          `• Unpaid: ${(report.payment?.totalMembers || 0) - (report.payment?.paidThisMonth || 0)}\n` +
-          `• Compliance: ${paymentRate.toFixed(1)}%`,
-          
-          `• Growth: ${growth.toFixed(2)}%\n` +
-          `• Status: ${report.financial?.balance > 0 ? "SURPLUS" : "DEFISIT"}\n` +
-          `• Stability: ${Math.abs(growth) < 20 ? "STABLE" : "VOLATILE"}`
-        ]
-      ],
-      styles: { fontSize: 9, cellPadding: 2 }
-    });
-
-    // --- INSIGHTS ---
-    finalY = doc.lastAutoTable.finalY + 15;
-    doc.text("INSIGHTS", 17, finalY);
-    doc.line(14, finalY - 4, 14, finalY + 1);
-    
-    const insights = report.insights || [];
-    doc.autoTable({
-      startY: finalY + 5,
-      theme: 'plain',
-      body: insights.map(text => [`• ${text}`]),
-      styles: { fontSize: 9, cellPadding: 1 }
-    });
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text(`Dicetak otomatis oleh Sistem Kas Amarta pada ${new Date().toLocaleString("id-ID")}`, 105, 285, { align: 'center' });
+    }
 
     const pdfBuffer = doc.output("arraybuffer");
-
     return new Response(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": 'attachment; filename="financial-report.pdf"',
+        "Content-Disposition": `attachment; filename="Laporan_Kas_Amarta_${insight.currentMonth.month}.pdf"`,
       },
     });
 
   } catch (err) {
-    console.error("PDF_GEN_ERROR:", err);
-    return new Response(JSON.stringify({ error: "Gagal membuat PDF", detail: err.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error(err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 }
