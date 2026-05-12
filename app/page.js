@@ -25,6 +25,33 @@ export default function CashflowPage() {
   const perPageInsight = 6;
   const chunk = 20;
 
+  const downloadPDF = async () => {
+  try {
+    const res = await fetch("/api/report/pdf", {
+      method: "GET",
+    });
+
+    if (!res.ok) throw new Error("Gagal generate PDF");
+
+    const blob = await res.blob();
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+
+    a.href = url;
+    a.download = "laporan-kas-amarta.pdf";
+
+    document.body.appendChild(a);
+    a.click();
+
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    alert("Download gagal");
+    console.error(err);
+  }
+};
+
   /* ==== INIT & FETCH ==== */
   useEffect(() => {
     async function load() {
@@ -642,32 +669,6 @@ export default function CashflowPage() {
 
       <h2>Uang Kas Amarta Residence (Blok E)</h2>
 
-const downloadPDF = async () => {
-  try {
-    const res = await fetch("/api/report/pdf", {
-      method: "GET",
-    });
-
-    if (!res.ok) throw new Error("Gagal generate PDF");
-
-    const blob = await res.blob();
-
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-
-    a.href = url;
-    a.download = "laporan-kas-amarta.pdf";
-
-    document.body.appendChild(a);
-    a.click();
-
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    alert("Download gagal");
-    console.error(err);
-  }
-};
       <div className="tab">
         <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Status Pembayaran</button>
         <button className={activeTab === "cashflow" ? "active" : ""} onClick={() => setActiveTab("cashflow")}>Arus Kas</button>
