@@ -369,15 +369,26 @@ async function loadSummaryBackup(){
           <h4>Member List</h4>
             <div style={styles.summaryCards}>
               <div style={styles.summaryCard}>
-                <div>Active</div><b>{stats.active}</b></div>
-              <div style={styles.summaryCard}>
-                <div>Inactive</div><b>{stats.inactive}</b></div>
-              <div style={styles.summaryCard}>
-                <div>Trash Active</div><b>{stats.trashActive}</b></div>
-              <div style={styles.summaryCard}>
-                <div>Trash Inactive</div><b>{stats.trashInactive}</b></div>
+              <div>Active</div>
+              <b>{stats.active}</b>
               </div>
 
+              <div style={styles.summaryCard}>
+              <div>Inactive</div>
+              <b>{stats.inactive}</b>
+              </div>
+
+              <div style={styles.summaryCard}>
+              <div>Trash Active</div>
+              <b>{stats.trashActive}</b>
+              </div>
+
+              <div style={styles.summaryCard}>
+              <div>Trash Inactive</div>
+              <b>{stats.trashInactive}</b>
+              </div>
+            </div>
+              
           <div style={styles.tableWrapper}>
 
             <table style={styles.table}>
