@@ -353,21 +353,21 @@ async function loadSummaryBackup(){
 
           <h4>Member List</h4>
           <p style={styles.summary}>
-            Member active: {
+            Member Active: {
               personal.filter(p=>p.active==="Y").length
             }
             {" | "}
-            Member nonactive: {
+            Member Inactive: {
               personal.filter(p=>p.active==="N").length
             }
           </p>
           <p style={styles.summary}>
-            Trash active: {
-              personal.filter(p=>p.active==="Y").length
+            Trash Active: {
+              personal.filter(p=>p.trash==="Y").length
             }
             {" | "}
-            Trash nonactive: {
-              personal.filter(p=>p.active==="N").length
+            Trash Inactive: {
+              personal.filter(p=>p.trash==="N").length
             }
           </p>
 
