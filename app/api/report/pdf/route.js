@@ -100,7 +100,7 @@ export async function GET(req) {
     ).format(now);
 
     const jam = new Intl.DateTimeFormat(
-      "id-ID",
+      "en-GB",
       {
         hour: "2-digit",
         minute: "2-digit",
