@@ -25,6 +25,10 @@ export default function CashflowPage() {
   const perPageInsight = 6;
   const chunk = 20;
 
+  const downloadPDF = async () => {
+  window.location.href = "/api/report/pdf";
+  };
+
   /* ==== INIT & FETCH ==== */
   useEffect(() => {
     async function load() {
@@ -708,14 +712,37 @@ export default function CashflowPage() {
 
 {/* INSIGHT TAB */}
 <div className={activeTab !== "insight" ? "hidden" : ""}>
-  <h2>Rekap keuangan kas</h2>
+  {/* PEMBUNGKUS HEADER (KIRI & KANAN) */}
+  <div style={{ 
+    display: "flex", 
+    justifyContent: "space-between", 
+    alignItems: "center", 
+    marginBottom: "16px" 
+  }}>
+    <h2 style={{ margin: 0 }}>Rekap keuangan kas</h2>
+    <button
+      onClick={downloadPDF}
+      style={{
+        padding: "8px 14px",
+        background: "#111",
+        color: "#fff",
+        border: "none",
+        borderRadius: "8px",
+        cursor: "pointer",
+        fontSize: "var(--font-small)",
+        fontWeight: "600"
+      }}
+    >
+      Download Laporan PDF
+    </button>
+  </div>
 
 <div className="insight-summary">
   {/* Baris 1: Pemasukan Bulan Lalu */}
-{/*<div className="insight-row">
-    <span>Pemasukan {insight?.lastMonth?.month}</span>
-    <strong>{format(insight?.lastMonth?.income || 0)}</strong>
-  </div>*/}
+  {/*<div className="insight-row">
+      <span>Pemasukan {insight?.lastMonth?.month}</span>
+      <strong>{format(insight?.lastMonth?.income || 0)}</strong>
+    </div>*/}
 
   {/* Baris 2: Pengeluaran Bulan Lalu */}
   <div className="insight-row">
