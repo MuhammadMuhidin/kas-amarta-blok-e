@@ -31,10 +31,42 @@ export async function GET(req) {
     } = data;
 
     /* =========================================
-       UTIL
+       PDF INIT
     ========================================= */
 
-    const doc = new jsPDF();
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    const pageWidth =
+      doc.internal.pageSize.getWidth();
+
+    const pageHeight =
+      doc.internal.pageSize.getHeight();
+
+    let y = 20;
+
+    /* =========================================
+       SAFE PAGE SYSTEM
+    ========================================= */
+
+    const ensureSpace = (
+      needed = 30
+    ) => {
+      if (
+        y + needed >
+        pageHeight - 25
+      ) {
+        doc.addPage();
+        y = 20;
+      }
+    };
+
+    /* =========================================
+       FORMAT
+    ========================================= */
 
     const format = (n) =>
       `Rp${Number(
@@ -70,15 +102,15 @@ export async function GET(req) {
     ];
 
     const green = [
-      34, 197, 94,
+      22, 163, 74,
     ];
 
     const red = [
-      239, 68, 68,
+      220, 38, 38,
     ];
 
     const blue = [
-      59, 130, 246,
+      37, 99, 235,
     ];
 
     const gray = [
@@ -130,15 +162,11 @@ export async function GET(req) {
       totalExpense;
 
     /* =========================================
-       ACTIVE HOUSES
+       PAYMENT STATS
     ========================================= */
 
     const activeHouses =
       persons.length;
-
-    /* =========================================
-       PAID HOUSE COUNT
-    ========================================= */
 
     const paidHousesSet =
       new Set(
@@ -170,7 +198,7 @@ export async function GET(req) {
           );
 
     /* =========================================
-       UNPAID LIST
+       UNPAID
     ========================================= */
 
     const unpaidList = persons
@@ -226,8 +254,9 @@ export async function GET(req) {
       .filter(
         (r) => r.jumlah > 0
       )
-      .sort((a, b) =>
-        b.total - a.total
+      .sort(
+        (a, b) =>
+          b.total - a.total
       );
 
     const totalReceivables =
@@ -257,6 +286,132 @@ export async function GET(req) {
         )[0];
 
     /* =========================================
+       MONTHLY TREND
+    ========================================= */
+
+    const monthlyTrend =
+      periods
+        .sort()
+        .map((period) => {
+          const paid =
+            new Set(
+              payments
+                .filter(
+                  (p) =>
+                    p.period?.slice(
+                      0,
+                      7
+                    ) === period
+                )
+                .map(
+                  (p) =>
+                    p.person_house
+                )
+            ).size;
+
+          const income =
+            cashflows
+              .filter(
+                (c) =>
+                  c.type ===
+                    "income" &&
+                  (
+                    c.date || ""
+                  ).slice(
+                    0,
+                    7
+                  ) === period
+              )
+              .reduce(
+                (sum, c) =>
+                  sum +
+                  Number(
+                    c.amount || 0
+                  ),
+                0
+              );
+
+          const expense =
+            cashflows
+              .filter(
+                (c) =>
+                  c.type ===
+                    "expense" &&
+                  (
+                    c.date || ""
+                  ).slice(
+                    0,
+                    7
+                  ) === period
+              )
+              .reduce(
+                (sum, c) =>
+                  sum +
+                  Number(
+                    c.amount || 0
+                  ),
+                0
+              );
+
+          return {
+            period,
+            paid,
+            income,
+            expense,
+            balance:
+              income -
+              expense,
+          };
+        });
+
+    /* =========================================
+       AGING
+    ========================================= */
+
+    const aging = {
+      ringan:
+        unpaidList.filter(
+          (x) =>
+            x.jumlah >= 1 &&
+            x.jumlah <= 2
+        ).length,
+
+      sedang:
+        unpaidList.filter(
+          (x) =>
+            x.jumlah >= 3 &&
+            x.jumlah <= 5
+        ).length,
+
+      berat:
+        unpaidList.filter(
+          (x) =>
+            x.jumlah >= 6
+        ).length,
+    };
+
+    /* =========================================
+       PAID HOUSE LIST
+    ========================================= */
+
+    const paidHouseList =
+      persons
+        .filter((p) => {
+          return payments.some(
+            (pay) =>
+              pay.person_house ===
+                p.house &&
+              pay.period?.slice(
+                0,
+                7
+              ) ===
+                currentMonthKey
+          );
+        })
+        .map((p) => p.house)
+        .sort();
+
+    /* =========================================
        HEADER
     ========================================= */
 
@@ -267,7 +422,7 @@ export async function GET(req) {
     doc.rect(
       0,
       0,
-      210,
+      pageWidth,
       42,
       "F"
     );
@@ -283,7 +438,7 @@ export async function GET(req) {
       "bold"
     );
 
-    doc.setFontSize(22);
+    doc.setFontSize(24);
 
     doc.text(
       "KAS AMARTA",
@@ -301,7 +456,7 @@ export async function GET(req) {
     doc.text(
       "Laporan Rekap Keuangan",
       15,
-      27
+      28
     );
 
     doc.setFontSize(8);
@@ -309,10 +464,10 @@ export async function GET(req) {
     doc.text(
       `Dicetak ${jakartaTime}`,
       15,
-      34
+      35
     );
 
-    let y = 55;
+    y = 55;
 
     /* =========================================
        SUMMARY CARDS
@@ -324,24 +479,6 @@ export async function GET(req) {
       value,
       color
     ) => {
-      /* shadow */
-      doc.setFillColor(
-        235,
-        235,
-        235
-      );
-
-      doc.roundedRect(
-        x + 1,
-        y + 1,
-        55,
-        30,
-        4,
-        4,
-        "F"
-      );
-
-      /* card */
       doc.setFillColor(
         255,
         255,
@@ -371,7 +508,7 @@ export async function GET(req) {
       doc.text(
         title,
         x + 5,
-        y + 9
+        y + 8
       );
 
       doc.setFontSize(13);
@@ -388,7 +525,7 @@ export async function GET(req) {
       doc.text(
         value,
         x + 5,
-        y + 21
+        y + 20
       );
     };
 
@@ -418,48 +555,60 @@ export async function GET(req) {
     y += 45;
 
     /* =========================================
-       PAYMENT STATISTIC
+       SECTION TITLE
     ========================================= */
 
-    doc.setDrawColor(
-      ...border
-    );
+    const sectionTitle = (
+      title
+    ) => {
+      ensureSpace(20);
 
-    doc.line(
-      15,
-      y,
-      195,
-      y
-    );
+      doc.setDrawColor(
+        ...border
+      );
 
-    y += 12;
+      doc.line(
+        15,
+        y,
+        195,
+        y
+      );
 
-    doc.setTextColor(
-      ...navy
-    );
+      y += 10;
 
-    doc.setFontSize(14);
+      doc.setFontSize(15);
 
-    doc.setFont(
-      "helvetica",
-      "bold"
-    );
+      doc.setFont(
+        "helvetica",
+        "bold"
+      );
 
-    doc.text(
-      "Statistik Pembayaran",
-      15,
-      y
-    );
+      doc.setTextColor(
+        ...navy
+      );
 
-    y += 12;
+      doc.text(
+        title,
+        15,
+        y
+      );
 
-    const drawStatRow = (
+      y += 12;
+    };
+
+    /* =========================================
+       STAT ROW
+    ========================================= */
+
+    const statRow = (
       label,
       value,
       color = [
-        30, 30, 30,
+        20, 20, 20,
       ]
     ) => {
+      ensureSpace(10);
+
       doc.setFontSize(10);
 
       doc.setFont(
@@ -495,75 +644,54 @@ export async function GET(req) {
         }
       );
 
-      y += 11;
+      y += 10;
     };
 
-    drawStatRow(
+    /* =========================================
+       PAYMENT
+    ========================================= */
+
+    sectionTitle(
+      "Statistik Pembayaran"
+    );
+
+    statRow(
       "Jumlah rumah aktif",
       `${activeHouses} rumah`
     );
 
-    drawStatRow(
+    statRow(
       "Rumah sudah bayar",
       `${paidHouses} rumah`,
       green
     );
 
-    drawStatRow(
+    statRow(
       "Persentase pembayaran",
       `${paymentRate}%`,
       blue
     );
 
-    y += 6;
+    y += 5;
 
     /* =========================================
-       CASHFLOW SUMMARY
+       REKAP
     ========================================= */
 
-    doc.setDrawColor(
-      ...border
+    sectionTitle(
+      "Rekap Keuangan"
     );
 
-    doc.line(
-      15,
-      y,
-      195,
-      y
-    );
-
-    y += 12;
-
-    doc.setFontSize(14);
-
-    doc.setFont(
-      "helvetica",
-      "bold"
-    );
-
-    doc.setTextColor(
-      ...navy
-    );
-
-    doc.text(
-      "Rekap Keuangan",
-      15,
-      y
-    );
-
-    y += 12;
-
-    drawStatRow(
+    statRow(
       `Pengeluaran ${insight?.lastMonth?.month || "-"}`,
       format(
         insight?.lastMonth
-          ?.expenseTotal ||
-          0
+          ?.expenseTotal || 0
       ),
       red
     );
 
-    drawStatRow(
+    statRow(
       `Saldo kumulatif per ${insight?.lastMonth?.month || "-"}`,
       format(
         insight?.lastMonth
@@ -572,7 +700,7 @@ export async function GET(req) {
       blue
     );
 
-    drawStatRow(
+    statRow(
       `Kas ${insight?.currentMonth?.month || "-"} + sisa bulan lalu`,
       format(
         insight?.summary
@@ -581,21 +709,16 @@ export async function GET(req) {
       )
     );
 
-    drawStatRow(
+    statRow(
       "Pengeluaran bulan ini",
       format(
         insight?.currentMonth
-          ?.expenseTotal ||
-          0
+          ?.expenseTotal || 0
       ),
       red
     );
 
-    y += 6;
-
-    /* =========================================
-       FINAL BALANCE BOX
-    ========================================= */
+    ensureSpace(35);
 
     doc.setFillColor(
       239,
@@ -607,7 +730,7 @@ export async function GET(req) {
       15,
       y,
       180,
-      25,
+      24,
       4,
       4,
       "FD"
@@ -616,7 +739,7 @@ export async function GET(req) {
     doc.setFontSize(10);
 
     doc.setTextColor(
-      80
+      70
     );
 
     doc.setFont(
@@ -646,54 +769,28 @@ export async function GET(req) {
         currentBalance
       ),
       190,
-      y + 17,
+      y + 16,
       {
         align: "right",
       }
     );
 
-    y += 40;
+    y += 35;
 
     /* =========================================
-       FINANCIAL HEALTH
+       KONDISI KEUANGAN
     ========================================= */
 
-    doc.setDrawColor(
-      ...border
+    sectionTitle(
+      "Kondisi Keuangan"
     );
-
-    doc.line(
-      15,
-      y,
-      195,
-      y
-    );
-
-    y += 12;
-
-    doc.setFontSize(14);
-
-    doc.setTextColor(
-      ...navy
-    );
-
-    doc.setFont(
-      "helvetica",
-      "bold"
-    );
-
-    doc.text(
-      "Kondisi Keuangan",
-      15,
-      y
-    );
-
-    y += 14;
 
     const health =
       currentBalance > 0
         ? "Kas dalam kondisi sehat dan surplus."
         : "Kas mengalami defisit.";
+
+    ensureSpace(25);
 
     doc.setFillColor(
       currentBalance > 0
@@ -709,11 +806,11 @@ export async function GET(req) {
 
     doc.roundedRect(
       15,
-      y - 8,
+      y - 5,
       180,
       18,
-      3,
-      3,
+      4,
+      4,
       "FD"
     );
 
@@ -739,34 +836,21 @@ export async function GET(req) {
     doc.text(
       health,
       20,
-      y + 2
+      y + 5
     );
 
-    y += 24;
+    y += 28;
 
     /* =========================================
        BIGGEST EXPENSE
     ========================================= */
 
     if (biggestExpense) {
-      doc.setFontSize(11);
-
-      doc.setTextColor(
-        ...navy
+      sectionTitle(
+        "Pengeluaran Terbesar"
       );
 
-      doc.setFont(
-        "helvetica",
-        "bold"
-      );
-
-      doc.text(
-        "Pengeluaran Terbesar",
-        15,
-        y
-      );
-
-      y += 8;
+      ensureSpace(30);
 
       doc.setFillColor(
         250,
@@ -778,21 +862,21 @@ export async function GET(req) {
         15,
         y,
         180,
-        20,
-        3,
-        3,
+        22,
+        4,
+        4,
         "FD"
       );
 
       doc.setFontSize(10);
 
       doc.setTextColor(
-        70
+        ...navy
       );
 
       doc.setFont(
         "helvetica",
-        "normal"
+        "bold"
       );
 
       doc.text(
@@ -802,20 +886,29 @@ export async function GET(req) {
         y + 8
       );
 
+      doc.setFont(
+        "helvetica",
+        "normal"
+      );
+
+      doc.setTextColor(
+        ...gray
+      );
+
       doc.text(
         biggestExpense.date ||
           "-",
         20,
-        y + 15
-      );
-
-      doc.setTextColor(
-        ...red
+        y + 16
       );
 
       doc.setFont(
         "helvetica",
         "bold"
+      );
+
+      doc.setTextColor(
+        ...red
       );
 
       doc.text(
@@ -830,56 +923,25 @@ export async function GET(req) {
         }
       );
 
-      y += 30;
+      y += 32;
     }
 
     /* =========================================
-       PAGE BREAK
+       PAGE 2
     ========================================= */
 
     doc.addPage();
 
     y = 20;
 
-    /* =========================================
-       DETAIL EXPENSES
-    ========================================= */
-
-    doc.setFontSize(18);
-
-    doc.setTextColor(
-      ...navy
+    sectionTitle(
+      "Detail Pengeluaran"
     );
-
-    doc.setFont(
-      "helvetica",
-      "bold"
-    );
-
-    doc.text(
-      "Detail Pengeluaran",
-      15,
-      y
-    );
-
-    y += 12;
-
-    /* LAST MONTH */
-
-    doc.setFontSize(12);
-
-    doc.text(
-      `Pengeluaran ${insight?.lastMonth?.month || "-"}`,
-      15,
-      y
-    );
-
-    y += 6;
 
     doc.autoTable({
       startY: y,
 
-      theme: "plain",
+      theme: "grid",
 
       head: [
         [
@@ -900,20 +962,9 @@ export async function GET(req) {
           ]
         ) || [],
 
-      styles: {
-        fontSize: 9,
-        cellPadding: 4,
-        lineColor:
-          border,
-        lineWidth: 0.2,
-      },
-
       headStyles: {
         fillColor:
           navy,
-        textColor: 255,
-        fontStyle:
-          "bold",
       },
 
       alternateRowStyles: {
@@ -936,31 +987,10 @@ export async function GET(req) {
       doc.lastAutoTable
         .finalY + 15;
 
-    /* CURRENT MONTH */
-
-    doc.setFontSize(12);
-
-    doc.setTextColor(
-      ...navy
-    );
-
-    doc.setFont(
-      "helvetica",
-      "bold"
-    );
-
-    doc.text(
-      "Pengeluaran Bulan Ini",
-      15,
-      y
-    );
-
-    y += 6;
-
     doc.autoTable({
       startY: y,
 
-      theme: "plain",
+      theme: "grid",
 
       head: [
         [
@@ -981,20 +1011,9 @@ export async function GET(req) {
           ]
         ) || [],
 
-      styles: {
-        fontSize: 9,
-        cellPadding: 4,
-        lineColor:
-          border,
-        lineWidth: 0.2,
-      },
-
       headStyles: {
         fillColor:
           navy,
-        textColor: 255,
-        fontStyle:
-          "bold",
       },
 
       alternateRowStyles: {
@@ -1021,26 +1040,11 @@ export async function GET(req) {
 
     y = 20;
 
-    doc.setFontSize(18);
-
-    doc.setTextColor(
-      ...navy
+    sectionTitle(
+      "Laporan Tunggakan"
     );
 
-    doc.setFont(
-      "helvetica",
-      "bold"
-    );
-
-    doc.text(
-      "Laporan Tunggakan",
-      15,
-      y
-    );
-
-    y += 14;
-
-    /* SUMMARY */
+    ensureSpace(35);
 
     doc.setFillColor(
       255,
@@ -1061,7 +1065,7 @@ export async function GET(req) {
     doc.setFontSize(10);
 
     doc.setTextColor(
-      90
+      80
     );
 
     doc.setFont(
@@ -1110,17 +1114,48 @@ export async function GET(req) {
       }
     );
 
-    y += 36;
+    y += 35;
 
-    /* UNPAID CARDS */
+    /* =========================================
+       AGING
+    ========================================= */
 
-    unpaidList.forEach(
-      (r, i) => {
-        if (y > 250) {
-          doc.addPage();
+    sectionTitle(
+      "Kategori Tunggakan"
+    );
 
-          y = 20;
-        }
+    statRow(
+      "Ringan (1-2 periode)",
+      `${aging.ringan} rumah`,
+      blue
+    );
+
+    statRow(
+      "Sedang (3-5 periode)",
+      `${aging.sedang} rumah`,
+      red
+    );
+
+    statRow(
+      "Berat (> 6 periode)",
+      `${aging.berat} rumah`,
+      red
+    );
+
+    y += 5;
+
+    /* =========================================
+       TOP DEBTORS
+    ========================================= */
+
+    sectionTitle(
+      "Top Penunggak"
+    );
+
+    unpaidList
+      .slice(0, 5)
+      .forEach((r, i) => {
+        ensureSpace(30);
 
         doc.setFillColor(
           250,
@@ -1128,17 +1163,13 @@ export async function GET(req) {
           250
         );
 
-        doc.setDrawColor(
-          ...border
-        );
-
         doc.roundedRect(
           15,
           y,
           180,
           24,
-          3,
-          3,
+          4,
+          4,
           "FD"
         );
 
@@ -1167,13 +1198,11 @@ export async function GET(req) {
         );
 
         doc.setTextColor(
-          70
+          ...gray
         );
 
         doc.text(
-          `Nunggak ${
-            r.jumlah
-          } periode`,
+          `Nunggak ${r.jumlah} periode`,
           20,
           y + 15
         );
@@ -1186,19 +1215,19 @@ export async function GET(req) {
           y + 21
         );
 
-        doc.setTextColor(
-          ...red
-        );
-
         doc.setFont(
           "helvetica",
           "bold"
         );
 
+        doc.setTextColor(
+          ...red
+        );
+
         doc.text(
           format(r.total),
           188,
-          y + 14,
+          y + 13,
           {
             align:
               "right",
@@ -1206,7 +1235,159 @@ export async function GET(req) {
         );
 
         y += 30;
-      }
+      });
+
+    /* =========================================
+       PAGE 4
+    ========================================= */
+
+    doc.addPage();
+
+    y = 20;
+
+    sectionTitle(
+      "Trend Bulanan"
+    );
+
+    doc.autoTable({
+      startY: y,
+
+      theme: "grid",
+
+      head: [
+        [
+          "Periode",
+          "Rumah Bayar",
+          "Pemasukan",
+          "Pengeluaran",
+          "Saldo",
+        ],
+      ],
+
+      body:
+        monthlyTrend.map(
+          (m) => [
+            m.period,
+            `${m.paid} rumah`,
+            format(
+              m.income
+            ),
+            format(
+              m.expense
+            ),
+            format(
+              m.balance
+            ),
+          ]
+        ),
+
+      headStyles: {
+        fillColor:
+          navy,
+      },
+
+      alternateRowStyles: {
+        fillColor: [
+          248,
+          250,
+          252,
+        ],
+      },
+
+      columnStyles: {
+        1: {
+          halign:
+            "center",
+        },
+
+        2: {
+          halign:
+            "right",
+        },
+
+        3: {
+          halign:
+            "right",
+        },
+
+        4: {
+          halign:
+            "right",
+        },
+      },
+    });
+
+    y =
+      doc.lastAutoTable
+        .finalY + 15;
+
+    /* =========================================
+       RUMAH LUNAS
+    ========================================= */
+
+    sectionTitle(
+      "Rumah Sudah Membayar"
+    );
+
+    ensureSpace(40);
+
+    doc.setFillColor(
+      240,
+      253,
+      244
+    );
+
+    doc.roundedRect(
+      15,
+      y,
+      180,
+      30,
+      4,
+      4,
+      "FD"
+    );
+
+    doc.setFontSize(10);
+
+    doc.setFont(
+      "helvetica",
+      "bold"
+    );
+
+    doc.setTextColor(
+      ...green
+    );
+
+    doc.text(
+      `${paidHouseList.length} rumah sudah membayar`,
+      20,
+      y + 10
+    );
+
+    doc.setFont(
+      "helvetica",
+      "normal"
+    );
+
+    doc.setTextColor(
+      70
+    );
+
+    const paidText =
+      paidHouseList.join(
+        ", "
+      ) || "-";
+
+    const splitText =
+      doc.splitTextToSize(
+        paidText,
+        165
+      );
+
+    doc.text(
+      splitText,
+      20,
+      y + 18
     );
 
     /* =========================================
@@ -1229,9 +1410,9 @@ export async function GET(req) {
 
       doc.line(
         15,
-        285,
+        287,
         195,
-        285
+        287
       );
 
       doc.setFontSize(8);
@@ -1243,13 +1424,13 @@ export async function GET(req) {
       doc.text(
         "Kas Amarta • Sistem Keuangan Internal",
         15,
-        290
+        292
       );
 
       doc.text(
         `Halaman ${i} / ${pageCount}`,
         195,
-        290,
+        292,
         {
           align: "right",
         }
