@@ -17,7 +17,7 @@ export async function GET() {
 
     const page = await browser.newPage();
 
-    const res = await fetch(`${process.env.BASE_URL}/api/sheets/summary`);
+    const res = await fetch(`/api/sheets/summary`);
     const json = await res.json();
 
     const report = json.insight || json;
