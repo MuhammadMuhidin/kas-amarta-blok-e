@@ -75,16 +75,29 @@ export async function GET(req) {
 
     const now = new Date();
 
+    const tanggal = new Intl.DateTimeFormat(
+      "id-ID",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "Asia/Jakarta",
+      }
+    ).format(now);
+
+    const jam = new Intl.DateTimeFormat(
+      "id-ID",
+      {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+        timeZone: "Asia/Jakarta",
+      }
+    ).format(now);
+
     const jakartaTime =
-      new Intl.DateTimeFormat(
-        "id-ID",
-        {
-          dateStyle: "long",
-          timeStyle: "medium",
-          timeZone:
-            "Asia/Jakarta",
-        }
-      ).format(now);
+      `${tanggal} pukul ${jam} WIB`;
 
     const currentMonthKey =
       now
@@ -534,7 +547,7 @@ export async function GET(req) {
     );
 
     statRow(
-      `Pengeluaran ${insight?.lastMonth?.month || "-"}`,
+      `Pengeluaran bulan ${insight?.lastMonth?.month || "-"}`,
       format(
         insight?.lastMonth
           ?.expenseTotal || 0
@@ -552,7 +565,7 @@ export async function GET(req) {
     );
 
     statRow(
-      `Kas ${insight?.currentMonth?.month || "-"} + sisa bulan lalu`,
+      `Kas bulan ${insight?.currentMonth?.month || "-"} + sisa bulan lalu`,
       format(
         insight?.summary
           ?.currentIncomePlusLastRemaining ||
@@ -806,7 +819,7 @@ export async function GET(req) {
     y = 20;
 
     sectionTitle(
-      `Detail Pengeluaran (${insight?.lastMonth?.month || "-"} & ${insight?.currentMonth?.month || "-"})`
+      `Detail Pengeluaran Bulan (${insight?.lastMonth?.month || "-"} & ${insight?.currentMonth?.month || "-"})`
     );
 
     doc.setFontSize(12);
@@ -1054,11 +1067,11 @@ export async function GET(req) {
     y += 5;
 
     /* =========================================
-       TOP PENUNGGAK
+       PRIORITAS TUNGGAKAN
     ========================================= */
 
     sectionTitle(
-      "Top Penunggak"
+      "Prioritas Tunggakan"
     );
 
     unpaidList
@@ -1178,7 +1191,7 @@ export async function GET(req) {
       );
 
       doc.text(
-        "Kas Amarta • Sistem Keuangan Internal",
+        `Kas Amarta Blok E • Sistem Keuangan Internal • Dicetak ${jakartaTime}`,
         15,
         292
       );
