@@ -237,6 +237,21 @@ async function loadSummaryBackup(){
 
 }
 
+  const stats = useMemo(() => {
+  return personal.reduce(
+    (acc, p) => {
+      if (p.active === "Y") acc.active++;
+      else acc.inactive++;
+
+      if (p.trash === "Y") acc.trashActive++;
+      else acc.trashInactive++;
+
+      return acc;
+    },
+    { active: 0, inactive: 0, trashActive: 0, trashInactive: 0 }
+  );
+}, [personal]);
+
   return (
     <>
         <style jsx global>{`
@@ -352,24 +367,12 @@ async function loadSummaryBackup(){
           </form>
 
           <h4>Member List</h4>
-          <p style={styles.summary}>
-            Member Active: {
-              personal.filter(p=>p.active==="Y").length
-            }
-            {" | "}
-            Member Inactive: {
-              personal.filter(p=>p.active==="N").length
-            }
-          </p>
-          <p style={styles.summary}>
-            Trash Active: {
-              personal.filter(p=>p.trash==="Y").length
-            }
-            {" | "}
-            Trash Inactive: {
-              personal.filter(p=>p.trash==="N").length
-            }
-          </p>
+              <div style={styles.summaryGrid}>
+              <div>Active: <b>{stats.active}</b></div>
+              <div>Inactive: <b>{stats.inactive}</b></div>
+              <div>Trash Active: <b>{stats.trashActive}</b></div>
+              <div>Trash Inactive: <b>{stats.trashInactive}</b></div>
+              </div>
 
           <div style={styles.tableWrapper}>
 
