@@ -221,7 +221,9 @@ const pieIncomeExpenseConfig = {
     ],
   },
   options: {
+    animation: false,
     responsive: true,
+    aspectRatio: 1,
     maintainAspectRatio: true,
     plugins: {
       legend: {
@@ -286,12 +288,13 @@ const doughnutPaymentConfig = {
         data: [paidHouses, unpaidCount],
         backgroundColor: ["#16A34A", "#F59E0B"],
         borderWidth: 1,
-        hoverOffset: 4,
       },
     ],
   },
   options: {
-    cutout: "65%", // bikin ring proporsional
+    aspectRatio: 1,
+    cutout: "60%", // bikin ring proporsional
+    animation: false,
     responsive: true,
     maintainAspectRatio: true,
     plugins: {
@@ -810,32 +813,32 @@ sectionTitle("Visual Ringkasan Keuangan");
 // PIE + DOUGHNUT
 ensureSpace(90);
 
-const pieSize = 42; // dari 85 → 42 (≈50%)
-const doughnutSize = 42;
+const chartSize = 55;
 
-const centerY = y;
+// container width A4 = 210mm
+const totalWidth = 210;
 
-// PIE (kiri)
-doc.addImage(
-  pieIncomeExpenseImg,
-  "PNG",
-  20,
-  centerY,
-  pieSize,
-  pieSize
-);
+// spacing 2 chart
+const gap = 20;
 
-// DOUGHNUT (kanan)
+// total content width
+const contentWidth = chartSize * 2 + gap;
+
+// start X biar center
+const startX = (totalWidth - contentWidth) / 2;
+
+doc.addImage(pieIncomeExpenseImg, "PNG", startX, y, chartSize, chartSize);
+
 doc.addImage(
   doughnutPaymentImg,
   "PNG",
-  110,
-  centerY,
-  doughnutSize,
-  doughnutSize
+  startX + chartSize + gap,
+  y,
+  chartSize,
+  chartSize
 );
 
-y += pieSize + 10;
+y += chartSize + 10;
 
     /* =========================================
        TOP 3 PENGELUARAN TERBESAR
