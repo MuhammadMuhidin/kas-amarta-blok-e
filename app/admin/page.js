@@ -669,7 +669,7 @@ async function loadSummaryBackup(){
     
     </div>
   )
-}
+}}
 
 const styles={
 
