@@ -63,6 +63,22 @@ export async function GET(req) {
     let y = 20;
 
     /* =========================================
+       HELPER QUICKCHART
+    ========================================= */
+
+const makeQuickChartURL = (config) => {
+  return `https://quickchart.io/chart?width=350&height=350&format=png&c=${encodeURIComponent(
+    JSON.stringify(config)
+  )}`;
+};
+
+const toBase64 = async (url) => {
+  const res = await fetch(url);
+  const buffer = await res.arrayBuffer();
+  return Buffer.from(buffer).toString("base64");
+};
+
+    /* =========================================
        SAFE PAGE SYSTEM
     ========================================= */
 
@@ -189,6 +205,54 @@ export async function GET(req) {
       totalExpense;
 
     /* =========================================
+       PIE CHART
+    ========================================= */
+    
+const pieIncomeExpenseConfig = {
+  type: "pie",
+  data: {
+    labels: ["Pemasukan", "Pengeluaran"],
+    datasets: [
+      {
+        data: [totalIncome, totalExpense],
+        backgroundColor: ["#16A34A", "#DC2626"],
+        borderWidth: 1,
+      },
+    ],
+  },
+  options: {
+    animation: false,
+    responsive: true,
+    aspectRatio: 1,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        labels: {
+          font: {
+            size: 25,   // 🔥 besar kecil font
+            weight: "bold", // 🔥 tebel
+          },
+        },
+        position: "bottom",
+      },
+      datalabels: {
+        font: {
+          size: 20,
+          weight: "bold",
+        },
+        color: "#fff",
+      },
+    },
+    layout: {
+      padding: 10,
+    },
+  },
+};
+
+const pieIncomeExpenseURL = makeQuickChartURL(pieIncomeExpenseConfig);
+const pieIncomeExpenseImg = await toBase64(pieIncomeExpenseURL);
+
+    /* =========================================
        PAYMENT STATS
     ========================================= */
 
@@ -223,7 +287,51 @@ export async function GET(req) {
               activeHouses) *
               100
           );
-
+    /* =========================================
+       DOUGHNUT CHART
+    ========================================= */
+    
+const unpaidCount = activeHouses - paidHouses;
+const doughnutPaymentConfig = {
+  type: "doughnut",
+  data: {
+    labels: ["Sudah Bayar", "Belum Bayar"],
+    datasets: [
+      {
+        data: [paidHouses, unpaidCount],
+        backgroundColor: ["#16A34A", "#F59E0B"],
+        borderWidth: 1,
+      },
+    ],
+  },
+  options: {
+    aspectRatio: 1,
+    cutout: "60%", // bikin ring proporsional
+    animation: false,
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: {
+        labels: {
+          font: {
+            size: 25,   // 🔥 besar kecil font
+            weight: "bold", // 🔥 tebel
+          },
+        },
+        position: "bottom",
+      },
+      datalabels: {
+        font: {
+          size: 20,
+          weight: "bold",
+        },
+      color: "#fff",
+      },
+    },
+  },
+};
+const doughnutPaymentURL = makeQuickChartURL(doughnutPaymentConfig);
+const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
     /* =========================================
        UNPAID
     ========================================= */
@@ -725,6 +833,39 @@ export async function GET(req) {
     );
 
     y += 28;
+
+sectionTitle("Visual Ringkasan Keuangan");
+
+// PIE + DOUGHNUT
+ensureSpace(90);
+
+const chartSize = 45;
+
+// container width A4 = 210mm
+const totalWidth = 210;
+
+// spacing 2 chart
+const gap = 20;
+
+// total content width
+const contentWidth = chartSize * 2 + gap;
+
+// start X biar center
+const startX = (totalWidth - contentWidth) / 2;
+
+doc.addImage(pieIncomeExpenseImg, "JPG", startX, y, chartSize, chartSize, undefined, "FAST");
+
+doc.addImage(
+  doughnutPaymentImg,
+  "JPG",
+  startX + chartSize + gap,
+  y,
+  chartSize,
+  chartSize,
+  undefined,
+  "FAST");
+
+y += chartSize + 10;
 
     /* =========================================
        TOP 3 PENGELUARAN TERBESAR
