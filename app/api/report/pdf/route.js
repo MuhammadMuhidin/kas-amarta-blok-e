@@ -220,34 +220,32 @@ const pieIncomeExpenseConfig = {
       },
     ],
   },
-
   options: {
+    aspectRatio: 1,
+    animation: false,
     responsive: true,
     maintainAspectRatio: true,
-
     plugins: {
       legend: {
         position: "bottom",
         labels: {
           font: {
-            size: 32,
+            size: 25,
             weight: "bold",
           },
         },
       },
-
       title: {
         display: true,
         text: "Pemasukan vs Pengeluaran",
         font: {
-          size: 34,
+          size: 20,
           weight: "bold",
         },
       },
-
       datalabels: {
         font: {
-          size: 26,
+          size: 20,
           weight: "bold",
         },
         color: "#fff",
@@ -294,6 +292,7 @@ const pieIncomeExpenseImg = await toBase64(pieIncomeExpenseURL);
               activeHouses) *
               100
           );
+    
     /* =========================================
        DOUGHNUT CHART
     ========================================= */
@@ -317,9 +316,6 @@ const doughnutPaymentConfig = {
     animation: false,
     responsive: true,
     maintainAspectRatio: true,
-    font: {
-      size: 28,
-    },
     plugins: {
       legend: {
         labels: {
@@ -342,6 +338,7 @@ const doughnutPaymentConfig = {
 };
 const doughnutPaymentURL = makeQuickChartURL(doughnutPaymentConfig);
 const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
+    
     /* =========================================
        UNPAID
     ========================================= */
