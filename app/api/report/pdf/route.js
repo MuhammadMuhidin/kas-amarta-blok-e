@@ -67,7 +67,7 @@ export async function GET(req) {
     ========================================= */
 
 const makeQuickChartURL = (config) => {
-  return `https://quickchart.io/chart?c=${encodeURIComponent(
+  return `https://quickchart.io/chart?width=350&height=350&format=png&c=${encodeURIComponent(
     JSON.stringify(config)
   )}`;
 };
