@@ -283,8 +283,19 @@ async function loadSummaryBackup(){
   );
 }, [personal]);
 
+const MONITORING_START_PERIOD = "2026-06";
+  
 const trashMismatch = useMemo(() => {
   const issues = [];
+
+  // Start periode untuk monitoring
+  const monitoredPayments =
+    payments.filter(
+      (p) =>
+        p.period &&
+        p.period >=
+          MONITORING_START_PERIOD
+  );
 
   // Semua payment id yang punya trash
   const trashPaymentIds = new Set(
@@ -298,7 +309,7 @@ const trashMismatch = useMemo(() => {
       (p.trash || "").toUpperCase() === "Y";
 
     // payment milik person ini
-    const personPayments = payments.filter(
+    const personPayments = monitoredPayments.filter(
       (pay) =>
         String(pay.person_id).trim() ===
         String(p.id).trim()
@@ -347,7 +358,7 @@ const trashMismatch = useMemo(() => {
       t.payment_id || ""
     ).trim();
 
-    const paymentExists = payments.some(
+    const paymentExists = monitoredPayments.some(
       (pay) =>
         String(pay.id || "").trim() ===
         tPaymentId
