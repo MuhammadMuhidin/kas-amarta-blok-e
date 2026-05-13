@@ -297,12 +297,12 @@ const trashMismatch = useMemo(() => {
 
     // Cari semua payment milik rumah ini
     const personPayments = payments.filter(
-      (pay) => String(pay.house).trim() === String(p.house).trim()
+      (pay) => String(pay.person_house).trim() === String(p.house).trim()
     );
 
     personPayments.forEach((pay) => {
       // Cek apakah payment_id ini ada di daftar trash
-      const currentPaymentId = String(pay.payment_id || pay.id || "").trim();
+      const currentPaymentId = String(pay.payment_id || "").trim();
       const hasTrash = trashPaymentIds.has(currentPaymentId);
 
       /*
@@ -320,7 +320,7 @@ const trashMismatch = useMemo(() => {
       }
 
       /*
-        CASE 3: User TIDAK ikut iuran sampah (N), tapi ada data
+        CASE 2: User TIDAK ikut iuran sampah (N), tapi ada data
         di tabel sampah (salah input).
       */
       if (!isTrashUser && hasTrash) {
@@ -336,7 +336,7 @@ const trashMismatch = useMemo(() => {
   });
 
   /*
-    CASE 2: Ada data di tabel sampah, tapi payment_id nya tidak 
+    CASE 3: Ada data di tabel sampah, tapi payment_id nya tidak 
     terdaftar di tabel payment manapun (Data Yatim).
   */
   trashRecords.forEach((t) => {
