@@ -743,12 +743,12 @@ const trashMismatch = useMemo(() => {
 
 {tab === "monitoring" && (
   <div style={styles.card}>
-    <h3>Trash Payment Monitoring</h3>
+    <h3>Trash Payment Integrity Check</h3>
 
     {/* Summary */}
     <div style={styles.summaryCards}>
       <div style={styles.summaryCard}>
-        <div>Missing Trash Payment</div>
+        <div>Detected Issue</div>
         <b>{trashMismatch.length}</b>
       </div>
     </div>
