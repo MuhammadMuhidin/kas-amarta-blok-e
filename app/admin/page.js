@@ -40,21 +40,36 @@ export default function AdminPage(){
 
   async function loadPersonal(){
 
-    const res = await fetch("/api/sheets/personal/list",{cache:"no-store"})
-    const data = await res.json()
+    const res = await fetch("/api/sheets/personal", {
+      cache: "no-store",
+      method: "GET",
+    });
+
+    const data = await res.json();
 
     setPersonal(data)
   }
 
   async function loadPayment(){
-  const res = await fetch("/api/sheets/payment", { cache: "no-store" })
+
+  const res = await fetch("/api/sheets/payment", {
+      cache: "no-store",
+      method: "GET",
+    });
+
   const data = await res.json()
+
   setPayments(data || [])
   }
 
   async function loadTrash(){
-  const res = await fetch("/api/sheets/trash", { cache: "no-store" })
+  const res = await fetch("/api/sheets/trash", {
+      cache: "no-store",
+      method: "GET",
+    });
+
   const data = await res.json()
+  
   setTrashRecords(data || [])
   }
 
