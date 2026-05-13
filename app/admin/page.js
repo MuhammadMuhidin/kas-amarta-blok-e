@@ -283,77 +283,141 @@ async function loadSummaryBackup(){
   );
 }, [personal]);
 
+const MONITORING_START_PERIOD = "2026-06";
+
 const trashMismatch = useMemo(() => {
   const issues = [];
 
-  // Semua payment id yang punya trash
+  /* =========================================
+     NORMALIZE
+  ========================================= */
+
+  const normalize = (v) =>
+    String(v || "").trim();
+
+  /* =========================================
+     PAYMENT YANG DIMONITOR
+  ========================================= */
+
+  const monitoredPayments = payments.filter(
+    (p) =>
+      p.period &&
+      p.period >=
+        MONITORING_START_PERIOD
+  );
+
+  /* =========================================
+     FAST LOOKUP
+  ========================================= */
+
+  // payment.id yang punya trash record
   const trashPaymentIds = new Set(
     trashRecords.map((t) =>
-      String(t.payment_id || "").trim()
+      normalize(t.payment_id)
     )
   );
 
-  personal.forEach((p) => {
-    const isTrashUser =
-      (p.trash || "").toUpperCase() === "Y";
+  // personal by id
+  const personalMap = new Map(
+    personal.map((p) => [
+      normalize(p.id),
+      p,
+    ])
+  );
 
-    // payment milik person ini
-    const personPayments = payments.filter(
-      (pay) =>
-        String(pay.person_id).trim() ===
-        String(p.id).trim()
+  // payment by id
+  const paymentMap = new Map(
+    payments.map((p) => [
+      normalize(p.id),
+      p,
+    ])
+  );
+
+  /* =========================================
+     CASE 1 & 2
+     VALIDASI PAYMENT TERHADAP USER
+  ========================================= */
+
+  monitoredPayments.forEach((pay) => {
+    const person = personalMap.get(
+      normalize(pay.person_id)
     );
 
-    personPayments.forEach((pay) => {
-      const paymentId = String(
-        pay.id || ""
-      ).trim();
+    // skip jika personal tidak ditemukan
+    if (!person) {
+      issues.push({
+        type: "MISSING_PERSON",
+        house: "-",
+        name: "-",
+        period: pay.period,
+        detail: `Payment references missing person_id: ${pay.person_id}`,
+      });
 
-      const hasTrash =
-        trashPaymentIds.has(paymentId);
+      return;
+    }
 
-      // CASE 1
-      // User wajib trash tapi payment tidak punya trash record
-      if (isTrashUser && !hasTrash) {
-        issues.push({
-          type: "PAYMENT_WITHOUT_TRASH",
-          house: p.house,
-          name: p.name,
-          period: pay.period,
-          detail:
-            "Missing required trash record",
-        });
-      }
+    const isTrashUser =
+      normalize(person.trash).toUpperCase() ===
+      "Y";
 
-      // CASE 2
-      // User non-trash tapi payment punya trash record
-      if (!isTrashUser && hasTrash) {
-        issues.push({
-          type: "NON_TRASH_HAS_TRASH",
-          house: p.house,
-          name: p.name,
-          period: pay.period,
-          detail:
-            "Non-trash user linked to trash record",
-        });
-      }
-    });
+    const paymentId = normalize(pay.id);
+
+    const hasTrash =
+      trashPaymentIds.has(paymentId);
+
+    /* ================================
+       CASE 1
+       USER WAJIB TRASH
+       TAPI TIDAK ADA RECORD
+    ================================= */
+
+    if (isTrashUser && !hasTrash) {
+      issues.push({
+        type: "PAYMENT_WITHOUT_TRASH",
+        house: person.house || "-",
+        name: person.name || "-",
+        period: pay.period,
+        detail:
+          "Missing required trash record",
+      });
+    }
+
+    /* ================================
+       CASE 2
+       USER NON-TRASH
+       TAPI PUNYA RECORD TRASH
+    ================================= */
+
+    if (!isTrashUser && hasTrash) {
+      issues.push({
+        type: "NON_TRASH_HAS_TRASH",
+        house: person.house || "-",
+        name: person.name || "-",
+        period: pay.period,
+        detail:
+          "Non-trash user linked to trash record",
+      });
+    }
   });
 
-  // CASE 3
-  // Trash record tanpa payment
-  trashRecords.forEach((t) => {
-    const tPaymentId = String(
-      t.payment_id || ""
-    ).trim();
+  /* =========================================
+     CASE 3
+     ORPHAN TRASH RECORD
+  ========================================= */
 
-    const paymentExists = payments.some(
-      (pay) =>
-        String(pay.id || "").trim() ===
-        tPaymentId
+  trashRecords.forEach((t) => {
+    const tPaymentId = normalize(
+      t.payment_id
     );
 
-    if (!paymentExists && tPaymentId) {
+    const payment =
+      paymentMap.get(tPaymentId);
+
+    /* ================================
+       ORPHAN RECORD
+    ================================= */
+
+    if (!payment) {
       issues.push({
         type: "ORPHAN_TRASH_RECORD",
         house: "-",
@@ -362,10 +426,92 @@ const trashMismatch = useMemo(() => {
         detail:
           "Trash record references invalid payment",
       });
+
+      return;
+    }
+
+    /* ================================
+       SKIP PAYMENT LAMA
+    ================================= */
+
+    if (
+      payment.period <
+      MONITORING_START_PERIOD
+    ) {
+      return;
+    }
+
+    const person = personalMap.get(
+      normalize(payment.person_id)
+    );
+
+    /* ================================
+       PAYMENT PUNYA PERSON INVALID
+    ================================= */
+
+    if (!person) {
+      issues.push({
+        type: "MISSING_PERSON",
+        house: "-",
+        name: "-",
+        period: payment.period,
+        detail: `Payment references missing person_id: ${payment.person_id}`,
+      });
+
+      return;
+    }
+
+    const isTrashUser =
+      normalize(person.trash).toUpperCase() ===
+      "Y";
+
+    /* ================================
+       USER NON-TRASH
+       TAPI ADA TRASH RECORD
+    ================================= */
+
+    if (!isTrashUser) {
+      issues.push({
+        type: "NON_TRASH_HAS_TRASH",
+        house: person.house || "-",
+        name: person.name || "-",
+        period: payment.period,
+        detail:
+          "Non-trash user linked to trash record",
+      });
     }
   });
 
-  return issues;
+  /* =========================================
+     REMOVE DUPLICATE ISSUE
+  ========================================= */
+
+  const uniqueIssues = Array.from(
+    new Map(
+      issues.map((i) => [
+        [
+          i.type,
+          i.house,
+          i.name,
+          i.period,
+          i.detail,
+        ].join("|"),
+        i,
+      ])
+    ).values()
+  );
+
+  /* =========================================
+     SORT
+  ========================================= */
+
+  uniqueIssues.sort((a, b) => {
+    return String(a.period).localeCompare(
+      String(b.period)
+    );
+  });
+
+  return uniqueIssues;
 }, [personal, payments, trashRecords]);
 
   return (
