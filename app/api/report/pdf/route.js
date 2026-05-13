@@ -225,6 +225,9 @@ const pieIncomeExpenseConfig = {
     responsive: true,
     aspectRatio: 1,
     maintainAspectRatio: true,
+    font: {
+      size: 28,
+    },
     plugins: {
       legend: {
         labels: {
@@ -310,6 +313,9 @@ const doughnutPaymentConfig = {
     animation: false,
     responsive: true,
     maintainAspectRatio: true,
+    font: {
+      size: 28,
+    },
     plugins: {
       legend: {
         labels: {
