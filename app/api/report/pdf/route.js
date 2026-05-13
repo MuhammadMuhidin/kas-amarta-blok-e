@@ -240,6 +240,7 @@ const pieIncomeExpenseConfig = {
           size: 16,
           weight: "bold",
         },
+      },
     },
     layout: {
       padding: 10,
@@ -323,6 +324,7 @@ const doughnutPaymentConfig = {
           size: 16,
           weight: "bold",
         },
+      },
     },
   },
 };
