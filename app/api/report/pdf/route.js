@@ -221,10 +221,15 @@ const pieIncomeExpenseConfig = {
     ],
   },
   options: {
+    responsive: true,
+    maintainAspectRatio: true,
     plugins: {
       legend: {
         position: "bottom",
       },
+    },
+    layout: {
+      padding: 10,
     },
   },
 };
@@ -281,12 +286,18 @@ const doughnutPaymentConfig = {
         data: [paidHouses, unpaidCount],
         backgroundColor: ["#16A34A", "#F59E0B"],
         borderWidth: 1,
+        hoverOffset: 4,
       },
     ],
   },
   options: {
+    cutout: "65%", // bikin ring proporsional
+    responsive: true,
+    maintainAspectRatio: true,
     plugins: {
-      legend: { position: "bottom" },
+      legend: {
+        position: "bottom",
+      },
     },
   },
 };
@@ -799,10 +810,32 @@ sectionTitle("Visual Ringkasan Keuangan");
 // PIE + DOUGHNUT
 ensureSpace(90);
 
-doc.addImage(pieIncomeExpenseImg, "PNG", 15, y, 85, 70);
-doc.addImage(doughnutPaymentImg, "PNG", 110, y, 85, 70);
+const pieSize = 42; // dari 85 → 42 (≈50%)
+const doughnutSize = 42;
 
-y += 80;
+const centerY = y;
+
+// PIE (kiri)
+doc.addImage(
+  pieIncomeExpenseImg,
+  "PNG",
+  20,
+  centerY,
+  pieSize,
+  pieSize
+);
+
+// DOUGHNUT (kanan)
+doc.addImage(
+  doughnutPaymentImg,
+  "PNG",
+  110,
+  centerY,
+  doughnutSize,
+  doughnutSize
+);
+
+y += pieSize + 10;
 
     /* =========================================
        TOP 3 PENGELUARAN TERBESAR
