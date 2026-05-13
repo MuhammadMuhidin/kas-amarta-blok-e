@@ -32,6 +32,7 @@ export default function AdminPage(){
   const [loadingSummary,setLoadingSummary] = useState(false)
   const [payments, setPayments] = useState([])
   const [trashRecords, setTrashRecords] = useState([])
+  const [memberFilter,setMemberFilter] = useState("")
 
   const [msg,setMsg] = useState("")
   const [loadingAdd,setLoadingAdd] = useState(false)
@@ -265,6 +266,14 @@ async function loadSummaryBackup(){
     setLoadingSummary(false)
 
   }
+
+}
+
+function toggleMemberFilter(type){
+
+  setMemberFilter(prev =>
+    prev === type ? "" : type
+  )
 
 }
 
@@ -514,6 +523,56 @@ const trashMismatch = useMemo(() => {
   return uniqueIssues;
 }, [personal, payments, trashRecords]);
 
+const filteredPersonal = useMemo(() => {
+
+  const sorted = [...personal]
+    .sort((a,b)=>
+      a.house.localeCompare(
+        b.house,
+        undefined,
+        { numeric:true }
+      )
+    )
+
+  // default = tampil semua
+  if(!memberFilter){
+    return sorted
+  }
+
+  // active
+  if(memberFilter === "ACTIVE"){
+    return sorted.filter(
+      p => p.active === "Y"
+    )
+  }
+
+  // inactive
+  if(memberFilter === "INACTIVE"){
+    return sorted.filter(
+      p => p.active === "N"
+    )
+  }
+
+  // trash active
+  if(memberFilter === "TRASH_ACTIVE"){
+    return sorted.filter(
+      p =>
+        p.active === "Y" &&
+        p.trash === "Y"
+    )
+  }
+
+  // trash inactive
+if(memberFilter === "TRASH_INACTIVE"){
+  return sorted.filter(
+    p => p.trash !== "Y"
+  )
+}
+
+  return sorted
+
+}, [personal, memberFilter])
+
   return (
     <>
         <style jsx global>{`
@@ -636,27 +695,68 @@ const trashMismatch = useMemo(() => {
           </form>
 
           <h4>Member List</h4>
-            <div style={styles.summaryCards}>
-              <div style={styles.summaryCard}>
-              <div>Active</div>
-              <b>{stats.active}</b>
-              </div>
+<div style={styles.summaryCards}>
+  
+  <div
+    onClick={()=>
+      toggleMemberFilter("ACTIVE")
+    }
+    style={{
+      ...styles.summaryCard,
+      ...(memberFilter === "ACTIVE"
+        ? styles.summaryCardActive
+        : {})
+    }}
+  >
+    <div>Active</div>
+    <b>{stats.active}</b>
+  </div>
 
-              <div style={styles.summaryCard}>
-              <div>Inactive</div>
-              <b>{stats.inactive}</b>
-              </div>
+  <div
+    onClick={()=>
+      toggleMemberFilter("INACTIVE")
+    }
+    style={{
+      ...styles.summaryCard,
+      ...(memberFilter === "INACTIVE"
+        ? styles.summaryCardActive
+        : {})
+    }}
+  >
+    <div>Inactive</div>
+    <b>{stats.inactive}</b>
+  </div>
 
-              <div style={styles.summaryCard}>
-              <div>Trash Active</div>
-              <b>{stats.trashActive}</b>
-              </div>
+  <div
+    onClick={()=>
+      toggleMemberFilter("TRASH_ACTIVE")
+    }
+    style={{
+      ...styles.summaryCard,
+      ...(memberFilter === "TRASH_ACTIVE"
+        ? styles.summaryCardActive
+        : {})
+    }}
+  >
+    <div>Trash Active</div>
+    <b>{stats.trashActive}</b>
+  </div>
 
-              <div style={styles.summaryCard}>
-              <div>Trash Inactive</div>
-              <b>{stats.trashInactive}</b>
-              </div>
-            </div>
+  <div
+    onClick={()=>
+      toggleMemberFilter("TRASH_INACTIVE")
+    }
+    style={{
+      ...styles.summaryCard,
+      ...(memberFilter === "TRASH_INACTIVE"
+        ? styles.summaryCardActive
+        : {})
+    }}
+  >
+    <div>Trash Inactive</div>
+    <b>{stats.trashInactive}</b>
+  </div>
+</div>
               
           <div style={styles.tableWrapper}>
 
@@ -675,7 +775,7 @@ const trashMismatch = useMemo(() => {
 
               <tbody>
 
-                {personal
+                {filteredPersonal
                  .sort((a,b)=>a.house.localeCompare(b.house,undefined,{numeric:true}))
                  .map((p,i)=>{
 
@@ -1155,6 +1255,15 @@ summaryCard: {
   borderRadius: 10,
   background: "#f8fafc",
   border: "1px solid #e2e8f0",
-  textAlign: "center"
+  textAlign: "center",
+  cursor:"pointer",
+  transition:"0.15s ease"
+},
+
+summaryCardActive:{
+  background:"#2563eb",
+  color:"#fff",
+  border:"1px solid #2563eb",
+  cursor:"pointer"
 }
 }
