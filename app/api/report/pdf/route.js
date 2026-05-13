@@ -235,6 +235,11 @@ const pieIncomeExpenseConfig = {
         },
         position: "bottom",
       },
+      datalabels: {
+        font: {
+          size: 16,
+          weight: "bold",
+        },
     },
     layout: {
       padding: 10,
@@ -313,6 +318,11 @@ const doughnutPaymentConfig = {
         },
         position: "bottom",
       },
+      datalabels: {
+        font: {
+          size: 16,
+          weight: "bold",
+        },
     },
   },
 };
