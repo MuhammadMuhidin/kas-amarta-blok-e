@@ -26,12 +26,9 @@ export async function GET(){
     range:"Cashflow!A:F"
   })
 
-  const cashflowRes = res.data.values || []
+  const rows = res.data.values || []
 
-    const data = (cashflowRes.data.values || [])
-      .slice(1)
-      .map((r) => ({
-        __type: "cashflow",
+  const data = rows.slice(1).map((r) => ({
         id: r[0],
         ref_id: r[1],
         type: (r[2] || "").toLowerCase(),

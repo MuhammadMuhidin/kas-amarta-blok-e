@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { getSheets } from "@/lib/google"
 import { generateId } from "@/lib/id"
+import { Row } from "jspdf-autotable";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +16,9 @@ export async function GET(){
     range:"Payment!A:G"
   })
 
-  const cashflowRes = res.data.values || []
+  const rows = res.data.values || []
 
-  const data = (cashflowRes.data.values || [])
-      .slice(1)
-      .map((r) => ({
+  const data = rows.slice(1).map((r) => ({
         id: r[0],
         person_id: r[1],
         person_house: r[2],

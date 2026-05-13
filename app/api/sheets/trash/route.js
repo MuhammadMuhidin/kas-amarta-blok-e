@@ -15,11 +15,9 @@ export async function GET(){
     range:"Trash!A:D"
   })
 
-  const TrashRes = res.data.values || []
+  const rows = res.data.values || []
 
-  const data = (TrashRes.data.values || [])
-      .slice(1)
-      .map((r) => ({
+  const data = rows.slice(1).map((r) => ({
         id: r[0],
         payment_id: r[1],
         amount: Number(r[2]) || 0,
