@@ -563,13 +563,11 @@ const filteredPersonal = useMemo(() => {
   }
 
   // trash inactive
-  if(memberFilter === "TRASH_INACTIVE"){
-    return sorted.filter(
-      p =>
-        p.active === "N" &&
-        p.trash === "Y"
-    )
-  }
+if(memberFilter === "TRASH_INACTIVE"){
+  return sorted.filter(
+    p => p.trash !== "Y"
+  )
+}
 
   return sorted
 
