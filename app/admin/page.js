@@ -30,6 +30,8 @@ export default function AdminPage(){
 
   const [summaryBackup,setSummaryBackup] = useState([])
   const [loadingSummary,setLoadingSummary] = useState(false)
+  const [payments, setPayments] = useState([])
+  const [trashRecords, setTrashRecords] = useState([])
 
   const [msg,setMsg] = useState("")
   const [loadingAdd,setLoadingAdd] = useState(false)
@@ -44,9 +46,23 @@ export default function AdminPage(){
     setPersonal(data)
   }
 
+  async function loadPayment(){
+  const res = await fetch("/api/sheets/payment", { cache: "no-store" })
+  const data = await res.json()
+  setPayments(data || [])
+  }
+
+  async function loadTrash(){
+  const res = await fetch("/api/sheets/trash", { cache: "no-store" })
+  const data = await res.json()
+  setTrashRecords(data || [])
+  }
+
   useEffect(()=>{
     loadPersonal()
     loadSummaryBackup()
+    loadPayment()
+    loadTrash()
   },[])
 
 async function addMember(e){
@@ -251,6 +267,38 @@ async function loadSummaryBackup(){
     { active: 0, inactive: 0, trashActive: 0, trashInactive: 0 }
   );
 }, [personal]);
+
+  const trashMismatch = useMemo(() => {
+
+  // hanya user trash Y
+  const trashUsers = personal.filter(
+    p => (p.trash || "").toUpperCase() === "Y"
+  )
+
+  // set payment yang sudah masuk trash
+  const validPaymentIds = new Set(
+    trashRecords.map(t => t.payment_id)
+  )
+
+  return trashUsers.filter(user => {
+
+    // cari payment milik user
+    const userPayments = payments.filter(
+      pay => pay.person_id === user.id
+    )
+
+    // kalau belum punya payment sama sekali → dianggap bermasalah
+    if (userPayments.length === 0) return true
+
+    // kalau ada payment tapi tidak ada yang masuk trash
+    const hasTrash = userPayments.some(
+      pay => validPaymentIds.has(pay.id)
+    )
+
+    return !hasTrash
+  })
+
+  }, [personal, payments, trashRecords]);
 
   return (
     <>
@@ -614,6 +662,45 @@ async function loadSummaryBackup(){
           </div>
     
         )}
+
+{tab === "monitoring" && (
+  <div style={styles.card}>
+    <h3>Trash Payment Monitoring</h3>
+
+    <div style={styles.summaryCards}>
+      <div style={styles.summaryCard}>
+        <div>Missing Trash Payment</div>
+        <b>{trashMismatch.length}</b>
+      </div>
+    </div>
+
+    <div style={styles.tableWrapper}>
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th}>House</th>
+            <th style={styles.th}>Name</th>
+            <th style={styles.th}>Trash Status</th>
+            <th style={styles.th}>Payment Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {trashMismatch.map((p, i) => (
+            <tr key={p.id} style={i % 2 ? styles.rowAlt : null}>
+              <td style={styles.td}>{p.house}</td>
+              <td style={styles.td}>{p.name}</td>
+              <td style={styles.td}>{p.trash}</td>
+              <td style={styles.td}>
+                ❌ Missing
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
     
       </div>
     
