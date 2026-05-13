@@ -227,6 +227,12 @@ const pieIncomeExpenseConfig = {
     maintainAspectRatio: true,
     plugins: {
       legend: {
+        labels: {
+          font: {
+            size: 14,   // 🔥 besar kecil font
+            weight: "bold", // 🔥 tebel
+          },
+        },
         position: "bottom",
       },
     },
@@ -299,6 +305,12 @@ const doughnutPaymentConfig = {
     maintainAspectRatio: true,
     plugins: {
       legend: {
+        labels: {
+          font: {
+            size: 14,   // 🔥 besar kecil font
+            weight: "bold", // 🔥 tebel
+          },
+        },
         position: "bottom",
       },
     },
@@ -813,7 +825,7 @@ sectionTitle("Visual Ringkasan Keuangan");
 // PIE + DOUGHNUT
 ensureSpace(90);
 
-const chartSize = 55;
+const chartSize = 45;
 
 // container width A4 = 210mm
 const totalWidth = 210;
@@ -827,16 +839,17 @@ const contentWidth = chartSize * 2 + gap;
 // start X biar center
 const startX = (totalWidth - contentWidth) / 2;
 
-doc.addImage(pieIncomeExpenseImg, "PNG", startX, y, chartSize, chartSize);
+doc.addImage(pieIncomeExpenseImg, "JPG", startX, y, chartSize, chartSize, undefined, "FAST");
 
 doc.addImage(
   doughnutPaymentImg,
-  "PNG",
+  "JPG",
   startX + chartSize + gap,
   y,
   chartSize,
-  chartSize
-);
+  chartSize,
+  undefined,
+  "FAST");
 
 y += chartSize + 10;
 
