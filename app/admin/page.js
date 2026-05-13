@@ -681,8 +681,11 @@ async function loadSummaryBackup(){
           </div>
     
         )}
+    
+      </div>
+    )}
 
-{tab === "monitoring" && (
+  {tab === "monitoring" && (
   <div style={styles.card}>
     <h3>Trash Payment Monitoring</h3>
 
@@ -736,10 +739,6 @@ async function loadSummaryBackup(){
     )}
   </div>
 )}
-    
-      </div>
-    
-    )}
 
     </div>
   </>
