@@ -361,6 +361,13 @@ async function loadSummaryBackup(){
           Summary Backup
         </button>
 
+<button
+  style={tab==="monitoring"?styles.tabActive:styles.tab}
+  onClick={()=>setTab("monitoring")}
+>
+  Monitoring
+</button>
+
       </div>
 
       {tab==="personal" && (
