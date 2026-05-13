@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
 import { getSheets } from "@/lib/google"
 import { generateId } from "@/lib/id"
-import { Row } from "jspdf-autotable";
 
 export const dynamic = "force-dynamic";
 
