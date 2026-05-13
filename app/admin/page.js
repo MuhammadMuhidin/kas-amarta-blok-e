@@ -321,7 +321,7 @@ const trashMismatch = useMemo(() => {
           name: p.name,
           period: pay.period,
           detail:
-            "User wajib sampah tapi tidak ada trash record",
+            "Missing required trash record",
         });
       }
 
@@ -334,7 +334,7 @@ const trashMismatch = useMemo(() => {
           name: p.name,
           period: pay.period,
           detail:
-            "User non-trash tapi punya trash record",
+            "Non-trash user linked to trash record",
         });
       }
     });
@@ -360,7 +360,7 @@ const trashMismatch = useMemo(() => {
         name: "-",
         period: `Payment ID: ${tPaymentId}`,
         detail:
-          "Trash record merujuk payment yang tidak ada",
+          "Trash record references invalid payment",
       });
     }
   });
