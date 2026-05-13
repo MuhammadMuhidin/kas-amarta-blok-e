@@ -207,7 +207,7 @@ const toBase64 = async (url) => {
     /* =========================================
        PIE CHART
     ========================================= */
-    
+
 const pieIncomeExpenseConfig = {
   type: "pie",
   data: {
@@ -221,19 +221,27 @@ const pieIncomeExpenseConfig = {
     ],
   },
   options: {
+    aspectRatio: 1,
     animation: false,
     responsive: true,
-    aspectRatio: 1,
     maintainAspectRatio: true,
     plugins: {
       legend: {
+        position: "bottom",
         labels: {
           font: {
-            size: 25,   // 🔥 besar kecil font
-            weight: "bold", // 🔥 tebel
+            size: 25,
+            weight: "bold",
           },
         },
-        position: "bottom",
+      },
+      title: {
+        display: true,
+        text: "Pemasukan vs Pengeluaran",
+        font: {
+          size: 20,
+          weight: "bold",
+        },
       },
       datalabels: {
         font: {
@@ -243,12 +251,9 @@ const pieIncomeExpenseConfig = {
         color: "#fff",
       },
     },
-    layout: {
-      padding: 10,
-    },
   },
 };
-
+    
 const pieIncomeExpenseURL = makeQuickChartURL(pieIncomeExpenseConfig);
 const pieIncomeExpenseImg = await toBase64(pieIncomeExpenseURL);
 
@@ -287,6 +292,7 @@ const pieIncomeExpenseImg = await toBase64(pieIncomeExpenseURL);
               activeHouses) *
               100
           );
+    
     /* =========================================
        DOUGHNUT CHART
     ========================================= */
@@ -332,6 +338,7 @@ const doughnutPaymentConfig = {
 };
 const doughnutPaymentURL = makeQuickChartURL(doughnutPaymentConfig);
 const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
+    
     /* =========================================
        UNPAID
     ========================================= */
