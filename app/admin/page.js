@@ -662,6 +662,45 @@ async function loadSummaryBackup(){
           </div>
     
         )}
+
+{tab === "monitoring" && (
+  <div style={styles.card}>
+    <h3>Trash Payment Monitoring</h3>
+
+    <div style={styles.summaryCards}>
+      <div style={styles.summaryCard}>
+        <div>Missing Trash Payment</div>
+        <b>{trashMismatch.length}</b>
+      </div>
+    </div>
+
+    <div style={styles.tableWrapper}>
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th}>House</th>
+            <th style={styles.th}>Name</th>
+            <th style={styles.th}>Trash Status</th>
+            <th style={styles.th}>Payment Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {trashMismatch.map((p, i) => (
+            <tr key={p.id} style={i % 2 ? styles.rowAlt : null}>
+              <td style={styles.td}>{p.house}</td>
+              <td style={styles.td}>{p.name}</td>
+              <td style={styles.td}>{p.trash}</td>
+              <td style={styles.td}>
+                ❌ Missing
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+)}
     
       </div>
     
