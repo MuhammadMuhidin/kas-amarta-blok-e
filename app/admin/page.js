@@ -270,35 +270,32 @@ async function loadSummaryBackup(){
 
   const trashMismatch = useMemo(() => {
 
-  // hanya user trash Y
   const trashUsers = personal.filter(
     p => (p.trash || "").toUpperCase() === "Y"
   )
 
-  // set payment yang sudah masuk trash
   const validPaymentIds = new Set(
-    trashRecords.map(t => t.payment_id)
+    trashRecords.map(t => String(t.payment_id))
   )
 
   return trashUsers.filter(user => {
 
-    // cari payment milik user
+    const userId = String(user.id)
+
     const userPayments = payments.filter(
-      pay => pay.person_id === user.id
+      pay => String(pay.person_id) === userId
     )
 
-    // kalau belum punya payment sama sekali → dianggap bermasalah
     if (userPayments.length === 0) return true
 
-    // kalau ada payment tapi tidak ada yang masuk trash
     const hasTrash = userPayments.some(
-      pay => validPaymentIds.has(pay.id)
+      pay => validPaymentIds.has(String(pay.id))
     )
 
     return !hasTrash
   })
 
-  }, [personal, payments, trashRecords]);
+}, [personal, payments, trashRecords])
 
   return (
     <>
