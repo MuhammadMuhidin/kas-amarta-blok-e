@@ -671,6 +671,7 @@ async function loadSummaryBackup(){
   <div style={styles.card}>
     <h3>Trash Payment Monitoring</h3>
 
+    {/* Summary Card */}
     <div style={styles.summaryCards}>
       <div style={styles.summaryCard}>
         <div>Missing Trash Payment</div>
@@ -678,31 +679,46 @@ async function loadSummaryBackup(){
       </div>
     </div>
 
-    <div style={styles.tableWrapper}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>House</th>
-            <th style={styles.th}>Name</th>
-            <th style={styles.th}>Trash Status</th>
-            <th style={styles.th}>Payment Status</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {trashMismatch.map((p, i) => (
-            <tr key={p.id} style={i % 2 ? styles.rowAlt : null}>
-              <td style={styles.td}>{p.house}</td>
-              <td style={styles.td}>{p.name}</td>
-              <td style={styles.td}>{p.trash}</td>
-              <td style={styles.td}>
-                ❌ Missing
-              </td>
+    {/* Empty State */}
+    {trashMismatch.length === 0 ? (
+      <div
+        style={{
+          padding: 16,
+          background: "#ecfdf5",
+          border: "1px solid #10b981",
+          borderRadius: 10,
+          color: "#065f46",
+          fontWeight: 500,
+          textAlign: "center",
+        }}
+      >
+        Tidak ada issue
+      </div>
+    ) : (
+      <div style={styles.tableWrapper}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>House</th>
+              <th style={styles.th}>Name</th>
+              <th style={styles.th}>Trash Status</th>
+              <th style={styles.th}>Payment Status</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+
+          <tbody>
+            {trashMismatch.map((p, i) => (
+              <tr key={p.id} style={i % 2 ? styles.rowAlt : null}>
+                <td style={styles.td}>{p.house}</td>
+                <td style={styles.td}>{p.name}</td>
+                <td style={styles.td}>{p.trash}</td>
+                <td style={styles.td}>❌ Missing</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
   </div>
 )}
     
