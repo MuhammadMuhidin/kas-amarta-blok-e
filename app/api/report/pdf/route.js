@@ -377,6 +377,10 @@ const lineCashflowConfig = {
     ],
   },
   options: {
+    animation: false,
+    responsive: true,
+    aspectRatio: 1,
+    maintainAspectRatio: true,
     plugins: {
       legend: { position: "bottom" },
     },
