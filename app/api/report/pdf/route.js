@@ -207,7 +207,7 @@ const toBase64 = async (url) => {
     /* =========================================
        PIE CHART
     ========================================= */
-    
+
 const pieIncomeExpenseConfig = {
   type: "pie",
   data: {
@@ -220,38 +220,42 @@ const pieIncomeExpenseConfig = {
       },
     ],
   },
+
   options: {
-    animation: false,
     responsive: true,
-    aspectRatio: 1,
     maintainAspectRatio: true,
-    font: {
-      size: 28,
-    },
+
     plugins: {
       legend: {
+        position: "bottom",
         labels: {
           font: {
-            size: 25,   // 🔥 besar kecil font
-            weight: "bold", // 🔥 tebel
+            size: 32,
+            weight: "bold",
           },
         },
-        position: "bottom",
       },
+
+      title: {
+        display: true,
+        text: "Pemasukan vs Pengeluaran",
+        font: {
+          size: 34,
+          weight: "bold",
+        },
+      },
+
       datalabels: {
         font: {
-          size: 20,
+          size: 26,
           weight: "bold",
         },
         color: "#fff",
       },
     },
-    layout: {
-      padding: 10,
-    },
   },
 };
-
+    
 const pieIncomeExpenseURL = makeQuickChartURL(pieIncomeExpenseConfig);
 const pieIncomeExpenseImg = await toBase64(pieIncomeExpenseURL);
 
