@@ -229,7 +229,7 @@ const pieIncomeExpenseConfig = {
       legend: {
         labels: {
           font: {
-            size: 14,   // 🔥 besar kecil font
+            size: 20,   // 🔥 besar kecil font
             weight: "bold", // 🔥 tebel
           },
         },
@@ -237,7 +237,7 @@ const pieIncomeExpenseConfig = {
       },
       datalabels: {
         font: {
-          size: 16,
+          size: 20,
           weight: "bold",
         },
         color: "#fff",
@@ -314,7 +314,7 @@ const doughnutPaymentConfig = {
       legend: {
         labels: {
           font: {
-            size: 14,   // 🔥 besar kecil font
+            size: 20,   // 🔥 besar kecil font
             weight: "bold", // 🔥 tebel
           },
         },
@@ -322,7 +322,7 @@ const doughnutPaymentConfig = {
       },
       datalabels: {
         font: {
-          size: 16,
+          size: 20,
           weight: "bold",
         },
       color: "#fff",
