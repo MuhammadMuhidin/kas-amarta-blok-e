@@ -286,6 +286,12 @@ async function loadSummaryBackup(){
 const trashMismatch = useMemo(() => {
   const issues = [];
 
+  const trashPaymentIds = new Set(
+    trashRecords.map((t) =>
+      String(t.payment_id)
+    )
+  );
+
   personal.forEach((p) => {
     const isTrashUser =
       (p.trash || "").toUpperCase() === "Y";
@@ -294,82 +300,67 @@ const trashMismatch = useMemo(() => {
       (pay) => pay.house === p.house
     );
 
-    /*
-      CASE 1
-      Personal Y
-      Payment ada
-      Trash kosong
-    */
-    if (isTrashUser) {
-      personPayments.forEach((pay) => {
-        const hasTrash = trashRecords.some(
-          (t) =>
-            String(t.payment_id) ===
-            String(pay.payment_id)
+    personPayments.forEach((pay) => {
+      const hasTrash =
+        trashPaymentIds.has(
+          String(pay.payment_id)
         );
 
-        if (!hasTrash) {
-          issues.push({
-            type: "PAYMENT_WITHOUT_TRASH",
-            house: p.house,
-            name: p.name,
-            period: pay.period,
-            detail:
-              "Payment ada tetapi trash record kosong",
-          });
-        }
-      });
-    }
+      /*
+        CASE 1
+        Personal Y
+        Payment ada
+        Trash kosong
+      */
+      if (isTrashUser && !hasTrash) {
+        issues.push({
+          type: "PAYMENT_WITHOUT_TRASH",
+          house: p.house,
+          name: p.name,
+          period: pay.period,
+          detail:
+            "Payment ada tetapi trash record kosong",
+        });
+      }
 
-    /*
-      CASE 3
-      Personal N
-      Payment ada
-      Trash ada
-    */
-    if (!isTrashUser) {
-      personPayments.forEach((pay) => {
-        const hasTrash = trashRecords.some(
-          (t) =>
-            String(t.payment_id) ===
-            String(pay.payment_id)
-        );
-
-        if (hasTrash) {
-          issues.push({
-            type: "NON_TRASH_HAS_TRASH",
-            house: p.house,
-            name: p.name,
-            period: pay.period,
-            detail:
-              "User non-trash memiliki trash record",
-          });
-        }
-      });
-    }
+      /*
+        CASE 3
+        Personal N
+        Payment ada
+        Trash ada
+      */
+      if (!isTrashUser && hasTrash) {
+        issues.push({
+          type: "NON_TRASH_HAS_TRASH",
+          house: p.house,
+          name: p.name,
+          period: pay.period,
+          detail:
+            "User non-trash memiliki trash record",
+        });
+      }
+    });
   });
 
   /*
     CASE 2
-    Personal Y
-    Payment kosong
-    Trash ada
+    Trash record punya payment_id invalid
   */
   trashRecords.forEach((t) => {
-    const payment = payments.find(
+    const paymentExists = payments.some(
       (pay) =>
         String(pay.payment_id) ===
         String(t.payment_id)
     );
 
-    if (!payment) {
+    if (!paymentExists) {
       issues.push({
-        type: "TRASH_WITHOUT_PAYMENT",
+        type: "ORPHAN_TRASH_RECORD",
         house: "-",
         name: "-",
         period: "-",
         detail:
-          "Trash record ada tetapi payment tidak ditemukan",
+          "Trash record tidak memiliki payment valid",
       });
     }
   });
