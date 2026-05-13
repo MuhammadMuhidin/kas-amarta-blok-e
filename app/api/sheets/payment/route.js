@@ -2,7 +2,33 @@ import { NextResponse } from "next/server"
 import { getSheets } from "@/lib/google"
 import { generateId } from "@/lib/id"
 
+export const dynamic = "force-dynamic";
+
 const spreadsheetId = process.env.SPREADSHEET_ID
+
+export async function GET(){
+
+  const sheets = await getSheets()
+
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range:"Payment!A:G"
+  })
+
+  const rows = res.data.values || []
+
+  const data = rows.slice(1).map((r) => ({
+        id: r[0],
+        person_id: r[1],
+        person_house: r[2],
+        person_name: r[3],
+        period: r[4],
+        amount: Number(r[5]) || 0,
+        date: r[6],
+      }));
+
+  return NextResponse.json(data)
+}
 
 export async function POST(req){
 

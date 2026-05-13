@@ -261,8 +261,18 @@ const pieIncomeExpenseImg = await toBase64(pieIncomeExpenseURL);
        PAYMENT STATS
     ========================================= */
 
-    const activeHouses =
-      persons.length;
+    const activeHouses = persons.filter((p) => {
+      const joinMonth =
+        p.join_date?.slice(0, 7);
+
+      const validPeriods = periods.filter(
+        (pr) =>
+          !joinMonth ||
+          pr >= joinMonth
+      );
+
+      return validPeriods.length > 0;
+    }).length;            
 
     const paidHousesSet =
       new Set(

@@ -30,6 +30,8 @@ export default function AdminPage(){
 
   const [summaryBackup,setSummaryBackup] = useState([])
   const [loadingSummary,setLoadingSummary] = useState(false)
+  const [payments, setPayments] = useState([])
+  const [trashRecords, setTrashRecords] = useState([])
 
   const [msg,setMsg] = useState("")
   const [loadingAdd,setLoadingAdd] = useState(false)
@@ -38,15 +40,44 @@ export default function AdminPage(){
 
   async function loadPersonal(){
 
-    const res = await fetch("/api/sheets/personal/list",{cache:"no-store"})
-    const data = await res.json()
+    const res = await fetch("/api/sheets/personal", {
+      cache: "no-store",
+      method: "GET",
+    });
+
+    const data = await res.json();
 
     setPersonal(data)
+  }
+
+  async function loadPayment(){
+
+  const res = await fetch("/api/sheets/payment", {
+      cache: "no-store",
+      method: "GET",
+    });
+
+  const data = await res.json()
+
+  setPayments(data || [])
+  }
+
+  async function loadTrash(){
+  const res = await fetch("/api/sheets/trash", {
+      cache: "no-store",
+      method: "GET",
+    });
+
+  const data = await res.json()
+  
+  setTrashRecords(data || [])
   }
 
   useEffect(()=>{
     loadPersonal()
     loadSummaryBackup()
+    loadPayment()
+    loadTrash()
   },[])
 
 async function addMember(e){
@@ -252,6 +283,91 @@ async function loadSummaryBackup(){
   );
 }, [personal]);
 
+const trashMismatch = useMemo(() => {
+  const issues = [];
+
+  // Semua payment id yang punya trash
+  const trashPaymentIds = new Set(
+    trashRecords.map((t) =>
+      String(t.payment_id || "").trim()
+    )
+  );
+
+  personal.forEach((p) => {
+    const isTrashUser =
+      (p.trash || "").toUpperCase() === "Y";
+
+    // payment milik person ini
+    const personPayments = payments.filter(
+      (pay) =>
+        String(pay.person_id).trim() ===
+        String(p.id).trim()
+    );
+
+    personPayments.forEach((pay) => {
+      const paymentId = String(
+        pay.id || ""
+      ).trim();
+
+      const hasTrash =
+        trashPaymentIds.has(paymentId);
+
+      // CASE 1
+      // User wajib trash tapi payment tidak punya trash record
+      if (isTrashUser && !hasTrash) {
+        issues.push({
+          type: "PAYMENT_WITHOUT_TRASH",
+          house: p.house,
+          name: p.name,
+          period: pay.period,
+          detail:
+            "Missing required trash record",
+        });
+      }
+
+      // CASE 2
+      // User non-trash tapi payment punya trash record
+      if (!isTrashUser && hasTrash) {
+        issues.push({
+          type: "NON_TRASH_HAS_TRASH",
+          house: p.house,
+          name: p.name,
+          period: pay.period,
+          detail:
+            "Non-trash user linked to trash record",
+        });
+      }
+    });
+  });
+
+  // CASE 3
+  // Trash record tanpa payment
+  trashRecords.forEach((t) => {
+    const tPaymentId = String(
+      t.payment_id || ""
+    ).trim();
+
+    const paymentExists = payments.some(
+      (pay) =>
+        String(pay.id || "").trim() ===
+        tPaymentId
+    );
+
+    if (!paymentExists && tPaymentId) {
+      issues.push({
+        type: "ORPHAN_TRASH_RECORD",
+        house: "-",
+        name: "-",
+        period: `Payment ID: ${tPaymentId}`,
+        detail:
+          "Trash record references invalid payment",
+      });
+    }
+  });
+
+  return issues;
+}, [personal, payments, trashRecords]);
+
   return (
     <>
         <style jsx global>{`
@@ -312,6 +428,13 @@ async function loadSummaryBackup(){
         >
           Summary Backup
         </button>
+
+<button
+  style={tab==="monitoring"?styles.tabActive:styles.tab}
+  onClick={()=>setTab("monitoring")}
+>
+  Monitoring
+</button>
 
       </div>
 
@@ -616,8 +739,76 @@ async function loadSummaryBackup(){
         )}
     
       </div>
-    
     )}
+
+{tab === "monitoring" && (
+  <div style={styles.card}>
+    <h3>Trash Payment Integrity Check</h3>
+
+    {/* Summary */}
+    <div style={styles.summaryCards}>
+      <div style={styles.summaryCard}>
+        <div>Detected Issue</div>
+        <b>{trashMismatch.length}</b>
+      </div>
+    </div>
+
+    {/* Empty */}
+    {trashMismatch.length === 0 ? (
+      <div
+        style={{
+          padding: 16,
+          background: "#ecfdf5",
+          border: "1px solid #10b981",
+          borderRadius: 10,
+          color: "#065f46",
+          fontWeight: 500,
+          textAlign: "center",
+        }}
+      >
+        Tidak ada issue
+      </div>
+    ) : (
+      <div style={styles.tableWrapper}>
+        <table style={styles.table}>
+<thead>
+  <tr>
+    <th style={styles.th}>House</th>
+    <th style={styles.th}>Name</th>
+    <th style={styles.th}>Period</th>
+    <th style={styles.th}>Issue</th>
+  </tr>
+</thead>
+
+<tbody>
+  {trashMismatch.map((x, i) => (
+    <tr
+      key={i}
+      style={i % 2 ? styles.rowAlt : null}
+    >
+      <td style={styles.td}>{x.house}</td>
+
+      <td style={styles.td}>{x.name}</td>
+
+      <td style={styles.td}>{x.period}</td>
+
+      <td
+        style={{
+          ...styles.td,
+          color: "#991b1b",
+          fontWeight: 600,
+        }}
+      >
+        {x.detail}
+      </td>
+    </tr>
+  ))}
+</tbody>
+        </table>
+      </div>
+    )}
+  </div>
+)}
 
     </div>
   </>
