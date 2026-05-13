@@ -267,7 +267,31 @@ const pieIncomeExpenseImg = await toBase64(pieIncomeExpenseURL);
               activeHouses) *
               100
           );
-
+    /* =========================================
+       DOUGHNUT CHART
+    ========================================= */
+    
+const unpaidCount = activeHouses - paidHouses;
+const doughnutPaymentConfig = {
+  type: "doughnut",
+  data: {
+    labels: ["Sudah Bayar", "Belum Bayar"],
+    datasets: [
+      {
+        data: [paidHouses, unpaidCount],
+        backgroundColor: ["#16A34A", "#F59E0B"],
+        borderWidth: 1,
+      },
+    ],
+  },
+  options: {
+    plugins: {
+      legend: { position: "bottom" },
+    },
+  },
+};
+const doughnutPaymentURL = makeQuickChartURL(doughnutPaymentConfig);
+const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
     /* =========================================
        UNPAID
     ========================================= */
