@@ -229,7 +229,7 @@ const pieIncomeExpenseConfig = {
       legend: {
         labels: {
           font: {
-            size: 20,   // 🔥 besar kecil font
+            size: 25,   // 🔥 besar kecil font
             weight: "bold", // 🔥 tebel
           },
         },
@@ -314,7 +314,7 @@ const doughnutPaymentConfig = {
       legend: {
         labels: {
           font: {
-            size: 20,   // 🔥 besar kecil font
+            size: 25,   // 🔥 besar kecil font
             weight: "bold", // 🔥 tebel
           },
         },
@@ -332,6 +332,59 @@ const doughnutPaymentConfig = {
 };
 const doughnutPaymentURL = makeQuickChartURL(doughnutPaymentConfig);
 const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
+
+    /* =========================================
+       LINE CHART
+    ========================================= */
+    
+const grouped = {};
+
+cashflows.forEach((c) => {
+  const date = (c.date || "").slice(0, 10);
+  if (!date) return;
+
+  if (!grouped[date]) {
+    grouped[date] = { income: 0, expense: 0 };
+  }
+
+  grouped[date][c.type] += Number(c.amount || 0);
+});
+
+const labels = Object.keys(grouped).slice(-12);
+
+const incomeData = labels.map((d) => grouped[d].income);
+const expenseData = labels.map((d) => grouped[d].expense);
+
+const lineCashflowConfig = {
+  type: "line",
+  data: {
+    labels,
+    datasets: [
+      {
+        label: "Pemasukan",
+        data: incomeData,
+        borderColor: "#16A34A",
+        tension: 0.3,
+        fill: false,
+      },
+      {
+        label: "Pengeluaran",
+        data: expenseData,
+        borderColor: "#DC2626",
+        tension: 0.3,
+        fill: false,
+      },
+    ],
+  },
+  options: {
+    plugins: {
+      legend: { position: "bottom" },
+    },
+  },
+};
+
+const lineCashflowURL = makeQuickChartURL(lineCashflowConfig);
+const lineCashflowImg = await toBase64(lineCashflowURL);
     /* =========================================
        UNPAID
     ========================================= */
@@ -1115,6 +1168,15 @@ y += chartSize + 10;
         },
       },
     });
+
+// LINE
+sectionTitle("Tren Cashflow");
+
+ensureSpace(80);
+
+doc.addImage(lineCashflowImg, "JPG", 15, y, 180, 70, undefined, "FAST");
+
+y += 80;
 
     /* =========================================
        PAGE 3
