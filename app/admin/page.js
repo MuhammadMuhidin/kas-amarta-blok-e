@@ -283,34 +283,28 @@ async function loadSummaryBackup(){
   );
 }, [personal]);
 
-  const trashMismatch = useMemo(() => {
+const trashMismatch = persons
+  .map((p) => {
+    const missingPeriods = periods.filter((period) => {
+      const hasPayment = payments.some(
+        (pay) =>
+          pay.house === p.house &&
+          pay.period === period
+      );
 
-  const trashUsers = personal.filter(
-    p => (p.trash || "").toUpperCase() === "Y"
-  )
+      return !hasPayment;
+    });
 
-  const validPaymentIds = new Set(
-    trashRecords.map(t => String(t.payment_id))
-  )
+    if (missingPeriods.length === 0) return null;
 
-  return trashUsers.filter(user => {
-
-    const userId = String(user.id)
-
-    const userPayments = payments.filter(
-      pay => String(pay.person_id) === userId
-    )
-
-    if (userPayments.length === 0) return true
-
-    const hasTrash = userPayments.some(
-      pay => validPaymentIds.has(String(pay.id))
-    )
-
-    return !hasTrash
+    return {
+      id: p.id,
+      house: p.house,
+      name: p.name,
+      periods: missingPeriods,
+    };
   })
-
-}, [personal, payments, trashRecords])
+  .filter(Boolean);
 
   return (
     <>
@@ -685,11 +679,11 @@ async function loadSummaryBackup(){
       </div>
     )}
 
-  {tab === "monitoring" && (
+{tab === "monitoring" && (
   <div style={styles.card}>
     <h3>Trash Payment Monitoring</h3>
 
-    {/* Summary Card */}
+    {/* Summary */}
     <div style={styles.summaryCards}>
       <div style={styles.summaryCard}>
         <div>Missing Trash Payment</div>
@@ -697,7 +691,7 @@ async function loadSummaryBackup(){
       </div>
     </div>
 
-    {/* Empty State */}
+    {/* Empty */}
     {trashMismatch.length === 0 ? (
       <div
         style={{
@@ -719,8 +713,8 @@ async function loadSummaryBackup(){
             <tr>
               <th style={styles.th}>House</th>
               <th style={styles.th}>Name</th>
-              <th style={styles.th}>Trash Status</th>
-              <th style={styles.th}>Payment Status</th>
+              <th style={styles.th}>Periode</th>
+              <th style={styles.th}>Detail</th>
             </tr>
           </thead>
 
@@ -728,9 +722,38 @@ async function loadSummaryBackup(){
             {trashMismatch.map((p, i) => (
               <tr key={p.id} style={i % 2 ? styles.rowAlt : null}>
                 <td style={styles.td}>{p.house}</td>
+
                 <td style={styles.td}>{p.name}</td>
-                <td style={styles.td}>{p.trash}</td>
-                <td style={styles.td}>❌ Missing</td>
+
+                <td style={styles.td}>
+                  {p.periods?.length || 0}
+                </td>
+
+                <td style={styles.td}>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: 6,
+                    }}
+                  >
+                    {p.periods?.map((period) => (
+                      <span
+                        key={period}
+                        style={{
+                          background: "#fee2e2",
+                          color: "#991b1b",
+                          padding: "4px 8px",
+                          borderRadius: 999,
+                          fontSize: 12,
+                          fontWeight: 500,
+                        }}
+                      >
+                        {period}
+                      </span>
+                    ))}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
