@@ -283,60 +283,99 @@ async function loadSummaryBackup(){
   );
 }, [personal]);
 
-const periods = [
-  ...new Set(
-    payments
-      .map((p) => p.period)
-      .filter(Boolean)
-  ),
-].sort();
+const trashMismatch = useMemo(() => {
+  const issues = [];
 
-const trashMismatch = personal
-  .filter(
-    (p) =>
-      p.active === "Y" &&
-      (p.trash || "").toUpperCase() === "Y"
-  )
-  .map((p) => {
-    const joinMonth =
-      p.join_date?.slice(0, 7);
+  personal.forEach((p) => {
+    const isTrashUser =
+      (p.trash || "").toUpperCase() === "Y";
 
-    const validPeriods = periods.filter(
-      (period) =>
-        !joinMonth || period >= joinMonth
+    const personPayments = payments.filter(
+      (pay) => pay.house === p.house
     );
 
-    const missingPeriods =
-      validPeriods.filter((period) => {
-        const payment = payments.find(
-          (pay) =>
-            pay.house === p.house &&
-            pay.period === period
+    /*
+      CASE 1
+      Personal Y
+      Payment ada
+      Trash kosong
+    */
+    if (isTrashUser) {
+      personPayments.forEach((pay) => {
+        const hasTrash = trashRecords.some(
+          (t) =>
+            String(t.payment_id) ===
+            String(pay.payment_id)
         );
 
-        if (!payment) return false;
-
-        const hasTrash =
-          trashRecords.some(
-            (t) =>
-              String(t.payment_id) ===
-              String(payment.payment_id)
-          );
-
-        return !hasTrash;
+        if (!hasTrash) {
+          issues.push({
+            type: "PAYMENT_WITHOUT_TRASH",
+            house: p.house,
+            name: p.name,
+            period: pay.period,
+            detail:
+              "Payment ada tetapi trash record kosong",
+          });
+        }
       });
+    }
 
-    if (missingPeriods.length === 0)
-      return null;
+    /*
+      CASE 3
+      Personal N
+      Payment ada
+      Trash ada
+    */
+    if (!isTrashUser) {
+      personPayments.forEach((pay) => {
+        const hasTrash = trashRecords.some(
+          (t) =>
+            String(t.payment_id) ===
+            String(pay.payment_id)
+        );
 
-    return {
-      id: p.id,
-      house: p.house,
-      name: p.name,
-      periods: missingPeriods,
-    };
-  })
-  .filter(Boolean);
+        if (hasTrash) {
+          issues.push({
+            type: "NON_TRASH_HAS_TRASH",
+            house: p.house,
+            name: p.name,
+            period: pay.period,
+            detail:
+              "User non-trash memiliki trash record",
+          });
+        }
+      });
+    }
+  });
+
+  /*
+    CASE 2
+    Personal Y
+    Payment kosong
+    Trash ada
+  */
+  trashRecords.forEach((t) => {
+    const payment = payments.find(
+      (pay) =>
+        String(pay.payment_id) ===
+        String(t.payment_id)
+    );
+
+    if (!payment) {
+      issues.push({
+        type: "TRASH_WITHOUT_PAYMENT",
+        house: "-",
+        name: "-",
+        period: "-",
+        detail:
+          "Trash record ada tetapi payment tidak ditemukan",
+      });
+    }
+  });
+
+  return issues;
+}, [personal, payments, trashRecords]);
 
   return (
     <>
@@ -741,54 +780,39 @@ const trashMismatch = personal
     ) : (
       <div style={styles.tableWrapper}>
         <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>House</th>
-              <th style={styles.th}>Name</th>
-              <th style={styles.th}>Periode</th>
-              <th style={styles.th}>Detail</th>
-            </tr>
-          </thead>
+<thead>
+  <tr>
+    <th style={styles.th}>House</th>
+    <th style={styles.th}>Name</th>
+    <th style={styles.th}>Period</th>
+    <th style={styles.th}>Issue</th>
+  </tr>
+</thead>
 
-          <tbody>
-            {trashMismatch.map((p, i) => (
-              <tr key={p.id} style={i % 2 ? styles.rowAlt : null}>
-                <td style={styles.td}>{p.house}</td>
+<tbody>
+  {trashMismatch.map((x, i) => (
+    <tr
+      key={i}
+      style={i % 2 ? styles.rowAlt : null}
+    >
+      <td style={styles.td}>{x.house}</td>
 
-                <td style={styles.td}>{p.name}</td>
+      <td style={styles.td}>{x.name}</td>
 
-                <td style={styles.td}>
-                  {p.periods?.length || 0}
-                </td>
+      <td style={styles.td}>{x.period}</td>
 
-                <td style={styles.td}>
-                  <div
-                    style={{
-                      display: "flex",
-                      flexWrap: "wrap",
-                      gap: 6,
-                    }}
-                  >
-                    {p.periods?.map((period) => (
-                      <span
-                        key={period}
-                        style={{
-                          background: "#fee2e2",
-                          color: "#991b1b",
-                          padding: "4px 8px",
-                          borderRadius: 999,
-                          fontSize: 12,
-                          fontWeight: 500,
-                        }}
-                      >
-                        {period}
-                      </span>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
+      <td
+        style={{
+          ...styles.td,
+          color: "#991b1b",
+          fontWeight: 600,
+        }}
+      >
+        {x.detail}
+      </td>
+    </tr>
+  ))}
+</tbody>
         </table>
       </div>
     )}
