@@ -63,6 +63,22 @@ export async function GET(req) {
     let y = 20;
 
     /* =========================================
+       HELPER QUICKCHART
+    ========================================= */
+
+const makeQuickChartURL = (config) => {
+  return `https://quickchart.io/chart?c=${encodeURIComponent(
+    JSON.stringify(config)
+  )}`;
+};
+
+const toBase64 = async (url) => {
+  const res = await fetch(url);
+  const buffer = await res.arrayBuffer();
+  return Buffer.from(buffer).toString("base64");
+};
+
+    /* =========================================
        SAFE PAGE SYSTEM
     ========================================= */
 
@@ -187,6 +203,34 @@ export async function GET(req) {
     const currentBalance =
       totalIncome -
       totalExpense;
+
+    /* =========================================
+       PIE CHART
+    ========================================= */
+    
+const pieIncomeExpenseConfig = {
+  type: "pie",
+  data: {
+    labels: ["Pemasukan", "Pengeluaran"],
+    datasets: [
+      {
+        data: [totalIncome, totalExpense],
+        backgroundColor: ["#16A34A", "#DC2626"],
+        borderWidth: 1,
+      },
+    ],
+  },
+  options: {
+    plugins: {
+      legend: {
+        position: "bottom",
+      },
+    },
+  },
+};
+
+const pieIncomeExpenseURL = makeQuickChartURL(pieIncomeExpenseConfig);
+const pieIncomeExpenseImg = await toBase64(pieIncomeExpenseURL);
 
     /* =========================================
        PAYMENT STATS
@@ -725,6 +769,16 @@ export async function GET(req) {
     );
 
     y += 28;
+
+sectionTitle("Visual Ringkasan Keuangan");
+
+// PIE + DOUGHNUT
+ensureSpace(90);
+
+doc.addImage(pieIncomeExpenseImg, "PNG", 15, y, 85, 70);
+doc.addImage(doughnutPaymentImg, "PNG", 110, y, 85, 70);
+
+y += 80;
 
     /* =========================================
        TOP 3 PENGELUARAN TERBESAR
