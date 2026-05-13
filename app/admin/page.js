@@ -283,19 +283,51 @@ async function loadSummaryBackup(){
   );
 }, [personal]);
 
-const trashMismatch = persons
+const periods = [
+  ...new Set(
+    payments
+      .map((p) => p.period)
+      .filter(Boolean)
+  ),
+].sort();
+
+const trashMismatch = personal
+  .filter(
+    (p) =>
+      p.active === "Y" &&
+      (p.trash || "").toUpperCase() === "Y"
+  )
   .map((p) => {
-    const missingPeriods = periods.filter((period) => {
-      const hasPayment = payments.some(
-        (pay) =>
-          pay.house === p.house &&
-          pay.period === period
-      );
+    const joinMonth =
+      p.join_date?.slice(0, 7);
 
-      return !hasPayment;
-    });
+    const validPeriods = periods.filter(
+      (period) =>
+        !joinMonth || period >= joinMonth
+    );
 
-    if (missingPeriods.length === 0) return null;
+    const missingPeriods =
+      validPeriods.filter((period) => {
+        const payment = payments.find(
+          (pay) =>
+            pay.house === p.house &&
+            pay.period === period
+        );
+
+        if (!payment) return false;
+
+        const hasTrash =
+          trashRecords.some(
+            (t) =>
+              String(t.payment_id) ===
+              String(payment.payment_id)
+          );
+
+        return !hasTrash;
+      });
+
+    if (missingPeriods.length === 0)
+      return null;
 
     return {
       id: p.id,
