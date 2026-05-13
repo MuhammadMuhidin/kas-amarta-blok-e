@@ -286,31 +286,28 @@ async function loadSummaryBackup(){
 const trashMismatch = useMemo(() => {
   const issues = [];
 
+  // 1. Ambil semua ID dari trashRecords dan pastikan tipenya string bersih
   const trashPaymentIds = new Set(
-    trashRecords.map((t) =>
-      String(t.payment_id)
-    )
+    trashRecords.map((t) => String(t.payment_id || "").trim())
   );
 
   personal.forEach((p) => {
-    const isTrashUser =
-      (p.trash || "").toUpperCase() === "Y";
+    // Normalisasi status trash user
+    const isTrashUser = (p.trash || "").toUpperCase() === "Y";
 
+    // Cari semua payment milik rumah ini
     const personPayments = payments.filter(
-      (pay) => pay.house === p.house
+      (pay) => String(pay.house).trim() === String(p.house).trim()
     );
 
     personPayments.forEach((pay) => {
-      const hasTrash =
-        trashPaymentIds.has(
-          String(pay.payment_id)
-        );
+      // Cek apakah payment_id ini ada di daftar trash
+      const currentPaymentId = String(pay.payment_id || pay.id || "").trim();
+      const hasTrash = trashPaymentIds.has(currentPaymentId);
 
       /*
-        CASE 1
-        Personal Y
-        Payment ada
-        Trash kosong
+        CASE 1: User ikut iuran sampah (Y), bayar iuran bulanan, 
+        tapi data tidak masuk ke tabel sampah.
       */
       if (isTrashUser && !hasTrash) {
         issues.push({
@@ -318,16 +315,13 @@ const trashMismatch = useMemo(() => {
           house: p.house,
           name: p.name,
           period: pay.period,
-          detail:
-            "Payment ada tetapi trash record kosong",
+          detail: "User wajib sampah, tapi data trash record kosong",
         });
       }
 
       /*
-        CASE 3
-        Personal N
-        Payment ada
-        Trash ada
+        CASE 3: User TIDAK ikut iuran sampah (N), tapi ada data
+        di tabel sampah (salah input).
       */
       if (!isTrashUser && hasTrash) {
         issues.push({
@@ -335,32 +329,29 @@ const trashMismatch = useMemo(() => {
           house: p.house,
           name: p.name,
           period: pay.period,
-          detail:
-            "User non-trash memiliki trash record",
+          detail: "User non-trash tapi memiliki record di tabel sampah",
         });
       }
     });
   });
 
   /*
-    CASE 2
-    Trash record punya payment_id invalid
+    CASE 2: Ada data di tabel sampah, tapi payment_id nya tidak 
+    terdaftar di tabel payment manapun (Data Yatim).
   */
   trashRecords.forEach((t) => {
+    const tId = String(t.payment_id || "").trim();
     const paymentExists = payments.some(
-      (pay) =>
-        String(pay.payment_id) ===
-        String(t.payment_id)
+      (pay) => String(pay.payment_id || pay.id || "").trim() === tId
     );
 
-    if (!paymentExists) {
+    if (!paymentExists && tId !== "") {
       issues.push({
         type: "ORPHAN_TRASH_RECORD",
         house: "-",
         name: "-",
-        period: "-",
-        detail:
-          "Trash record tidak memiliki payment valid",
+        period: `ID: ${tId}`,
+        detail: "Trash record merujuk ke Payment ID yang tidak eksis",
       });
     }
   });
