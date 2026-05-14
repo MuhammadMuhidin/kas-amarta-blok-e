@@ -1,25 +1,31 @@
 "use client";
 
-export default function PreviewLaporan() {
-  // Ganti URL ini dengan endpoint API Anda
-  const apiEndpoint = "/api/report/pdf"; 
+// Di dalam komponen Next.js (Client Component)
+import { useEffect, useState } from 'react';
+
+export default function PdfViewer() {
+  const [url, setUrl] = useState("");
+
+  useEffect(() => {
+    async function loadPdf() {
+      const response = await fetch('/api/report/pdf'); // Ganti dengan path API Anda
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      setUrl(objectUrl);
+    }
+    loadPdf();
+
+    // Cleanup memori
+    return () => URL.revokeObjectURL(url);
+  }, []);
 
   return (
-    <div style={{ width: '100%', height: '100vh', padding: '20px' }}>
-      <h2>Pratinjau Laporan Kas</h2>
-      
-      {/* Menggunakan iframe agar PDF langsung muncul di dalam halaman */}
-      <iframe
-        src={apiEndpoint}
-        width="100%"
-        height="600px"
-        style={{ border: 'none', boxShadow: '0 4px 8px rgba(0,0,0,0.1)' }}
-        title="PDF Viewer"
-      >
-        <p>Browser Anda tidak mendukung tampilan PDF. 
-           <a href={apiEndpoint}>Klik di sini untuk mengunduh.</a>
-        </p>
-      </iframe>
+    <div style={{ width: '100%', height: '100vh' }}>
+      {url ? (
+        <iframe src={url} width="100%" height="100%" />
+      ) : (
+        <p>Loading PDF...</p>
+      )}
     </div>
   );
 }
