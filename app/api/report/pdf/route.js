@@ -247,14 +247,13 @@ const pieIncomeExpenseConfig = {
       },
       title: {
         display: true,
-        text: "Pemasukan vs Pengeluaran",
+        text: "Total Pemasukan vs Total Pengeluaran",
         font: {
           size: 20,
           weight: "bold",
         },
       },
       datalabels: {
-        formatter: "function(value) { return value + '%'; }",
         font: {
           size: 20,
           weight: "bold",
@@ -263,7 +262,6 @@ const pieIncomeExpenseConfig = {
       },
     },
   },
-  plugins: ["datalabels"],
 };
     
 const pieIncomeExpenseURL = makeQuickChartURL(pieIncomeExpenseConfig);
@@ -342,14 +340,13 @@ const doughnutPaymentConfig = {
       legend: {
         labels: {
           font: {
-            size: 25,   // 🔥 besar kecil font
-            weight: "bold", // 🔥 tebel
+            size: 25,
+            weight: "bold",
           },
         },
         position: "bottom",
       },
       datalabels: {
-        formatter: "function(value) { return value + '%'; }",
         font: {
           size: 20,
           weight: "bold",
@@ -358,7 +355,6 @@ const doughnutPaymentConfig = {
       },
     },
   },
-  plugins: ["datalabels"],
 };
 const doughnutPaymentURL = makeQuickChartURL(doughnutPaymentConfig);
 const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
