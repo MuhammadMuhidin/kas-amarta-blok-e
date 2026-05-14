@@ -1407,13 +1407,22 @@ y += chartSize + 10;
       doc.output(
         "arraybuffer"
       );
+    
+    const { searchParams } =
+    new URL(req.url);
 
+    const isDownload = searchParams.get("download");
+    const disposition =
+    isDownload
+      ? "attachment"
+      : "inline";
+      
     return new Response(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
 
         "Content-Disposition":
-          `inline; filename="Laporan_Kas_${safeMonth}.pdf"`,
+          `${disposition}; filename="Laporan_Kas_${safeMonth}.pdf"`,
 
         "Access-Control-Expose-Headers":
           "Content-Disposition"
