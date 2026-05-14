@@ -10,22 +10,8 @@ import "@react-pdf-viewer/core/lib/styles/index.css";
 
 export default function Page() {
 const handleDownload = () => {
-  const a =
-    document.createElement("a");
-
-  a.href =
+  window.location.href =
     "/api/report/pdf?download=1";
-
-  a.style.display =
-    "none";
-
-  document.body.appendChild(
-    a
-  );
-
-  a.click();
-
-  a.remove();
 };
 
   return (
