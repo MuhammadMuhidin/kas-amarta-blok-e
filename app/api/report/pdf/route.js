@@ -1407,7 +1407,7 @@ y += chartSize + 10;
       headers: {
         "Content-Type": "application/pdf",
 
-        Content-Disposition":
+        "Content-Disposition":
           `inline; filename="Laporan_Kas_${safeMonth}.pdf"`,
 
         "Access-Control-Expose-Headers":
