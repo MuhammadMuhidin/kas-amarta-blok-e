@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Viewer,
   Worker,
@@ -11,6 +11,7 @@ import "@react-pdf-viewer/core/lib/styles/index.css";
 
 export default function Page() {
   const [visible, setVisible] = useState(true);
+  const containerRef = useRef(null);
 
   const handleDownload = () => {
     window.location.href = "/api/report/pdf?download=1";
@@ -19,36 +20,40 @@ export default function Page() {
   useEffect(() => {
     let timeout;
 
+    const el = containerRef.current;
+
+    if (!el) return;
+
     const onScroll = () => {
-      // langsung sembunyikan saat scroll aktif
       setVisible(false);
 
-      // reset timer
       clearTimeout(timeout);
 
-      // tampil lagi setelah scroll berhenti
       timeout = setTimeout(() => {
         setVisible(true);
       }, 250);
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      el.removeEventListener("scroll", onScroll);
       clearTimeout(timeout);
     };
   }, []);
 
   return (
     <div
+      ref={containerRef}
       style={{
         position: "fixed",
         inset: 0,
         width: "100vw",
         height: "100vh",
         background: "#e5e7eb",
-        overflow: "hidden",
+
+        // penting: ini yang bikin scroll terjadi di container
+        overflow: "auto",
       }}
     >
       <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
@@ -64,17 +69,13 @@ export default function Page() {
           position: "fixed",
           left: "50%",
           bottom: "5%",
-
           transform: `translateX(-50%) ${
-            visible ? "translateY(0px)" : "translateY(30px)"
+            visible ? "translateY(0px)" : "translateY(20px)"
           } scale(${visible ? 1 : 0.92})`,
-
           opacity: visible ? 1 : 0,
           pointerEvents: visible ? "auto" : "none",
-
           transition:
-            "transform 320ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease",
-
+            "transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease",
           border: "none",
           borderRadius: "999px",
           padding: "14px 18px",
