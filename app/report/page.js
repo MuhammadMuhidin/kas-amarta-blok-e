@@ -42,20 +42,18 @@ const handleDownload = () => {
         }
         style={{
           position: "fixed",
-          right: "10%",
+          left: "50%",
           bottom: "5%",
+          transform: "translateX(-50%)",
           border: "none",
           borderRadius: "999px",
-          padding:
-            "14px 18px",
-          background:
-            "#2563eb",
+          padding: "14px 18px",
+          background: "#2563eb",
           color: "#fff",
           fontSize: 15,
           fontWeight: 600,
           cursor: "pointer",
-          boxShadow:
-            "0 8px 24px rgba(0,0,0,0.18)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
           zIndex: 9999,
         }}
       >
