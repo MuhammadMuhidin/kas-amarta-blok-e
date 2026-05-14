@@ -27,9 +27,6 @@ export default function Page() {
 
     a.href = url;
 
-    a.download =
-      "laporan-keuangan.pdf";
-
     document.body.appendChild(
       a
     );
