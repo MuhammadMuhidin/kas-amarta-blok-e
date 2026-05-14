@@ -1406,12 +1406,17 @@ y += chartSize + 10;
     return new Response(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
+"Content-Length":
+        pdfBuffer.length
+          .toString(),
 
-        "Content-Disposition":
+      "Cache-Control":
+        "no-store",
+        /*"Content-Disposition":
           `inline; filename="Laporan_Kas_${safeMonth}.pdf"`,
 
         "Access-Control-Expose-Headers":
-          "Content-Disposition",
+          "Content-Disposition",*/
       },
     });
   } catch (err) {
