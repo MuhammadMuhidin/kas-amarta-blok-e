@@ -1,31 +1,38 @@
 "use client";
+import { useState } from 'react';
+import { Document, Page, pdfjs } from 'react-pdf';
 
-// Di dalam komponen Next.js (Client Component)
-import { useEffect, useState } from 'react';
+// Penting: Hubungkan ke worker PDF.js agar proses render cepat
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
-export default function PdfViewer() {
-  const [url, setUrl] = useState("");
+export default function MyPdfViewer() {
+  const [numPages, setNumPages] = useState(null);
 
-  useEffect(() => {
-    async function loadPdf() {
-      const response = await fetch('/api/report/pdf'); // Ganti dengan path API Anda
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      setUrl(objectUrl);
-    }
-    loadPdf();
-
-    // Cleanup memori
-    return () => URL.revokeObjectURL(url);
-  }, []);
+  function onDocumentLoadSuccess({ numPages }) {
+    setNumPages(numPages);
+  }
 
   return (
-    <div style={{ width: '100%', height: '100vh' }}>
-      {url ? (
-        <iframe src={url} width="100%" height="100%" />
-      ) : (
-        <p>Loading PDF...</p>
-      )}
+    <div className="flex flex-col items-center bg-gray-100 p-4 min-h-screen">
+      <div className="border shadow-lg bg-white p-2">
+        <Document
+          file="/api/report/pdf" // Langsung arahkan ke API Anda
+          onLoadSuccess={onDocumentLoadSuccess}
+          loading={<p>Menyiapkan dokumen...</p>}
+        >
+          {/* Render semua halaman sekaligus agar terlihat seperti PDF viewer asli */}
+          {Array.from(new Array(numPages), (el, index) => (
+            <Page 
+              key={`page_${index + 1}`} 
+              pageNumber={index + 1} 
+              renderTextLayer={false} // Matikan jika tidak butuh copy text (lebih ringan)
+              renderAnnotationLayer={false} 
+              className="mb-4"
+              width={window.innerWidth > 600 ? 600 : window.innerWidth - 40}
+            />
+          ))}
+        </Document>
+      </div>
     </div>
   );
-}
+                }
