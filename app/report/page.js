@@ -30,10 +30,10 @@ export default function Page() {
     let interval;
 
     const timeline = [
-      { stage: "boot", delay: 400, label: "Menghubungi server" },
-      { stage: "prepare", delay: 900, label: "Sedang menyiapkan data untuk di-review" },
-      { stage: "load", delay: 1200, label: "Verifikasi keamanan" },
-      { stage: "ready", delay: 1600, label: "Menghitung data transaksi" },
+      { stage: "boot", delay: 1000, label: "Memulai system" },
+      { stage: "prepare", delay: 1000, label: "Menyiapkan data untuk di-review" },
+      { stage: "load", delay: 1000, label: "Memuat data server" },
+      { stage: "ready", delay: 1000, label: "Mulai hitung data transaksi" },
     ];
 
     let i = 0;
@@ -68,10 +68,10 @@ export default function Page() {
   }, []);
 
   const stageText = {
-    boot: "Menghubungi server",
-    prepare: "Sedang menyiapkan data untuk di-review",
-    load: "Verifikasi keamanan",
-    ready: "Menghitung data transaksi",
+    boot: "Memulai system",
+    prepare: "Menyiapkan data untuk di-review",
+    load: "Memuat data server",
+    ready: "Mulai hitung data transaksi",
   };
 
   return (
