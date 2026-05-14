@@ -42,8 +42,8 @@ const handleDownload = () => {
         }
         style={{
           position: "fixed",
-          right: 20,
-          bottom: 20,
+          right: "10%",
+          bottom: "10%",
           border: "none",
           borderRadius: "999px",
           padding:
