@@ -254,7 +254,7 @@ const pieIncomeExpenseConfig = {
         },
       },
       datalabels: {
-        formatter: (value) => `${value.toFixed(1)}%`,
+        formatter: ' (val) => val + "%" ',
         font: {
           size: 20,
           weight: "bold",
@@ -263,7 +263,6 @@ const pieIncomeExpenseConfig = {
       },
     },
   },
-  plugins: ["datalabels"],
 };
     
 const pieIncomeExpenseURL = makeQuickChartURL(pieIncomeExpenseConfig);
@@ -349,7 +348,7 @@ const doughnutPaymentConfig = {
         position: "bottom",
       },
       datalabels: {
-        formatter: (value) => `${value.toFixed(1)}%`,
+        formatter: ' (val) => val + "%" ',
         font: {
           size: 20,
           weight: "bold",
@@ -358,7 +357,6 @@ const doughnutPaymentConfig = {
       },
     },
   },
-  plugins: ["datalabels"],
 };
 const doughnutPaymentURL = makeQuickChartURL(doughnutPaymentConfig);
 const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
