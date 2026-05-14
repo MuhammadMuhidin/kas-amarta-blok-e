@@ -14,7 +14,7 @@
     "@supabase/supabase-js": "^2.105.3",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
-    "pdfjs-dist": "^4.8.69",
-    "react-pdf": "^9.1.1"
+    "react-pdf": "^9.1.1",
+    "pdfjs-dist": "4.4.168"
   }
 }
