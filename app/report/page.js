@@ -15,10 +15,10 @@ export default function Page() {
   const stageRef = useRef("boot");
 
   const stageText = {
-    boot: "Memulai system",
-    prepare: "Menyiapkan koneksi server",
-    load: "Memverifikasi & validasi data",
-    ready: "Menghitung data transaksi",
+    boot: "Menghubungi server keuangan kas amarta - blok E",
+    prepare: "Menyiapkan data untuk di-review",
+    load: "Memverifikasi transaksi",
+    ready: "Menghitung data keuangan",
   };
 
   const progressMap = {
