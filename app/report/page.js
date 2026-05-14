@@ -38,7 +38,6 @@ export default function Page() {
           left: "50%",
           bottom: "24px",
           transform: "translateX(-50%)",
-
           border: "none",
           borderRadius: "999px",
           padding: "14px 20px",
@@ -48,28 +47,8 @@ export default function Page() {
           fontWeight: 600,
           cursor: "pointer",
           zIndex: 9999,
-
-          // floating effect
           boxShadow:
             "0 10px 25px rgba(0,0,0,0.25), 0 6px 12px rgba(37,99,235,0.25)",
-
-          // smooth feel
-          transition: "transform 200ms ease, box-shadow 200ms ease",
-
-          // optional micro lift
-          willChange: "transform",
-        }}
-        onMouseDown={(e) => {
-          e.currentTarget.style.transform =
-            "translateX(-50%) scale(0.96)";
-        }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform =
-            "translateX(-50%) scale(1)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform =
-            "translateX(-50%) scale(1)";
         }}
       >
         Download PDF
