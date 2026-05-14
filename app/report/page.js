@@ -32,8 +32,8 @@ export default function Page() {
     const timeline = [
       { stage: "boot", delay: 400, label: "Menghubungi server" },
       { stage: "prepare", delay: 900, label: "Sedang menyiapkan data untuk di-review" },
-      { stage: "load", delay: 1200, label: "Mengakses ke seluruh sumber data" },
-      { stage: "ready", delay: 1600, label: "Menghitung seluruh data transaksi" },
+      { stage: "load", delay: 1200, label: "Verifikasi keamanan" },
+      { stage: "ready", delay: 1600, label: "Menghitung data transaksi" },
     ];
 
     let i = 0;
@@ -70,8 +70,8 @@ export default function Page() {
   const stageText = {
     boot: "Menghubungi server",
     prepare: "Sedang menyiapkan data untuk di-review",
-    load: "Mengakses ke seluruh sumber data",
-    ready: "Menghitung seluruh data transaksi",
+    load: "Verifikasi keamanan",
+    ready: "Menghitung data transaksi",
   };
 
   return (
@@ -186,19 +186,14 @@ export default function Page() {
             left: "50%",
             bottom: "24px",
             transform: "translateX(-50%)",
-
             border: "none",
             borderRadius: "999px",
             padding: "14px 20px",
-
             background: downloading ? "#1d4ed8" : "#2563eb",
             color: "#fff",
             fontSize: 15,
             fontWeight: 600,
-
             cursor: downloading ? "not-allowed" : "pointer",
-            opacity: downloading ? 0.85 : 1,
-
             boxShadow:
               "0 10px 25px rgba(0,0,0,0.25), 0 6px 12px rgba(37,99,235,0.25)",
           }}
