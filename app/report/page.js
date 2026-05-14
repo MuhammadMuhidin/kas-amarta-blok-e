@@ -5,10 +5,11 @@ import {
   Worker,
 } from "@react-pdf-viewer/core";
 
-//import "@react-pdf-viewer/core/lib/styles/index.css";
+import "@react-pdf-viewer/core/lib/styles/index.css";
 
 export default function Page() {
   return (
+    <div style={{ height: "100vh" }}>
       <Worker
         workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js"
       >
@@ -16,5 +17,6 @@ export default function Page() {
           fileUrl="/api/report/pdf"
         />
       </Worker>
+    </div>
   );
 }
