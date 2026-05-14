@@ -27,25 +27,24 @@ export default function Page() {
   };
 
   useEffect(() => {
-    let interval;
-
     const timeline = [
       { stage: "boot", delay: 1000, label: "Memulai system" },
-      { stage: "prepare", delay: 1000, label: "Menyiapkan data untuk di-review" },
-      { stage: "load", delay: 1000, label: "Memuat data server" },
+      { stage: "prepare", delay: 1000, label: "Menyiapkan data" },
+      { stage: "load", delay: 1000, label: "Memverifikasi transaksi" },
       { stage: "ready", delay: 1000, label: "Mulai hitung data transaksi" },
     ];
 
-    let i = 0;
+    let interval;
 
-    const nextStep = () => {
-      if (i < timeline.length) {
-        setStage(timeline[i].stage);
-        i++;
-        setTimeout(nextStep, timeline[i - 1].delay);
-      } else {
-        clearInterval(interval);
-      }
+    const nextStep = (index = 0) => {
+      if (index >= timeline.length) return;
+
+      const step = timeline[index];
+      setStage(step.stage);
+
+      setTimeout(() => {
+        nextStep(index + 1);
+      }, step.delay);
     };
 
     nextStep();
@@ -68,8 +67,8 @@ export default function Page() {
 
   const stageText = {
     boot: "Memulai system",
-    prepare: "Menyiapkan data untuk di-review",
-    load: "Memuat data server",
+    prepare: "Menyiapkan data",
+    load: "Memverifikasi transaksi",
     ready: "Mulai hitung data transaksi",
   };
 
@@ -96,6 +95,7 @@ export default function Page() {
             zIndex: 9999,
           }}
         >
+          {/* spinner */}
           <div
             style={{
               width: 34,
@@ -148,17 +148,6 @@ export default function Page() {
           >
             {Math.floor(progress)}%
           </div>
-
-          <style jsx>{`
-            @keyframes spin {
-              from {
-                transform: rotate(0deg);
-              }
-              to {
-                transform: rotate(360deg);
-              }
-            }
-          `}</style>
         </div>
       )}
 
@@ -213,6 +202,18 @@ export default function Page() {
           {downloading ? "Downloading..." : "Download PDF"}
         </button>
       )}
+
+      {/* GLOBAL SPIN KEYFRAMES */}
+      <style jsx global>{`
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
     </div>
   );
 }
