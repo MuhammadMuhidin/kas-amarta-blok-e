@@ -1,88 +1,107 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import {
-  Document,
-  Page,
-  pdfjs,
-} from "react-pdf";
 
-pdfjs.GlobalWorkerOptions.workerSrc =
-  "//unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs";
+const PDFViewer = dynamic(
+  async () => {
+    const reactPdf =
+      await import("react-pdf");
 
-export default function MyPdfViewer() {
-  const [numPages, setNumPages] =
-    useState(null);
+    const {
+      Document,
+      Page,
+      pdfjs,
+    } = reactPdf;
 
-  const [pageWidth, setPageWidth] =
-    useState(600);
+    pdfjs.GlobalWorkerOptions.workerSrc =
+      "//unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs";
 
-  useEffect(() => {
-    function handleResize() {
-      setPageWidth(
-        window.innerWidth > 600
-          ? 600
-          : window.innerWidth - 40
+    return function Viewer() {
+      const [numPages, setNumPages] =
+        useState(null);
+
+      const [pageWidth, setPageWidth] =
+        useState(600);
+
+      useEffect(() => {
+        function resize() {
+          setPageWidth(
+            window.innerWidth > 600
+              ? 600
+              : window.innerWidth - 40
+          );
+        }
+
+        resize();
+
+        window.addEventListener(
+          "resize",
+          resize
+        );
+
+        return () =>
+          window.removeEventListener(
+            "resize",
+            resize
+          );
+      }, []);
+
+      return (
+        <div className="flex justify-center min-h-screen bg-gray-100 p-4">
+          <div className="bg-white border shadow-lg p-2">
+            <Document
+              file="/api/report/pdf"
+              onLoadSuccess={({
+                numPages,
+              }) =>
+                setNumPages(
+                  numPages
+                )
+              }
+              loading={
+                <p>
+                  Menyiapkan PDF...
+                </p>
+              }
+              error={
+                <p>
+                  Gagal membuka PDF
+                </p>
+              }
+            >
+              {Array.from(
+                new Array(
+                  numPages || 0
+                ),
+                (_, index) => (
+                  <Page
+                    key={index}
+                    pageNumber={
+                      index + 1
+                    }
+                    width={pageWidth}
+                    renderTextLayer={
+                      false
+                    }
+                    renderAnnotationLayer={
+                      false
+                    }
+                    className="mb-4"
+                  />
+                )
+              )}
+            </Document>
+          </div>
+        </div>
       );
-    }
-
-    handleResize();
-
-    window.addEventListener(
-      "resize",
-      handleResize
-    );
-
-    return () =>
-      window.removeEventListener(
-        "resize",
-        handleResize
-      );
-  }, []);
-
-  function onDocumentLoadSuccess({
-    numPages,
-  }) {
-    setNumPages(numPages);
+    };
+  },
+  {
+    ssr: false,
   }
+);
 
-  return (
-    <div className="flex flex-col items-center bg-gray-100 p-4 min-h-screen">
-      <div className="border shadow-lg bg-white p-2">
-        <Document
-          file="/api/report/pdf"
-          onLoadSuccess={
-            onDocumentLoadSuccess
-          }
-          loading={
-            <p>
-              Menyiapkan dokumen...
-            </p>
-          }
-        >
-          {Array.from(
-            new Array(numPages || 0),
-            (_, index) => (
-              <Page
-                key={`page_${
-                  index + 1
-                }`}
-                pageNumber={
-                  index + 1
-                }
-                renderTextLayer={
-                  false
-                }
-                renderAnnotationLayer={
-                  false
-                }
-                className="mb-4"
-                width={pageWidth}
-              />
-            )
-          )}
-        </Document>
-      </div>
-    </div>
-  );
-}
+export default function Page() {
+  return <PDFViewer />;
+                      }
