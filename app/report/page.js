@@ -9,34 +9,10 @@ import {
 import "@react-pdf-viewer/core/lib/styles/index.css";
 
 export default function Page() {
-  const handleDownload = async () => {
-    const res = await fetch(
-      "/api/report/pdf"
-    );
-
-    const blob =
-      await res.blob();
-
-    const url =
-      window.URL.createObjectURL(
-        blob
-      );
-
-    const a =
-      document.createElement("a");
-
-    a.href = url;
-
-    document.body.appendChild(
-      a
-    );
-
-    a.click();
-
-    a.remove();
-
-    window.URL.revokeObjectURL(
-      url
+  const handleDownload = () => {
+    window.open(
+      "/api/report/pdf",
+      "_blank"
     );
   };
 
