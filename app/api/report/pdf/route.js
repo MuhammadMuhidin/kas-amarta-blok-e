@@ -221,7 +221,7 @@ const toPercentData = (arr) => {
 const pieIncomeExpenseConfig = {
   type: "pie",
   data: {
-    labels: ["Pemasukan (%)", "Pengeluaran (%)"],
+    labels: ["Total Pemasukan", "Total Pengeluaran"],
     datasets: [
       {
         data: toPercentData([totalIncome, totalExpense]),
@@ -254,7 +254,7 @@ const pieIncomeExpenseConfig = {
         },
       },
       datalabels: {
-        formatter: ' (val) => val + "%" ',
+        formatter: "function(value) { return value + '%'; }",
         font: {
           size: 20,
           weight: "bold",
@@ -263,6 +263,7 @@ const pieIncomeExpenseConfig = {
       },
     },
   },
+  plugins: ["datalabels"],
 };
     
 const pieIncomeExpenseURL = makeQuickChartURL(pieIncomeExpenseConfig);
@@ -322,7 +323,7 @@ const unpaidCount = activeHouses - paidHouses;
 const doughnutPaymentConfig = {
   type: "doughnut",
   data: {
-    labels: ["Sudah Bayar (%)", "Belum Bayar (%)"],
+    labels: ["Sudah Bayar", "Belum Bayar"],
     datasets: [
       {
         data: toPercentData([paidHouses, unpaidCount]),
@@ -348,7 +349,7 @@ const doughnutPaymentConfig = {
         position: "bottom",
       },
       datalabels: {
-        formatter: ' (val) => val + "%" ',
+        formatter: "function(value) { return value + '%'; }",
         font: {
           size: 20,
           weight: "bold",
@@ -357,6 +358,7 @@ const doughnutPaymentConfig = {
       },
     },
   },
+  plugins: ["datalabels"],
 };
 const doughnutPaymentURL = makeQuickChartURL(doughnutPaymentConfig);
 const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
