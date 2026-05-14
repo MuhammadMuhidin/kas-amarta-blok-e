@@ -1,73 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {
-  Viewer,
-  Worker,
-  SpecialZoomLevel,
-} from "@react-pdf-viewer/core";
+import { useEffect, useState, useRef } from "react";
+import { Viewer, Worker, SpecialZoomLevel } from "@react-pdf-viewer/core";
 
+// Import styles
 import "@react-pdf-viewer/core/lib/styles/index.css";
 
 export default function Page() {
   const [stage, setStage] = useState("boot");
   const [progress, setProgress] = useState(0);
   const [downloading, setDownloading] = useState(false);
-
-  const handleDownload = () => {
-    if (downloading) return;
-
-    setDownloading(true);
-    window.location.href = "/api/report/pdf?download=1";
-
-    setTimeout(() => {
-      setDownloading(false);
-    }, 2000);
-  };
-
-  useEffect(() => {
-    const timeline = [
-      { stage: "boot", delay: 1000 },
-      { stage: "prepare", delay: 1000 },
-      { stage: "load", delay: 1000 },
-      { stage: "ready", delay: 1000 },
-    ];
-
-    const progressMap = {
-      boot: 15,
-      prepare: 40,
-      load: 75,
-      ready: 100,
-    };
-
-    let interval;
-
-    const nextStep = (i = 0) => {
-      if (i >= timeline.length) return;
-
-      setStage(timeline[i].stage);
-
-      setTimeout(() => nextStep(i + 1), timeline[i].delay);
-    };
-
-    nextStep();
-
-    interval = setInterval(() => {
-      setProgress((p) => {
-        const target = progressMap[stage] ?? 0;
-
-        // kalau sudah melewati target, tetap lanjut ke target berikutnya
-        if (p > target) return p;
-
-        const speed = stage === "load" ? 3 : 2;
-        const next = p + speed;
-
-        return next > target ? target : next;
-      });
-    }, 60);
-
-    return () => clearInterval(interval);
-  }, [stage]);
+  
+  // Ref untuk menyimpan nilai stage terbaru agar bisa diakses di dalam interval tanpa trigger effect
+  const stageRef = useRef("boot");
 
   const stageText = {
     boot: "Memulai system",
@@ -76,17 +21,81 @@ export default function Page() {
     ready: "Mulai hitung data transaksi",
   };
 
+  const progressMap = {
+    boot: 15,
+    prepare: 40,
+    load: 75,
+    ready: 100,
+  };
+
+  // 1. Logika Timeline (Perpindahan Stage)
+  useEffect(() => {
+    const timeline = [
+      { s: "boot", d: 1000 },
+      { s: "prepare", d: 1000 },
+      { s: "load", d: 1500 },
+      { s: "ready", d: 500 },
+    ];
+
+    let timeouts = [];
+
+    const runTimeline = () => {
+      let cumulativeDelay = 0;
+      timeline.forEach((item) => {
+        const timeout = setTimeout(() => {
+          setStage(item.s);
+          stageRef.current = item.s;
+        }, cumulativeDelay);
+        timeouts.push(timeout);
+        cumulativeDelay += item.d;
+      });
+    };
+
+    runTimeline();
+    return () => timeouts.forEach(clearTimeout);
+  }, []);
+
+  // 2. Logika Progress Bar (Animasi)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setProgress((prev) => {
+        const target = progressMap[stageRef.current] ?? 0;
+        if (prev >= target) return prev;
+
+        // Kecepatan bertambah berdasarkan stage
+        const increment = stageRef.current === "load" ? 1.5 : 0.8;
+        const nextValue = prev + increment;
+        
+        return nextValue >= target ? target : nextValue;
+      });
+    }, 30);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleDownload = () => {
+    if (downloading) return;
+    setDownloading(true);
+    
+    // Trigger download
+    window.location.href = "/api/report/pdf?download=1";
+
+    setTimeout(() => {
+      setDownloading(false);
+    }, 2000);
+  };
+
   return (
     <div
       style={{
         position: "fixed",
         inset: 0,
-        background: "#e5e7eb",
-        overflow: "hidden",
+        background: "#f3f4f6",
+        fontFamily: "sans-serif",
       }}
     >
-      {/* LOADING */}
-      {stage !== "ready" && (
+      {/* OVERLAY LOADING */}
+      {progress < 100 && (
         <div
           style={{
             position: "absolute",
@@ -96,69 +105,49 @@ export default function Page() {
             alignItems: "center",
             justifyContent: "center",
             background: "#e5e7eb",
-            zIndex: 9999,
+            zIndex: 100,
           }}
         >
-          {/* spinner */}
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              border: "3px solid rgba(0,0,0,0.12)",
-              borderTop: "3px solid #2563eb",
-              borderRadius: "50%",
-              animation: "spin 0.9s linear infinite",
-              marginBottom: 14,
-            }}
-          />
-
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 500,
-              marginBottom: 12,
-              color: "#111827",
-            }}
-          >
-            {stageText[stage]}
+          <div className="spinner" />
+          
+          <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: "#1f2937" }}>
+            {stageText[stage] || "Processing..." }
           </div>
 
-          <div
-            style={{
-              width: 240,
-              height: 6,
-              background: "rgba(0,0,0,0.08)",
-              borderRadius: 999,
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                width: `${progress}%`,
-                height: "100%",
-                background: "#2563eb",
-                transition: "width 80ms linear",
-              }}
-            />
+          <div style={{
+            width: 240,
+            height: 8,
+            background: "#d1d5db",
+            borderRadius: 10,
+            overflow: "hidden"
+          }}>
+            <div style={{
+              width: `${progress}%`,
+              height: "100%",
+              background: "#2563eb",
+              transition: "width 100ms ease-out"
+            }} />
           </div>
-
-          <div style={{ marginTop: 8, fontSize: 12 }}>
+          
+          <div style={{ marginTop: 8, fontSize: 12, color: "#4b5563" }}>
             {Math.floor(progress)}%
           </div>
         </div>
       )}
 
-      {/* PDF */}
-      {stage === "ready" && (
-        <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
-          <Viewer
-            fileUrl="/api/report/pdf"
-            defaultScale={SpecialZoomLevel.PageFit}
-          />
-        </Worker>
-      )}
+      {/* PDF VIEWER CONTAINER */}
+      <div style={{ height: "100vh", width: "100%" }}>
+        {stage === "ready" && (
+          <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
+            <Viewer
+              fileUrl="/api/report/pdf"
+              defaultScale={SpecialZoomLevel.PageFit}
+            />
+          </Worker>
+        )}
+      </div>
 
-      {/* BUTTON */}
+      {/* FLOATING ACTION BUTTON */}
       {stage === "ready" && (
         <button
           onClick={handleDownload}
@@ -166,43 +155,48 @@ export default function Page() {
           style={{
             position: "fixed",
             left: "50%",
-            bottom: "24px",
+            bottom: "32px",
             transform: "translateX(-50%)",
             border: "none",
-            borderRadius: "999px",
-            padding: "14px 20px",
-            background: downloading ? "#1d4ed8" : "#2563eb",
+            borderRadius: "50px",
+            padding: "12px 24px",
+            background: downloading ? "#93c5fd" : "#2563eb",
             color: "#fff",
             fontSize: 15,
             fontWeight: 600,
             cursor: downloading ? "not-allowed" : "pointer",
             display: "flex",
             alignItems: "center",
-            gap: 8,
+            gap: 10,
+            boxShadow: "0 4px 15px rgba(37, 99, 235, 0.3)",
+            zIndex: 10,
           }}
         >
-          {downloading && (
-            <span
-              style={{
-                width: 14,
-                height: 14,
-                border: "2px solid rgba(255,255,255,0.4)",
-                borderTop: "2px solid #fff",
-                borderRadius: "50%",
-                animation: "spin 0.8s linear infinite",
-              }}
-            />
-          )}
-
+          {downloading && <div className="spinner-small" />}
           {downloading ? "Downloading..." : "Download PDF"}
         </button>
       )}
 
-      {/* GLOBAL SPIN */}
       <style jsx global>{`
         @keyframes spin {
-          from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        .spinner {
+          width: 40px;
+          height: 40px;
+          border: 4px solid #d1d5db;
+          border-top-color: #2563eb;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          margin-bottom: 16px;
+        }
+        .spinner-small {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255,255,255,0.3);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
         }
       `}</style>
     </div>
