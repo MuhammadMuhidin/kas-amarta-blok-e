@@ -134,6 +134,16 @@ const toBase64 = async (url) => {
         .toISOString()
         .slice(0, 7);
 
+const toPercentData = (arr) => {
+  const total = arr.reduce((a, b) => a + b, 0);
+
+  if (total === 0) return arr.map(() => 0);
+
+  return arr.map((v) =>
+    Number(((v / total) * 100).toFixed(1))
+  );
+};
+
     const nominalIuran = 25000;
 
     /* =========================================
@@ -211,10 +221,10 @@ const toBase64 = async (url) => {
 const pieIncomeExpenseConfig = {
   type: "pie",
   data: {
-    labels: ["Pemasukan", "Pengeluaran"],
+    labels: ["Pemasukan (%)", "Pengeluaran (%)"],
     datasets: [
       {
-        data: [totalIncome, totalExpense],
+        data: toPercentData([totalIncome, totalExpense]),
         backgroundColor: ["#16A34A", "#DC2626"],
         borderWidth: 1,
       },
@@ -311,10 +321,10 @@ const unpaidCount = activeHouses - paidHouses;
 const doughnutPaymentConfig = {
   type: "doughnut",
   data: {
-    labels: ["Sudah Bayar", "Belum Bayar"],
+    labels: ["Sudah Bayar (%)", "Belum Bayar (%)"],
     datasets: [
       {
-        data: [paidHouses, unpaidCount],
+        data: toPercentData([paidHouses, unpaidCount]),
         backgroundColor: ["#16A34A", "#F59E0B"],
         borderWidth: 1,
       },
