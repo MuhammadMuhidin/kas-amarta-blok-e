@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import "@/app/page.css";
 
 export default function CashflowPage() {
@@ -27,41 +28,9 @@ export default function CashflowPage() {
   const perPageInsight = 6;
   const chunk = 20;
 
-  const downloadPDF = async () => {
-    try {
-      setDownloadingPdf(true);
-
-      const res = await fetch("/api/report/pdf");
-
-      if (!res.ok) {
-        throw new Error("Gagal membuat laporan");
-      }
-
-      const blob = await res.blob();
-
-      const url = window.URL.createObjectURL(blob);
-
-      const safeMonth =
-      insight?.currentMonth?.month
-        ?.replace(/[\/\\]/g, "-")
-        ?.replace(/\s+/g, "_") ||
-      "laporan";
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `Laporan_Kas_${safeMonth}.pdf`;
-
-      document.body.appendChild(a);
-      a.click();
-
-      a.remove();
-      window.URL.revokeObjectURL(url);
-
-    } catch (err) {
-      alert(err.message);
-    } finally {
-      setDownloadingPdf(false);
-    }
+  const router = useRouter();
+  const downloadPDF = () => {
+     router.push("/report");
   };
 
   /* ==== INIT & FETCH ==== */
