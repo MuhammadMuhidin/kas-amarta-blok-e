@@ -1420,12 +1420,15 @@ y += chartSize + 10;
     return new Response(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-
+        
         "Content-Disposition":
           `${disposition}; filename="Laporan_Kas_${safeMonth}.pdf"`,
-
+        
         "Access-Control-Expose-Headers":
-          "Content-Disposition"
+          "Content-Disposition",
+        
+        "Cache-Control":
+          "no-store, no-cache, must-revalidate, proxy-revalidate",
       },
     });
   } catch (err) {
