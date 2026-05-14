@@ -25,7 +25,7 @@ export default function Page() {
         <Viewer
           fileUrl="/api/report/pdf"
           defaultScale={
-            SpecialZoomLevel.PageWidth
+            SpecialZoomLevel.PageFit
           }
         />
       </Worker>
