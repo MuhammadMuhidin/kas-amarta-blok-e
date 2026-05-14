@@ -16,9 +16,9 @@ export default function Page() {
 
   const stageText = {
     boot: "Menghubungi server",
-    prepare: "Menyiapkan data untuk di-review",
-    load: "Memverifikasi transaksi",
-    ready: "Menghitung data keuangan",
+    prepare: "Menyiapkan data keuangan",
+    load: "Menghitung data transaksi",
+    ready: "Membuat laporan",
   };
 
   const progressMap = {
