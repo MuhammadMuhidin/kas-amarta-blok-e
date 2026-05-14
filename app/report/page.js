@@ -10,69 +10,90 @@ import {
 import "@react-pdf-viewer/core/lib/styles/index.css";
 
 export default function Page() {
+  // ===== PAGE LOADING =====
   const [stage, setStage] = useState("boot");
-  const [progress, setProgress] = useState(0);
+  const [loadProgress, setLoadProgress] = useState(0);
+
+  // ===== DOWNLOAD LOADING =====
   const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   const handleDownload = () => {
     if (downloading) return;
 
     setDownloading(true);
+    setDownloadProgress(0);
 
-    window.location.href = "/api/report/pdf?download=1";
+    let p = 0;
 
-    setTimeout(() => {
-      setDownloading(false);
-    }, 2000);
+    const interval = setInterval(() => {
+      p += Math.random() * 14;
+
+      if (p >= 100) {
+        p = 100;
+        clearInterval(interval);
+
+        window.location.href = "/api/report/pdf?download=1";
+
+        setTimeout(() => {
+          setDownloading(false);
+          setDownloadProgress(0);
+        }, 1200);
+      }
+
+      setDownloadProgress(p);
+    }, 120);
   };
 
+  // ===== FAKE PAGE LOADING FLOW =====
   useEffect(() => {
-    let interval;
-
-    const timeline = [
-      { stage: "boot", delay: 400, label: "Memulai system" },
-      { stage: "prepare", delay: 900, label: "Menyiapkan data" },
-      { stage: "load", delay: 1200, label: "Memuat dokumen PDF" },
-      { stage: "ready", delay: 1600, label: "Siap digunakan" },
+    const steps = [
+      { stage: "boot", delay: 500 },
+      { stage: "prepare", delay: 900 },
+      { stage: "load", delay: 1100 },
+      { stage: "ready", delay: 700 },
     ];
 
     let i = 0;
 
-    const nextStep = () => {
-      if (i < timeline.length) {
-        setStage(timeline[i].stage);
-        i++;
-        setTimeout(nextStep, timeline[i - 1].delay);
-      } else {
-        clearInterval(interval);
-      }
-    };
+    const run = () => {
+      if (i >= steps.length) return;
 
-    nextStep();
+      setStage(steps[i].stage);
 
-    // fake progress engine
-    interval = setInterval(() => {
-      setProgress((p) => {
-        const next = p + Math.random() * 10;
+      const start = loadProgress;
 
-        if (next >= 100) {
+      let p = start;
+
+      const interval = setInterval(() => {
+        p += Math.random() * 10;
+
+        if (p >= (i + 1) * 25) {
+          p = (i + 1) * 25;
           clearInterval(interval);
-          return 100;
         }
 
-        return next;
-      });
-    }, 120);
+        setLoadProgress(Math.min(p, 100));
+      }, 80);
 
-    return () => clearInterval(interval);
+      setTimeout(() => {
+        clearInterval(interval);
+        i++;
+        run();
+      }, steps[i].delay);
+    };
+
+    run();
   }, []);
 
   const stageText = {
     boot: "Memulai system",
-    prepare: "Sedang menyiapkan data untuk di-review",
-    load: "Memuat dokumen PDF",
-    ready: "Siap digunakan",
+    prepare: "Menghubungi pusat server",
+    load: "Menyiapkan data untuk di-review",
+    ready: "Menghitung seluruh data transaksi",
   };
+
+  const pageReady = stage === "ready";
 
   return (
     <div
@@ -83,8 +104,8 @@ export default function Page() {
         overflow: "hidden",
       }}
     >
-      {/* LOADING OVERLAY */}
-      {stage !== "ready" && (
+      {/* ================= LOADING OVERLAY ================= */}
+      {!pageReady && (
         <div
           style={{
             position: "absolute",
@@ -93,24 +114,9 @@ export default function Page() {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            background: "#e5e7eb",
             zIndex: 9999,
           }}
         >
-          {/* spinner */}
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              border: "3px solid rgba(0,0,0,0.12)",
-              borderTop: "3px solid #2563eb",
-              borderRadius: "50%",
-              animation: "spin 0.9s linear infinite",
-              marginBottom: 14,
-            }}
-          />
-
-          {/* stage text */}
           <div
             style={{
               fontSize: 14,
@@ -123,10 +129,10 @@ export default function Page() {
             {stageText[stage]}
           </div>
 
-          {/* progress bar */}
+          {/* PROGRESS BAR */}
           <div
             style={{
-              width: 240,
+              width: 260,
               height: 6,
               background: "rgba(0,0,0,0.08)",
               borderRadius: 999,
@@ -135,10 +141,10 @@ export default function Page() {
           >
             <div
               style={{
-                width: `${progress}%`,
+                width: `${loadProgress}%`,
                 height: "100%",
                 background: "#2563eb",
-                transition: "width 120ms ease",
+                transition: "width 120ms linear",
               }}
             />
           </div>
@@ -147,27 +153,16 @@ export default function Page() {
             style={{
               marginTop: 8,
               fontSize: 12,
-              opacity: 0.7,
+              opacity: 0.6,
             }}
           >
-            {Math.floor(progress)}%
+            {Math.floor(loadProgress)}%
           </div>
-
-          <style jsx>{`
-            @keyframes spin {
-              from {
-                transform: rotate(0deg);
-              }
-              to {
-                transform: rotate(360deg);
-              }
-            }
-          `}</style>
         </div>
       )}
 
-      {/* PDF VIEWER */}
-      {stage === "ready" && (
+      {/* ================= PDF VIEWER ================= */}
+      {pageReady && (
         <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
           <Viewer
             fileUrl="/api/report/pdf"
@@ -176,8 +171,8 @@ export default function Page() {
         </Worker>
       )}
 
-      {/* DOWNLOAD BUTTON */}
-      {stage === "ready" && (
+      {/* ================= DOWNLOAD BUTTON ================= */}
+      {pageReady && (
         <button
           onClick={handleDownload}
           disabled={downloading}
@@ -190,20 +185,43 @@ export default function Page() {
             border: "none",
             borderRadius: "999px",
             padding: "14px 20px",
+            minWidth: "190px",
 
-            background: downloading ? "#1d4ed8" : "#2563eb",
+            background: "#2563eb",
             color: "#fff",
             fontSize: 15,
             fontWeight: 600,
 
             cursor: downloading ? "not-allowed" : "pointer",
-            opacity: downloading ? 0.85 : 1,
+            opacity: downloading ? 0.95 : 1,
 
             boxShadow:
               "0 10px 25px rgba(0,0,0,0.25), 0 6px 12px rgba(37,99,235,0.25)",
+
+            overflow: "hidden",
           }}
         >
-          {downloading ? "Downloading..." : "Download PDF"}
+          {/* TEXT */}
+          <div style={{ position: "relative", zIndex: 2 }}>
+            {downloading
+              ? `Downloading ${Math.floor(downloadProgress)}%`
+              : "Download PDF"}
+          </div>
+
+          {/* PROGRESS FILL */}
+          {downloading && (
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                top: 0,
+                height: "100%",
+                width: `${downloadProgress}%`,
+                background: "rgba(255,255,255,0.18)",
+                transition: "width 120ms linear",
+              }}
+            />
+          )}
         </button>
       )}
     </div>
