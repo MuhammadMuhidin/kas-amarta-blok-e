@@ -10,7 +10,7 @@ import {
 import "@react-pdf-viewer/core/lib/styles/index.css";
 
 export default function Page() {
-  const [showButton, setShowButton] = useState(true);
+  const [visible, setVisible] = useState(true);
 
   const handleDownload = () => {
     window.location.href = "/api/report/pdf?download=1";
@@ -19,23 +19,23 @@ export default function Page() {
   useEffect(() => {
     let timeout;
 
-    const handleScroll = () => {
-      // langsung hide saat scroll
-      setShowButton(false);
+    const onScroll = () => {
+      // langsung sembunyikan saat scroll aktif
+      setVisible(false);
 
-      // reset timer setiap scroll
+      // reset timer
       clearTimeout(timeout);
 
-      // muncul lagi kalau scroll berhenti
+      // tampil lagi setelah scroll berhenti
       timeout = setTimeout(() => {
-        setShowButton(true);
-      }, 200);
+        setVisible(true);
+      }, 250);
     };
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("scroll", onScroll);
       clearTimeout(timeout);
     };
   }, []);
@@ -66,18 +66,14 @@ export default function Page() {
           bottom: "5%",
 
           transform: `translateX(-50%) ${
-            showButton
-              ? "translateY(0px) scale(1)"
-              : "translateY(24px) scale(0.92)"
-          }`,
+            visible ? "translateY(0px)" : "translateY(30px)"
+          } scale(${visible ? 1 : 0.92})`,
 
-          opacity: showButton ? 1 : 0,
-          filter: showButton ? "blur(0px)" : "blur(2px)",
-
-          pointerEvents: showButton ? "auto" : "none",
+          opacity: visible ? 1 : 0,
+          pointerEvents: visible ? "auto" : "none",
 
           transition:
-            "transform 350ms cubic-bezier(0.16, 1, 0.3, 1), opacity 220ms ease, filter 220ms ease",
+            "transform 320ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease",
 
           border: "none",
           borderRadius: "999px",
