@@ -1,7 +1,8 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
+
+import dynamic from "next/dynamic";
 
 const PDFViewer = dynamic(
   async () => {
@@ -18,6 +19,9 @@ const PDFViewer = dynamic(
       "//unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs";
 
     return function Viewer() {
+      const [pdfFile, setPdfFile] =
+        useState(null);
+
       const [numPages, setNumPages] =
         useState(null);
 
@@ -25,6 +29,24 @@ const PDFViewer = dynamic(
         useState(600);
 
       useEffect(() => {
+        async function loadPdf() {
+          try {
+            const res =
+              await fetch(
+                "/api/report/pdf"
+              );
+
+            const blob =
+              await res.blob();
+
+            setPdfFile(blob);
+          } catch (err) {
+            console.log(err);
+          }
+        }
+
+        loadPdf();
+
         function resize() {
           setPageWidth(
             window.innerWidth > 600
@@ -47,11 +69,19 @@ const PDFViewer = dynamic(
           );
       }, []);
 
+      if (!pdfFile) {
+        return (
+          <p className="p-4">
+            Loading PDF...
+          </p>
+        );
+      }
+
       return (
         <div className="flex justify-center min-h-screen bg-gray-100 p-4">
           <div className="bg-white border shadow-lg p-2">
             <Document
-              file="/api/report/pdf"
+              file={pdfFile}
               onLoadSuccess={({
                 numPages,
               }) =>
@@ -59,15 +89,8 @@ const PDFViewer = dynamic(
                   numPages
                 )
               }
-              loading={
-                <p>
-                  Menyiapkan PDF...
-                </p>
-              }
-              error={
-                <p>
-                  Gagal membuka PDF
-                </p>
+              onLoadError={(err) =>
+                console.log(err)
               }
             >
               {Array.from(
