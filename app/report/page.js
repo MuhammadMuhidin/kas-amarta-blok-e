@@ -50,7 +50,6 @@ export default function Page() {
 
     nextStep();
 
-    // fake progress engine
     interval = setInterval(() => {
       setProgress((p) => {
         const next = p + Math.random() * 10;
@@ -97,7 +96,6 @@ export default function Page() {
             zIndex: 9999,
           }}
         >
-          {/* spinner */}
           <div
             style={{
               width: 34,
@@ -110,7 +108,6 @@ export default function Page() {
             }}
           />
 
-          {/* stage text */}
           <div
             style={{
               fontSize: 14,
@@ -123,7 +120,6 @@ export default function Page() {
             {stageText[stage]}
           </div>
 
-          {/* progress bar */}
           <div
             style={{
               width: 240,
@@ -196,8 +192,24 @@ export default function Page() {
             cursor: downloading ? "not-allowed" : "pointer",
             boxShadow:
               "0 10px 25px rgba(0,0,0,0.25), 0 6px 12px rgba(37,99,235,0.25)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
           }}
         >
+          {downloading && (
+            <span
+              style={{
+                width: 14,
+                height: 14,
+                border: "2px solid rgba(255,255,255,0.4)",
+                borderTop: "2px solid #fff",
+                borderRadius: "50%",
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
+          )}
+
           {downloading ? "Downloading..." : "Download PDF"}
         </button>
       )}
