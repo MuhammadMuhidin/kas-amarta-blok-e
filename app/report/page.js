@@ -28,11 +28,18 @@ export default function Page() {
 
   useEffect(() => {
     const timeline = [
-      { stage: "boot", delay: 1000, label: "Memulai system" },
-      { stage: "prepare", delay: 1000, label: "Menyiapkan data" },
-      { stage: "load", delay: 1000, label: "Memverifikasi transaksi" },
-      { stage: "ready", delay: 1000, label: "Mulai hitung data transaksi" },
+      { stage: "boot", delay: 1000 },
+      { stage: "prepare", delay: 1000 },
+      { stage: "load", delay: 1000 },
+      { stage: "ready", delay: 1000 },
     ];
+
+    const progressMap = {
+      boot: 20,
+      prepare: 45,
+      load: 75,
+      ready: 100,
+    };
 
     let interval;
 
@@ -51,24 +58,23 @@ export default function Page() {
 
     interval = setInterval(() => {
       setProgress((p) => {
-        const next = p + Math.random() * 10;
+        const target = progressMap[stage] ?? 0;
 
-        if (next >= 100) {
-          clearInterval(interval);
-          return 100;
-        }
+        if (p >= target) return p;
 
-        return next;
+        const next = p + 2;
+
+        return next > target ? target : next;
       });
-    }, 120);
+    }, 80);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [stage]);
 
   const stageText = {
     boot: "Memulai system",
-    prepare: "Menyiapkan data",
-    load: "Memverifikasi transaksi",
+    prepare: "Menyiapkan data untuk di-review",
+    load: "Memuat data server",
     ready: "Mulai hitung data transaksi",
   };
 
@@ -203,7 +209,7 @@ export default function Page() {
         </button>
       )}
 
-      {/* GLOBAL SPIN KEYFRAMES */}
+      {/* GLOBAL SPIN */}
       <style jsx global>{`
         @keyframes spin {
           from {
