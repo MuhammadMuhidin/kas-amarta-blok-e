@@ -221,7 +221,7 @@ const toPercentData = (arr) => {
 const pieIncomeExpenseConfig = {
   type: "pie",
   data: {
-    labels: ["Total Pemasukan", "Total Pengeluaran"],
+    labels: ["Total Pemasukan (%)", "Total Pengeluaran (%)"],
     datasets: [
       {
         data: toPercentData([totalIncome, totalExpense]),
@@ -243,14 +243,6 @@ const pieIncomeExpenseConfig = {
             size: 25,
             weight: "bold",
           },
-        },
-      },
-      title: {
-        display: true,
-        text: "Total Pemasukan vs Total Pengeluaran",
-        font: {
-          size: 20,
-          weight: "bold",
         },
       },
       datalabels: {
@@ -321,7 +313,7 @@ const unpaidCount = activeHouses - paidHouses;
 const doughnutPaymentConfig = {
   type: "doughnut",
   data: {
-    labels: ["Sudah Bayar", "Belum Bayar"],
+    labels: ["Sudah Bayar (%)", "Belum Bayar (%)"],
     datasets: [
       {
         data: toPercentData([paidHouses, unpaidCount]),
