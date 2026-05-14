@@ -2,7 +2,7 @@
 
 export default function PreviewLaporan() {
   // Ganti URL ini dengan endpoint API Anda
-  const apiEndpoint = "/api/report/odf"; 
+  const apiEndpoint = "/api/report/pdf"; 
 
   return (
     <div style={{ width: '100%', height: '100vh', padding: '20px' }}>
