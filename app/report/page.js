@@ -15,9 +15,9 @@ export default function Page() {
   const stageRef = useRef("boot");
 
   const stageText = {
-    boot: "Memulai sistem",
-    prepare: "Menghubungkan ke server keuangan",
-    load: "Memuat dan memvalidasi transaksi",
+    boot: "Menghubungkan ke server",
+    prepare: "Memuat data keuangan",
+    load: "Menghitung semua transaksi",
     ready: "Menyusun laporan akhir",
   };
 
