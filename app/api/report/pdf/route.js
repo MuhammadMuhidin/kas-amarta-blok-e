@@ -515,6 +515,11 @@ const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
 
       doc.setFontSize(12);
 
+      doc.setFont(
+        "helvetica",
+        "bold"
+      );
+
       doc.setTextColor(
         ...gray
       );
@@ -1402,16 +1407,28 @@ y += chartSize + 10;
       doc.output(
         "arraybuffer"
       );
+    
+    const { searchParams } =
+    new URL(req.url);
 
+    const isDownload = searchParams.get("download");
+    const disposition =
+    isDownload
+      ? "attachment"
+      : "inline";
+      
     return new Response(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-
+        
         "Content-Disposition":
-          `attachment; filename="Laporan_Kas_${safeMonth}.pdf"`,
-
+          `${disposition}; filename="Laporan_Kas_${safeMonth}.pdf"`,
+        
         "Access-Control-Expose-Headers":
           "Content-Disposition",
+        
+        "Cache-Control":
+          "no-store, no-cache, must-revalidate, proxy-revalidate",
       },
     });
   } catch (err) {
