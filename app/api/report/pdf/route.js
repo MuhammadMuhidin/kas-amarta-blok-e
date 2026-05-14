@@ -263,6 +263,7 @@ const pieIncomeExpenseConfig = {
       },
     },
   },
+  plugins: ["datalabels"],
 };
     
 const pieIncomeExpenseURL = makeQuickChartURL(pieIncomeExpenseConfig);
@@ -357,6 +358,7 @@ const doughnutPaymentConfig = {
       },
     },
   },
+  plugins: ["datalabels"],
 };
 const doughnutPaymentURL = makeQuickChartURL(doughnutPaymentConfig);
 const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
