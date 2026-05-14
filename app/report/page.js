@@ -18,7 +18,6 @@ export default function Page() {
     if (downloading) return;
 
     setDownloading(true);
-
     window.location.href = "/api/report/pdf?download=1";
 
     setTimeout(() => {
@@ -35,23 +34,20 @@ export default function Page() {
     ];
 
     const progressMap = {
-      boot: 20,
-      prepare: 45,
+      boot: 15,
+      prepare: 40,
       load: 75,
       ready: 100,
     };
 
     let interval;
 
-    const nextStep = (index = 0) => {
-      if (index >= timeline.length) return;
+    const nextStep = (i = 0) => {
+      if (i >= timeline.length) return;
 
-      const step = timeline[index];
-      setStage(step.stage);
+      setStage(timeline[i].stage);
 
-      setTimeout(() => {
-        nextStep(index + 1);
-      }, step.delay);
+      setTimeout(() => nextStep(i + 1), timeline[i].delay);
     };
 
     nextStep();
@@ -60,13 +56,15 @@ export default function Page() {
       setProgress((p) => {
         const target = progressMap[stage] ?? 0;
 
-        if (p >= target) return p;
+        // kalau sudah melewati target, tetap lanjut ke target berikutnya
+        if (p > target) return p;
 
-        const next = p + 2;
+        const speed = stage === "load" ? 3 : 2;
+        const next = p + speed;
 
         return next > target ? target : next;
       });
-    }, 80);
+    }, 60);
 
     return () => clearInterval(interval);
   }, [stage]);
@@ -87,7 +85,7 @@ export default function Page() {
         overflow: "hidden",
       }}
     >
-      {/* LOADING OVERLAY */}
+      {/* LOADING */}
       {stage !== "ready" && (
         <div
           style={{
@@ -120,7 +118,6 @@ export default function Page() {
               fontWeight: 500,
               marginBottom: 12,
               color: "#111827",
-              textAlign: "center",
             }}
           >
             {stageText[stage]}
@@ -140,24 +137,18 @@ export default function Page() {
                 width: `${progress}%`,
                 height: "100%",
                 background: "#2563eb",
-                transition: "width 120ms ease",
+                transition: "width 80ms linear",
               }}
             />
           </div>
 
-          <div
-            style={{
-              marginTop: 8,
-              fontSize: 12,
-              opacity: 0.7,
-            }}
-          >
+          <div style={{ marginTop: 8, fontSize: 12 }}>
             {Math.floor(progress)}%
           </div>
         </div>
       )}
 
-      {/* PDF VIEWER */}
+      {/* PDF */}
       {stage === "ready" && (
         <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
           <Viewer
@@ -167,7 +158,7 @@ export default function Page() {
         </Worker>
       )}
 
-      {/* DOWNLOAD BUTTON */}
+      {/* BUTTON */}
       {stage === "ready" && (
         <button
           onClick={handleDownload}
@@ -185,8 +176,6 @@ export default function Page() {
             fontSize: 15,
             fontWeight: 600,
             cursor: downloading ? "not-allowed" : "pointer",
-            boxShadow:
-              "0 10px 25px rgba(0,0,0,0.25), 0 6px 12px rgba(37,99,235,0.25)",
             display: "flex",
             alignItems: "center",
             gap: 8,
@@ -212,12 +201,8 @@ export default function Page() {
       {/* GLOBAL SPIN */}
       <style jsx global>{`
         @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>
