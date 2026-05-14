@@ -10,24 +10,17 @@ import {
 import "@react-pdf-viewer/core/lib/styles/index.css";
 
 export default function Page() {
-  // ===== PAGE LOADING =====
-  const [stage, setStage] = useState("boot");
-  const [loadProgress, setLoadProgress] = useState(0);
-
-  // ===== DOWNLOAD LOADING =====
+  const [progress, setProgress] = useState(0);
   const [downloading, setDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
 
   const handleDownload = () => {
     if (downloading) return;
 
     setDownloading(true);
-    setDownloadProgress(0);
-
     let p = 0;
 
     const interval = setInterval(() => {
-      p += Math.random() * 14;
+      p += Math.random() * 8; // smooth & natural
 
       if (p >= 100) {
         p = 100;
@@ -37,63 +30,21 @@ export default function Page() {
 
         setTimeout(() => {
           setDownloading(false);
-          setDownloadProgress(0);
+          setProgress(0);
         }, 1200);
       }
 
-      setDownloadProgress(p);
+      setProgress(p);
     }, 120);
   };
 
-  // ===== FAKE PAGE LOADING FLOW =====
-  useEffect(() => {
-    const steps = [
-      { stage: "boot", delay: 500 },
-      { stage: "prepare", delay: 900 },
-      { stage: "load", delay: 1100 },
-      { stage: "ready", delay: 700 },
-    ];
-
-    let i = 0;
-
-    const run = () => {
-      if (i >= steps.length) return;
-
-      setStage(steps[i].stage);
-
-      const start = loadProgress;
-
-      let p = start;
-
-      const interval = setInterval(() => {
-        p += Math.random() * 10;
-
-        if (p >= (i + 1) * 25) {
-          p = (i + 1) * 25;
-          clearInterval(interval);
-        }
-
-        setLoadProgress(Math.min(p, 100));
-      }, 80);
-
-      setTimeout(() => {
-        clearInterval(interval);
-        i++;
-        run();
-      }, steps[i].delay);
-    };
-
-    run();
-  }, []);
-
-  const stageText = {
-    boot: "Memulai system",
-    prepare: "Menghubungi pusat server",
-    load: "Menyiapkan data untuk di-review",
-    ready: "Menghitung seluruh data transaksi",
+  // ===== PROGRESS TEXT MAPPING =====
+  const getLoadingText = (p) => {
+    if (p < 20) return "Menghubungi pusat server aman";
+    if (p < 45) return "Memverifikasi integritas data transaksi";
+    if (p < 75) return "Menghimpun seluruh catatan sistem";
+    return "Menyiapkan hasil analisis laporan";
   };
-
-  const pageReady = stage === "ready";
 
   return (
     <div
@@ -104,8 +55,8 @@ export default function Page() {
         overflow: "hidden",
       }}
     >
-      {/* ================= LOADING OVERLAY ================= */}
-      {!pageReady && (
+      {/* LOADING OVERLAY */}
+      {progress < 100 && (
         <div
           style={{
             position: "absolute",
@@ -117,16 +68,17 @@ export default function Page() {
             zIndex: 9999,
           }}
         >
+          {/* TEXT */}
           <div
             style={{
               fontSize: 14,
               fontWeight: 500,
-              marginBottom: 12,
               color: "#111827",
+              marginBottom: 14,
               textAlign: "center",
             }}
           >
-            {stageText[stage]}
+            {getLoadingText(progress)}
           </div>
 
           {/* PROGRESS BAR */}
@@ -141,7 +93,7 @@ export default function Page() {
           >
             <div
               style={{
-                width: `${loadProgress}%`,
+                width: `${progress}%`,
                 height: "100%",
                 background: "#2563eb",
                 transition: "width 120ms linear",
@@ -149,6 +101,7 @@ export default function Page() {
             />
           </div>
 
+          {/* PERCENT */}
           <div
             style={{
               marginTop: 8,
@@ -156,13 +109,13 @@ export default function Page() {
               opacity: 0.6,
             }}
           >
-            {Math.floor(loadProgress)}%
+            {Math.floor(progress)}%
           </div>
         </div>
       )}
 
-      {/* ================= PDF VIEWER ================= */}
-      {pageReady && (
+      {/* PDF */}
+      {progress >= 100 && (
         <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
           <Viewer
             fileUrl="/api/report/pdf"
@@ -171,8 +124,8 @@ export default function Page() {
         </Worker>
       )}
 
-      {/* ================= DOWNLOAD BUTTON ================= */}
-      {pageReady && (
+      {/* DOWNLOAD BUTTON */}
+      {progress >= 100 && (
         <button
           onClick={handleDownload}
           disabled={downloading}
@@ -181,47 +134,24 @@ export default function Page() {
             left: "50%",
             bottom: "24px",
             transform: "translateX(-50%)",
-
             border: "none",
             borderRadius: "999px",
             padding: "14px 20px",
             minWidth: "190px",
-
             background: "#2563eb",
             color: "#fff",
             fontSize: 15,
             fontWeight: 600,
-
             cursor: downloading ? "not-allowed" : "pointer",
-            opacity: downloading ? 0.95 : 1,
-
+            opacity: downloading ? 0.9 : 1,
             boxShadow:
               "0 10px 25px rgba(0,0,0,0.25), 0 6px 12px rgba(37,99,235,0.25)",
-
             overflow: "hidden",
           }}
         >
-          {/* TEXT */}
-          <div style={{ position: "relative", zIndex: 2 }}>
-            {downloading
-              ? `Downloading ${Math.floor(downloadProgress)}%`
-              : "Download PDF"}
-          </div>
-
-          {/* PROGRESS FILL */}
-          {downloading && (
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                top: 0,
-                height: "100%",
-                width: `${downloadProgress}%`,
-                background: "rgba(255,255,255,0.18)",
-                transition: "width 120ms linear",
-              }}
-            />
-          )}
+          {downloading
+            ? `Downloading ${Math.floor(progress)}%`
+            : "Download PDF"}
         </button>
       )}
     </div>
