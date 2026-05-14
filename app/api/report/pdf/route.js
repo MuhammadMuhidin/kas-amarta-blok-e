@@ -254,6 +254,7 @@ const pieIncomeExpenseConfig = {
         },
       },
       datalabels: {
+        formatter: (value) => `${value.toFixed(1)}%`,
         font: {
           size: 20,
           weight: "bold",
@@ -347,6 +348,7 @@ const doughnutPaymentConfig = {
         position: "bottom",
       },
       datalabels: {
+        formatter: (value) => `${value.toFixed(1)}%`,
         font: {
           size: 20,
           weight: "bold",
