@@ -1408,7 +1408,7 @@ y += chartSize + 10;
         "Content-Type": "application/pdf",
 
         "Content-Disposition":
-          `attachment; filename="Laporan_Kas_${safeMonth}.pdf"`,
+          `inline; filename="Laporan_Kas_${safeMonth}.pdf"`,
 
         "Access-Control-Expose-Headers":
           "Content-Disposition",
