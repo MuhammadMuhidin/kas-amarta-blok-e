@@ -515,6 +515,11 @@ const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
 
       doc.setFontSize(12);
 
+      doc.setFont(
+        "helvetica",
+        "bold"
+      );
+
       doc.setTextColor(
         ...gray
       );
