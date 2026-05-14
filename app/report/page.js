@@ -62,7 +62,7 @@ export default function Page() {
           fontWeight: 600,
 
           cursor: downloading ? "not-allowed" : "pointer",
-          opacity: downloading ? 0.8 : 1,
+          //opacity: downloading ? 0.8 : 1,
           zIndex: 9999,
 
           display: "flex",
