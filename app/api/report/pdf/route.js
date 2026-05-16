@@ -420,6 +420,42 @@ const doughnutPaymentImg = await toBase64(doughnutPaymentURL);
         0
       );
 
+const lastExpense =
+  insight?.lastMonth?.expenseTotal || 0;
+
+const currentExpense =
+  insight?.currentMonth?.expenseTotal || 0;
+
+const expenseDifference =
+  currentExpense - lastExpense;
+
+const expenseDiffPercent =
+  lastExpense === 0
+    ? 0
+    : Math.round(
+        (expenseDifference / lastExpense) *
+          100
+      );
+
+let expenseInsight = "";
+
+if (expenseDiffPercent > 0) {
+  expenseInsight =
+    `▲ Pengeluaran bulan ini naik ${expenseDiffPercent}% (${format(
+      expenseDifference
+    )}) dibanding bulan lalu.`;
+} else if (expenseDiffPercent < 0) {
+  expenseInsight =
+    `▼ Pengeluaran bulan ini turun ${Math.abs(
+      expenseDiffPercent
+    )}% (${format(
+      Math.abs(expenseDifference)
+    )}) dibanding bulan lalu.`;
+} else {
+  expenseInsight =
+    "■ Pengeluaran bulan ini sama dengan bulan lalu.";
+}
+
     /* =========================================
        HEADER
     ========================================= */
@@ -1139,6 +1175,45 @@ y += chartSize + 10;
         },
       },
     });
+
+ensureSpace(25);
+
+doc.setFillColor(
+  255,
+  248,
+  235
+);
+
+doc.roundedRect(
+  15,
+  y,
+  180,
+  18,
+  4,
+  4,
+  "FD"
+);
+
+doc.setFontSize(12);
+
+doc.setFont(
+  "helvetica",
+  "bold"
+);
+
+doc.setTextColor(
+  180,
+  83,
+  9
+);
+
+doc.text(
+  expenseInsight,
+  20,
+  y + 11
+);
+
+y += 28;
 
     /* =========================================
        PAGE 3
