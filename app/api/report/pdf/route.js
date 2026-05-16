@@ -1176,6 +1176,7 @@ y += chartSize + 10;
       },
     });
 
+y = doc.lastAutoTable.finalY + 15;
 ensureSpace(25);
 
 doc.setFillColor(
