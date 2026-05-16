@@ -30,7 +30,7 @@ export default function Page() {
     boot: "Memuat data keuangan",
     prepare: "Menghitung statistik",
     load: "Memvalidasi pembayaran",
-    ready: "Menyusun laporan",
+    ready: "Menyiapkan tampilan laporan",
   };
 
   useEffect(() => {
