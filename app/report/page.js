@@ -29,8 +29,8 @@ export default function Page() {
   const stageText = {
     boot: "Memuat data keuangan",
     prepare: "Menghitung statistik",
-    load: "Memvalidasi pembayaran",
-    ready: "Menyiapkan tampilan laporan",
+    load: "Memvalidasi transaksi",
+    ready: "Menyusun tampilan",
   };
 
   useEffect(() => {
