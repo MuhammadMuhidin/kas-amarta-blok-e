@@ -23,11 +23,14 @@ export default function Page() {
   const [pdfReady, setPdfReady] =
     useState(false);
 
+  const [viewerReady, setViewerReady] =
+    useState(false);
+
   const stageText = {
     boot: "Memuat data keuangan",
     prepare: "Menghitung statistik",
-    load: "Memvalidasi pembayaran",
-    ready: "Menyusun laporan",
+    load: "Memvalidasi transaksi",
+    ready: "Menyusun tampilan",
   };
 
   useEffect(() => {
@@ -86,7 +89,7 @@ export default function Page() {
 
         for (
           let i = 75;
-          i <= 100;
+          i <= 95;
           i++
         ) {
           await new Promise((r) =>
@@ -129,7 +132,7 @@ export default function Page() {
       }}
     >
       {/* OVERLAY LOADING */}
-      {progress < 100 && (
+      {!viewerReady && (
         <div
           style={{
             position: "absolute",
@@ -202,6 +205,10 @@ export default function Page() {
               defaultScale={
                 SpecialZoomLevel.PageFit
               }
+              onDocumentLoad={() => {
+                setProgress(100);
+                setViewerReady(true);
+              }}
             />
           </Worker>
         )}
