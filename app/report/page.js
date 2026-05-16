@@ -15,10 +15,10 @@ export default function Page() {
   const stageRef = useRef("boot");
 
   const stageText = {
-    boot: "Menghubungkan ke server",
-    prepare: "Memuat data keuangan",
-    load: "Menghitung semua transaksi",
-    ready: "Menyusun laporan akhir",
+    boot: "Memuat data keuangan",
+    prepare: "Menghitung statistik",
+    load: "Memvalidasi pembayaran",
+    ready: "Menyusun laporan",
   };
 
   const progressMap = {
