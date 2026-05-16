@@ -441,19 +441,19 @@ let expenseInsight = "";
 
 if (expenseDiffPercent > 0) {
   expenseInsight =
-    `▲ Pengeluaran bulan ini naik ${expenseDiffPercent}% (${format(
+    `↑ Pengeluaran bulan ini naik ${expenseDiffPercent}% (${format(
       expenseDifference
     )}) dibanding bulan lalu.`;
 } else if (expenseDiffPercent < 0) {
   expenseInsight =
-    `▼ Pengeluaran bulan ini turun ${Math.abs(
+    `↓ Pengeluaran bulan ini turun ${Math.abs(
       expenseDiffPercent
     )}% (${format(
       Math.abs(expenseDifference)
     )}) dibanding bulan lalu.`;
 } else {
   expenseInsight =
-    "■ Pengeluaran bulan ini sama dengan bulan lalu.";
+    "Pengeluaran bulan ini sama dengan bulan lalu.";
 }
 
     /* =========================================
