@@ -7,6 +7,9 @@ import {
   startRegistration,
 } from "@simplewebauthn/browser";
 
+import Toast from "@/components/Toast";
+import ConfirmModal from "@/components/ConfirmModal";
+
 export default function Login() {
   const router = useRouter();
 
@@ -16,10 +19,46 @@ export default function Login() {
   const [loading, setLoading] =
     useState(false);
 
+  const [confirmOpen, setConfirmOpen] =
+    useState(false);
+
+  const [toast, setToast] =
+    useState({
+      show: false,
+      type: "info",
+      message: "",
+    });
+
+  function notify(
+    message,
+    type = "info"
+  ) {
+    setToast({
+      show: true,
+      type,
+      message,
+    });
+
+    setTimeout(() => {
+      setToast((prev) => ({
+        ...prev,
+        show: false,
+      }));
+    }, 2600);
+  }
+
   async function submit(e) {
     e.preventDefault();
 
     if (loading) return;
+
+    if (!password.trim()) {
+      notify(
+        "Password wajib diisi",
+        "warning"
+      );
+      return;
+    }
 
     setLoading(true);
 
@@ -38,26 +77,39 @@ export default function Login() {
         }
       );
 
-      const data = await res.json();
+      const data =
+        await res.json();
 
       if (!res.ok) {
-        alert(
+        notify(
           data.error ||
-          "Login gagal"
+            "Login gagal",
+          "error"
         );
         return;
       }
 
       if (data.need_webauth) {
+        notify(
+          "Verifikasi passkey diperlukan",
+          "info"
+        );
+
         await loginWithWebAuth();
         return;
       }
 
+      notify(
+        "Login berhasil",
+        "success"
+      );
+
       router.push("/admin");
     } catch (err) {
-      alert(
+      notify(
         err.message ||
-        "Login gagal"
+          "Login gagal",
+        "error"
       );
     } finally {
       setLoading(false);
@@ -65,72 +117,90 @@ export default function Login() {
   }
 
   async function loginWithWebAuth() {
-    const optionsRes =
-      await fetch(
-        "/api/webauth/auth/options",
-        {
-          method: "GET",
-        }
+    try {
+      const optionsRes =
+        await fetch(
+          "/api/webauth/auth/options",
+          {
+            method: "GET",
+          }
+        );
+
+      const options =
+        await optionsRes.json();
+
+      if (!optionsRes.ok) {
+        notify(
+          options.error ||
+            "Passkey belum siap",
+          "error"
+        );
+        return;
+      }
+
+      const credential =
+        await startAuthentication(
+          options
+        );
+
+      const verifyRes =
+        await fetch(
+          "/api/webauth/auth/verify",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify(
+              credential
+            ),
+          }
+        );
+
+      const verifyData =
+        await verifyRes.json();
+
+      if (!verifyRes.ok) {
+        notify(
+          verifyData.error ||
+            "Verifikasi passkey gagal",
+          "error"
+        );
+        return;
+      }
+
+      notify(
+        "Passkey valid, masuk admin",
+        "success"
       );
 
-    const options =
-      await optionsRes.json();
-
-    if (!optionsRes.ok) {
-      alert(
-        options.error ||
-        "WebAuth belum siap"
+      router.push("/admin");
+    } catch (err) {
+      notify(
+        err.message ||
+          "Passkey dibatalkan",
+        "error"
       );
-      return;
     }
-
-    const credential =
-      await startAuthentication(
-        options
-      );
-
-    const verifyRes =
-      await fetch(
-        "/api/webauth/auth/verify",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-          body: JSON.stringify(
-            credential
-          ),
-        }
-      );
-
-    const verifyData =
-      await verifyRes.json();
-
-    if (!verifyRes.ok) {
-      alert(
-        verifyData.error ||
-        "WebAuth gagal"
-      );
-      return;
-    }
-
-    router.push("/admin");
   }
 
-  async function registerWebAuth() {
+  function registerWebAuth() {
     if (loading) return;
 
-    const confirmRegister =
-      confirm(
-        "Daftarkan fingerprint/passkey baru? Credential lama akan diganti."
-      );
+    setConfirmOpen(true);
+  }
 
-    if (!confirmRegister) return;
-
+  async function handleConfirmRegister() {
+    setConfirmOpen(false);
     setLoading(true);
 
     try {
+      notify(
+        "Menyiapkan register passkey",
+        "info"
+      );
+
       const optionsRes =
         await fetch(
           "/api/webauth/register/options",
@@ -143,9 +213,10 @@ export default function Login() {
         await optionsRes.json();
 
       if (!optionsRes.ok) {
-        alert(
+        notify(
           options.error ||
-          "Gagal membuat register options"
+            "Gagal membuat register options",
+          "error"
         );
         return;
       }
@@ -174,20 +245,23 @@ export default function Login() {
         await verifyRes.json();
 
       if (!verifyRes.ok) {
-        alert(
+        notify(
           verifyData.error ||
-          "Register WebAuth gagal"
+            "Register passkey gagal",
+          "error"
         );
         return;
       }
 
-      alert(
-        "WebAuth berhasil didaftarkan"
+      notify(
+        "Passkey berhasil didaftarkan",
+        "success"
       );
     } catch (err) {
-      alert(
+      notify(
         err.message ||
-        "Register WebAuth gagal"
+          "Register passkey dibatalkan",
+        "error"
       );
     } finally {
       setLoading(false);
@@ -196,6 +270,22 @@ export default function Login() {
 
   return (
     <>
+      <Toast {...toast} />
+
+      <ConfirmModal
+        open={confirmOpen}
+        title="Daftarkan passkey baru?"
+        message="Credential lama akan dinonaktifkan dan diganti dengan passkey baru."
+        confirmText="Daftarkan"
+        cancelText="Batal"
+        onCancel={() =>
+          setConfirmOpen(false)
+        }
+        onConfirm={
+          handleConfirmRegister
+        }
+      />
+
       <style jsx global>{`
         html {
           background: #f1f5f9;
@@ -214,9 +304,18 @@ export default function Login() {
           onSubmit={submit}
           style={styles.card}
         >
+          <div style={styles.badge}>
+            Admin Security
+          </div>
+
           <h2 style={styles.title}>
             Admin Login
           </h2>
+
+          <p style={styles.subtitle}>
+            Masuk dengan password dan passkey
+            jika WebAuth aktif.
+          </p>
 
           <input
             type="password"
@@ -236,8 +335,11 @@ export default function Login() {
             style={{
               ...styles.button,
               opacity: loading
-                ? 0.7
+                ? 0.75
                 : 1,
+              cursor: loading
+                ? "not-allowed"
+                : "pointer",
             }}
           >
             {loading
@@ -249,9 +351,17 @@ export default function Login() {
             type="button"
             disabled={loading}
             onClick={registerWebAuth}
-            style={styles.secondaryButton}
+            style={{
+              ...styles.secondaryButton,
+              opacity: loading
+                ? 0.75
+                : 1,
+              cursor: loading
+                ? "not-allowed"
+                : "pointer",
+            }}
           >
-            Register WebAuth
+            Register Passkey
           </button>
         </form>
       </div>
@@ -261,55 +371,83 @@ export default function Login() {
 
 const styles = {
   wrapper: {
-    height: "100vh",
+    minHeight: "100vh",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "#e5e7eb",
+    background:
+      "linear-gradient(135deg, #e0e7ff, #f8fafc)",
     fontFamily: "system-ui",
+    padding: 20,
   },
 
   card: {
-    width: 320,
-    padding: 30,
-    background: "#fff",
-    borderRadius: 12,
+    width: "100%",
+    maxWidth: 360,
+    padding: 28,
+    background: "#ffffff",
+    borderRadius: 22,
     boxShadow:
-      "0 10px 25px rgba(0,0,0,0.15)",
+      "0 24px 70px rgba(15,23,42,.18)",
     display: "flex",
     flexDirection: "column",
-    gap: 15,
+    gap: 14,
+    border:
+      "1px solid rgba(226,232,240,.9)",
+  },
+
+  badge: {
+    alignSelf: "center",
+    padding: "6px 12px",
+    borderRadius: "999px",
+    background: "#eef2ff",
+    color: "#4f46e5",
+    fontSize: 12,
+    fontWeight: 800,
+    letterSpacing: 0.3,
   },
 
   title: {
     textAlign: "center",
-    marginBottom: 10,
+    margin: "4px 0 0",
+    fontSize: 24,
+    color: "#0f172a",
+  },
+
+  subtitle: {
+    textAlign: "center",
+    margin: "0 0 10px",
+    color: "#64748b",
+    fontSize: 13,
+    lineHeight: 1.5,
   },
 
   input: {
-    padding: 12,
-    borderRadius: 8,
-    border: "1px solid #ddd",
+    padding: "13px 14px",
+    borderRadius: 12,
+    border: "1px solid #cbd5e1",
     fontSize: 14,
+    outline: "none",
   },
 
   button: {
-    padding: 12,
-    borderRadius: 8,
+    padding: 13,
+    borderRadius: 12,
     border: "none",
-    background: "#4f46e5",
+    background:
+      "linear-gradient(135deg, #4f46e5, #2563eb)",
     color: "#fff",
-    fontWeight: "bold",
-    cursor: "pointer",
+    fontWeight: 800,
+    fontSize: 14,
   },
 
   secondaryButton: {
-    padding: 12,
-    borderRadius: 8,
+    padding: 13,
+    borderRadius: 12,
     border: "1px solid #cbd5e1",
     background: "#fff",
     color: "#334155",
-    fontWeight: "bold",
-    cursor: "pointer",
+    fontWeight: 800,
+    fontSize: 14,
   },
 };
