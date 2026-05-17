@@ -599,17 +599,48 @@ if(memberFilter === "TRASH_INACTIVE"){
 
   return (
     <>
-        <style jsx global>{`
-        html{
-          background:#f1f5f9;
-        }
+<style jsx global>{`
+  html,
+  body {
+    margin: 0;
+    background: var(--admin-bg);
+    color: var(--admin-text);
+    color-scheme: light dark;
+  }
 
-        @media (prefers-color-scheme: dark){
-          html{
-            filter: invert(1) hue-rotate(180deg);
-          }
-        }
-      `}</style>
+  :root {
+    --admin-bg: #f1f5f9;
+    --admin-text: #0f172a;
+    --admin-card: #ffffff;
+    --admin-muted: #475569;
+    --admin-border: #e5e7eb;
+    --admin-input: #ffffff;
+    --admin-row: #f9fafb;
+    --admin-button: #e5e7eb;
+    --admin-primary: #60a5fa;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --admin-bg: #020617;
+      --admin-text: #e5e7eb;
+      --admin-card: #0f172a;
+      --admin-muted: #94a3b8;
+      --admin-border: #1e293b;
+      --admin-input: #1e293b;
+      --admin-row: #111827;
+      --admin-button: #1e293b;
+      --admin-primary: #60a5fa;
+    }
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    color-scheme: light dark;
+  }
+`}</style>
 
     <div style={styles.wrapper}>
 
@@ -1233,72 +1264,223 @@ const styles={
   rowInactive:{
     background:"#fee2e2",
     color:"#991b1b",
-    fontWeight:500
+const styles = {
+  wrapper: {
+    width: "100%",
+    maxWidth: 900,
+    minHeight: "100vh",
+    margin: "0 auto",
+    padding: "20px",
+    boxSizing: "border-box",
+    overflowX: "hidden",
+    fontFamily: "system-ui",
+    background: "var(--admin-bg)",
+    color: "var(--admin-text)",
   },
 
-  houseList:{
-    display:"grid",
-    gridTemplateColumns:"repeat(3,1fr)",
-    gap:8,
-    marginTop:10
+  header: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 20,
   },
 
-  checkbox:{
-    display:"flex",
-    gap:6,
-    alignItems:"center"
+  title: {
+    fontSize: 28,
+    fontWeight: 700,
+    margin: 0,
+    lineHeight: 1.2,
+    color: "var(--admin-text)",
   },
 
-  msg:{
-    background:"#dcfce7",
-    padding:10,
-    borderRadius:6,
-    marginBottom:20
+  homeBtn: {
+    padding: "8px 12px",
+    border: "1px solid var(--admin-border)",
+    borderRadius: 8,
+    background: "var(--admin-button)",
+    color: "var(--admin-text)",
+    cursor: "pointer",
+    fontSize: 14,
   },
 
-  summary:{
-    marginBottom:12,
-    fontSize:14,
-    color:"#475569"
+  tabs: {
+    display: "flex",
+    gap: 10,
+    marginBottom: 20,
+    flexWrap: "wrap",
   },
 
-  summaryHeader:{
-  display:"flex",
-  justifyContent:"space-between",
-  alignItems:"center",
-  marginBottom:16
+  tab: {
+    padding: "10px 18px",
+    background: "var(--admin-button)",
+    color: "var(--admin-text)",
+    border: "1px solid var(--admin-border)",
+    borderRadius: 10,
+    cursor: "pointer",
+    flexShrink: 0,
+  },
+
+  tabActive: {
+    padding: "10px 18px",
+    background: "var(--admin-primary)",
+    color: "#020617",
+    border: "1px solid var(--admin-primary)",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: 600,
+    flexShrink: 0,
+  },
+
+  card: {
+    background: "var(--admin-card)",
+    color: "var(--admin-text)",
+    padding: 20,
+    borderRadius: 14,
+    border: "1px solid var(--admin-border)",
+    boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+  },
+
+  form: {
+    display: "grid",
+    gap: 12,
+    width: "100%",
+    marginBottom: 25,
+  },
+
+  input: {
+    padding: "12px",
+    border: "1px solid var(--admin-border)",
+    borderRadius: 8,
+    fontSize: 15,
+    width: "100%",
+    boxSizing: "border-box",
+    background: "var(--admin-input)",
+    color: "var(--admin-text)",
+  },
+
+  btn: {
+    padding: "12px",
+    border: "none",
+    borderRadius: 8,
+    background: "var(--admin-primary)",
+    color: "#020617",
+    cursor: "pointer",
+    fontSize: 16,
+    fontWeight: 600,
+  },
+
+  btnDisabled: {
+    opacity: 0.6,
+    cursor: "not-allowed",
+  },
+
+  tableWrapper: {
+    overflowX: "auto",
+  },
+
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    minWidth: 500,
+    tableLayout: "auto",
+    color: "var(--admin-text)",
+  },
+
+  th: {
+    textAlign: "center",
+    verticalAlign: "middle",
+    padding: "10px",
+    borderBottom: "2px solid var(--admin-border)",
+    whiteSpace: "nowrap",
+    color: "var(--admin-text)",
+  },
+
+  td: {
+    textAlign: "center",
+    verticalAlign: "middle",
+    padding: "10px",
+    borderBottom: "1px solid var(--admin-border)",
+    whiteSpace: "nowrap",
+    color: "var(--admin-text)",
+  },
+
+  rowAlt: {
+    background: "var(--admin-row)",
+  },
+
+  rowInactive: {
+    background: "#7f1d1d",
+    color: "#fecaca",
+    fontWeight: 500,
+  },
+
+  houseList: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3,1fr)",
+    gap: 8,
+    marginTop: 10,
+  },
+
+  checkbox: {
+    display: "flex",
+    gap: 6,
+    alignItems: "center",
+    color: "var(--admin-text)",
+  },
+
+  msg: {
+    background: "#dcfce7",
+    color: "#166534",
+    padding: 10,
+    borderRadius: 6,
+    marginBottom: 20,
+  },
+
+  summary: {
+    marginBottom: 12,
+    fontSize: 14,
+    color: "var(--admin-muted)",
+  },
+
+  summaryHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
   },
 
   summaryGrid: {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: 8,
-  fontSize: 14,
-  color: "#475569",
-  marginBottom: 16
-},
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 8,
+    fontSize: 14,
+    color: "var(--admin-muted)",
+    marginBottom: 16,
+  },
 
-summaryCards: {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-  gap: 10,
-  marginBottom: 16
-},
+  summaryCards: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+    gap: 10,
+    marginBottom: 16,
+  },
 
-summaryCard: {
-  padding: 12,
-  borderRadius: 10,
-  background: "#f8fafc",
-  border: "1px solid #e2e8f0",
-  textAlign: "center",
-  cursor:"pointer",
-  transition:"0.15s ease"
-},
+  summaryCard: {
+    padding: 12,
+    borderRadius: 10,
+    background: "var(--admin-row)",
+    color: "var(--admin-text)",
+    border: "1px solid var(--admin-border)",
+    textAlign: "center",
+    cursor: "pointer",
+    transition: "0.15s ease",
+  },
 
-summaryCardActive:{
-  background:"#2563eb",
-  color:"#fff",
-  border:"1px solid #2563eb",
-  cursor:"pointer"
-}
-}
+  summaryCardActive: {
+    background: "var(--admin-primary)",
+    color: "#020617",
+    border: "1px solid var(--admin-primary)",
+    cursor: "pointer",
+  },
+};
