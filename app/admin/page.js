@@ -46,8 +46,6 @@ export default function AdminPage(){
       ?.split("=")[1];
   }
 
-  const csrfToken = getCookie("csrf_token");
-
   async function loadPersonal(){
 
     const res = await fetch("/api/sheets/personal", {
@@ -98,6 +96,7 @@ async function addMember(e){
 
   try{
 
+  const csrfToken = getCookie("csrf_token");
   const res = await fetch("/api/sheets/personal",{
     method: "POST",
     headers: {
@@ -169,6 +168,7 @@ async function recordPayment(e){
 
       const p = personal.find(x=>x.id===id)
 
+      const csrfToken = getCookie("csrf_token");
       const res = await fetch("/api/sheets/payment",{
         method: "POST",
         headers: {
@@ -190,6 +190,7 @@ async function recordPayment(e){
 
         if((p.trash || "").toUpperCase() === "Y"){
 
+          const csrfToken = getCookie("csrf_token");
           await fetch("/api/sheets/trash",{
             method:"POST",
             headers: {
@@ -233,6 +234,7 @@ async function addCashflow(e){
 
   try{
 
+    const csrfToken = getCookie("csrf_token");
     const res = await fetch("/api/sheets/cashflow",{
       method:"POST",
       headers: {
