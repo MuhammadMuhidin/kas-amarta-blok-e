@@ -16,6 +16,12 @@ export default function Login() {
   const [password, setPassword] =
     useState("");
 
+  const [pin, setPin] =
+    useState("");
+
+  const [needPin, setNeedPin] =
+    useState(false);
+
   const [loading, setLoading] =
     useState(false);
 
@@ -60,6 +66,17 @@ export default function Login() {
       return;
     }
 
+    if (
+      needPin &&
+      !pin.trim()
+    ) {
+      notify(
+        "PIN wajib diisi",
+        "warning"
+      );
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -73,6 +90,9 @@ export default function Login() {
           },
           body: JSON.stringify({
             password,
+            pin: needPin
+              ? pin
+              : undefined,
           }),
         }
       );
@@ -99,6 +119,17 @@ export default function Login() {
         return;
       }
 
+      if (data.need_pin) {
+        setNeedPin(true);
+
+        notify(
+          "Masukkan PIN admin",
+          "info"
+        );
+
+        return;
+      }
+
       notify(
         "Login berhasil",
         "success"
@@ -120,10 +151,7 @@ export default function Login() {
     try {
       const optionsRes =
         await fetch(
-          "/api/webauth/auth/options",
-          {
-            method: "GET",
-          }
+          "/api/webauth/auth/options"
         );
 
       const options =
@@ -203,10 +231,7 @@ export default function Login() {
 
       const optionsRes =
         await fetch(
-          "/api/webauth/register/options",
-          {
-            method: "GET",
-          }
+          "/api/webauth/register/options"
         );
 
       const options =
@@ -286,19 +311,6 @@ export default function Login() {
         }
       />
 
-      <style jsx global>{`
-        html {
-          background: #f1f5f9;
-        }
-
-        @media (prefers-color-scheme: dark) {
-          html {
-            filter: invert(1)
-              hue-rotate(180deg);
-          }
-        }
-      `}</style>
-
       <div style={styles.wrapper}>
         <form
           onSubmit={submit}
@@ -313,8 +325,8 @@ export default function Login() {
           </h2>
 
           <p style={styles.subtitle}>
-            Masuk dengan password dan passkey
-            jika WebAuth aktif.
+            Masuk dengan password,
+            lalu PIN atau passkey jika aktif.
           </p>
 
           <input
@@ -328,6 +340,21 @@ export default function Login() {
             }
             style={styles.input}
           />
+
+          {needPin && (
+            <input
+              type="password"
+              inputMode="numeric"
+              placeholder="PIN Admin"
+              value={pin}
+              onChange={(e) =>
+                setPin(
+                  e.target.value
+                )
+              }
+              style={styles.input}
+            />
+          )}
 
           <button
             type="submit"
@@ -344,7 +371,9 @@ export default function Login() {
           >
             {loading
               ? "Memproses..."
-              : "Login"}
+              : needPin
+                ? "Verifikasi PIN"
+                : "Login"}
           </button>
 
           <button
@@ -404,7 +433,6 @@ const styles = {
     color: "#4f46e5",
     fontSize: 12,
     fontWeight: 800,
-    letterSpacing: 0.3,
   },
 
   title: {
