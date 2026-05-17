@@ -2,16 +2,18 @@ import { NextResponse } from "next/server";
 import {
   generateAuthenticationOptions,
 } from "@simplewebauthn/server";
+
 import {
   getActiveCredential,
   getWebAuthConfig,
 } from "@/lib/webauth";
 
+export const runtime = "nodejs";
+
 export async function GET() {
   try {
-    const {
-      rpID,
-    } = getWebAuthConfig();
+    const { rpID } =
+      getWebAuthConfig();
 
     const credential =
       await getActiveCredential();
@@ -31,11 +33,14 @@ export async function GET() {
     const options =
       await generateAuthenticationOptions({
         rpID,
-        userVerification: "required",
+        userVerification:
+          "required",
         allowCredentials: [
           {
-            id: credential.credential_id,
-            type: "public-key",
+            id:
+              credential.credential_id,
+            type:
+              "public-key",
           },
         ],
       });
