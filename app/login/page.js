@@ -1,198 +1,711 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import {
+  useState,
+  useEffect,
+} from "react";
 
-export default function Login(){
+import { useRouter } from "next/navigation";
 
-  const router = useRouter()
+import {
+  startAuthentication,
+  startRegistration,
+} from "@simplewebauthn/browser";
 
-  const [step,setStep] =
-    useState("password")
+import Toast from "@/components/Toast";
+import ConfirmModal from "@/components/ConfirmModal";
 
-  const [password,setPassword] =
-    useState("")
+export default function Login() {
+  const router = useRouter();
 
-  const [pin,setPin] =
-    useState("")
+  const [isDark, setIsDark] =
+    useState(false);
 
-  async function submit(e){
+  const [password, setPassword] =
+    useState("");
 
-    e.preventDefault()
+  const [pin, setPin] =
+    useState("");
 
-    const payload =
-      step === "password"
-        ? { password }
-        : { pin }
+  const [needPin, setNeedPin] =
+    useState(false);
 
-    const res = await fetch(
-      "/api/login",
-      {
-        method:"POST",
+  const [loading, setLoading] =
+    useState(false);
 
-        headers:{
-          "Content-Type":
-            "application/json"
-        },
+  const [confirmOpen, setConfirmOpen] =
+    useState(false);
 
-        body:JSON.stringify(
-          payload
-        )
-      }
-    )
+  const [toast, setToast] =
+    useState({
+      show: false,
+      type: "info",
+      message: "",
+    });
 
-    const data =
-      await res.json()
+  useEffect(() => {
+    const media =
+      window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      );
 
-    if(!res.ok){
-
-      alert(
-        data.error ||
-        "Login gagal"
-      )
-
-      return
+    function updateTheme() {
+      setIsDark(
+        media.matches
+      );
     }
 
-    // password benar,
-    // backend minta pin
-    if(data.need_pin){
+    updateTheme();
 
-      setStep("pin")
+    media.addEventListener(
+      "change",
+      updateTheme
+    );
 
-      return
-    }
+    return () => {
+      media.removeEventListener(
+        "change",
+        updateTheme
+      );
+    };
+  }, []);
 
-    // login sukses
-    router.push("/admin")
+  function notify(
+    message,
+    type = "info"
+  ) {
+    setToast({
+      show: true,
+      type,
+      message,
+    });
+
+    setTimeout(() => {
+      setToast((prev) => ({
+        ...prev,
+        show: false,
+      }));
+    }, 2600);
   }
 
-  return(
-    <>
-      <style jsx global>{`
-        html{
-          background:#f1f5f9;
-        }
+  async function submit(e) {
+    e.preventDefault();
 
-        @media (prefers-color-scheme: dark){
-          html{
-            filter: invert(1) hue-rotate(180deg);
+    if (loading) return;
+
+    if (!password.trim()) {
+      notify(
+        "Password wajib diisi",
+        "warning"
+      );
+
+      return;
+    }
+
+    if (
+      needPin &&
+      !pin.trim()
+    ) {
+      notify(
+        "PIN wajib diisi",
+        "warning"
+      );
+
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch(
+        "/api/login",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body:
+            JSON.stringify({
+              password,
+
+              pin:
+                needPin
+                  ? pin
+                  : undefined,
+            }),
+        }
+      );
+
+      const data =
+        await res.json();
+
+      if (!res.ok) {
+        notify(
+          data.error ||
+            "Login gagal",
+          "error"
+        );
+
+        return;
+      }
+
+      if (data.need_pin) {
+        setNeedPin(true);
+
+        notify(
+          "Masukkan PIN admin",
+          "info"
+        );
+
+        return;
+      }
+
+      if (data.need_webauth) {
+        notify(
+          "Verifikasi passkey diperlukan",
+          "info"
+        );
+
+        await loginWithWebAuth();
+
+        return;
+      }
+
+      notify(
+        "Login berhasil",
+        "success"
+      );
+
+      router.push(
+        "/admin"
+      );
+    } catch (err) {
+      notify(
+        err.message ||
+          "Login gagal",
+        "error"
+      );
+    } finally {
+      setLoading(
+        false
+      );
+    }
+  }
+
+  async function loginWithWebAuth() {
+    try {
+      const optionsRes =
+        await fetch(
+          "/api/webauth/auth/options"
+        );
+
+      const options =
+        await optionsRes.json();
+
+      if (!optionsRes.ok) {
+        notify(
+          options.error ||
+            "Passkey belum siap",
+          "error"
+        );
+
+        return;
+      }
+
+      const credential =
+        await startAuthentication(
+          options
+        );
+
+      const verifyRes =
+        await fetch(
+          "/api/webauth/auth/verify",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify(
+                credential
+              ),
           }
+        );
+
+      const verifyData =
+        await verifyRes.json();
+
+      if (!verifyRes.ok) {
+        notify(
+          verifyData.error ||
+            "Verifikasi passkey gagal",
+          "error"
+        );
+
+        return;
+      }
+
+      notify(
+        "Passkey valid",
+        "success"
+      );
+
+      router.push(
+        "/admin"
+      );
+    } catch (err) {
+      notify(
+        err.message ||
+          "Passkey dibatalkan",
+        "error"
+      );
+    }
+  }
+
+  function registerWebAuth() {
+    if (loading) return;
+
+    setConfirmOpen(
+      true
+    );
+  }
+
+  async function handleConfirmRegister() {
+    setConfirmOpen(
+      false
+    );
+
+    setLoading(
+      true
+    );
+
+    try {
+      notify(
+        "Menyiapkan passkey",
+        "info"
+      );
+
+      const optionsRes =
+        await fetch(
+          "/api/webauth/register/options"
+        );
+
+      const options =
+        await optionsRes.json();
+
+      if (!optionsRes.ok) {
+        notify(
+          options.error ||
+            "Gagal menyiapkan passkey",
+          "error"
+        );
+
+        return;
+      }
+
+      const credential =
+        await startRegistration(
+          options
+        );
+
+      const verifyRes =
+        await fetch(
+          "/api/webauth/register/verify",
+          {
+            method:
+              "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+
+            body:
+              JSON.stringify(
+                credential
+              ),
+          }
+        );
+
+      const verifyData =
+        await verifyRes.json();
+
+      if (!verifyRes.ok) {
+        notify(
+          verifyData.error ||
+            "Register passkey gagal",
+          "error"
+        );
+
+        return;
+      }
+
+      notify(
+        "Passkey berhasil didaftarkan",
+        "success"
+      );
+    } catch (err) {
+      notify(
+        err.message ||
+          "Register dibatalkan",
+        "error"
+      );
+    } finally {
+      setLoading(
+        false
+      );
+    }
+  }
+
+  return (
+    <>
+      <Toast
+        {...toast}
+      />
+
+      <ConfirmModal
+        open={confirmOpen}
+        isDark={isDark}
+        title="Daftarkan passkey baru?"
+        message="Credential lama akan diganti."
+        confirmText="Daftarkan"
+        cancelText="Batal"
+        onCancel={() =>
+          setConfirmOpen(
+            false
+          )
         }
-      `}</style>
+        onConfirm={
+          handleConfirmRegister
+        }
+      />
 
-      <div style={styles.wrapper}>
+      <div
+        style={{
+          ...styles.wrapper,
 
+          background:
+            isDark
+              ? "linear-gradient(135deg,#020617,#0f172a)"
+              : "linear-gradient(135deg,#e0e7ff,#f8fafc)",
+        }}
+      >
         <form
           onSubmit={submit}
-          style={styles.card}
-        >
+          style={{
+            ...styles.card,
 
-          <h2 style={styles.title}>
+            background:
+              isDark
+                ? "#111827"
+                : "#ffffff",
+
+            border:
+              isDark
+                ? "1px solid #334155"
+                : "1px solid rgba(226,232,240,.9)",
+          }}
+        >
+          <div
+            style={{
+              ...styles.badge,
+
+              background:
+                isDark
+                  ? "#1e1b4b"
+                  : "#eef2ff",
+
+              color:
+                isDark
+                  ? "#c7d2fe"
+                  : "#4f46e5",
+            }}
+          >
+            Admin Security
+          </div>
+
+          <h2
+            style={{
+              ...styles.title,
+
+              color:
+                isDark
+                  ? "#f8fafc"
+                  : "#0f172a",
+            }}
+          >
             Admin Login
           </h2>
 
-          {step ===
-            "password" && (
+          <p
+            style={{
+              ...styles.subtitle,
 
+              color:
+                isDark
+                  ? "#94a3b8"
+                  : "#64748b",
+            }}
+          >
+            Password, PIN, Passkey
+          </p>
+
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) =>
+              setPassword(
+                e.target.value
+              )
+            }
+            style={{
+              ...styles.input,
+
+              background:
+                isDark
+                  ? "#1e293b"
+                  : "#fff",
+
+              color:
+                isDark
+                  ? "#fff"
+                  : "#000",
+
+              border:
+                isDark
+                  ? "1px solid #334155"
+                  : "1px solid #cbd5e1",
+            }}
+          />
+
+          {needPin && (
             <input
               type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e)=>
-                setPassword(
-                  e.target.value
-                )
-              }
-              style={styles.input}
-            />
-
-          )}
-
-          {step ===
-            "pin" && (
-
-            <input
-              type="password"
-              inputMode="numeric"
-              placeholder="PIN"
+              placeholder="PIN Admin"
               value={pin}
-              autoFocus
-              onChange={(e)=>
+              onChange={(e) =>
                 setPin(
                   e.target.value
                 )
               }
-              style={styles.input}
-            />
+              style={{
+                ...styles.input,
 
+                background:
+                  isDark
+                    ? "#1e293b"
+                    : "#fff",
+
+                color:
+                  isDark
+                    ? "#fff"
+                    : "#000",
+
+                border:
+                  isDark
+                    ? "1px solid #334155"
+                    : "1px solid #cbd5e1",
+              }}
+            />
           )}
 
           <button
             type="submit"
-            style={styles.button}
+            disabled={loading}
+            style={{
+              ...styles.button,
+
+              opacity:
+                loading
+                  ? 0.75
+                  : 1,
+            }}
           >
-
-            {step ===
-              "password"
-
-              ? "Continue"
-
-              : "Verify PIN"}
-
+            {loading
+              ? "Memproses..."
+              : needPin
+                ? "Verifikasi PIN"
+                : "Login"}
           </button>
 
-        </form>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={registerWebAuth}
+            style={{
+              ...styles.secondaryButton,
 
+              color:
+                isDark
+                  ? "#fff"
+                  : "#0f172a",
+
+              border:
+                isDark
+                  ? "1px solid #334155"
+                  : "1px solid #cbd5e1",
+
+              background:
+                isDark
+                  ? "#1e293b"
+                  : "transparent",
+
+              opacity:
+                loading
+                  ? 0.75
+                  : 1,
+            }}
+          >
+            Register Passkey
+          </button>
+        </form>
       </div>
     </>
-  )
+  );
 }
 
 const styles = {
+  wrapper: {
+    minHeight:
+      "100vh",
 
-  wrapper:{
-    height:"100vh",
-    display:"flex",
-    justifyContent:"center",
-    alignItems:"center",
-    background:"#e5e7eb",
-    fontFamily:"system-ui"
+    display:
+      "flex",
+
+    justifyContent:
+      "center",
+
+    alignItems:
+      "center",
+
+    padding:
+      20,
+
+    fontFamily:
+      "system-ui",
   },
 
-  card:{
-    width:320,
-    padding:30,
-    background:"#fff",
-    borderRadius:12,
+  card: {
+    width:
+      "100%",
+
+    maxWidth:
+      360,
+
+    padding:
+      28,
+
+    borderRadius:
+      22,
+
     boxShadow:
-      "0 10px 25px rgba(0,0,0,0.15)",
+      "0 24px 70px rgba(15,23,42,.18)",
 
-    display:"flex",
-    flexDirection:"column",
-    gap:15
+    display:
+      "flex",
+
+    flexDirection:
+      "column",
+
+    gap:
+      14,
   },
 
-  title:{
-    textAlign:"center",
-    marginBottom:10
+  badge: {
+    alignSelf:
+      "center",
+
+    padding:
+      "6px 12px",
+
+    borderRadius:
+      999,
+
+    fontSize:
+      12,
+
+    fontWeight:
+      800,
   },
 
-  input:{
-    padding:12,
-    borderRadius:8,
-    border:"1px solid #ddd",
-    fontSize:14
+  title: {
+    textAlign:
+      "center",
+
+    margin:
+      "4px 0 0",
+
+    fontSize:
+      24,
   },
 
-  button:{
-    padding:12,
-    borderRadius:8,
-    border:"none",
-    background:"#4f46e5",
-    color:"#fff",
-    fontWeight:"bold",
-    cursor:"pointer"
-  }
+  subtitle: {
+    textAlign:
+      "center",
 
-}
+    margin:
+      0,
+
+    fontSize:
+      13,
+  },
+
+  input: {
+    padding:
+      "13px 14px",
+
+    borderRadius:
+      12,
+
+    fontSize:
+      14,
+
+    outline:
+      "none",
+  },
+
+  button: {
+    padding:
+      13,
+
+    border:
+      "none",
+
+    borderRadius:
+      12,
+
+    background:
+      "linear-gradient(135deg,#4f46e5,#2563eb)",
+
+    color:
+      "#fff",
+
+    fontWeight:
+      800,
+
+    cursor:
+      "pointer",
+  },
+
+  secondaryButton: {
+    padding:
+      13,
+
+    borderRadius:
+      12,
+
+    fontWeight:
+      800,
+
+    cursor:
+      "pointer",
+  },
+};
