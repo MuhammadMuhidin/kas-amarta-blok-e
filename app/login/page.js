@@ -366,6 +366,22 @@ export default function Login() {
 
   return (
     <>
+      <style jsx global>{`
+@keyframes securityPulse {
+  0%,100%{
+    opacity:.9;
+    transform:scale(.995);
+    filter:drop-shadow(0 0 0 rgba(250,204,21,0));
+  }
+
+  50%{
+    opacity:1;
+    transform:scale(1);
+    filter:drop-shadow(0 0 6px rgba(250,204,21,.28));
+  }
+}
+      `}</style>
+
       <Toast
         {...toast}
       />
@@ -419,16 +435,25 @@ export default function Login() {
 
               background:
                 isDark
-                  ? "#1e1b4b"
-                  : "#eef2ff",
+                  ? "rgba(15,23,42,.92)"
+                  : "rgba(255,255,255,.92)",
 
               color:
+                "#facc15",
+
+              border: `1px solid ${
                 isDark
-                  ? "#c7d2fe"
-                  : "#4f46e5",
+                  ? "#334155"
+                  : "#cbd5e1"
+              }`,
+
+              boxShadow:
+                isDark
+                  ? "0 0 16px rgba(250,204,21,.14)"
+                  : "0 4px 18px rgba(250,204,21,.10)",
             }}
           >
-            Admin Security
+            Authorized Access Only
           </div>
 
           <h2
@@ -441,7 +466,7 @@ export default function Login() {
                   : "#0f172a",
             }}
           >
-            Admin Login
+            Administrator Login
           </h2>
 
           <p
@@ -574,138 +599,105 @@ export default function Login() {
 
 const styles = {
   wrapper: {
-    minHeight:
-      "100vh",
+    position: "fixed",
+    inset: 0,
 
-    display:
-      "flex",
+    width: "100vw",
+    height: "100dvh",
 
-    justifyContent:
-      "center",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
 
-    alignItems:
-      "center",
+    padding: 20,
+    boxSizing: "border-box",
 
-    padding:
-      20,
+    overflow: "hidden",
 
-    fontFamily:
-      "system-ui",
+    fontFamily: "system-ui",
   },
 
   card: {
-    width:
-      "100%",
+    width: "100%",
+    maxWidth: 360,
 
-    maxWidth:
-      360,
+    maxHeight:
+      "calc(100dvh - 40px)",
 
-    padding:
-      28,
+    overflow: "hidden",
 
-    borderRadius:
-      22,
+    padding: 28,
+    boxSizing: "border-box",
 
+    borderRadius: 22,
     boxShadow:
       "0 24px 70px rgba(15,23,42,.18)",
 
-    display:
-      "flex",
-
-    flexDirection:
-      "column",
-
-    gap:
-      14,
+    display: "flex",
+    flexDirection: "column",
+    gap: 14,
   },
 
   badge: {
-    alignSelf:
-      "center",
+    alignSelf: "center",
 
-    padding:
-      "6px 12px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
 
-    borderRadius:
-      999,
+    padding: "9px 16px",
 
-    fontSize:
-      12,
+    borderRadius: 999,
 
-    fontWeight:
-      800,
+    fontSize: 12.5,
+    fontWeight: 800,
+
+    letterSpacing: ".14em",
+    textTransform: "uppercase",
+
+    textShadow:
+      "0 0 8px rgba(250,204,21,.25)",
+
+    animation:
+      "securityPulse 3.6s ease-in-out infinite",
   },
 
   title: {
-    textAlign:
-      "center",
-
-    margin:
-      "4px 0 0",
-
-    fontSize:
-      24,
+    textAlign: "center",
+    margin: "4px 0 0",
+    fontSize: 24,
   },
 
   subtitle: {
-    textAlign:
-      "center",
-
-    margin:
-      0,
-
-    fontSize:
-      13,
+    textAlign: "center",
+    margin: 0,
+    fontSize: 13,
   },
 
   input: {
-    padding:
-      "13px 14px",
-
-    borderRadius:
-      12,
-
-    fontSize:
-      14,
-
-    outline:
-      "none",
+    padding: "13px 14px",
+    borderRadius: 12,
+    fontSize: 14,
+    outline: "none",
   },
 
   button: {
-    padding:
-      13,
-
-    border:
-      "none",
-
-    borderRadius:
-      12,
+    padding: 13,
+    border: "none",
+    borderRadius: 12,
 
     background:
       "linear-gradient(135deg,#4f46e5,#2563eb)",
 
-    color:
-      "#fff",
-
-    fontWeight:
-      800,
-
-    cursor:
-      "pointer",
+    color: "#fff",
+    fontWeight: 800,
+    cursor: "pointer",
   },
 
   secondaryButton: {
-    padding:
-      13,
-
-    borderRadius:
-      12,
-
-    fontWeight:
-      800,
-
-    cursor:
-      "pointer",
+    padding: 13,
+    borderRadius: 12,
+    fontWeight: 800,
+    cursor: "pointer",
   },
 };

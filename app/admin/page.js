@@ -599,17 +599,48 @@ if(memberFilter === "TRASH_INACTIVE"){
 
   return (
     <>
-        <style jsx global>{`
-        html{
-          background:#f1f5f9;
-        }
+<style jsx global>{`
+  html,
+  body {
+    margin: 0;
+    background: var(--admin-bg);
+    color: var(--admin-text);
+    color-scheme: light dark;
+  }
 
-        @media (prefers-color-scheme: dark){
-          html{
-            filter: invert(1) hue-rotate(180deg);
-          }
-        }
-      `}</style>
+  :root {
+    --admin-bg: #f1f5f9;
+    --admin-text: #0f172a;
+    --admin-card: #ffffff;
+    --admin-muted: #475569;
+    --admin-border: #e5e7eb;
+    --admin-input: #ffffff;
+    --admin-row: #f9fafb;
+    --admin-button: #e5e7eb;
+    --admin-primary: #60a5fa;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --admin-bg: #020617;
+      --admin-text: #e5e7eb;
+      --admin-card: #0f172a;
+      --admin-muted: #94a3b8;
+      --admin-border: #1e293b;
+      --admin-input: #1e293b;
+      --admin-row: #111827;
+      --admin-button: #1e293b;
+      --admin-primary: #60a5fa;
+    }
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    color-scheme: light dark;
+  }
+`}</style>
 
     <div style={styles.wrapper}>
 
@@ -1096,209 +1127,235 @@ if(memberFilter === "TRASH_INACTIVE"){
   )
 }
 
-const styles={
-
-  wrapper:{
-  width:"100%",
-  maxWidth:900,
-  margin:"0 auto",
-  padding:"20px",
-  boxSizing:"border-box",
-  overflowX:"hidden",
-  fontFamily:"system-ui",
-  background:"#f1f5f9"
+const styles = {
+  wrapper: {
+    width: "100%",
+    maxWidth: 900,
+    minHeight: "100vh",
+    margin: "0 auto",
+    padding: 20,
+    boxSizing: "border-box",
+    overflowX: "hidden",
+    fontFamily: "system-ui",
+    background: "var(--admin-bg)",
+    color: "var(--admin-text)",
   },
 
-  header:{
-  display:"flex",
-  flexDirection:"column",
-  alignItems:"flex-start",
-  gap:10,
-  marginBottom:20
+  header: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 20,
   },
 
-  title:{
-  fontSize:28,
-  fontWeight:700,
-  margin:0,
-  lineHeight:1.2
+  title: {
+    fontSize: 28,
+    fontWeight: 700,
+    margin: 0,
+    lineHeight: 1.2,
+    color: "var(--admin-text)",
   },
 
-  homeBtn:{
-    padding:"8px 12px",
-    border:"none",
-    borderRadius:8,
-    background:"#e5e7eb",
-    cursor:"pointer",
-    fontSize:14
+  homeBtn: {
+    padding: "8px 12px",
+    border: "1px solid var(--admin-border)",
+    borderRadius: 8,
+    background: "var(--admin-button)",
+    color: "var(--admin-text)",
+    cursor: "pointer",
+    fontSize: 14,
   },
 
-  tabs:{
-  display:"flex",
-  gap:10,
-  marginBottom:20,
-  flexWrap:"wrap"
+  tabs: {
+    display: "flex",
+    gap: 10,
+    marginBottom: 20,
+    flexWrap: "wrap",
   },
 
-  tab:{
-  padding:"10px 18px",
-  background:"#e5e7eb",
-  border:"none",
-  borderRadius:10,
-  cursor:"pointer",
-  flexShrink:0
+  tab: {
+    padding: "10px 18px",
+    background: "var(--admin-button)",
+    color: "var(--admin-text)",
+    border: "1px solid var(--admin-border)",
+    borderRadius: 10,
+    cursor: "pointer",
+    flexShrink: 0,
   },
 
-  tabActive:{
-  padding:"10px 18px",
-  background:"#2563eb",
-  color:"#fff",
-  border:"none",
-  borderRadius:10,
-  cursor:"pointer",
-  fontWeight:500,
-  flexShrink:0
+  tabActive: {
+    padding: "10px 18px",
+    background: "var(--admin-primary)",
+    color: "#020617",
+    border: "1px solid var(--admin-primary)",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontWeight: 600,
+    flexShrink: 0,
   },
 
-  card:{
-    background:"#ffffff",
-    padding:20,
-    borderRadius:14,
-    boxShadow:"0 2px 12px rgba(0,0,0,0.06)"
+  card: {
+    background: "var(--admin-card)",
+    color: "var(--admin-text)",
+    padding: 20,
+    borderRadius: 18,
+    border: "1px solid var(--admin-border)",
+    boxShadow: "0 10px 30px rgba(0,0,0,.18)",
   },
 
-  form:{
-    display:"grid",
-    gap:12,
-    width:"100%",
-    marginBottom:25
+  form: {
+    display: "grid",
+    gap: 14,
+    width: "100%",
+    marginBottom: 25,
   },
 
-  input:{
-    padding:"12px",
-    border:"1px solid #d1d5db",
-    borderRadius:8,
-    fontSize:15,
-    width:"100%",
-    boxSizing:"border-box"
+  input: {
+    padding: 12,
+    border: "1px solid var(--admin-border)",
+    borderRadius: 10,
+    fontSize: 15,
+    width: "100%",
+    boxSizing: "border-box",
+    background: "var(--admin-input)",
+    color: "var(--admin-text)",
+    outline: "none",
   },
 
-  btn:{
-    padding:"12px",
-    border:"none",
-    borderRadius:8,
-    background:"#2563eb",
-    color:"#fff",
-    cursor:"pointer",
-    fontSize:16,
-    fontWeight:500
+  btn: {
+    padding: 12,
+    border: "none",
+    borderRadius: 10,
+    background: "var(--admin-primary)",
+    color: "#020617",
+    cursor: "pointer",
+    fontSize: 16,
+    fontWeight: 600,
   },
 
-  btnDisabled:{
-    opacity:0.6,
-    cursor:"not-allowed"
+  btnDisabled: {
+    opacity: 0.6,
+    cursor: "not-allowed",
   },
 
-  tableWrapper:{
-    overflowX:"auto"
+  tableWrapper: {
+    width: "100%",
+    overflowX: "auto",
+    WebkitOverflowScrolling: "touch",
   },
 
-  table:{
-    width:"100%",
-    borderCollapse:"collapse",
-    minWidth:500,
-    tableLayout:"auto"
+  table: {
+    width: "100%",
+    borderCollapse: "collapse",
+    minWidth: 620,
+    tableLayout: "auto",
+    color: "var(--admin-text)",
+    background: "var(--admin-card)",
   },
 
-  th:{
-    textAlign:"center",
-    verticalAlign:"middle",
-    padding:"10px",
-    borderBottom:"2px solid #e5e7eb",
-    whiteSpace:"nowrap"
+  th: {
+    textAlign: "center",
+    verticalAlign: "middle",
+    padding: "14px 12px",
+    whiteSpace: "nowrap",
+    background: "var(--admin-row)",
+    color: "var(--admin-text)",
+    borderBottom: "2px solid var(--admin-border)",
   },
 
-  td:{
-    textAlign:"center",
-    verticalAlign:"middle",
-    padding:"10px",
-    borderBottom:"1px solid #f1f5f9",
-    whiteSpace:"nowrap"
+  td: {
+    textAlign: "center",
+    verticalAlign: "middle",
+    padding: "12px",
+    borderBottom: "1px solid var(--admin-border)",
+    whiteSpace: "nowrap",
+    color: "var(--admin-text)",
+    background: "transparent",
   },
 
-  rowAlt:{
-    background:"#f9fafb"
+  rowAlt: {
+    background: "var(--admin-row)",
   },
 
-  rowInactive:{
-    background:"#fee2e2",
-    color:"#991b1b",
-    fontWeight:500
+  rowInactive: {
+    background: "#7f1d1d",
+    color: "#fecaca",
+    fontWeight: 500,
   },
 
-  houseList:{
-    display:"grid",
-    gridTemplateColumns:"repeat(3,1fr)",
-    gap:8,
-    marginTop:10
+  houseList: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: 14,
+    marginTop: 14,
   },
 
-  checkbox:{
-    display:"flex",
-    gap:6,
-    alignItems:"center"
+  checkbox: {
+    display: "grid",
+    gridTemplateColumns: "22px 1fr",
+    alignItems: "center",
+    justifyContent: "start",
+    gap: 10,
+    minHeight: 44,
+    color: "var(--admin-text)",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    fontSize: 15,
   },
 
-  msg:{
-    background:"#dcfce7",
-    padding:10,
-    borderRadius:6,
-    marginBottom:20
+  msg: {
+    background: "#dcfce7",
+    color: "#166534",
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 20,
   },
 
-  summary:{
-    marginBottom:12,
-    fontSize:14,
-    color:"#475569"
+  summary: {
+    marginBottom: 12,
+    fontSize: 14,
+    color: "var(--admin-muted)",
   },
 
-  summaryHeader:{
-  display:"flex",
-  justifyContent:"space-between",
-  alignItems:"center",
-  marginBottom:16
+  summaryHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
   },
 
   summaryGrid: {
-  display: "grid",
-  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-  gap: 8,
-  fontSize: 14,
-  color: "#475569",
-  marginBottom: 16
-},
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 8,
+    fontSize: 14,
+    color: "var(--admin-muted)",
+    marginBottom: 16,
+  },
 
-summaryCards: {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-  gap: 10,
-  marginBottom: 16
-},
+  summaryCards: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
+    gap: 10,
+    marginBottom: 16,
+  },
 
-summaryCard: {
-  padding: 12,
-  borderRadius: 10,
-  background: "#f8fafc",
-  border: "1px solid #e2e8f0",
-  textAlign: "center",
-  cursor:"pointer",
-  transition:"0.15s ease"
-},
+  summaryCard: {
+    padding: 12,
+    borderRadius: 10,
+    background: "var(--admin-row)",
+    color: "var(--admin-text)",
+    border: "1px solid var(--admin-border)",
+    textAlign: "center",
+    cursor: "pointer",
+    transition: "0.15s ease",
+  },
 
-summaryCardActive:{
-  background:"#2563eb",
-  color:"#fff",
-  border:"1px solid #2563eb",
-  cursor:"pointer"
-}
-}
+  summaryCardActive: {
+    background: "var(--admin-primary)",
+    color: "#020617",
+    border: "1px solid var(--admin-primary)",
+    cursor: "pointer",
+  },
+};

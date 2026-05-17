@@ -24,13 +24,16 @@ export default function CashflowPage() {
   const [modalType, setModalType] = useState("last");
 
   const FETCH_URL = "/api/sheets/summary";
-  const perPagePay = 9;
+  const perPagePay = 16;
   const perPageInsight = 6;
   const chunk = 20;
 
   const router = useRouter();
   const downloadPDF = () => {
      router.push("/report");
+  };
+  const goToLogin = () => {
+    router.push("/login");
   };
 
   /* ==== INIT & FETCH ==== */
@@ -177,12 +180,13 @@ export default function CashflowPage() {
       </div>
     )}
 
-      <h2>Uang Kas Amarta Residence (Blok E)</h2>
+      <h1>Uang Kas Amarta Residence (Blok E)</h1>
 
       <div className="tab">
         <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Status Pembayaran</button>
         <button className={activeTab === "cashflow" ? "active" : ""} onClick={() => setActiveTab("cashflow")}>Arus Kas</button>
         <button className={activeTab === "insight" ? "active" : ""} onClick={() => setActiveTab("insight")}>Laporan</button>
+        <button onClick={() => router.push("/login")}>Login</button>
       </div>
 
       {/* PAYMENT TAB */}
