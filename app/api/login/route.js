@@ -5,17 +5,17 @@ import {
 } from "@/lib/webauth";
 
 function createAuthResponse() {
-  const csrfToken = createCSRFToken();
+  const csrfToken =
+    createCSRFToken();
 
-  const res = NextResponse.json({
-    ok: true,
-  });
+  const res =
+    NextResponse.json({
+      ok: true,
+    });
 
   res.cookies.set("admin", "true", {
     httpOnly: true,
-    secure:
-      process.env.NODE_ENV ===
-      "production",
+    secure: true,
     sameSite: "strict",
     path: "/",
     maxAge: 60 * 60 * 24,
@@ -26,9 +26,7 @@ function createAuthResponse() {
     csrfToken,
     {
       httpOnly: false,
-      secure:
-        process.env.NODE_ENV ===
-        "production",
+      secure: true,
       sameSite: "strict",
       path: "/",
       maxAge: 60 * 60 * 24,
@@ -40,19 +38,10 @@ function createAuthResponse() {
 
 export async function POST(req) {
   try {
-    const { password, pin } =
-      await req.json();
-
-    if (!password) {
-      return NextResponse.json(
-        {
-          error: "Password wajib diisi",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
+    const {
+      password,
+      pin,
+    } = await req.json();
 
     if (
       password !==
@@ -60,7 +49,8 @@ export async function POST(req) {
     ) {
       return NextResponse.json(
         {
-          error: "Password salah",
+          error:
+            "Password salah",
         },
         {
           status: 401,
@@ -71,27 +61,31 @@ export async function POST(req) {
     const {
       webAuthEnabled,
       pinEnabled,
-    } = await getAuthConfigs();
+    } =
+      await getAuthConfigs();
 
-    if (webAuthEnabled) {
-      return NextResponse.json({
-        need_webauth: true,
-      });
-    }
+    /*
+      STEP 1
+      PIN
+    */
 
     if (pinEnabled) {
       if (!pin) {
         return NextResponse.json({
           need_pin: true,
+          need_webauth:
+            false,
         });
       }
 
       if (
-        pin !== process.env.ADMIN_PIN
+        pin !==
+        process.env.ADMIN_PIN
       ) {
         return NextResponse.json(
           {
-            error: "PIN salah",
+            error:
+              "PIN salah",
           },
           {
             status: 401,
@@ -100,7 +94,25 @@ export async function POST(req) {
       }
     }
 
+    /*
+      STEP 2
+      WEBAUTH
+    */
+
+    if (webAuthEnabled) {
+      return NextResponse.json({
+        need_webauth:
+          true,
+      });
+    }
+
+    /*
+      STEP 3
+      LOGIN
+    */
+
     return createAuthResponse();
+
   } catch (err) {
     return NextResponse.json(
       {
