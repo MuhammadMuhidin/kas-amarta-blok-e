@@ -21,7 +21,7 @@ export async function GET() {
       await generateRegistrationOptions({
         rpName,
         rpID,
-        userID: "admin",
+        userID: Buffer.from("admin"),
         userName: "admin",
         attestationType: "none",
         authenticatorSelection: {
