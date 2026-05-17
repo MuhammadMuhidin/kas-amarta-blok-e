@@ -94,32 +94,45 @@ export default function AdminPage() {
     }
   }, [])
 
-  async function addMember(e) {
-    e.preventDefault()
-    setLoadingAdd(true)
-    try {
-      const csrfToken = getCookie("csrf_token");
-      const res = await fetch("/api/sheets/personal", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": csrfToken,
-        },
-        body: JSON.stringify(member),
+async function addMember(e) {
+  e.preventDefault();
+
+  setLoadingAdd(true);
+
+  try {
+    const csrfToken = getCookie("csrf_token");
+
+    const res = await fetch("/api/sheets/personal", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-csrf-token": csrfToken,
+      },
+      body: JSON.stringify(member),
+    });
+
+    if (res.ok) {
+      setMsg("Member added successfully");
+
+      setMember({
+        house: "",
+        name: "",
+        join_date: "",
+        trash: "",
       });
 
-      if (res.ok) {
-        setMsg("Member added successfully")
-        setMember({ house: "", name: "", join_date: "", trash: "" })
-        loadPersonal()
-      } else {
-        setMsg("Failed to add member")
-      }
-    } declare {
-      setLoadingAdd(false)
-      setTimeout(() => setMsg(""), 3000)
+      loadPersonal();
+    } else {
+      setMsg("Failed to add member");
     }
+  } finally {
+    setLoadingAdd(false);
+
+    setTimeout(() => {
+      setMsg("");
+    }, 3000);
   }
+}
 
   function toggleHouse(id) {
     if (selected.includes(id)) {
