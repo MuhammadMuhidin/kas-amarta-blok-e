@@ -1231,6 +1231,11 @@ if(memberFilter === "TRASH_INACTIVE"){
   </div>
 )}
 
+
+</div>
+  </>
+)
+}
 const styles={
 
   wrapper:{
