@@ -1,5 +1,6 @@
 "use client"
 
+import AdminSettings from "@/components/AdminSettings"
 import { useState,useEffect,useMemo} from "react"
 import { useRouter } from "next/navigation"
 
@@ -664,6 +665,13 @@ if(memberFilter === "TRASH_INACTIVE"){
   Monitoring
 </button>
 
+<button
+  style={tab==="settings"?styles.tabActive:styles.tab}
+  onClick={()=>setTab("settings")}
+>
+  Settings
+</button>
+
       </div>
 
       {tab==="personal" && (
@@ -1077,6 +1085,10 @@ if(memberFilter === "TRASH_INACTIVE"){
       </div>
     )}
   </div>
+)}
+
+{tab==="settings" && (
+  <AdminSettings />
 )}
 
     </div>
