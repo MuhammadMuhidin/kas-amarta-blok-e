@@ -6,6 +6,20 @@ export const dynamic = "force-dynamic"
 
 const spreadsheetId = process.env.SPREADSHEET_ID
 
+function verifyCSRF(req) {
+  const csrfCookie =
+    req.cookies.get("csrf_token")?.value;
+
+  const csrfHeader =
+    req.headers.get("x-csrf-token");
+
+  return (
+    csrfCookie &&
+    csrfHeader &&
+    csrfCookie === csrfHeader
+  );
+}
+
 export async function GET(){
 
   const sheets = await getSheets()
@@ -37,6 +51,14 @@ export async function POST(req){
 
   const id = generateId()
 
+  // verification CSRF
+  if (!verifyCSRF(req)) {
+    return Response.json(
+      { error: "Invalid CSRF" },
+      { status: 403 }
+    );
+  }
+  
   await sheets.spreadsheets.values.append({
     spreadsheetId,
     range:"personal!A:F",

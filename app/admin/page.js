@@ -39,6 +39,13 @@ export default function AdminPage(){
   const [loadingPayment,setLoadingPayment] = useState(false)
   const [loadingCashflow,setLoadingCashflow] = useState(false)
 
+  function getCookie(name) {
+    return document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(name + "="))
+      ?.split("=")[1];
+  }
+
   async function loadPersonal(){
 
     const res = await fetch("/api/sheets/personal", {
@@ -89,11 +96,14 @@ async function addMember(e){
 
   try{
 
-    const res = await fetch("/api/sheets/personal",{
-      method:"POST",
-      headers:{ "Content-Type":"application/json" },
-      body:JSON.stringify(member)
-    })
+  const res = await fetch("/api/sheets/personal",{
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-csrf-token": csrfToken,
+    },
+    body: JSON.stringify(member),
+  });
 
     if(res.ok){
 
@@ -158,14 +168,17 @@ async function recordPayment(e){
       const p = personal.find(x=>x.id===id)
 
       const res = await fetch("/api/sheets/payment",{
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({
-          house:p.house,
-          period:payment.period,
-          amount:payment.amount
-        })
-      })
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+          body:JSON.stringify({
+            house:p.house,
+            period:payment.period,
+            amount:payment.amount
+          })
+        })  
 
       if(res.ok){
 
@@ -177,7 +190,10 @@ async function recordPayment(e){
 
           await fetch("/api/sheets/trash",{
             method:"POST",
-            headers:{ "Content-Type":"application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "x-csrf-token": csrfToken,
+            },
             body:JSON.stringify({
               payment_id:paymentData.payment_id,
               amount:payment.amount
@@ -217,7 +233,10 @@ async function addCashflow(e){
 
     const res = await fetch("/api/sheets/cashflow",{
       method:"POST",
-      headers:{ "Content-Type":"application/json" },
+      headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+      },
       body:JSON.stringify(cashflow)
     })
 
