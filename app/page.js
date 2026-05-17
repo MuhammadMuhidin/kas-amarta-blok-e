@@ -180,7 +180,7 @@ export default function CashflowPage() {
       </div>
     )}
 
-      <h1>Uang Kas Amarta Residence (Blok E)</h1>
+      <h2>Uang Kas Amarta Residence (Blok E)</h2>
 
       <div className="tab">
         <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Status Pembayaran</button>
