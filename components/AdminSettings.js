@@ -192,18 +192,19 @@ function SettingRow({
 
 const styles = {
   card: {
-    background: "#fff",
+    background: "var(--admin-card)",
+    color: "var(--admin-text)",
     borderRadius: 18,
     padding: 20,
     boxShadow:
-      "0 10px 30px rgba(15,23,42,.08)",
-    border: "1px solid #e2e8f0",
+      "0 10px 30px rgba(0,0,0,.18)",
+    border: "1px solid var(--admin-border)",
   },
 
   title: {
     margin: "0 0 18px",
     fontSize: 20,
-    color: "#0f172a",
+    color: "var(--admin-text)",
   },
 
   row: {
@@ -212,24 +213,26 @@ const styles = {
     alignItems: "center",
     gap: 16,
     padding: "16px 0",
-    borderTop: "1px solid #e2e8f0",
+    borderTop:
+      "1px solid var(--admin-border)",
   },
 
   rowTitle: {
     margin: 0,
     fontSize: 15,
-    color: "#0f172a",
+    color: "var(--admin-text)",
   },
 
   desc: {
     margin: "6px 0 0",
     fontSize: 13,
-    color: "#64748b",
+    color: "var(--admin-muted)",
     lineHeight: 1.5,
   },
 
   switch: {
     cursor: "pointer",
+    flexShrink: 0,
   },
 
   slider: {
