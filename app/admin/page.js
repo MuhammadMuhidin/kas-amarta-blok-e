@@ -1133,7 +1133,7 @@ const styles = {
     maxWidth: 900,
     minHeight: "100vh",
     margin: "0 auto",
-    padding: "20px",
+    padding: 20,
     boxSizing: "border-box",
     overflowX: "hidden",
     fontFamily: "system-ui",
@@ -1199,33 +1199,34 @@ const styles = {
     background: "var(--admin-card)",
     color: "var(--admin-text)",
     padding: 20,
-    borderRadius: 14,
+    borderRadius: 18,
     border: "1px solid var(--admin-border)",
-    boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
+    boxShadow: "0 10px 30px rgba(0,0,0,.18)",
   },
 
   form: {
     display: "grid",
-    gap: 12,
+    gap: 14,
     width: "100%",
     marginBottom: 25,
   },
 
   input: {
-    padding: "12px",
+    padding: 12,
     border: "1px solid var(--admin-border)",
-    borderRadius: 8,
+    borderRadius: 10,
     fontSize: 15,
     width: "100%",
     boxSizing: "border-box",
     background: "var(--admin-input)",
     color: "var(--admin-text)",
+    outline: "none",
   },
 
   btn: {
-    padding: "12px",
+    padding: 12,
     border: "none",
-    borderRadius: 8,
+    borderRadius: 10,
     background: "var(--admin-primary)",
     color: "#020617",
     cursor: "pointer",
@@ -1239,33 +1240,38 @@ const styles = {
   },
 
   tableWrapper: {
+    width: "100%",
     overflowX: "auto",
+    WebkitOverflowScrolling: "touch",
   },
 
   table: {
     width: "100%",
     borderCollapse: "collapse",
-    minWidth: 500,
+    minWidth: 620,
     tableLayout: "auto",
     color: "var(--admin-text)",
+    background: "var(--admin-card)",
   },
 
   th: {
     textAlign: "center",
     verticalAlign: "middle",
-    padding: "10px",
-    borderBottom: "2px solid var(--admin-border)",
+    padding: "14px 12px",
     whiteSpace: "nowrap",
+    background: "var(--admin-row)",
     color: "var(--admin-text)",
+    borderBottom: "2px solid var(--admin-border)",
   },
 
   td: {
     textAlign: "center",
     verticalAlign: "middle",
-    padding: "10px",
+    padding: "12px",
     borderBottom: "1px solid var(--admin-border)",
     whiteSpace: "nowrap",
     color: "var(--admin-text)",
+    background: "transparent",
   },
 
   rowAlt: {
@@ -1280,23 +1286,29 @@ const styles = {
 
   houseList: {
     display: "grid",
-    gridTemplateColumns: "repeat(3,1fr)",
-    gap: 8,
-    marginTop: 10,
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: 14,
+    marginTop: 14,
   },
 
   checkbox: {
-    display: "flex",
-    gap: 6,
+    display: "grid",
+    gridTemplateColumns: "22px 1fr",
     alignItems: "center",
+    justifyContent: "start",
+    gap: 10,
+    minHeight: 44,
     color: "var(--admin-text)",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    fontSize: 15,
   },
 
   msg: {
     background: "#dcfce7",
     color: "#166534",
     padding: 10,
-    borderRadius: 6,
+    borderRadius: 8,
     marginBottom: 20,
   },
 
