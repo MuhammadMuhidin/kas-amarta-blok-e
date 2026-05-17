@@ -466,7 +466,7 @@ export default function Login() {
                   : "#0f172a",
             }}
           >
-            Admin Login
+            Administrator Login
           </h2>
 
           <p
