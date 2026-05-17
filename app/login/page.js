@@ -98,7 +98,6 @@ export default function Login() {
         "Password wajib diisi",
         "warning"
       );
-
       return;
     }
 
@@ -110,7 +109,6 @@ export default function Login() {
         "PIN wajib diisi",
         "warning"
       );
-
       return;
     }
 
@@ -366,6 +364,18 @@ export default function Login() {
 
   return (
     <>
+      <style jsx global>{`
+        @keyframes securityPulse {
+          0%, 100% {
+            opacity: .82;
+          }
+
+          50% {
+            opacity: 1;
+          }
+        }
+      `}</style>
+
       <Toast
         {...toast}
       />
@@ -419,16 +429,33 @@ export default function Login() {
 
               background:
                 isDark
-                  ? "#1e1b4b"
-                  : "#eef2ff",
+                  ? "#111827"
+                  : "#ffffff",
 
               color:
                 isDark
-                  ? "#c7d2fe"
-                  : "#4f46e5",
+                  ? "#e5e7eb"
+                  : "#0f172a",
+
+              border: `1px solid ${
+                isDark
+                  ? "#334155"
+                  : "#cbd5e1"
+              }`,
+
+              boxShadow:
+                isDark
+                  ? "0 0 12px rgba(96,165,250,.12)"
+                  : "0 2px 8px rgba(15,23,42,.06)",
             }}
           >
-            Admin Security
+            <span
+              style={
+                styles.badgeBar
+              }
+            />
+
+            Authorized Access Only
           </div>
 
           <h2
@@ -573,58 +600,115 @@ export default function Login() {
 }
 
 const styles = {
-wrapper: {
-  position: "fixed",
-  inset: 0,
+  wrapper: {
+    position: "fixed",
+    inset: 0,
 
-  width: "100vw",
-  height: "100dvh",
+    width: "100vw",
+    height: "100dvh",
 
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
 
-  padding: 20,
-  boxSizing: "border-box",
+    padding: 20,
 
-  overflow: "hidden",
+    boxSizing:
+      "border-box",
 
-  fontFamily: "system-ui",
-},
+    overflow:
+      "hidden",
 
-card: {
-  width: "100%",
-  maxWidth: 360,
+    fontFamily:
+      "system-ui",
+  },
 
-  maxHeight: "calc(100dvh - 40px)",
-  overflow: "hidden",
+  card: {
+    width: "100%",
+    maxWidth: 360,
 
-  padding: 28,
-  boxSizing: "border-box",
+    maxHeight:
+      "calc(100dvh - 40px)",
 
-  borderRadius: 22,
-  boxShadow: "0 24px 70px rgba(15,23,42,.18)",
+    overflow:
+      "hidden",
 
-  display: "flex",
-  flexDirection: "column",
-  gap: 14,
-},
+    padding: 28,
+
+    boxSizing:
+      "border-box",
+
+    borderRadius: 22,
+
+    boxShadow:
+      "0 24px 70px rgba(15,23,42,.18)",
+
+    display: "flex",
+
+    flexDirection:
+      "column",
+
+    gap: 14,
+  },
 
   badge: {
     alignSelf:
       "center",
 
+    position:
+      "relative",
+
+    display:
+      "inline-flex",
+
+    alignItems:
+      "center",
+
+    justifyContent:
+      "center",
+
     padding:
-      "6px 12px",
+      "8px 14px 8px 18px",
 
     borderRadius:
       999,
 
+    overflow:
+      "hidden",
+
+    letterSpacing:
+      ".08em",
+
+    textTransform:
+      "uppercase",
+
     fontSize:
-      12,
+      12.5,
 
     fontWeight:
       800,
+
+    animation:
+      "securityPulse 2.8s ease-in-out infinite",
+  },
+
+  badgeBar: {
+    position:
+      "absolute",
+
+    left: 0,
+
+    top: "20%",
+
+    width: 3,
+
+    height: "60%",
+
+    borderRadius:
+      999,
+
+    background:
+      "#60a5fa",
   },
 
   title: {
@@ -642,8 +726,7 @@ card: {
     textAlign:
       "center",
 
-    margin:
-      0,
+    margin: 0,
 
     fontSize:
       13,
@@ -664,8 +747,7 @@ card: {
   },
 
   button: {
-    padding:
-      13,
+    padding: 13,
 
     border:
       "none",
@@ -687,8 +769,7 @@ card: {
   },
 
   secondaryButton: {
-    padding:
-      13,
+    padding: 13,
 
     borderRadius:
       12,
