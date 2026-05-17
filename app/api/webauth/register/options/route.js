@@ -2,17 +2,18 @@ import { NextResponse } from "next/server";
 import {
   generateRegistrationOptions,
 } from "@simplewebauthn/server";
+
 import {
   getActiveCredential,
   getWebAuthConfig,
 } from "@/lib/webauth";
 
+export const runtime = "nodejs";
+
 export async function GET() {
   try {
-    const {
-      rpName,
-      rpID,
-    } = getWebAuthConfig();
+    const { rpName, rpID } =
+      getWebAuthConfig();
 
     const activeCredential =
       await getActiveCredential();
@@ -21,20 +22,38 @@ export async function GET() {
       await generateRegistrationOptions({
         rpName,
         rpID,
-        userID: Buffer.from("admin"),
-        userName: "admin",
-        attestationType: "none",
+
+        userID:
+          Buffer.from("admin"),
+
+        userName:
+          "admin",
+
+        userDisplayName:
+          "Admin",
+
+        attestationType:
+          "none",
+
+        supportedAlgorithmIDs:
+          [-7, -257],
+
         authenticatorSelection: {
-          residentKey: "preferred",
-          userVerification: "required",
+          residentKey:
+            "preferred",
+          userVerification:
+            "required",
         },
+
         excludeCredentials:
           activeCredential
             ? [
                 {
                   id:
-                    activeCredential.credential_id,
-                  type: "public-key",
+                    activeCredential
+                      .credential_id,
+                  type:
+                    "public-key",
                 },
               ]
             : [],
