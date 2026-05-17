@@ -368,16 +368,33 @@ export default function Login() {
     <>
       <style jsx global>{`
         @keyframes securityPulse {
-          0%,
-          100% {
-            opacity: .72;
-            transform: scale(.985);
+
+          0%,100%{
+            opacity:.82;
+
+            transform:
+              scale(.985);
+
+            filter:
+              drop-shadow(
+                0 0 0px
+                rgba(250,204,21,0)
+              );
           }
 
-          50% {
-            opacity: 1;
-            transform: scale(1);
+          50%{
+            opacity:1;
+
+            transform:
+              scale(1);
+
+            filter:
+              drop-shadow(
+                0 0 10px
+                rgba(250,204,21,.45)
+              );
           }
+
         }
       `}</style>
 
@@ -438,9 +455,7 @@ export default function Login() {
                   : "rgba(255,255,255,.92)",
 
               color:
-                isDark
-                  ? "#e5e7eb"
-                  : "#0f172a",
+                "#facc15",
 
               border: `1px solid ${
                 isDark
@@ -450,8 +465,8 @@ export default function Login() {
 
               boxShadow:
                 isDark
-                  ? "0 0 16px rgba(96,165,250,.18)"
-                  : "0 4px 18px rgba(15,23,42,.08)",
+                  ? "0 0 16px rgba(250,204,21,.14)"
+                  : "0 4px 18px rgba(250,204,21,.10)",
             }}
           >
             Authorized Access Only
@@ -624,6 +639,7 @@ const styles = {
 
     maxHeight:
       "calc(100dvh - 40px)",
+
     overflow: "hidden",
 
     padding: 28,
@@ -655,11 +671,11 @@ const styles = {
     letterSpacing: ".14em",
     textTransform: "uppercase",
 
-    animation:
-      "securityPulse 2.2s ease-in-out infinite",
-
     textShadow:
-      "0 0 10px rgba(96,165,250,.18)",
+      "0 0 8px rgba(250,204,21,.25)",
+
+    animation:
+      "securityPulse 1.8s ease-in-out infinite",
   },
 
   title: {
