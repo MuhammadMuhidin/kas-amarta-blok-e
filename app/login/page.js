@@ -1,14 +1,3 @@
-Berikut full code final app/login/page.js dengan:
-
-✓ Auto dark mode (ikut system)
-✓ Password
-✓ Optional PIN
-✓ Optional Passkey
-✓ Toast
-✓ Confirm modal
-✓ Tidak pakai invert hack
-✓ Theme change realtime
-
 "use client";
 
 import {
