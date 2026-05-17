@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation"
 export default function AdminPage(){
 
   const router = useRouter()
+  const [isDark,setIsDark] = useState(false)
   const [tab,setTab] = useState("personal")
   const [personal,setPersonal] = useState([])
 
@@ -82,12 +83,40 @@ export default function AdminPage(){
   setTrashRecords(data || [])
   }
 
-  useEffect(()=>{
-    loadPersonal()
-    loadSummaryBackup()
-    loadPayment()
-    loadTrash()
-  },[])
+useEffect(()=>{
+
+  const media =
+    window.matchMedia(
+      "(prefers-color-scheme: dark)"
+    )
+
+  const syncTheme = () =>
+    setIsDark(
+      media.matches
+    )
+
+  syncTheme()
+
+  media.addEventListener(
+    "change",
+    syncTheme
+  )
+
+  loadPersonal()
+  loadSummaryBackup()
+  loadPayment()
+  loadTrash()
+
+  return ()=>{
+
+    media.removeEventListener(
+      "change",
+      syncTheme
+    )
+
+  }
+
+},[])
 
 async function addMember(e){
 
@@ -599,20 +628,16 @@ if(memberFilter === "TRASH_INACTIVE"){
 
   return (
     <>
-        <style jsx global>{`
-        html{
-          background:#f1f5f9;
-        }
+<div
+  style={{
+    ...styles.wrapper,
 
-        @media (prefers-color-scheme: dark){
-          html{
-            filter: invert(1) hue-rotate(180deg);
-          }
-        }
-      `}</style>
-
-    <div style={styles.wrapper}>
-
+    background:
+      isDark
+        ? "#020617"
+        : "#f1f5f9",
+  }}
+>
       <div style={styles.header}>
 
         <button
@@ -622,7 +647,16 @@ if(memberFilter === "TRASH_INACTIVE"){
           « Home
         </button>
 
-        <h1 style={styles.title}>Cash Flow Management</h1>
+<h1
+  style={{
+    ...styles.title,
+
+    color:
+      isDark
+        ? "#f8fafc"
+        : "#0f172a",
+  }}
+>Cash Flow Management</h1>
 
       </div>
 
@@ -676,7 +710,24 @@ if(memberFilter === "TRASH_INACTIVE"){
 
       {tab==="personal" && (
 
-        <div style={styles.card}>
+        <div style={{
+  ...styles.card,
+
+  background:
+    isDark
+      ? "#111827"
+      : "#ffffff",
+
+  color:
+    isDark
+      ? "#f8fafc"
+      : "#0f172a",
+
+  border:
+    isDark
+      ? "1px solid #334155"
+      : "none",
+}}>
 
           <h3>Add Personal</h3>
 
@@ -840,7 +891,24 @@ if(memberFilter === "TRASH_INACTIVE"){
 
       {tab==="payment" && (
 
-        <div style={styles.card}>
+<div style={{
+  ...styles.card,
+
+  background:
+    isDark
+      ? "#111827"
+      : "#ffffff",
+
+  color:
+    isDark
+      ? "#f8fafc"
+      : "#0f172a",
+
+  border:
+    isDark
+      ? "1px solid #334155"
+      : "none",
+}}>
 
           <h3>Bulk Payment</h3>
 
@@ -901,7 +969,24 @@ if(memberFilter === "TRASH_INACTIVE"){
 
       {tab==="cashflow" && (
 
-        <div style={styles.card}>
+<div style={{
+  ...styles.card,
+
+  background:
+    isDark
+      ? "#111827"
+      : "#ffffff",
+
+  color:
+    isDark
+      ? "#f8fafc"
+      : "#0f172a",
+
+  border:
+    isDark
+      ? "1px solid #334155"
+      : "none",
+}}>
 
           <h3>Cashflow</h3>
 
@@ -949,7 +1034,24 @@ if(memberFilter === "TRASH_INACTIVE"){
 
       {tab==="summary" && (
 
-      <div style={styles.card}>
+<div style={{
+  ...styles.card,
+
+  background:
+    isDark
+      ? "#111827"
+      : "#ffffff",
+
+  color:
+    isDark
+      ? "#f8fafc"
+      : "#0f172a",
+
+  border:
+    isDark
+      ? "1px solid #334155"
+      : "none",
+}}>
     
         <div style={styles.summaryHeader}>
           <h3>Summary Backup</h3>
@@ -1019,7 +1121,24 @@ if(memberFilter === "TRASH_INACTIVE"){
     )}
 
 {tab === "monitoring" && (
-  <div style={styles.card}>
+<div style={{
+  ...styles.card,
+
+  background:
+    isDark
+      ? "#111827"
+      : "#ffffff",
+
+  color:
+    isDark
+      ? "#f8fafc"
+      : "#0f172a",
+
+  border:
+    isDark
+      ? "1px solid #334155"
+      : "none",
+}}>
     <h3>Trash Payment Integrity Check</h3>
 
     {/* Summary */}
@@ -1088,13 +1207,29 @@ if(memberFilter === "TRASH_INACTIVE"){
 )}
 
 {tab==="settings" && (
-  <AdminSettings />
-)}
+  <div
+    style={{
+      ...styles.card,
 
-    </div>
-  </>
-  )
-}
+      background:
+        isDark
+          ? "#111827"
+          : "#ffffff",
+
+      color:
+        isDark
+          ? "#f8fafc"
+          : "#0f172a",
+
+      border:
+        isDark
+          ? "1px solid #334155"
+          : "none",
+    }}
+  >
+    <AdminSettings isDark={isDark} />
+  </div>
+)}
 
 const styles={
 
