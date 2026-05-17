@@ -75,10 +75,10 @@ body {
 /* ===== HEADINGS ===== */
 
 h1 {
-  margin: 0 0 16px;
+  margin: 0 0 24px;
   font-size: var(--font-large);
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1.15;
   letter-spacing: -0.03em;
   color: var(--text);
 }
@@ -616,7 +616,8 @@ th {
   }
 
   h1 {
-    margin-bottom: 12px;
+    margin-bottom: 18px;
+    line-height: 1.15;
   }
 
   h2 {
