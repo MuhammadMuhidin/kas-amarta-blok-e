@@ -2,13 +2,13 @@ import { NextResponse } from "next/server";
 import {
   verifyRegistrationResponse,
 } from "@simplewebauthn/server";
-import {
-  isoBase64URL,
-} from "@simplewebauthn/server/helpers";
+
 import {
   getWebAuthConfig,
   saveCredential,
 } from "@/lib/webauth";
+
+export const runtime = "nodejs";
 
 export async function POST(req) {
   try {
@@ -32,10 +32,8 @@ export async function POST(req) {
       );
     }
 
-    const {
-      rpID,
-      origin,
-    } = getWebAuthConfig();
+    const { rpID, origin } =
+      getWebAuthConfig();
 
     const verification =
       await verifyRegistrationResponse({
@@ -58,13 +56,16 @@ export async function POST(req) {
       );
     }
 
-    const info =
-      verification.registrationInfo;
+    const credential =
+      verification.registrationInfo
+        ?.credential;
 
     if (
-      !info ||
-      !info.credentialID ||
-      !info.credentialPublicKey
+      !credential ||
+      !credential.id ||
+      !credential.publicKey ||
+      typeof credential.counter !==
+        "number"
     ) {
       return NextResponse.json(
         {
@@ -79,14 +80,15 @@ export async function POST(req) {
 
     await saveCredential({
       credentialId:
-        isoBase64URL.fromBuffer(
-          info.credentialID
-        ),
+        credential.id,
+
       publicKey:
-        isoBase64URL.fromBuffer(
-          info.credentialPublicKey
-        ),
-      counter: info.counter,
+        Buffer.from(
+          credential.publicKey
+        ).toString("base64url"),
+
+      counter:
+        credential.counter,
     });
 
     const res =
