@@ -119,16 +119,27 @@ export default function Login() {
         return;
       }
 
-      if (data.need_pin) {
-        setNeedPin(true);
+if (data.need_pin) {
+  setNeedPin(true);
 
-        notify(
-          "Masukkan PIN admin",
-          "info"
-        );
+  notify(
+    "Masukkan PIN admin",
+    "info"
+  );
 
-        return;
-      }
+  return;
+}
+
+if (data.need_webauth) {
+  notify(
+    "Verifikasi passkey diperlukan",
+    "info"
+  );
+
+  await loginWithWebAuth();
+
+  return;
+}
 
       notify(
         "Login berhasil",
