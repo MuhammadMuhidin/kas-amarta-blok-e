@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
 import {
   createCSRFToken,
-  isWebAuthEnabled,
+  getAuthConfigs,
 } from "@/lib/webauth";
 
 function createAuthResponse() {
-  const csrfToken =
-    createCSRFToken();
+  const csrfToken = createCSRFToken();
 
-  const res =
-    NextResponse.json({
-      ok: true,
-    });
+  const res = NextResponse.json({
+    ok: true,
+  });
 
   res.cookies.set("admin", "true", {
     httpOnly: true,
-    secure: true,
+    secure:
+      process.env.NODE_ENV ===
+      "production",
     sameSite: "strict",
     path: "/",
     maxAge: 60 * 60 * 24,
@@ -26,7 +26,9 @@ function createAuthResponse() {
     csrfToken,
     {
       httpOnly: false,
-      secure: true,
+      secure:
+        process.env.NODE_ENV ===
+        "production",
       sameSite: "strict",
       path: "/",
       maxAge: 60 * 60 * 24,
@@ -38,7 +40,7 @@ function createAuthResponse() {
 
 export async function POST(req) {
   try {
-    const { password } =
+    const { password, pin } =
       await req.json();
 
     if (!password) {
@@ -66,13 +68,36 @@ export async function POST(req) {
       );
     }
 
-    const enabled =
-      await isWebAuthEnabled();
+    const {
+      webAuthEnabled,
+      pinEnabled,
+    } = await getAuthConfigs();
 
-    if (enabled) {
+    if (webAuthEnabled) {
       return NextResponse.json({
         need_webauth: true,
       });
+    }
+
+    if (pinEnabled) {
+      if (!pin) {
+        return NextResponse.json({
+          need_pin: true,
+        });
+      }
+
+      if (
+        pin !== process.env.ADMIN_PIN
+      ) {
+        return NextResponse.json(
+          {
+            error: "PIN salah",
+          },
+          {
+            status: 401,
+          }
+        );
+      }
     }
 
     return createAuthResponse();
