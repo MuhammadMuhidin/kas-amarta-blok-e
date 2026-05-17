@@ -15,8 +15,7 @@ function createAuthResponse() {
 
   res.cookies.set("admin", "true", {
     httpOnly: true,
-    secure:
-      process.env.NODE_ENV === "production",
+    secure: true,
     sameSite: "strict",
     path: "/",
     maxAge: 60 * 60 * 24,
@@ -27,9 +26,7 @@ function createAuthResponse() {
     csrfToken,
     {
       httpOnly: false,
-      secure:
-        process.env.NODE_ENV ===
-        "production",
+      secure: true,
       sameSite: "strict",
       path: "/",
       maxAge: 60 * 60 * 24,
