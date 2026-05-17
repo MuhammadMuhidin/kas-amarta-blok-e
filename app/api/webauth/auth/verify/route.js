@@ -147,9 +147,7 @@ export async function POST(req) {
     );
   }
 }      httpOnly: false,
-      secure:
-        process.env.NODE_ENV ===
-        "production",
+      secure: true,
       sameSite: "strict",
       path: "/",
       maxAge: 60 * 60 * 24,
