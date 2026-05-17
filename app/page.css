@@ -21,10 +21,10 @@
   --success: #16a34a;
   --danger: #dc2626;
 
-  --btn-download-border: #2563eb;
-  --btn-primary: #2563eb;
-  --btn-text: #ffffff;
-
+  --btn-download-border: #000000;
+  --btn-primary: #ffffff;
+  --btn-text: #000000;
+  
   --shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
   --shadow-soft: 0 3px 10px rgba(15, 23, 42, 0.05);
 }
@@ -42,9 +42,9 @@
 
     --primary: #60a5fa;
 
-    --btn-download-border: #60a5fa;
-    --btn-primary: #60a5fa;
-    --btn-text: #020617;
+    --btn-download-border: #ffffff;
+    --btn-primary: #000000;
+    --btn-text: #ffffff;
 
     --shadow: 0 14px 32px rgba(0, 0, 0, 0.32);
     --shadow-soft: 0 6px 16px rgba(0, 0, 0, 0.22);
