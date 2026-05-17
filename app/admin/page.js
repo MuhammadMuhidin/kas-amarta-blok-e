@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation"
 export default function AdminPage(){
 
   const router = useRouter()
-  const [isDark,setIsDark] = useState(false)
   const [tab,setTab] = useState("personal")
   const [personal,setPersonal] = useState([])
 
@@ -40,9 +39,6 @@ export default function AdminPage(){
   const [loadingAdd,setLoadingAdd] = useState(false)
   const [loadingPayment,setLoadingPayment] = useState(false)
   const [loadingCashflow,setLoadingCashflow] = useState(false)
-
-  // SINKRONISASI STYLES DENGAN STATE DARK MODE
-  const styles = useMemo(() => getStyles(isDark), [isDark])
 
   function getCookie(name) {
     return document.cookie
@@ -86,40 +82,12 @@ export default function AdminPage(){
   setTrashRecords(data || [])
   }
 
-useEffect(()=>{
-
-  const media =
-    window.matchMedia(
-      "(prefers-color-scheme: dark)"
-    )
-
-  const syncTheme = () =>
-    setIsDark(
-      media.matches
-    )
-
-  syncTheme()
-
-  media.addEventListener(
-    "change",
-    syncTheme
-  )
-
-  loadPersonal()
-  loadSummaryBackup()
-  loadPayment()
-  loadTrash()
-
-  return ()=>{
-
-    media.removeEventListener(
-      "change",
-      syncTheme
-    )
-
-  }
-
-},[])
+  useEffect(()=>{
+    loadPersonal()
+    loadSummaryBackup()
+    loadPayment()
+    loadTrash()
+  },[])
 
 async function addMember(e){
 
@@ -631,16 +599,20 @@ if(memberFilter === "TRASH_INACTIVE"){
 
   return (
     <>
-<div
-  style={{
-    ...styles.wrapper,
+        <style jsx global>{`
+        html{
+          background:#f1f5f9;
+        }
 
-    background:
-      isDark
-        ? "#020617"
-        : "#f1f5f9",
-  }}
->
+        @media (prefers-color-scheme: dark){
+          html{
+            filter: invert(1) hue-rotate(180deg);
+          }
+        }
+      `}</style>
+
+    <div style={styles.wrapper}>
+
       <div style={styles.header}>
 
         <button
@@ -650,16 +622,7 @@ if(memberFilter === "TRASH_INACTIVE"){
           « Home
         </button>
 
-<h1
-  style={{
-    ...styles.title,
-
-    color:
-      isDark
-        ? "#f8fafc"
-        : "#0f172a",
-  }}
->Cash Flow Management</h1>
+        <h1 style={styles.title}>Cash Flow Management</h1>
 
       </div>
 
@@ -713,24 +676,7 @@ if(memberFilter === "TRASH_INACTIVE"){
 
       {tab==="personal" && (
 
-        <div style={{
-  ...styles.card,
-
-  background:
-    isDark
-      ? "#111827"
-      : "#ffffff",
-
-  color:
-    isDark
-      ? "#f8fafc"
-      : "#0f172a",
-
-  border:
-    isDark
-      ? "1px solid #334155"
-      : "none",
-}}>
+        <div style={styles.card}>
 
           <h3>Add Personal</h3>
 
@@ -755,9 +701,9 @@ if(memberFilter === "TRASH_INACTIVE"){
               value={member.trash}
               onChange={e=>setMember({...member,trash:e.target.value})}
             >
-              <option value="" style={{color: isDark ? "#fff" : "#000"}}>Join trash collection?</option>
-              <option value="Y" style={{color: isDark ? "#fff" : "#000"}}>Yes</option>  
-              <option value="N" style={{color: isDark ? "#fff" : "#000"}}>No</option>
+              <option value="">Join trash collection?</option>
+              <option value="Y">Yes</option>  
+              <option value="N">No</option>
             </select>
 
             <input
@@ -894,24 +840,7 @@ if(memberFilter === "TRASH_INACTIVE"){
 
       {tab==="payment" && (
 
-<div style={{
-  ...styles.card,
-
-  background:
-    isDark
-      ? "#111827"
-      : "#ffffff",
-
-  color:
-    isDark
-      ? "#f8fafc"
-      : "#0f172a",
-
-  border:
-    isDark
-      ? "1px solid #334155"
-      : "none",
-}}>
+        <div style={styles.card}>
 
           <h3>Bulk Payment</h3>
 
@@ -972,24 +901,7 @@ if(memberFilter === "TRASH_INACTIVE"){
 
       {tab==="cashflow" && (
 
-<div style={{
-  ...styles.card,
-
-  background:
-    isDark
-      ? "#111827"
-      : "#ffffff",
-
-  color:
-    isDark
-      ? "#f8fafc"
-      : "#0f172a",
-
-  border:
-    isDark
-      ? "1px solid #334155"
-      : "none",
-}}>
+        <div style={styles.card}>
 
           <h3>Cashflow</h3>
 
@@ -1000,9 +912,9 @@ if(memberFilter === "TRASH_INACTIVE"){
               value={cashflow.type}
               onChange={e=>setCashflow({...cashflow,type:e.target.value})}
             >
-              <option value="" style={{color: isDark ? "#fff" : "#000"}}>Type</option>
-              <option value="income" style={{color: isDark ? "#fff" : "#000"}}>Income</option>
-              <option value="expense" style={{color: isDark ? "#fff" : "#000"}}>Expense</option>
+              <option value="">Type</option>
+              <option value="income">Income</option>
+              <option value="expense">Expense</option>
             </select>
 
             <input
@@ -1037,24 +949,7 @@ if(memberFilter === "TRASH_INACTIVE"){
 
       {tab==="summary" && (
 
-<div style={{
-  ...styles.card,
-
-  background:
-    isDark
-      ? "#111827"
-      : "#ffffff",
-
-  color:
-    isDark
-      ? "#f8fafc"
-      : "#0f172a",
-
-  border:
-    isDark
-      ? "1px solid #334155"
-      : "none",
-}}>
+      <div style={styles.card}>
     
         <div style={styles.summaryHeader}>
           <h3>Summary Backup</h3>
@@ -1124,24 +1019,7 @@ if(memberFilter === "TRASH_INACTIVE"){
     )}
 
 {tab === "monitoring" && (
-<div style={{
-  ...styles.card,
-
-  background:
-    isDark
-      ? "#111827"
-      : "#ffffff",
-
-  color:
-    isDark
-      ? "#f8fafc"
-      : "#0f172a",
-
-  border:
-    isDark
-      ? "1px solid #334155"
-      : "none",
-}}>
+  <div style={styles.card}>
     <h3>Trash Payment Integrity Check</h3>
 
     {/* Summary */}
@@ -1154,7 +1032,17 @@ if(memberFilter === "TRASH_INACTIVE"){
 
     {/* Empty */}
     {trashMismatch.length === 0 ? (
-      <div style={styles.alertSuccess}>
+      <div
+        style={{
+          padding: 16,
+          background: "#ecfdf5",
+          border: "1px solid #10b981",
+          borderRadius: 10,
+          color: "#065f46",
+          fontWeight: 500,
+          textAlign: "center",
+        }}
+      >
         Tidak ada issue
       </div>
     ) : (
@@ -1181,7 +1069,13 @@ if(memberFilter === "TRASH_INACTIVE"){
 
       <td style={styles.td}>{x.period}</td>
 
-      <td style={styles.tdIssue}>
+      <td
+        style={{
+          ...styles.td,
+          color: "#991b1b",
+          fontWeight: 600,
+        }}
+      >
         {x.detail}
       </td>
     </tr>
@@ -1194,38 +1088,15 @@ if(memberFilter === "TRASH_INACTIVE"){
 )}
 
 {tab==="settings" && (
-  <div
-    style={{
-      ...styles.card,
-
-      background:
-        isDark
-          ? "#111827"
-          : "#ffffff",
-
-      color:
-        isDark
-          ? "#f8fafc"
-          : "#0f172a",
-
-      border:
-        isDark
-          ? "1px solid #334155"
-          : "none",
-    }}
-  >
-    <AdminSettings isDark={isDark} />
-  </div>
+  <AdminSettings />
 )}
 
-
-</div>
+    </div>
   </>
-)
+  )
 }
 
-// FUNGSI STYLES YANG MENERIMA PARAMETER ISDARK UNTUK KONSISTENSI TOTAL
-const getStyles = (isDark) => ({
+const styles={
 
   wrapper:{
   width:"100%",
@@ -1235,7 +1106,7 @@ const getStyles = (isDark) => ({
   boxSizing:"border-box",
   overflowX:"hidden",
   fontFamily:"system-ui",
-  background: isDark ? "#020617" : "#f1f5f9"
+  background:"#f1f5f9"
   },
 
   header:{
@@ -1257,8 +1128,7 @@ const getStyles = (isDark) => ({
     padding:"8px 12px",
     border:"none",
     borderRadius:8,
-    background: isDark ? "#1e293b" : "#e5e7eb",
-    color: isDark ? "#f8fafc" : "#0f172a",
+    background:"#e5e7eb",
     cursor:"pointer",
     fontSize:14
   },
@@ -1272,8 +1142,7 @@ const getStyles = (isDark) => ({
 
   tab:{
   padding:"10px 18px",
-  background: isDark ? "#1e293b" : "#e5e7eb",
-  color: isDark ? "#cbd5e1" : "#0f172a",
+  background:"#e5e7eb",
   border:"none",
   borderRadius:10,
   cursor:"pointer",
@@ -1292,10 +1161,10 @@ const getStyles = (isDark) => ({
   },
 
   card:{
-    background: isDark ? "#111827" : "#ffffff",
+    background:"#ffffff",
     padding:20,
     borderRadius:14,
-    boxShadow: isDark ? "0 4px 20px rgba(0,0,0,0.3)" : "0 2px 12px rgba(0,0,0,0.06)"
+    boxShadow:"0 2px 12px rgba(0,0,0,0.06)"
   },
 
   form:{
@@ -1307,9 +1176,7 @@ const getStyles = (isDark) => ({
 
   input:{
     padding:"12px",
-    border: isDark ? "1px solid #4b5563" : "1px solid #d1d5db",
-    background: isDark ? "#1f2937" : "#ffffff",
-    color: isDark ? "#f8fafc" : "#0f172a",
+    border:"1px solid #d1d5db",
     borderRadius:8,
     fontSize:15,
     width:"100%",
@@ -1347,8 +1214,7 @@ const getStyles = (isDark) => ({
     textAlign:"center",
     verticalAlign:"middle",
     padding:"10px",
-    borderBottom: isDark ? "2px solid #4b5563" : "2px solid #e5e7eb",
-    color: isDark ? "#94a3b8" : "#475569",
+    borderBottom:"2px solid #e5e7eb",
     whiteSpace:"nowrap"
   },
 
@@ -1356,27 +1222,17 @@ const getStyles = (isDark) => ({
     textAlign:"center",
     verticalAlign:"middle",
     padding:"10px",
-    borderBottom: isDark ? "1px solid #374151" : "1px solid #f1f5f9",
+    borderBottom:"1px solid #f1f5f9",
     whiteSpace:"nowrap"
   },
 
-  tdIssue: {
-    textAlign:"center",
-    verticalAlign:"middle",
-    padding:"10px",
-    borderBottom: isDark ? "1px solid #374151" : "1px solid #f1f5f9",
-    whiteSpace:"nowrap",
-    color: isDark ? "#f87171" : "#991b1b",
-    fontWeight: 600,
-  },
-
   rowAlt:{
-    background: isDark ? "#1f2937" : "#f9fafb"
+    background:"#f9fafb"
   },
 
   rowInactive:{
-    background: isDark ? "#7f1d1d" : "#fee2e2",
-    color: isDark ? "#fecaca" : "#991b1b",
+    background:"#fee2e2",
+    color:"#991b1b",
     fontWeight:500
   },
 
@@ -1394,27 +1250,16 @@ const getStyles = (isDark) => ({
   },
 
   msg:{
-    background: isDark ? "#064e3b" : "#dcfce7",
-    color: isDark ? "#6ee7b7" : "#15803d",
+    background:"#dcfce7",
     padding:10,
     borderRadius:6,
     marginBottom:20
   },
 
-  alertSuccess: {
-    padding: 16,
-    background: isDark ? "#064e3b" : "#ecfdf5",
-    border: isDark ? "1px solid #059669" : "1px solid #10b981",
-    borderRadius: 10,
-    color: isDark ? "#a7f3d0" : "#065f46",
-    fontWeight: 500,
-    textAlign: "center",
-  },
-
   summary:{
     marginBottom:12,
     fontSize:14,
-    color: isDark ? "#94a3b8" : "#475569"
+    color:"#475569"
   },
 
   summaryHeader:{
@@ -1429,7 +1274,7 @@ const getStyles = (isDark) => ({
   gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
   gap: 8,
   fontSize: 14,
-  color: isDark ? "#94a3b8" : "#475569",
+  color: "#475569",
   marginBottom: 16
 },
 
@@ -1443,9 +1288,8 @@ summaryCards: {
 summaryCard: {
   padding: 12,
   borderRadius: 10,
-  background: isDark ? "#1f2937" : "#f8fafc",
-  border: isDark ? "1px solid #374151" : "1px solid #e2e8f0",
-  color: isDark ? "#f8fafc" : "#0f172a",
+  background: "#f8fafc",
+  border: "1px solid #e2e8f0",
   textAlign: "center",
   cursor:"pointer",
   transition:"0.15s ease"
@@ -1457,4 +1301,4 @@ summaryCardActive:{
   border:"1px solid #2563eb",
   cursor:"pointer"
 }
-})
+}
