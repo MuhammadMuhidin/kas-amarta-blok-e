@@ -91,9 +91,7 @@ export default function Login() {
   async function submit(e) {
     e.preventDefault();
 
-    if (loading) {
-      return;
-    }
+    if (loading) return;
 
     if (!password.trim()) {
       notify(
@@ -154,10 +152,6 @@ export default function Login() {
         return;
       }
 
-      /*
-        PIN
-      */
-
       if (data.need_pin) {
         setNeedPin(true);
 
@@ -169,13 +163,7 @@ export default function Login() {
         return;
       }
 
-      /*
-        WEBAUTH
-      */
-
-      if (
-        data.need_webauth
-      ) {
+      if (data.need_webauth) {
         notify(
           "Verifikasi passkey diperlukan",
           "info"
@@ -186,10 +174,6 @@ export default function Login() {
         return;
       }
 
-      /*
-        SUCCESS
-      */
-
       notify(
         "Login berhasil",
         "success"
@@ -198,21 +182,16 @@ export default function Login() {
       router.push(
         "/admin"
       );
-
     } catch (err) {
-
       notify(
         err.message ||
           "Login gagal",
         "error"
       );
-
     } finally {
-
       setLoading(
         false
       );
-
     }
   }
 
@@ -226,9 +205,7 @@ export default function Login() {
       const options =
         await optionsRes.json();
 
-      if (
-        !optionsRes.ok
-      ) {
+      if (!optionsRes.ok) {
         notify(
           options.error ||
             "Passkey belum siap",
@@ -265,9 +242,7 @@ export default function Login() {
       const verifyData =
         await verifyRes.json();
 
-      if (
-        !verifyRes.ok
-      ) {
+      if (!verifyRes.ok) {
         notify(
           verifyData.error ||
             "Verifikasi passkey gagal",
@@ -285,22 +260,17 @@ export default function Login() {
       router.push(
         "/admin"
       );
-
     } catch (err) {
-
       notify(
         err.message ||
           "Passkey dibatalkan",
         "error"
       );
-
     }
   }
 
   function registerWebAuth() {
-    if (loading) {
-      return;
-    }
+    if (loading) return;
 
     setConfirmOpen(
       true
@@ -330,11 +300,10 @@ export default function Login() {
       const options =
         await optionsRes.json();
 
-      if (
-        !optionsRes.ok
-      ) {
+      if (!optionsRes.ok) {
         notify(
-          options.error,
+          options.error ||
+            "Gagal menyiapkan passkey",
           "error"
         );
 
@@ -368,11 +337,10 @@ export default function Login() {
       const verifyData =
         await verifyRes.json();
 
-      if (
-        !verifyRes.ok
-      ) {
+      if (!verifyRes.ok) {
         notify(
-          verifyData.error,
+          verifyData.error ||
+            "Register passkey gagal",
           "error"
         );
 
@@ -383,21 +351,16 @@ export default function Login() {
         "Passkey berhasil didaftarkan",
         "success"
       );
-
     } catch (err) {
-
       notify(
         err.message ||
           "Register dibatalkan",
         "error"
       );
-
     } finally {
-
       setLoading(
         false
       );
-
     }
   }
 
@@ -408,9 +371,8 @@ export default function Login() {
       />
 
       <ConfirmModal
-        open={
-          confirmOpen
-        }
+        open={confirmOpen}
+        isDark={isDark}
         title="Daftarkan passkey baru?"
         message="Credential lama akan diganti."
         confirmText="Daftarkan"
@@ -436,9 +398,7 @@ export default function Login() {
         }}
       >
         <form
-          onSubmit={
-            submit
-          }
+          onSubmit={submit}
           style={{
             ...styles.card,
 
@@ -454,9 +414,19 @@ export default function Login() {
           }}
         >
           <div
-            style={
-              styles.badge
-            }
+            style={{
+              ...styles.badge,
+
+              background:
+                isDark
+                  ? "#1e1b4b"
+                  : "#eef2ff",
+
+              color:
+                isDark
+                  ? "#c7d2fe"
+                  : "#4f46e5",
+            }}
           >
             Admin Security
           </div>
@@ -484,23 +454,16 @@ export default function Login() {
                   : "#64748b",
             }}
           >
-            Password,
-            PIN,
-            Passkey
+            Password, PIN, Passkey
           </p>
 
           <input
             type="password"
             placeholder="Password"
-            value={
-              password
-            }
-            onChange={(
-              e
-            ) =>
+            value={password}
+            onChange={(e) =>
               setPassword(
-                e.target
-                  .value
+                e.target.value
               )
             }
             style={{
@@ -527,16 +490,10 @@ export default function Login() {
             <input
               type="password"
               placeholder="PIN Admin"
-              value={
-                pin
-              }
-              onChange={(
-                e
-              ) =>
+              value={pin}
+              onChange={(e) =>
                 setPin(
-                  e
-                    .target
-                    .value
+                  e.target.value
                 )
               }
               style={{
@@ -562,9 +519,7 @@ export default function Login() {
 
           <button
             type="submit"
-            disabled={
-              loading
-            }
+            disabled={loading}
             style={{
               ...styles.button,
 
@@ -583,15 +538,31 @@ export default function Login() {
 
           <button
             type="button"
-            disabled={
-              loading
-            }
-            onClick={
-              registerWebAuth
-            }
-            style={
-              styles.secondaryButton
-            }
+            disabled={loading}
+            onClick={registerWebAuth}
+            style={{
+              ...styles.secondaryButton,
+
+              color:
+                isDark
+                  ? "#fff"
+                  : "#0f172a",
+
+              border:
+                isDark
+                  ? "1px solid #334155"
+                  : "1px solid #cbd5e1",
+
+              background:
+                isDark
+                  ? "#1e293b"
+                  : "transparent",
+
+              opacity:
+                loading
+                  ? 0.75
+                  : 1,
+            }}
           >
             Register Passkey
           </button>
@@ -657,12 +628,6 @@ const styles = {
 
     borderRadius:
       999,
-
-    background:
-      "#eef2ff",
-
-    color:
-      "#4f46e5",
 
     fontSize:
       12,
@@ -730,24 +695,17 @@ const styles = {
       "pointer",
   },
 
-  secondaryButton:
-    {
-      padding:
-        13,
+  secondaryButton: {
+    padding:
+      13,
 
-      borderRadius:
-        12,
+    borderRadius:
+      12,
 
-      border:
-        "1px solid #cbd5e1",
+    fontWeight:
+      800,
 
-      background:
-        "transparent",
-
-      fontWeight:
-        800,
-
-      cursor:
-        "pointer",
-    },
+    cursor:
+      "pointer",
+  },
 };
