@@ -32,6 +32,9 @@ export default function CashflowPage() {
   const downloadPDF = () => {
      router.push("/report");
   };
+  const goToLogin = () => {
+    router.push("/login");
+  };
 
   /* ==== INIT & FETCH ==== */
   useEffect(() => {
@@ -183,6 +186,7 @@ export default function CashflowPage() {
         <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")}>Status Pembayaran</button>
         <button className={activeTab === "cashflow" ? "active" : ""} onClick={() => setActiveTab("cashflow")}>Arus Kas</button>
         <button className={activeTab === "insight" ? "active" : ""} onClick={() => setActiveTab("insight")}>Laporan</button>
+        <button onClick={() => router.push("/login")}>Login</button>
       </div>
 
       {/* PAYMENT TAB */}
