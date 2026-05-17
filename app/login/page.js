@@ -573,51 +573,42 @@ export default function Login() {
 }
 
 const styles = {
-  wrapper: {
-    minHeight:
-      "100vh",
+wrapper: {
+  position: "fixed",
+  inset: 0,
 
-    display:
-      "flex",
+  width: "100vw",
+  height: "100dvh",
 
-    justifyContent:
-      "center",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
 
-    alignItems:
-      "center",
+  padding: 20,
+  boxSizing: "border-box",
 
-    padding:
-      20,
+  overflow: "hidden",
 
-    fontFamily:
-      "system-ui",
-  },
+  fontFamily: "system-ui",
+},
 
-  card: {
-    width:
-      "100%",
+card: {
+  width: "100%",
+  maxWidth: 360,
 
-    maxWidth:
-      360,
+  maxHeight: "calc(100dvh - 40px)",
+  overflow: "hidden",
 
-    padding:
-      28,
+  padding: 28,
+  boxSizing: "border-box",
 
-    borderRadius:
-      22,
+  borderRadius: 22,
+  boxShadow: "0 24px 70px rgba(15,23,42,.18)",
 
-    boxShadow:
-      "0 24px 70px rgba(15,23,42,.18)",
-
-    display:
-      "flex",
-
-    flexDirection:
-      "column",
-
-    gap:
-      14,
-  },
+  display: "flex",
+  flexDirection: "column",
+  gap: 14,
+},
 
   badge: {
     alignSelf:
