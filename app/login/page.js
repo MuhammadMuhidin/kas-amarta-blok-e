@@ -367,35 +367,19 @@ export default function Login() {
   return (
     <>
       <style jsx global>{`
-        @keyframes securityPulse {
+@keyframes securityPulse {
+  0%,100%{
+    opacity:.9;
+    transform:scale(.995);
+    filter:drop-shadow(0 0 0 rgba(250,204,21,0));
+  }
 
-          0%,100%{
-            opacity:.82;
-
-            transform:
-              scale(.985);
-
-            filter:
-              drop-shadow(
-                0 0 0px
-                rgba(250,204,21,0)
-              );
-          }
-
-          50%{
-            opacity:1;
-
-            transform:
-              scale(1);
-
-            filter:
-              drop-shadow(
-                0 0 10px
-                rgba(250,204,21,.45)
-              );
-          }
-
-        }
+  50%{
+    opacity:1;
+    transform:scale(1);
+    filter:drop-shadow(0 0 6px rgba(250,204,21,.28));
+  }
+}
       `}</style>
 
       <Toast
@@ -675,7 +659,7 @@ const styles = {
       "0 0 8px rgba(250,204,21,.25)",
 
     animation:
-      "securityPulse 1.8s ease-in-out infinite",
+      "securityPulse 3.6s ease-in-out infinite",
   },
 
   title: {
