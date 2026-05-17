@@ -20,7 +20,7 @@
     "@react-pdf-viewer/core": "^3.12.0",
     "pdfjs-dist": "3.4.120",
 
-    "@simplewebauthn/server": "^10.0.1",
-    "@simplewebauthn/browser": "^10.0.1"
+    "@simplewebauthn/server": "^13.3.0",
+    "@simplewebauthn/browser": "^13.3.0"
   }
 }
