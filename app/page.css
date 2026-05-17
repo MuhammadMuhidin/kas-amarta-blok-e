@@ -466,14 +466,19 @@ th {
   max-height: 85vh;
 
   overflow-y: auto;
+  overflow-x: auto;
+
   padding: 18px;
 
   border-radius: 18px;
 
   background: var(--surface);
+
   border: 1px solid var(--border);
 
   box-shadow: var(--shadow);
+
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-header {
@@ -491,16 +496,26 @@ th {
 }
 
 .detail-table {
+.detail-table {
   width: 100%;
+
+  min-width: 520px;
+
   margin-top: 10px;
+
   border-collapse: collapse;
+
+  white-space: nowrap;
 }
 
 .detail-table th,
 .detail-table td {
-  padding: 10px;
+  padding: 10px 12px;
+
   border: 1px solid var(--border);
+
   text-align: left;
+
   font-size: var(--font-base);
 }
 
@@ -669,6 +684,15 @@ th {
 
   .pagination {
     margin-top: 12px;
+  }
+
+  .modal-box{
+    padding:14px;
+  }
+
+  .detail-table{
+    min-width:460px;
+    margin-right:14px;
   }
 }
 
