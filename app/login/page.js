@@ -98,6 +98,7 @@ export default function Login() {
         "Password wajib diisi",
         "warning"
       );
+
       return;
     }
 
@@ -109,6 +110,7 @@ export default function Login() {
         "PIN wajib diisi",
         "warning"
       );
+
       return;
     }
 
@@ -366,12 +368,15 @@ export default function Login() {
     <>
       <style jsx global>{`
         @keyframes securityPulse {
-          0%, 100% {
-            opacity: .82;
+          0%,
+          100% {
+            opacity: .72;
+            transform: scale(.985);
           }
 
           50% {
             opacity: 1;
+            transform: scale(1);
           }
         }
       `}</style>
@@ -429,8 +434,8 @@ export default function Login() {
 
               background:
                 isDark
-                  ? "#111827"
-                  : "#ffffff",
+                  ? "rgba(15,23,42,.92)"
+                  : "rgba(255,255,255,.92)",
 
               color:
                 isDark
@@ -445,16 +450,10 @@ export default function Login() {
 
               boxShadow:
                 isDark
-                  ? "0 0 12px rgba(96,165,250,.12)"
-                  : "0 2px 8px rgba(15,23,42,.06)",
+                  ? "0 0 16px rgba(96,165,250,.18)"
+                  : "0 4px 18px rgba(15,23,42,.08)",
             }}
           >
-            <span
-              style={
-                styles.badgeBar
-              }
-            />
-
             Authorized Access Only
           </div>
 
@@ -612,15 +611,11 @@ const styles = {
     alignItems: "center",
 
     padding: 20,
+    boxSizing: "border-box",
 
-    boxSizing:
-      "border-box",
+    overflow: "hidden",
 
-    overflow:
-      "hidden",
-
-    fontFamily:
-      "system-ui",
+    fontFamily: "system-ui",
   },
 
   card: {
@@ -629,155 +624,80 @@ const styles = {
 
     maxHeight:
       "calc(100dvh - 40px)",
-
-    overflow:
-      "hidden",
+    overflow: "hidden",
 
     padding: 28,
-
-    boxSizing:
-      "border-box",
+    boxSizing: "border-box",
 
     borderRadius: 22,
-
     boxShadow:
       "0 24px 70px rgba(15,23,42,.18)",
 
     display: "flex",
-
-    flexDirection:
-      "column",
-
+    flexDirection: "column",
     gap: 14,
   },
 
   badge: {
-    alignSelf:
-      "center",
+    alignSelf: "center",
 
-    position:
-      "relative",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
 
-    display:
-      "inline-flex",
+    padding: "9px 16px",
 
-    alignItems:
-      "center",
+    borderRadius: 999,
 
-    justifyContent:
-      "center",
+    fontSize: 12.5,
+    fontWeight: 800,
 
-    padding:
-      "8px 14px 8px 18px",
-
-    borderRadius:
-      999,
-
-    overflow:
-      "hidden",
-
-    letterSpacing:
-      ".08em",
-
-    textTransform:
-      "uppercase",
-
-    fontSize:
-      12.5,
-
-    fontWeight:
-      800,
+    letterSpacing: ".14em",
+    textTransform: "uppercase",
 
     animation:
-      "securityPulse 2.8s ease-in-out infinite",
-  },
+      "securityPulse 2.2s ease-in-out infinite",
 
-  badgeBar: {
-    position:
-      "absolute",
-
-    left: 0,
-
-    top: "20%",
-
-    width: 3,
-
-    height: "60%",
-
-    borderRadius:
-      999,
-
-    background:
-      "#60a5fa",
+    textShadow:
+      "0 0 10px rgba(96,165,250,.18)",
   },
 
   title: {
-    textAlign:
-      "center",
-
-    margin:
-      "4px 0 0",
-
-    fontSize:
-      24,
+    textAlign: "center",
+    margin: "4px 0 0",
+    fontSize: 24,
   },
 
   subtitle: {
-    textAlign:
-      "center",
-
+    textAlign: "center",
     margin: 0,
-
-    fontSize:
-      13,
+    fontSize: 13,
   },
 
   input: {
-    padding:
-      "13px 14px",
-
-    borderRadius:
-      12,
-
-    fontSize:
-      14,
-
-    outline:
-      "none",
+    padding: "13px 14px",
+    borderRadius: 12,
+    fontSize: 14,
+    outline: "none",
   },
 
   button: {
     padding: 13,
-
-    border:
-      "none",
-
-    borderRadius:
-      12,
+    border: "none",
+    borderRadius: 12,
 
     background:
       "linear-gradient(135deg,#4f46e5,#2563eb)",
 
-    color:
-      "#fff",
-
-    fontWeight:
-      800,
-
-    cursor:
-      "pointer",
+    color: "#fff",
+    fontWeight: 800,
+    cursor: "pointer",
   },
 
   secondaryButton: {
     padding: 13,
-
-    borderRadius:
-      12,
-
-    fontWeight:
-      800,
-
-    cursor:
-      "pointer",
+    borderRadius: 12,
+    fontWeight: 800,
+    cursor: "pointer",
   },
 };
