@@ -120,7 +120,7 @@ export default function AdminSettings() {
 
       <SettingRow
         title="PIN Login"
-        description="Jika aktif, login wajib memasukkan PIN setelah password. Tidak berlaku jika WebAuth aktif."
+        description="Jika aktif, login wajib memasukkan PIN setelah password. PIN diminta setelah password. Jika WebAuth juga aktif, passkey tetap diminta setelah PIN."
         checked={config.pinEnabled}
         disabled={saving}
         onChange={(value) =>
