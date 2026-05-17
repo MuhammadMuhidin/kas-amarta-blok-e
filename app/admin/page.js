@@ -46,6 +46,8 @@ export default function AdminPage(){
       ?.split("=")[1];
   }
 
+  const csrfToken = getCookie("csrf_token");
+
   async function loadPersonal(){
 
     const res = await fetch("/api/sheets/personal", {
