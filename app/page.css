@@ -1,8 +1,8 @@
 :root {
   color-scheme: light dark;
 
-  --font-base: clamp(13px, 1.35vw, 15px);
-  --font-small: clamp(11px, 1.1vw, 13px);
+  --font-base: clamp(13.5px, 1.35vw, 15px);
+  --font-small: clamp(12px, 1.15vw, 13.5px);
   --font-large: clamp(22px, 5vw, 34px);
 
   --radius: 14px;
@@ -110,13 +110,11 @@ h2 {
   background: var(--surface);
   color: var(--text);
 
-  font-size: 13px;
+  font-size: var(--font-base);
   font-weight: 700;
 
   cursor: pointer;
-
   box-shadow: var(--shadow-soft);
-
   transition: 0.18s ease;
 }
 
@@ -187,8 +185,9 @@ select {
 }
 
 .pay-item span {
-  font-size: 13px;
-  line-height: 1.25;
+  font-size: var(--font-base);
+  line-height: 1.3;
+  font-weight: 500;
 }
 
 /* ===== SUMMARY ===== */
@@ -208,7 +207,7 @@ select {
 
   gap: 3px;
 
-  min-height: 64px;
+  min-height: 66px;
   padding: 9px 6px;
 
   border-radius: 12px;
@@ -222,13 +221,13 @@ select {
 
 .summary-label {
   color: var(--muted);
-  font-size: 10.5px;
-  font-weight: 700;
-  line-height: 1.25;
+  font-size: var(--font-base);
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 .summary-value {
-  font-size: 13.5px;
+  font-size: var(--font-base);
   font-weight: 800;
   line-height: 1.2;
 }
@@ -274,6 +273,7 @@ td {
   padding: 11px 12px;
   text-align: left;
   border-bottom: 1px solid var(--border);
+  font-size: var(--font-base);
 }
 
 th {
@@ -309,12 +309,10 @@ th {
   min-height: 28px;
 
   padding: 3px 8px;
-
   border-radius: 999px;
 
   color: white;
-
-  font-size: 11.5px;
+  font-size: var(--font-small);
   font-weight: 700;
 }
 
@@ -344,6 +342,7 @@ th {
 .insight-card {
   padding: 12px 14px;
   margin-bottom: 10px;
+  font-size: var(--font-base);
 }
 
 .insight-row,
@@ -368,13 +367,13 @@ th {
 
 .insight-row span,
 .insight-row-final span {
-  font-size: 13px;
+  font-size: var(--font-base);
   line-height: 1.35;
 }
 
 .insight-row strong,
 .insight-row-final strong {
-  font-size: 14px;
+  font-size: var(--font-base);
   font-weight: 800;
   white-space: nowrap;
 }
@@ -384,7 +383,7 @@ th {
   align-items: center;
   justify-content: flex-end;
   gap: 7px;
-  min-width: 165px;
+  min-width: 170px;
 }
 
 .insight-link {
@@ -392,8 +391,8 @@ th {
   background: none;
   color: var(--primary);
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-base);
+  font-weight: 700;
   padding: 0;
   white-space: nowrap;
 }
@@ -421,7 +420,6 @@ th {
   align-items: center;
 
   gap: 10px;
-
   margin-top: 14px;
 }
 
@@ -435,12 +433,13 @@ th {
   background: var(--surface);
   color: var(--text);
 
+  font-size: var(--font-base);
   font-weight: 700;
   cursor: pointer;
 }
 
 .pagination span {
-  font-size: 13px;
+  font-size: var(--font-base);
   font-weight: 700;
 }
 
@@ -467,7 +466,6 @@ th {
   max-height: 85vh;
 
   overflow-y: auto;
-
   padding: 18px;
 
   border-radius: 18px;
@@ -489,6 +487,7 @@ th {
 
 .modal-section {
   margin-bottom: 18px;
+  font-size: var(--font-base);
 }
 
 .detail-table {
@@ -502,6 +501,7 @@ th {
   padding: 10px;
   border: 1px solid var(--border);
   text-align: left;
+  font-size: var(--font-base);
 }
 
 .detail-table th {
@@ -535,7 +535,6 @@ th {
 
 .loader-card {
   min-width: 220px;
-
   padding: 18px 22px;
 
   border-radius: 16px;
@@ -574,7 +573,7 @@ th {
 }
 
 .loader-text {
-  font-size: 13px;
+  font-size: var(--font-base);
   font-weight: 700;
 }
 
@@ -619,7 +618,6 @@ th {
 
   .tab button {
     min-height: 40px;
-    font-size: 12.5px;
     border-radius: 10px;
   }
 
@@ -636,11 +634,7 @@ th {
 
   .pay-item {
     padding: 9px 10px;
-    min-height: 44px;
-  }
-
-  .pay-item span {
-    font-size: 12px;
+    min-height: 46px;
   }
 
   .summary {
@@ -649,16 +643,8 @@ th {
   }
 
   .summary-item {
-    min-height: 58px;
+    min-height: 62px;
     padding: 7px 4px;
-  }
-
-  .summary-label {
-    font-size: 9.5px;
-  }
-
-  .summary-value {
-    font-size: 11.5px;
   }
 
   .insight-summary {
@@ -672,27 +658,13 @@ th {
     padding: 8px 0;
   }
 
-  .insight-row span,
-  .insight-row-final span {
-    font-size: 12px;
-  }
-
-  .insight-row strong,
-  .insight-row-final strong {
-    font-size: 12.5px;
-  }
-
   .insight-action {
-    min-width: 138px;
+    min-width: 148px;
     gap: 6px;
   }
 
-  .insight-link {
-    font-size: 11px;
-  }
-
   .final-balance strong {
-    font-size: 17px;
+    font-size: 18px;
   }
 
   .pagination {
@@ -705,11 +677,7 @@ th {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .summary-value {
-    font-size: 10.5px;
-  }
-
   .insight-action {
-    min-width: 128px;
+    min-width: 138px;
   }
-  }
+}
