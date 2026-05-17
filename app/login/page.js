@@ -6,26 +6,70 @@ import { useRouter } from "next/navigation"
 export default function Login(){
 
   const router = useRouter()
-  const [password,setPassword] = useState("")
+
+  const [step,setStep] =
+    useState("password")
+
+  const [password,setPassword] =
+    useState("")
+
+  const [pin,setPin] =
+    useState("")
 
   async function submit(e){
+
     e.preventDefault()
 
-    const res = await fetch("/api/login",{
-      method:"POST",
-      body:JSON.stringify({password})
-    })
+    const payload =
+      step === "password"
+        ? { password }
+        : { pin }
 
-    if(res.ok){
-      router.push("/admin")
-    }else{
-      alert("Password salah")
+    const res = await fetch(
+      "/api/login",
+      {
+        method:"POST",
+
+        headers:{
+          "Content-Type":
+            "application/json"
+        },
+
+        body:JSON.stringify(
+          payload
+        )
+      }
+    )
+
+    const data =
+      await res.json()
+
+    if(!res.ok){
+
+      alert(
+        data.error ||
+        "Login gagal"
+      )
+
+      return
     }
+
+    // password benar,
+    // backend minta pin
+    if(data.need_pin){
+
+      setStep("pin")
+
+      return
+    }
+
+    // login sukses
+    router.push("/admin")
   }
 
   return(
     <>
-        <style jsx global>{`
+      <style jsx global>{`
         html{
           background:#f1f5f9;
         }
@@ -36,26 +80,72 @@ export default function Login(){
           }
         }
       `}</style>
-  
-    <div style={styles.wrapper}>
-      <form onSubmit={submit} style={styles.card}>
 
-        <h2 style={styles.title}>Admin Login</h2>
+      <div style={styles.wrapper}>
 
-        <input
-          type="password"
-          placeholder="Password"
-          onChange={(e)=>setPassword(e.target.value)}
-          style={styles.input}
-        />
+        <form
+          onSubmit={submit}
+          style={styles.card}
+        >
 
-        <button type="submit" style={styles.button}>
-          Login
-        </button>
+          <h2 style={styles.title}>
+            Admin Login
+          </h2>
 
-      </form>
-    </div>
-  </>
+          {step ===
+            "password" && (
+
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e)=>
+                setPassword(
+                  e.target.value
+                )
+              }
+              style={styles.input}
+            />
+
+          )}
+
+          {step ===
+            "pin" && (
+
+            <input
+              type="password"
+              inputMode="numeric"
+              placeholder="PIN"
+              value={pin}
+              autoFocus
+              onChange={(e)=>
+                setPin(
+                  e.target.value
+                )
+              }
+              style={styles.input}
+            />
+
+          )}
+
+          <button
+            type="submit"
+            style={styles.button}
+          >
+
+            {step ===
+              "password"
+
+              ? "Continue"
+
+              : "Verify PIN"}
+
+          </button>
+
+        </form>
+
+      </div>
+    </>
   )
 }
 
@@ -75,7 +165,9 @@ const styles = {
     padding:30,
     background:"#fff",
     borderRadius:12,
-    boxShadow:"0 10px 25px rgba(0,0,0,0.15)",
+    boxShadow:
+      "0 10px 25px rgba(0,0,0,0.15)",
+
     display:"flex",
     flexDirection:"column",
     gap:15
