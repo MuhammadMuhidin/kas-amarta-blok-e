@@ -297,13 +297,13 @@ export default function CashflowPage() {
         )}
 <header className="hero-header">
   <div className="hero-eyebrow">
-    <Image
+    /*<Image
       src="/logo.png"
       alt="Amarta Residence"
       width={28}
       height={28}
       priority
-    />
+    />*/
 
     <span>
       Amarta Residence • Blok E
