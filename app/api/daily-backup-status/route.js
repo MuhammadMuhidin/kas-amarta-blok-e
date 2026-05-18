@@ -21,6 +21,7 @@ export async function GET(){
       includeItemsFromAllDrives: true,
     })
 
+    const files = res.data.files || []
     const file = res.data.files?.[0]
 
     if(!file){
