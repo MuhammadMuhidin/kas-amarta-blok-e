@@ -302,6 +302,16 @@ export default function CashflowPage() {
             className={activeTab === "payment" ? "active" : ""}
             onClick={() => setActiveTab("payment")}
           >
+
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M3 7h18v10H3zM3 10h18"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+
             Status Pembayaran
           </button>
 
@@ -309,6 +319,16 @@ export default function CashflowPage() {
             className={activeTab === "cashflow" ? "active" : ""}
             onClick={() => setActiveTab("cashflow")}
           >
+
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M4 18V8M10 18V4M16 18v-6M22 18v-10"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+
             Arus Kas
           </button>
 
@@ -316,10 +336,30 @@ export default function CashflowPage() {
             className={activeTab === "insight" ? "active" : ""}
             onClick={() => setActiveTab("insight")}
           >
+
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M4 19h16M7 15V9M12 15V5M17 15v-3"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+
             Laporan
           </button>
 
           <button onClick={() => router.push("/login")}>
+
+          <svg viewBox="0 0 24 24" fill="none">
+            <path
+              d="M12 17v1M8 10V7a4 4 0 118 0v3M6 10h12v10H6z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+
             Login
           </button>
         </div>
