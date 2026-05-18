@@ -4,6 +4,37 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import "@/app/page.css";
 
+function useAnimatedNumber(value, duration = 700) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    const start = 0;
+    const end = Number(value) || 0;
+    const startTime = performance.now();
+
+    function animate(now) {
+      const progress = Math.min(
+        (now - startTime) / duration,
+        1
+      );
+
+      const current = Math.floor(
+        start + (end - start) * progress
+      );
+
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    }
+
+    requestAnimationFrame(animate);
+  }, [value, duration]);
+
+  return displayValue;
+}
+
 export default function CashflowPage() {
   /* ==== STATE ==== */
   const [data, setData] = useState({
@@ -136,6 +167,10 @@ export default function CashflowPage() {
       net: inc - exp,
     };
   }, [data.cashflows]);
+
+  const animatedIncome = useAnimatedNumber(totals.inc);
+  const animatedExpense = useAnimatedNumber(totals.exp);
+  const animatedNet = useAnimatedNumber(totals.net);
 
   /* ==== LOGIC: INSIGHT ==== */
   const activeMembersCount = useMemo(() => {
@@ -377,7 +412,7 @@ export default function CashflowPage() {
                 style={{ color: "#28a745" }}
                 className="summary-value"
               >
-                {format(totals.inc)}
+                {format(animatedIncome)}
               </span>
             </div>
 
@@ -387,7 +422,7 @@ export default function CashflowPage() {
                 style={{ color: "#dc3545" }}
                 className="summary-value"
               >
-                {format(totals.exp)}
+                {format(animatedExpense)}
               </span>
             </div>
 
@@ -397,7 +432,7 @@ export default function CashflowPage() {
                 style={{ color: "#007bff" }}
                 className="summary-value"
               >
-                {format(totals.net)}
+                {format(animatedNet)}
               </span>
             </div>
           </div>
