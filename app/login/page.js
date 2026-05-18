@@ -453,7 +453,7 @@ export default function Login() {
                   : "0 4px 18px rgba(250,204,21,.10)",
             }}
           >
-            Authorized Access Only
+            Admin Management Access
           </div>
 
           <h2
