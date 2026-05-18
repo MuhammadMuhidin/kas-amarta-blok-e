@@ -12,54 +12,84 @@ export async function GET(){
     const folderId =
       process.env.GOOGLE_DAILY_BACKUP_FOLDER_ID
 
-    const res = await drive.files.list({
-      q: `'${folderId}' in parents and trashed = false`,
-      fields: "files(id,name,mimeType,createdTime,modifiedTime)",
-      orderBy: "createdTime desc",
-      pageSize: 1,
-      supportsAllDrives: true,
-      includeItemsFromAllDrives: true,
-    })
+    let files = []
+    let pageToken = null
 
-    const files = res.data.files || []
-    const file = res.data.files?.[0]
+    do{
 
-    if(!file){
+      const res =
+        await drive.files.list({
+
+          q:
+            `'${folderId}' in parents and trashed = false`,
+
+          fields:
+            "nextPageToken, files(id,name,mimeType,createdTime,modifiedTime)",
+
+          orderBy:
+            "createdTime desc",
+
+          pageSize: 1000,
+
+          pageToken,
+
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+        })
+
+      files.push(
+        ...(res.data.files || [])
+      )
+
+      pageToken =
+        res.data.nextPageToken
+
+    }while(pageToken)
+
+    const latest =
+      files[0]
+
+    if(!latest){
+
       return NextResponse.json({
         ok:false,
-        status:"Backup not found",
-        name:null,
-        created_at:null,
-        modified_at:null,
-        mime_type:null,
+        count:0,
       })
+
     }
 
     return NextResponse.json({
+
       ok:true,
-      status:"Backup available",
+
+      // count real
       count: files.length,
-      name:file.name,
-      created_at:new Date(file.createdTime)
-        .toLocaleString("id-ID",{
-          timeZone:"Asia/Jakarta",
-          dateStyle:"medium",
-          timeStyle:"short",
-        }),
-      modified_at:new Date(file.modifiedTime)
-        .toLocaleString("id-ID",{
-          timeZone:"Asia/Jakarta",
-          dateStyle:"medium",
-          timeStyle:"short",
-        }),
-      mime_type:file.mimeType,
+
+      name: latest.name,
+
+      created_at:
+        new Date(
+          latest.createdTime
+        ).toLocaleString(
+          "id-ID",
+          {
+            timeZone:
+              "Asia/Jakarta",
+
+            dateStyle:
+              "medium",
+
+            timeStyle:
+              "short",
+          }
+        ),
+
     })
 
   }catch(err){
 
     return NextResponse.json({
       ok:false,
-      status:"Backup check failed",
       error:err.message,
     },{status:500})
 
