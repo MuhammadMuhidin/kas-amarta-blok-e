@@ -4,6 +4,45 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import "@/app/page.css";
 
+function useAnimatedNumber(value, duration = 900) {
+  const [displayValue, setDisplayValue] =
+    useState(0);
+
+  useEffect(() => {
+    let frame;
+
+    const start = 0;
+    const end = Number(value) || 0;
+    const startTime = performance.now();
+
+    function animate(now) {
+      const progress = Math.min(
+        (now - startTime) / duration,
+        1
+      );
+
+      const eased =
+        1 - Math.pow(1 - progress, 3);
+
+      const current = Math.floor(
+        start + (end - start) * eased
+      );
+
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        frame = requestAnimationFrame(animate);
+      }
+    }
+
+    frame = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(frame);
+  }, [value, duration]);
+
+  return displayValue;
+}
+
 export default function CashflowPage() {
   /* ==== STATE ==== */
   const [data, setData] = useState({
@@ -136,6 +175,18 @@ export default function CashflowPage() {
       net: inc - exp,
     };
   }, [data.cashflows]);
+
+  const animatedIncome = useAnimatedNumber(
+    activeTab === "cashflow" ? totals.inc : 0
+  );
+
+  const animatedExpense = useAnimatedNumber(
+    activeTab === "cashflow" ? totals.exp : 0
+  );
+
+  const animatedNet = useAnimatedNumber(
+    activeTab === "cashflow" ? totals.net : 0
+  );
 
   /* ==== LOGIC: INSIGHT ==== */
   const activeMembersCount = useMemo(() => {
@@ -377,7 +428,7 @@ export default function CashflowPage() {
                 style={{ color: "#28a745" }}
                 className="summary-value"
               >
-                {format(totals.inc)}
+                {format(animatedIncome)}
               </span>
             </div>
 
@@ -387,7 +438,7 @@ export default function CashflowPage() {
                 style={{ color: "#dc3545" }}
                 className="summary-value"
               >
-                {format(totals.exp)}
+                {format(animatedExpense)}
               </span>
             </div>
 
@@ -397,7 +448,7 @@ export default function CashflowPage() {
                 style={{ color: "#007bff" }}
                 className="summary-value"
               >
-                {format(totals.net)}
+                {format(animatedNet)}
               </span>
             </div>
           </div>
