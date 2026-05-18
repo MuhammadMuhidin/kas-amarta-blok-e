@@ -300,8 +300,8 @@ export default function CashflowPage() {
     <Image
       src="/logo.png"
       alt="Amarta Residence"
-      width={22}
-      height={22}
+      width={28}
+      height={28}
       priority
     />
 
