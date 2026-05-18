@@ -665,35 +665,35 @@ if(memberFilter === "TRASH_INACTIVE"){
           style={tab==="personal"?styles.tabActive:styles.tab}
           onClick={()=>setTab("personal")}
         >
-          Personal
+          👤 Personal
         </button>
 
         <button
           style={tab==="payment"?styles.tabActive:styles.tab}
           onClick={()=>setTab("payment")}
         >
-          Payment
+          💳 Payment
         </button>
 
         <button
           style={tab==="cashflow"?styles.tabActive:styles.tab}
           onClick={()=>setTab("cashflow")}
         >
-          Cashflow
+          📝 Cashflow
         </button>
 
         <button
           style={tab==="summary"?styles.tabActive:styles.tab}
           onClick={()=>setTab("summary")}
         >
-          Summary Backup
+          🛡️ Summary Backup
         </button>
 
 <button
   style={tab==="monitoring"?styles.tabActive:styles.tab}
   onClick={()=>setTab("monitoring")}
 >
-  Monitoring
+  🖥️ Monitoring
 </button>
 
 <button
