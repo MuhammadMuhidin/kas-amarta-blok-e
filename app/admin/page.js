@@ -1189,42 +1189,40 @@ if(memberFilter === "TRASH_INACTIVE"){
 {tab === "monitoring" && (
   <div style={styles.card}>
 
-<div style={styles.monitorGrid}>
+    <div style={styles.monitorGrid}>
+      <div style={styles.statusCard}>
+        <div style={styles.statusLabel}>
+          Daily Backup Status
+        </div>
 
-  <div style={styles.statusCard}>
-    <div style={styles.statusLabel}>
-      Daily Backup Status
+        {loadingDailyBackup ? (
+          <div style={styles.statusValue}>
+            Checking...
+          </div>
+        ) : dailyBackup?.ok ? (
+          <>
+            <div style={styles.statusValue}>
+              {dailyBackup.name}
+            </div>
+
+            <div style={styles.statusMeta}>
+              Last created: {dailyBackup.created_at}
+            </div>
+
+            <div style={styles.statusMeta}>
+              Retention: {dailyBackup?.count} backup files
+            </div>
+          </>
+        ) : (
+          <div style={styles.statusError}>
+            Backup file not found
+          </div>
+        )}
+      </div>
     </div>
 
-    {loadingDailyBackup ? (
-      <div style={styles.statusValue}>
-        Checking...
-      </div>
-    ) : dailyBackup?.ok ? (
-      <>
-        <div style={styles.statusValue}>
-          {dailyBackup.name}
-        </div>
-
-        <div style={styles.statusMeta}>
-          Last created: {dailyBackup.created_at}
-        </div>
-
-        <div style={styles.statusMeta}>
-          Retention: {dailyBackup?.count} backup files
-        </div>
-      </>
-    ) : (
-      <div style={styles.statusError}>
-        Backup file not found
-      </div>
-    )}
-  </div>
-
-</div>
     <h3>Trash Payment Integrity Check</h3>
 
-    {/* Summary */}
     <div style={styles.summaryCards}>
       <div style={styles.summaryCard}>
         <div>Detected Issue</div>
@@ -1232,7 +1230,6 @@ if(memberFilter === "TRASH_INACTIVE"){
       </div>
     </div>
 
-    {/* Empty */}
     {trashMismatch.length === 0 ? (
       <div
         style={{
@@ -1245,188 +1242,90 @@ if(memberFilter === "TRASH_INACTIVE"){
           textAlign: "center",
         }}
       >
-        Tidak ada issue
+        No Issue Found
       </div>
     ) : (
       <div style={styles.tableWrapper}>
         <table style={styles.table}>
-<thead>
-  <tr>
-    <th style={styles.th}>House</th>
-    <th style={styles.th}>Name</th>
-    <th style={styles.th}>Period</th>
-    <th style={styles.th}>Issue</th>
-  </tr>
-</thead>
-
-<tbody>
-  {trashMismatch.map((x, i) => (
-    <tr
-      key={i}
-      style={i % 2 ? styles.rowAlt : null}
-    >
-      <td style={styles.td}>{x.house}</td>
-
-      <td style={styles.td}>{x.name}</td>
-
-      <td style={styles.td}>{x.period}</td>
-
-      <td
-        style={{
-          ...styles.td,
-          color: "#991b1b",
-          fontWeight: 600,
-        }}
-      >
-        {x.detail}
-      </td>
-    </tr>
-  ))}
-</tbody>
-        </table>
-      </div>
-    )}
-{tab === "monitoring" && (
-  <div style={styles.card}>
-
-<div style={styles.monitorGrid}>
-
-  <div style={styles.statusCard}>
-    <div style={styles.statusLabel}>
-      Daily Backup Status
-    </div>
-
-    {loadingDailyBackup ? (
-      <div style={styles.statusValue}>
-        Checking...
-      </div>
-    ) : dailyBackup?.ok ? (
-      <>
-        <div style={styles.statusValue}>
-          {dailyBackup.name}
-        </div>
-
-        <div style={styles.statusMeta}>
-          Last created: {dailyBackup.created_at}
-        </div>
-
-        <div style={styles.statusMeta}>
-          Retention: {dailyBackup?.count} backup files
-        </div>
-      </>
-    ) : (
-      <div style={styles.statusError}>
-        Backup file not found
-      </div>
-    )}
-  </div>
-
-</div>
-    <h3>Trash Payment Integrity Check</h3>
-
-    {/* Summary */}
-    <div style={styles.summaryCards}>
-      <div style={styles.summaryCard}>
-        <div>Detected Issue</div>
-        <b>{trashMismatch.length}</b>
-      </div>
-    </div>
-
-    {/* Empty */}
-    {trashMismatch.length === 0 ? (
-      <div
-        style={{
-          padding: 16,
-          background: "#ecfdf5",
-          border: "1px solid #10b981",
-          borderRadius: 10,
-          color: "#065f46",
-          fontWeight: 500,
-          textAlign: "center",
-        }}
-      >
-        Tidak ada issue
-      </div>
-    ) : (
-      <div style={styles.tableWrapper}>
-        <table style={styles.table}>
-<thead>
-  <tr>
-    <th style={styles.th}>House</th>
-    <th style={styles.th}>Name</th>
-    <th style={styles.th}>Period</th>
-    <th style={styles.th}>Issue</th>
-  </tr>
-</thead>
-
-<tbody>
-  {trashMismatch.map((x, i) => (
-    <tr
-      key={i}
-      style={i % 2 ? styles.rowAlt : null}
-    >
-      <td style={styles.td}>{x.house}</td>
-
-      <td style={styles.td}>{x.name}</td>
-
-      <td style={styles.td}>{x.period}</td>
-
-      <td
-        style={{
-          ...styles.td,
-          color: "#991b1b",
-          fontWeight: 600,
-        }}
-      >
-        {x.detail}
-      </td>
-    </tr>
-  ))}
-</tbody>
-        </table>
-      </div>
-    )}
-      
-<div style={styles.card}>
-  <h3>Suspicious Data</h3>
-
-  <div style={styles.summaryCards}>
-    <div style={styles.summaryCard}>
-      <div>Detected Issue</div>
-      <b>{suspiciousData.length}</b>
-    </div>
-  </div>
-
-  {suspiciousData.length === 0 ? (
-    <div style={styles.successBox}>
-      Tidak ada data mencurigakan
-    </div>
-  ) : (
-    <div style={styles.tableWrapper}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Sheet</th>
-            <th style={styles.th}>Row</th>
-            <th style={styles.th}>Type</th>
-            <th style={styles.th}>Detail</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {suspiciousData.map((x, i) => (
-            <tr key={i} style={i % 2 ? styles.rowAlt : null}>
-              <td style={styles.td}>{x.sheet}</td>
-              <td style={styles.td}>{x.row}</td>
-              <td style={styles.td}>{x.type}</td>
-              <td style={styles.td}>{x.detail}</td>
+          <thead>
+            <tr>
+              <th style={styles.th}>House</th>
+              <th style={styles.th}>Name</th>
+              <th style={styles.th}>Period</th>
+              <th style={styles.th}>Issue</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+
+          <tbody>
+            {trashMismatch.map((x, i) => (
+              <tr
+                key={i}
+                style={i % 2 ? styles.rowAlt : null}
+              >
+                <td style={styles.td}>{x.house}</td>
+                <td style={styles.td}>{x.name}</td>
+                <td style={styles.td}>{x.period}</td>
+
+                <td
+                  style={{
+                    ...styles.td,
+                    color: "#991b1b",
+                    fontWeight: 600,
+                  }}
+                >
+                  {x.detail}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+
+    <div style={styles.card}>
+      <h3>Suspicious Data</h3>
+
+      <div style={styles.summaryCards}>
+        <div style={styles.summaryCard}>
+          <div>Detected Issue</div>
+          <b>{suspiciousData.length}</b>
+        </div>
+      </div>
+
+      {suspiciousData.length === 0 ? (
+        <div style={styles.successBox}>
+          No Suspicious Data Found
+        </div>
+      ) : (
+        <div style={styles.tableWrapper}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Sheet</th>
+                <th style={styles.th}>Row</th>
+                <th style={styles.th}>Type</th>
+                <th style={styles.th}>Detail</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {suspiciousData.map((x, i) => (
+                <tr
+                  key={i}
+                  style={i % 2 ? styles.rowAlt : null}
+                >
+                  <td style={styles.td}>{x.sheet}</td>
+                  <td style={styles.td}>{x.row}</td>
+                  <td style={styles.td}>{x.type}</td>
+                  <td style={styles.td}>{x.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
-  )}
-</div>
+
   </div>
 )}
 
