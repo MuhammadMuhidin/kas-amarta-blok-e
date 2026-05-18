@@ -240,9 +240,7 @@ export default function CashflowPage() {
             );
           })}
         </div>
-      </div>
-          
-<div className="pay-dots">
+  <div className="pay-dots">
   {Array.from({
     length: totalPagePay,
   }).map((_, i) => (
@@ -256,6 +254,8 @@ export default function CashflowPage() {
     />
   ))}
 </div>
+</div>
+
 
       {/* CASHFLOW TAB */}
       <div className={activeTab !== "cashflow" ? "hidden" : ""}>
