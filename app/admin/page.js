@@ -1657,4 +1657,7 @@ monitorSection: {
   paddingTop: 18,
   borderTop: "1px solid var(--admin-border)",
 },
+monitorDetail: {
+  marginTop: 20,
+},
 };
