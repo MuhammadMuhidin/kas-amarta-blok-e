@@ -898,10 +898,19 @@ if(memberFilter === "TRASH_INACTIVE"){
                .sort((a,b)=>a.house.localeCompare(b.house,undefined,{numeric:true}))
                .map(p=>(
 
-                <label key={p.id} style={styles.checkbox}>
+<label
+  key={p.id}
+  style={{
+    ...styles.checkboxChip,
+    ...(selected.includes(p.id)
+      ? styles.checkboxChipActive
+      : {})
+  }}
+>
 
                   <input
                     type="checkbox"
+                    style={styles.checkboxInput}
                     checked={selected.includes(p.id)}
                     onChange={()=>toggleHouse(p.id)}
                   />
@@ -1286,9 +1295,9 @@ const styles = {
 
   houseList: {
     display: "grid",
-    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-    gap: 14,
-    marginTop: 14,
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: 8,
+    marginTop: 10,
   },
 
   checkbox: {
@@ -1358,4 +1367,32 @@ const styles = {
     border: "1px solid var(--admin-primary)",
     cursor: "pointer",
   },
+
+  checkboxInput: {
+  display: "none",
+},
+
+checkboxChip: {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  minHeight: 36,
+  padding: "8px 10px",
+  borderRadius: 10,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  color: "var(--admin-text)",
+  cursor: "pointer",
+  fontSize: 14,
+  fontWeight: 500,
+  transition: "0.15s ease",
+  userSelect: "none",
+},
+
+checkboxChipActive: {
+  background: "var(--admin-primary)",
+  border: "1px solid var(--admin-primary)",
+  color: "#020617",
+  fontWeight: 700,
+},
 };
