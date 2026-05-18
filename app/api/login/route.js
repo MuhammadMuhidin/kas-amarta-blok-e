@@ -50,7 +50,7 @@ export async function POST(req) {
       return NextResponse.json(
         {
           error:
-            "Password salah",
+            "Wrong password",
         },
         {
           status: 401,
@@ -85,7 +85,7 @@ export async function POST(req) {
         return NextResponse.json(
           {
             error:
-              "PIN salah",
+              "Wrong PIN",
           },
           {
             status: 401,
@@ -118,7 +118,7 @@ export async function POST(req) {
       {
         error:
           err.message ||
-          "Login gagal",
+          "Sign in failed",
       },
       {
         status: 500,
