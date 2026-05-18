@@ -72,7 +72,7 @@ export async function POST(req) {
       return NextResponse.json(
         {
           error:
-            "Credential WebAuth belum terdaftar",
+            "Credential WebAuth not registered",
         },
         { status: 404 }
       );
@@ -108,7 +108,7 @@ export async function POST(req) {
       return NextResponse.json(
         {
           error:
-            "Verify WebAuth gagal",
+            "Verify WebAuth failed",
         },
         { status: 401 }
       );
@@ -127,7 +127,7 @@ export async function POST(req) {
       {
         error:
           err.message ||
-          "Verify login WebAuth gagal",
+          "Verify WebAuth login failed",
       },
       { status: 500 }
     );
