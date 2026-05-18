@@ -81,7 +81,6 @@ export default function CashflowPage() {
   }, [selectedPeriod, data]);
 
   const totalPagePay = Math.max(1, Math.ceil(paymentList.length / perPagePay));
-  const pagedPayments = paymentList.slice((pagePay - 1) * perPagePay, pagePay * perPagePay);
 
   /* ==== LOGIC: CASHFLOW ==== */
   const filteredCashflow = useMemo(() => {
@@ -195,25 +194,34 @@ export default function CashflowPage() {
         <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)}>
           {data.periods.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
-        <div className="pay-grid">
-          {pagedPayments.map((p, idx) => (
-            <div key={idx} className="pay-item">
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span>{p.house}</span>
-                <span style={{ 
-                  fontWeight: 700, 
-                  color: p.notApplicable ? "#6c757d" : p.paid ? "#28a745" : "#dc3545" 
-                }}>
-                  {p.notApplicable ? "Belum Bergabung" : p.paid ? "Sudah Bayar" : "Belum Bayar"}
-                </span>
+
+        <div className="pay-slider">
+          {Array.from({ length: totalPagePay }).map((_, pageIndex) => {
+            const items = paymentList.slice(
+              pageIndex * perPagePay,
+              (pageIndex + 1) * perPagePay
+            );
+
+            return (
+              <div className="pay-slide-page" key={pageIndex}>
+                <div className="pay-grid">
+                  {items.map((p, idx) => (
+                    <div key={idx} className="pay-item">
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span>{p.house}</span>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: p.notApplicable ? "#6c757d" : p.paid ? "#28a745" : "#dc3545" 
+                        }}>
+                          {p.notApplicable ? "Belum Bergabung" : p.paid ? "Sudah Bayar" : "Belum Bayar"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-        <div className="pagination">
-          <button disabled={pagePay === 1} onClick={() => setPagePay(p => p - 1)}>Prev</button>
-          <span>Page {pagePay}/{totalPagePay}</span>
-          <button disabled={pagePay === totalPagePay} onClick={() => setPagePay(p => p + 1)}>Next</button>
+            );
+          })}
         </div>
       </div>
 
