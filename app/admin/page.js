@@ -1283,10 +1283,10 @@ if(memberFilter === "TRASH_INACTIVE"){
                   key={i}
                   style={i % 2 ? styles.rowAlt : null}
                 >
-                  <td style={...styles.td,...styles.issueText}>{x.house}</td>
-                  <td style={...styles.td,...styles.issueText}>{x.name}</td>
-                  <td style={...styles.td,...styles.issueText}>{x.period}</td>
-                  <td style={...styles.td,...styles.issueText}>{x.detail}</td>
+                  <td style={{...styles.td,...styles.issueText}}>{x.house}</td>
+                  <td style={{...styles.td,...styles.issueText}}>{x.name}</td>
+                  <td style={{...styles.td,...styles.issueText}}>{x.period}</td>
+                  <td style={{...styles.td,...styles.issueText}}>{x.detail}</td>
                 </tr>
               ))}
             </tbody>
@@ -1318,10 +1318,10 @@ if(memberFilter === "TRASH_INACTIVE"){
                   key={i}
                   style={i % 2 ? styles.rowAlt : null}
                 >
-                  <td style={...styles.td,...styles.issueText}>{x.sheet}</td>
-                  <td style={...styles.td,...styles.issueText}>{x.row}</td>
-                  <td style={...styles.td,...styles.issueText}>{x.type}</td>
-                  <td style={...styles.td,...styles.issueText}>{x.detail}</td>
+                  <td style={{...styles.td,...styles.issueText}}>{x.sheet}</td>
+                  <td style={{...styles.td,...styles.issueText}}>{x.row}</td>
+                  <td style={{...styles.td,...styles.issueText}}>{x.type}</td>
+                  <td style={{...styles.td,...styles.issueText}}>{x.detail}</td>
                 </tr>
               ))}
             </tbody>
