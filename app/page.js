@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import "@/app/page.css";
 
 function useAnimatedNumber(value, duration = 900) {
@@ -297,17 +296,7 @@ export default function CashflowPage() {
         )}
 <header className="hero-header">
   <div className="hero-eyebrow">
-    <Image
-      src="/logo.png"
-      alt="Amarta Residence"
-      width={28}
-      height={28}
-      priority
-    />
-
-    <span>
-      Amarta Residence • Blok E
-    </span>
+    Amarta Residence • Blok E
   </div>
   <p className="hero-desc">
     Pusat transparansi pembayaran dan pengelolaan kas warga.
