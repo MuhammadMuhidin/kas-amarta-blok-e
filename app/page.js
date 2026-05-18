@@ -4,10 +4,13 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import "@/app/page.css";
 
-function useAnimatedNumber(value, duration = 700) {
-  const [displayValue, setDisplayValue] = useState(0);
+function useAnimatedNumber(value, duration = 900) {
+  const [displayValue, setDisplayValue] =
+    useState(0);
 
   useEffect(() => {
+    let frame;
+
     const start = 0;
     const end = Number(value) || 0;
     const startTime = performance.now();
@@ -18,18 +21,23 @@ function useAnimatedNumber(value, duration = 700) {
         1
       );
 
+      const eased =
+        1 - Math.pow(1 - progress, 3);
+
       const current = Math.floor(
-        start + (end - start) * progress
+        start + (end - start) * eased
       );
 
       setDisplayValue(current);
 
       if (progress < 1) {
-        requestAnimationFrame(animate);
+        frame = requestAnimationFrame(animate);
       }
     }
 
-    requestAnimationFrame(animate);
+    frame = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(frame);
   }, [value, duration]);
 
   return displayValue;
@@ -168,9 +176,17 @@ export default function CashflowPage() {
     };
   }, [data.cashflows]);
 
-  const animatedIncome = useAnimatedNumber(totals.inc);
-  const animatedExpense = useAnimatedNumber(totals.exp);
-  const animatedNet = useAnimatedNumber(totals.net);
+  const animatedIncome = useAnimatedNumber(
+    activeTab === "cashflow" ? totals.inc : 0
+  );
+
+  const animatedExpense = useAnimatedNumber(
+    activeTab === "cashflow" ? totals.exp : 0
+  );
+
+  const animatedNet = useAnimatedNumber(
+    activeTab === "cashflow" ? totals.net : 0
+  );
 
   /* ==== LOGIC: INSIGHT ==== */
   const activeMembersCount = useMemo(() => {
