@@ -22,6 +22,8 @@ export default function CashflowPage() {
   const [loadedCashflow, setLoadedCashflow] = useState(20);
   const [showInsightModal, setShowInsightModal] = useState(false);
   const [modalType, setModalType] = useState("last");
+  const [paySlideIndex, setPaySlideIndex] = useState(0);
+  const paySliderRef = useRef(null);
 
   const FETCH_URL = "/api/sheets/summary";
   const perPagePay = 16;
@@ -195,7 +197,22 @@ export default function CashflowPage() {
           {data.periods.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
 
-        <div className="pay-slider">
+<div
+  ref={paySliderRef}
+  className="pay-slider"
+  onScroll={(e) => {
+    const width =
+      e.currentTarget.clientWidth;
+
+    const index = Math.round(
+      e.currentTarget.scrollLeft /
+      width
+    );
+
+    setPaySlideIndex(index);
+  }}
+>
+    
           {Array.from({ length: totalPagePay }).map((_, pageIndex) => {
             const items = paymentList.slice(
               pageIndex * perPagePay,
@@ -224,6 +241,21 @@ export default function CashflowPage() {
           })}
         </div>
       </div>
+          
+<div className="pay-dots">
+  {Array.from({
+    length: totalPagePay,
+  }).map((_, i) => (
+    <span
+      key={i}
+      className={
+        paySlideIndex === i
+          ? "active"
+          : ""
+      }
+    />
+  ))}
+</div>
 
       {/* CASHFLOW TAB */}
       <div className={activeTab !== "cashflow" ? "hidden" : ""}>
