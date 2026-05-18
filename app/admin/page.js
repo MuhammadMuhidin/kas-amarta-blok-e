@@ -41,6 +41,7 @@ export default function AdminPage(){
   const [loadingAdd,setLoadingAdd] = useState(false)
   const [loadingPayment,setLoadingPayment] = useState(false)
   const [loadingCashflow,setLoadingCashflow] = useState(false)
+  const [cashflows, setCashflows] = useState([])
 
   function getCookie(name) {
     return document.cookie
@@ -89,6 +90,7 @@ export default function AdminPage(){
     loadDailyBackupStatus()
     loadSummaryBackup()
     loadPayment()
+    loadCashflow()
     loadTrash()
   },[])
 
@@ -316,6 +318,18 @@ async function loadSummaryBackup(){
 
   }
 
+}
+
+async function loadCashflow(){
+
+  const res = await fetch("/api/sheets/cashflow", {
+    cache: "no-store",
+    method: "GET",
+  })
+
+  const data = await res.json()
+
+  setCashflows(data || [])
 }
 
 function toggleMemberFilter(type){
@@ -571,6 +585,95 @@ const trashMismatch = useMemo(() => {
 
   return uniqueIssues;
 }, [personal, payments, trashRecords]);
+
+  /* =========================================
+     SUSPICIOUS DATA
+  ========================================= */
+const suspiciousData = useMemo(() => {
+  const issues = []
+
+  const normalize = (v) =>
+    String(v || "").trim()
+
+  function checkDuplicateId(sheetName, rows){
+    const map = new Map()
+
+    rows.forEach((row, index) => {
+      const id = normalize(row.id)
+
+      if(!id) return
+
+      if(!map.has(id)){
+        map.set(id, [])
+      }
+
+      map.get(id).push(index + 2)
+    })
+
+    map.forEach((rowNumbers, id) => {
+      if(rowNumbers.length > 1){
+        issues.push({
+          sheet: sheetName,
+          type: "DUPLICATE_ID",
+          row: rowNumbers.join(", "),
+          detail: `Duplicate ID: ${id}`,
+        })
+      }
+    })
+  }
+
+  function checkEmptyFields(sheetName, rows, fields){
+    rows.forEach((row, index) => {
+      const emptyFields = fields.filter(
+        (field) => normalize(row[field]) === ""
+      )
+
+      if(emptyFields.length > 0){
+        issues.push({
+          sheet: sheetName,
+          type: "EMPTY_FIELD",
+          row: index + 2,
+          detail: `Empty field: ${emptyFields.join(", ")}`,
+        })
+      }
+    })
+  }
+
+  checkDuplicateId("Personal", personal)
+  checkDuplicateId("Payment", payments)
+  checkDuplicateId("Cashflow", cashflows)
+  checkDuplicateId("Trash", trashRecords)
+
+  checkEmptyFields("Personal", personal, [
+    "id",
+    "house",
+    "name",
+    "trash",
+    "active",
+    "join_date",
+  ])
+
+  checkEmptyFields("Payment", payments, [
+    "id",
+    "person_id",
+    "person_house",
+    "person_name",
+    "period",
+    "amount",
+    "date",
+  ])
+
+  checkEmptyFields("Cashflow", cashflows, [
+    "id",
+    "ref_id",
+    "type",
+    "amount",
+    "note",
+    "date",
+  ])
+
+  return issues
+}, [personal, payments, cashflows, trashRecords])
 
 const filteredPersonal = useMemo(() => {
 
@@ -1086,103 +1189,147 @@ if(memberFilter === "TRASH_INACTIVE"){
 {tab === "monitoring" && (
   <div style={styles.card}>
 
-<div style={styles.monitorGrid}>
+    <div style={styles.monitorGrid}>
 
-  <div style={styles.statusCard}>
-    <div style={styles.statusLabel}>
-      Daily Backup Status
-    </div>
+      {/* Daily Backup */}
+      <div style={styles.statusCard}>
+        <div style={styles.statusLabel}>
+          Daily Backup Status
+        </div>
 
-    {loadingDailyBackup ? (
-      <div style={styles.statusValue}>
-        Checking...
+        {loadingDailyBackup ? (
+          <div style={styles.statusValue}>
+            Checking...
+          </div>
+        ) : dailyBackup?.ok ? (
+          <>
+            <div style={styles.statusValue}>
+              {dailyBackup.name}
+            </div>
+
+            <div style={styles.statusMeta}>
+              Last created: {dailyBackup.created_at}
+            </div>
+
+            <div style={styles.statusMeta}>
+              Retention: {dailyBackup?.count} backup files
+            </div>
+          </>
+        ) : (
+          <div style={styles.statusError}>
+            Backup file not found
+          </div>
+        )}
       </div>
-    ) : dailyBackup?.ok ? (
-      <>
+
+
+      {/* Trash Integrity */}
+      <div style={styles.statusCard}>
+        <div style={styles.statusLabel}>
+          Trash Payment Integrity
+        </div>
+
         <div style={styles.statusValue}>
-          {dailyBackup.name}
+          {trashMismatch.length} issue
         </div>
 
         <div style={styles.statusMeta}>
-          Last created: {dailyBackup.created_at}
+          {trashMismatch.length === 0
+            ? "No issue detected"
+            : "Need review"}
+        </div>
+      </div>
+
+
+      {/* Suspicious Data */}
+      <div style={styles.statusCard}>
+        <div style={styles.statusLabel}>
+          Suspicious Data
+        </div>
+
+        <div style={styles.statusValue}>
+          {suspiciousData.length} issue
         </div>
 
         <div style={styles.statusMeta}>
-          Retention: {dailyBackup?.count} backup files
+          {suspiciousData.length === 0
+            ? "No suspicious data"
+            : "Need review"}
         </div>
-      </>
-    ) : (
-      <div style={styles.statusError}>
-        Backup file not found
       </div>
-    )}
-  </div>
 
-</div>
-    <h3>Trash Payment Integrity Check</h3>
-
-    {/* Summary */}
-    <div style={styles.summaryCards}>
-      <div style={styles.summaryCard}>
-        <div>Detected Issue</div>
-        <b>{trashMismatch.length}</b>
-      </div>
     </div>
 
-    {/* Empty */}
-    {trashMismatch.length === 0 ? (
-      <div
-        style={{
-          padding: 16,
-          background: "#ecfdf5",
-          border: "1px solid #10b981",
-          borderRadius: 10,
-          color: "#065f46",
-          fontWeight: 500,
-          textAlign: "center",
-        }}
-      >
-        Tidak ada issue
-      </div>
-    ) : (
-      <div style={styles.tableWrapper}>
-        <table style={styles.table}>
-<thead>
-  <tr>
-    <th style={styles.th}>House</th>
-    <th style={styles.th}>Name</th>
-    <th style={styles.th}>Period</th>
-    <th style={styles.th}>Issue</th>
-  </tr>
-</thead>
 
-<tbody>
-  {trashMismatch.map((x, i) => (
-    <tr
-      key={i}
-      style={i % 2 ? styles.rowAlt : null}
-    >
-      <td style={styles.td}>{x.house}</td>
+    {/* Detail Trash */}
+    {trashMismatch.length > 0 && (
+      <div style={styles.monitorDetail}>
+        <h3>Trash Payment Integrity</h3>
 
-      <td style={styles.td}>{x.name}</td>
+        <div style={styles.tableWrapper}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>House</th>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Period</th>
+                <th style={styles.th}>Issue</th>
+              </tr>
+            </thead>
 
-      <td style={styles.td}>{x.period}</td>
-
-      <td
-        style={{
-          ...styles.td,
-          color: "#991b1b",
-          fontWeight: 600,
-        }}
-      >
-        {x.detail}
-      </td>
-    </tr>
-  ))}
-</tbody>
-        </table>
+            <tbody>
+              {trashMismatch.map((x, i) => (
+                <tr
+                  key={i}
+                  style={i % 2 ? styles.rowAlt : null}
+                >
+                  <td style={styles.td}>{x.house}</td>
+                  <td style={styles.td}>{x.name}</td>
+                  <td style={styles.td}>{x.period}</td>
+                  <td style={styles.td}>{x.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )}
+
+
+    {/* Detail Suspicious */}
+    {suspiciousData.length > 0 && (
+      <div style={styles.monitorDetail}>
+        <h3>Suspicious Data</h3>
+
+        <div style={styles.tableWrapper}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>Sheet</th>
+                <th style={styles.th}>Row</th>
+                <th style={styles.th}>Type</th>
+                <th style={styles.th}>Detail</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {suspiciousData.map((x, i) => (
+                <tr
+                  key={i}
+                  style={i % 2 ? styles.rowAlt : null}
+                >
+                  <td style={styles.td}>{x.sheet}</td>
+                  <td style={styles.td}>{x.row}</td>
+                  <td style={styles.td}>{x.type}</td>
+                  <td style={styles.td}>{x.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+
   </div>
 )}
 
@@ -1494,5 +1641,23 @@ statusError: {
   fontSize: 14,
   color: "#991b1b",
   fontWeight: 700,
+},
+
+successBox: {
+  padding: 16,
+  background: "#ecfdf5",
+  border: "1px solid #10b981",
+  borderRadius: 10,
+  color: "#065f46",
+  fontWeight: 500,
+  textAlign: "center",
+},
+monitorSection: {
+  marginTop: 22,
+  paddingTop: 18,
+  borderTop: "1px solid var(--admin-border)",
+},
+monitorDetail: {
+  marginTop: 20,
 },
 };
