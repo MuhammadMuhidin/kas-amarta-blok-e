@@ -29,6 +29,8 @@ export default function AdminPage(){
     note:""
   })
 
+  const [dailyBackup, setDailyBackup] = useState(null)
+  const [loadingDailyBackup, setLoadingDailyBackup] = useState(false)
   const [summaryBackup,setSummaryBackup] = useState([])
   const [loadingSummary,setLoadingSummary] = useState(false)
   const [payments, setPayments] = useState([])
@@ -84,6 +86,7 @@ export default function AdminPage(){
 
   useEffect(()=>{
     loadPersonal()
+    loadDailyBackupStatus()
     loadSummaryBackup()
     loadPayment()
     loadTrash()
@@ -271,6 +274,28 @@ async function addCashflow(e){
 
 }
 
+async function loadDailyBackupStatus(){
+
+  setLoadingDailyBackup(true)
+
+  try{
+
+    const res = await fetch("/api/daily-backup-status",{
+      cache:"no-store"
+    })
+
+    const data = await res.json()
+
+    setDailyBackup(data)
+
+  }finally{
+
+    setLoadingDailyBackup(false)
+
+  }
+
+}
+  
 async function loadSummaryBackup(){
 
   setLoadingSummary(true)
@@ -1060,6 +1085,40 @@ if(memberFilter === "TRASH_INACTIVE"){
 
 {tab === "monitoring" && (
   <div style={styles.card}>
+
+<div style={styles.monitorGrid}>
+
+  <div style={styles.statusCard}>
+    <div style={styles.statusLabel}>
+      Daily Backup Status
+    </div>
+
+    {loadingDailyBackup ? (
+      <div style={styles.statusValue}>
+        Checking...
+      </div>
+    ) : dailyBackup?.ok ? (
+      <>
+        <div style={styles.statusValue}>
+          {dailyBackup.name}
+        </div>
+
+        <div style={styles.statusMeta}>
+          Last created: {dailyBackup.created_at}
+        </div>
+
+        <div style={styles.statusMeta}>
+          File count: {dailyBackup.total_files}
+        </div>
+      </>
+    ) : (
+      <div style={styles.statusError}>
+        Backup file not found
+      </div>
+    )}
+  </div>
+
+</div>
     <h3>Trash Payment Integrity Check</h3>
 
     {/* Summary */}
@@ -1393,6 +1452,47 @@ checkboxChipActive: {
   background: "var(--admin-primary)",
   border: "1px solid var(--admin-primary)",
   color: "#020617",
+  fontWeight: 700,
+},
+
+monitorGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+  gap: 12,
+  marginBottom: 18,
+},
+
+statusCard: {
+  padding: 16,
+  borderRadius: 14,
+  background: "var(--admin-row)",
+  border: "1px solid var(--admin-border)",
+},
+
+statusLabel: {
+  fontSize: 13,
+  color: "var(--admin-muted)",
+  marginBottom: 8,
+  fontWeight: 600,
+},
+
+statusValue: {
+  fontSize: 16,
+  fontWeight: 700,
+  color: "var(--admin-text)",
+  wordBreak: "break-word",
+  marginBottom: 6,
+},
+
+statusMeta: {
+  fontSize: 13,
+  color: "var(--admin-muted)",
+  marginTop: 4,
+},
+
+statusError: {
+  fontSize: 14,
+  color: "#991b1b",
   fontWeight: 700,
 },
 };
