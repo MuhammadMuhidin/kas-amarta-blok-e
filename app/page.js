@@ -319,17 +319,8 @@ export default function CashflowPage() {
             📊 Laporan
           </button>
 
-          <button onClick={() => router.push("/login")}>
-
-          <svg viewBox="0 0 24 24" fill="none">
-            <path
-              d="M12 17v1M8 10V7a4 4 0 118 0v3M6 10h12v10H6z"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-
+          <button onClick={() => router.push("/login")}
+          >
             🔒 Login
           </button>
         </div>
