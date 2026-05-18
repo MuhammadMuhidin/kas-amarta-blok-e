@@ -24,7 +24,7 @@ export default function CashflowPage() {
   const [modalType, setModalType] = useState("last");
 
   const FETCH_URL = "/api/sheets/summary";
-  const perPagePay = 16;
+  const perPagePay = 20;
   const perPageInsight = 6;
   const chunk = 20;
 
