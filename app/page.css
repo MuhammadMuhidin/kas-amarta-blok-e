@@ -842,3 +842,58 @@ th {
   width: 22px;
   background: var(--primary);
 }
+
+
+.insight-slider {
+  display: flex;
+  gap: 14px;
+
+  overflow-x: auto;
+  overflow-y: hidden;
+
+  scroll-snap-type: x mandatory;
+  scroll-snap-stop: always;
+  scroll-behavior: smooth;
+
+  padding-bottom: 8px;
+
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.insight-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.insight-slide-page {
+  flex: 0 0 100%;
+  min-width: 100%;
+
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.insight-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.insight-dots span {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 999px;
+
+  background: var(--border);
+
+  transition: all 0.25s ease;
+}
+
+.insight-dots span.active {
+  width: 22px;
+  background: var(--primary);
+}
