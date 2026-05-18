@@ -790,8 +790,8 @@ th {
 .pay-slide-page {
   flex: 0 0 100%;
   min-width: 100%;
-
-  scroll-snap-align: start;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
 }
 
 /* ===== DISABLED PAGINATION ===== */
@@ -807,4 +807,13 @@ th {
 .pagination button:disabled:hover {
   transform: none;
   border-color: var(--border);
+}
+
+.pay-slider {
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scroll-snap-stop: always;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  padding-inline: 1px;
 }
