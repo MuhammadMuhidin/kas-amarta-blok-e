@@ -910,7 +910,7 @@ th {
   justify-content:center;
   gap:8px;
 
-  margin-bottom:4px;
+  margin-bottom:2px;
 
   font-size: 14px;
   font-weight:700;
@@ -922,7 +922,6 @@ th {
 
 .hero-eyebrow img{
   flex-shrink:0;
-  gap: 10px;
   opacity:.9;
 }
 
