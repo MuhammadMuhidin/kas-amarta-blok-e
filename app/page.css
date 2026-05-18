@@ -916,11 +916,6 @@ th {
   color:var(--muted);
 }
 
-.hero-eyebrow img{
-  flex-shrink:0;
-  opacity:.9;
-}
-
 .hero-desc {
   max-width: 520px;
   margin: 8px auto 0;
