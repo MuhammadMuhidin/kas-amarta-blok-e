@@ -479,7 +479,7 @@ export default function Login() {
                   : "#64748b",
             }}
           >
-            Manage payments, cashflow, and operational data
+            Manage payments, cashflow, and monitoring
           </p>
 
           <input
