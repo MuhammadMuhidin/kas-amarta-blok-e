@@ -1108,7 +1108,7 @@ if(memberFilter === "TRASH_INACTIVE"){
         </div>
 
         <div style={styles.statusMeta}>
-          File count: {dailyBackup.total_files}
+          Retention: {dailyBackup?.count} backup files
         </div>
       </>
     ) : (
