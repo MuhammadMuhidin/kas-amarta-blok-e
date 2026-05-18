@@ -663,7 +663,7 @@ const suspiciousData = useMemo(() => {
     "date",
   ])
 
-  checkEmptyFields("Cashflow", cashflow, [
+  checkEmptyFields("Cashflow", cashflows, [
     "id",
     "ref_id",
     "type",
