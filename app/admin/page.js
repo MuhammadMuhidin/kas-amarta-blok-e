@@ -700,7 +700,7 @@ if(memberFilter === "TRASH_INACTIVE"){
   style={tab==="settings"?styles.tabActive:styles.tab}
   onClick={()=>setTab("settings")}
 >
-  Settings
+  ⚙️ Settings
 </button>
 
       </div>
