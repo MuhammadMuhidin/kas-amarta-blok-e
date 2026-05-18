@@ -1190,6 +1190,8 @@ if(memberFilter === "TRASH_INACTIVE"){
   <div style={styles.card}>
 
     <div style={styles.monitorGrid}>
+
+      {/* Daily Backup */}
       <div style={styles.statusCard}>
         <div style={styles.statusLabel}>
           Daily Backup Status
@@ -1219,84 +1221,86 @@ if(memberFilter === "TRASH_INACTIVE"){
           </div>
         )}
       </div>
+
+
+      {/* Trash Integrity */}
+      <div style={styles.statusCard}>
+        <div style={styles.statusLabel}>
+          Trash Payment Integrity
+        </div>
+
+        <div style={styles.statusValue}>
+          {trashMismatch.length} issue
+        </div>
+
+        <div style={styles.statusMeta}>
+          {trashMismatch.length === 0
+            ? "No issue detected"
+            : "Need review"}
+        </div>
+      </div>
+
+
+      {/* Suspicious Data */}
+      <div style={styles.statusCard}>
+        <div style={styles.statusLabel}>
+          Suspicious Data
+        </div>
+
+        <div style={styles.statusValue}>
+          {suspiciousData.length} issue
+        </div>
+
+        <div style={styles.statusMeta}>
+          {suspiciousData.length === 0
+            ? "No suspicious data"
+            : "Need review"}
+        </div>
+      </div>
+
     </div>
 
-    <h3>Trash Payment Integrity Check</h3>
 
-    <div style={styles.summaryCards}>
-      <div style={styles.summaryCard}>
-        <div>Detected Issue</div>
-        <b>{trashMismatch.length}</b>
-      </div>
-    </div>
+    {/* Detail Trash */}
+    {trashMismatch.length > 0 && (
+      <div style={styles.monitorDetail}>
+        <h3>Trash Payment Integrity</h3>
 
-    {trashMismatch.length === 0 ? (
-      <div
-        style={{
-          padding: 16,
-          background: "#ecfdf5",
-          border: "1px solid #10b981",
-          borderRadius: 10,
-          color: "#065f46",
-          fontWeight: 500,
-          textAlign: "center",
-        }}
-      >
-        No Issue Found
-      </div>
-    ) : (
-      <div style={styles.tableWrapper}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>House</th>
-              <th style={styles.th}>Name</th>
-              <th style={styles.th}>Period</th>
-              <th style={styles.th}>Issue</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {trashMismatch.map((x, i) => (
-              <tr
-                key={i}
-                style={i % 2 ? styles.rowAlt : null}
-              >
-                <td style={styles.td}>{x.house}</td>
-                <td style={styles.td}>{x.name}</td>
-                <td style={styles.td}>{x.period}</td>
-
-                <td
-                  style={{
-                    ...styles.td,
-                    color: "#991b1b",
-                    fontWeight: 600,
-                  }}
-                >
-                  {x.detail}
-                </td>
+        <div style={styles.tableWrapper}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>House</th>
+                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Period</th>
+                <th style={styles.th}>Issue</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {trashMismatch.map((x, i) => (
+                <tr
+                  key={i}
+                  style={i % 2 ? styles.rowAlt : null}
+                >
+                  <td style={styles.td}>{x.house}</td>
+                  <td style={styles.td}>{x.name}</td>
+                  <td style={styles.td}>{x.period}</td>
+                  <td style={styles.td}>{x.detail}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     )}
 
-    <div style={styles.monitorSection}>
-      <h3>Suspicious Data</h3>
 
-      <div style={styles.summaryCards}>
-        <div style={styles.summaryCard}>
-          <div>Detected Issue</div>
-          <b>{suspiciousData.length}</b>
-        </div>
-      </div>
+    {/* Detail Suspicious */}
+    {suspiciousData.length > 0 && (
+      <div style={styles.monitorDetail}>
+        <h3>Suspicious Data</h3>
 
-      {suspiciousData.length === 0 ? (
-        <div style={styles.successBox}>
-          No Suspicious Data Found
-        </div>
-      ) : (
         <div style={styles.tableWrapper}>
           <table style={styles.table}>
             <thead>
@@ -1323,8 +1327,8 @@ if(memberFilter === "TRASH_INACTIVE"){
             </tbody>
           </table>
         </div>
-      )}
-    </div>
+      </div>
+    )}
 
   </div>
 )}
