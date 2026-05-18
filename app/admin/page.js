@@ -1282,7 +1282,7 @@ if(memberFilter === "TRASH_INACTIVE"){
       </div>
     )}
 
-    <div style={styles.card}>
+    <div style={styles.monitorSection}>
       <h3>Suspicious Data</h3>
 
       <div style={styles.summaryCards}>
@@ -1647,5 +1647,10 @@ successBox: {
   color: "#065f46",
   fontWeight: 500,
   textAlign: "center",
+},
+monitorSection: {
+  marginTop: 22,
+  paddingTop: 18,
+  borderTop: "1px solid var(--admin-border)",
 },
 };
