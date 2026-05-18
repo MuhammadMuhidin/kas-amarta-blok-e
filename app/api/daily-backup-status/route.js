@@ -37,6 +37,7 @@ export async function GET(){
     return NextResponse.json({
       ok:true,
       status:"Backup available",
+      count: files.length,
       name:file.name,
       created_at:new Date(file.createdTime)
         .toLocaleString("id-ID",{
