@@ -817,3 +817,28 @@ th {
   touch-action: pan-x;
   padding-inline: 1px;
 }
+
+.pay-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.pay-dots span {
+  width: 8px;
+  height: 8px;
+
+  border-radius: 999px;
+
+  background: var(--border);
+
+  transition: all .25s ease;
+}
+
+.pay-dots span.active {
+  width: 22px;
+  background: var(--primary);
+}
