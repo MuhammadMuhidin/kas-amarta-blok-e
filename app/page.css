@@ -764,3 +764,33 @@ th {
     white-space: nowrap;
   }
 }
+
+.pay-slide {
+  overflow: hidden;
+  animation: slideFade 0.22s ease;
+}
+
+@keyframes slideFade {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.pagination button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: var(--surface-soft);
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.pagination button:disabled:hover {
+  transform: none;
+  border-color: var(--border);
+}
