@@ -294,8 +294,19 @@ export default function CashflowPage() {
             </div>
           </div>
         )}
+<header className="hero-header">
+  <p className="eyebrow">
+    Amarta Residence • Blok E
+  </p>
 
-        <h1>Uang Kas Amarta Residence (Blok E)</h1>
+  <h1>
+    Uang Kas
+  </h1>
+
+  <p className="hero-desc">
+    Halaman pusat informasi pengelolaan uang kas warga.
+  </p>
+</header>
 
         <div className="tab">
           <button
