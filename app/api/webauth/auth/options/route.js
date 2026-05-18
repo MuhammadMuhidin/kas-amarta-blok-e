@@ -22,7 +22,7 @@ export async function GET() {
       return NextResponse.json(
         {
           error:
-            "Credential WebAuth belum terdaftar",
+            "Credential WebAuth not registered",
         },
         {
           status: 404,
@@ -68,7 +68,7 @@ export async function GET() {
       {
         error:
           err.message ||
-          "Gagal membuat auth options",
+          "Failed to create auth options",
       },
       {
         status: 500,
