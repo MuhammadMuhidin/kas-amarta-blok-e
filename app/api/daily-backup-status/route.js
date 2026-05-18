@@ -14,7 +14,7 @@ export async function GET(){
 
     const res = await drive.files.list({
       q: `'${folderId}' in parents and trashed = false`,
-      fields: "files(id,name,createdTime,modifiedTime)",
+      fields: "files(id,name,mimeType,createdTime,modifiedTime)",
       orderBy: "createdTime desc",
       pageSize: 1,
       supportsAllDrives: true,
@@ -26,30 +26,38 @@ export async function GET(){
     if(!file){
       return NextResponse.json({
         ok:false,
+        status:"Backup not found",
         name:null,
         created_at:null,
+        modified_at:null,
+        mime_type:null,
       })
     }
 
-const resx = await drive.files.list({
-  q: `'${folderId}' in parents and trashed = false`,
-  fields: "files(id,name,mimeType,createdTime)",
-  orderBy: "createdTime desc",
-  pageSize: 10,
-  supportsAllDrives: true,
-  includeItemsFromAllDrives: true,
-})
-
-return NextResponse.json({
-  ok: true,
-  count: resx.data.files?.length || 0,
-  files: resx.data.files || [],
-})
+    return NextResponse.json({
+      ok:true,
+      status:"Backup available",
+      name:file.name,
+      created_at:new Date(file.createdTime)
+        .toLocaleString("id-ID",{
+          timeZone:"Asia/Jakarta",
+          dateStyle:"medium",
+          timeStyle:"short",
+        }),
+      modified_at:new Date(file.modifiedTime)
+        .toLocaleString("id-ID",{
+          timeZone:"Asia/Jakarta",
+          dateStyle:"medium",
+          timeStyle:"short",
+        }),
+      mime_type:file.mimeType,
+    })
 
   }catch(err){
 
     return NextResponse.json({
       ok:false,
+      status:"Backup check failed",
       error:err.message,
     },{status:500})
 
