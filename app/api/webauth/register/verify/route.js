@@ -48,7 +48,7 @@ export async function POST(req) {
       return NextResponse.json(
         {
           error:
-            "Register WebAuth gagal",
+            "Register WebAuth failed",
         },
         {
           status: 401,
@@ -70,7 +70,7 @@ export async function POST(req) {
       return NextResponse.json(
         {
           error:
-            "Credential WebAuth tidak lengkap",
+            "Credential WebAuth not completed",
         },
         {
           status: 400,
@@ -106,7 +106,7 @@ export async function POST(req) {
       {
         error:
           err.message ||
-          "Verify register gagal",
+          "Verify register failed",
       },
       {
         status: 500,

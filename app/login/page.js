@@ -95,7 +95,7 @@ export default function Login() {
 
     if (!password.trim()) {
       notify(
-        "Password wajib diisi",
+        "Password is required",
         "warning"
       );
 
@@ -107,7 +107,7 @@ export default function Login() {
       !pin.trim()
     ) {
       notify(
-        "PIN wajib diisi",
+        "PIN is required",
         "warning"
       );
 
@@ -145,7 +145,7 @@ export default function Login() {
       if (!res.ok) {
         notify(
           data.error ||
-            "Login gagal",
+            "Sign in failed",
           "error"
         );
 
@@ -156,7 +156,7 @@ export default function Login() {
         setNeedPin(true);
 
         notify(
-          "Masukkan PIN admin",
+          "Enter PIN admin",
           "info"
         );
 
@@ -165,7 +165,7 @@ export default function Login() {
 
       if (data.need_webauth) {
         notify(
-          "Verifikasi passkey diperlukan",
+          "Passkey verification  is required",
           "info"
         );
 
@@ -175,7 +175,7 @@ export default function Login() {
       }
 
       notify(
-        "Login berhasil",
+        "Sign in success",
         "success"
       );
 
@@ -185,7 +185,7 @@ export default function Login() {
     } catch (err) {
       notify(
         err.message ||
-          "Login gagal",
+          "Sign in failed",
         "error"
       );
     } finally {
@@ -208,7 +208,7 @@ export default function Login() {
       if (!optionsRes.ok) {
         notify(
           options.error ||
-            "Passkey belum siap",
+            "Passkey is not available",
           "error"
         );
 
@@ -245,7 +245,7 @@ export default function Login() {
       if (!verifyRes.ok) {
         notify(
           verifyData.error ||
-            "Verifikasi passkey gagal",
+            "Passkey verification failed",
           "error"
         );
 
@@ -253,7 +253,7 @@ export default function Login() {
       }
 
       notify(
-        "Passkey valid",
+        "Passkey verified",
         "success"
       );
 
@@ -263,7 +263,7 @@ export default function Login() {
     } catch (err) {
       notify(
         err.message ||
-          "Passkey dibatalkan",
+          "Passkey verification cancelled",
         "error"
       );
     }
@@ -288,7 +288,7 @@ export default function Login() {
 
     try {
       notify(
-        "Menyiapkan passkey",
+        "Preparing passkey",
         "info"
       );
 
@@ -303,7 +303,7 @@ export default function Login() {
       if (!optionsRes.ok) {
         notify(
           options.error ||
-            "Gagal menyiapkan passkey",
+            "Failed to prepare passkey",
           "error"
         );
 
@@ -340,7 +340,7 @@ export default function Login() {
       if (!verifyRes.ok) {
         notify(
           verifyData.error ||
-            "Register passkey gagal",
+            "Passkey registration failed",
           "error"
         );
 
@@ -348,13 +348,13 @@ export default function Login() {
       }
 
       notify(
-        "Passkey berhasil didaftarkan",
+        "Passkey registration successfully",
         "success"
       );
     } catch (err) {
       notify(
         err.message ||
-          "Register dibatalkan",
+          "Registration cancelled",
         "error"
       );
     } finally {
@@ -389,10 +389,10 @@ export default function Login() {
       <ConfirmModal
         open={confirmOpen}
         isDark={isDark}
-        title="Daftarkan passkey baru?"
-        message="Credential lama akan diganti."
-        confirmText="Daftarkan"
-        cancelText="Batal"
+        title="Register new passkey?"
+        message="Existing credential will be replaced."
+        confirmText="Register"
+        cancelText="Cancel"
         onCancel={() =>
           setConfirmOpen(
             false
@@ -453,7 +453,7 @@ export default function Login() {
                   : "0 4px 18px rgba(250,204,21,.10)",
             }}
           >
-            Authorized Access Only
+            Management Access
           </div>
 
           <h2
@@ -466,7 +466,7 @@ export default function Login() {
                   : "#0f172a",
             }}
           >
-            Administrator Login
+            Administrator Sign In
           </h2>
 
           <p
@@ -479,7 +479,7 @@ export default function Login() {
                   : "#64748b",
             }}
           >
-            Password, PIN, Passkey
+            Manage payments, cashflow, and monitoring
           </p>
 
           <input
@@ -555,9 +555,9 @@ export default function Login() {
             }}
           >
             {loading
-              ? "Memproses..."
+              ? "Processing..."
               : needPin
-                ? "Verifikasi PIN"
+                ? "Verify PIN"
                 : "Login"}
           </button>
 

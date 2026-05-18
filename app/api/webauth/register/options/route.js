@@ -82,7 +82,7 @@ export async function GET() {
       {
         error:
           err.message ||
-          "Gagal membuat register options",
+          "Failed to create register options",
       },
       {
         status: 500,
