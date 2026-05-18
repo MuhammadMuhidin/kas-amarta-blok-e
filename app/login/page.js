@@ -453,7 +453,7 @@ export default function Login() {
                   : "0 4px 18px rgba(250,204,21,.10)",
             }}
           >
-            Admin Management Access
+            Management Access
           </div>
 
           <h2
@@ -466,7 +466,7 @@ export default function Login() {
                   : "#0f172a",
             }}
           >
-            Administrator Login
+            Administrator Sign In
           </h2>
 
           <p
@@ -479,7 +479,7 @@ export default function Login() {
                   : "#64748b",
             }}
           >
-            Password, PIN, Passkey
+            Manage payments, cashflow, reports, and data backups
           </p>
 
           <input
