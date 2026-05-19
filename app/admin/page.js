@@ -125,6 +125,17 @@ export default function AdminPage() {
     setTrashRecords(data || []);
   }
 
+  async function refreshMonitoring() {
+    await Promise.all([
+      loadAppConfig(),
+      loadDailyBackupStatus(),
+      loadPayment(),
+      loadTrash(),
+      loadPersonal(),
+      loadCashflow(),
+    ]);
+  }
+
   useEffect(() => {
     loadAppConfig();
     loadPersonal();
@@ -141,12 +152,7 @@ export default function AdminPage() {
     }
 
     if (tab === "monitoring") {
-      loadAppConfig();
-      loadDailyBackupStatus();
-      loadPayment();
-      loadTrash();
-      loadPersonal();
-      loadCashflow();
+      refreshMonitoring();
     }
   }, [tab]);
 
@@ -752,7 +758,13 @@ export default function AdminPage() {
 
           <button
             style={tab === "monitoring" ? styles.tabActive : styles.tab}
-            onClick={() => setTab("monitoring")}
+            onClick={() => {
+              setTab("monitoring");
+
+              if (tab === "monitoring") {
+                refreshMonitoring();
+              }
+            }}
           >
             🖥️ Monitoring
           </button>
