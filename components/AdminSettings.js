@@ -5,29 +5,22 @@ import { useEffect, useState } from "react";
 function getCookie(name) {
   return document.cookie
     .split("; ")
-    .find((row) =>
-      row.startsWith(`${name}=`)
-    )
+    .find((row) => row.startsWith(`${name}=`))
     ?.split("=")[1];
 }
 
 export default function AdminSettings() {
-  const [config, setConfig] =
-    useState(null);
+  const [config, setConfig] = useState(null);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
   async function loadConfig() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        "/api/admin/settings/auth"
-      );
+      const res = await fetch("/api/admin/settings/auth");
 
       const data = await res.json();
 
@@ -41,32 +34,23 @@ export default function AdminSettings() {
     }
   }
 
-  async function updateSetting(
-    key,
-    value
-  ) {
+  async function updateSetting(key, value) {
     setSaving(true);
 
     try {
-      const csrf =
-        getCookie("csrf_token");
+      const csrf = getCookie("csrf_token");
 
-      const res = await fetch(
-        "/api/admin/settings/auth",
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type":
-              "application/json",
-            "x-csrf-token":
-              csrf || "",
-          },
-          body: JSON.stringify({
-            key,
-            value,
-          }),
-        }
-      );
+      const res = await fetch("/api/admin/settings/auth", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrf || "",
+        },
+        body: JSON.stringify({
+          key,
+          value,
+        }),
+      });
 
       const data = await res.json();
 
@@ -76,10 +60,7 @@ export default function AdminSettings() {
 
       await loadConfig();
     } catch (err) {
-      alert(
-        err.message ||
-          "Gagal update setting"
-      );
+      alert(err.message || "Gagal update setting");
     } finally {
       setSaving(false);
     }
@@ -90,32 +71,19 @@ export default function AdminSettings() {
   }, []);
 
   if (loading) {
-    return (
-      <div style={styles.card}>
-        Memuat settings...
-      </div>
-    );
+    return <div style={styles.card}>Memuat settings...</div>;
   }
 
   return (
     <div style={styles.card}>
-      <h2 style={styles.title}>
-        Settings Auth
-      </h2>
+      <h2 style={styles.title}>Settings Auth</h2>
 
       <SettingRow
         title="WebAuth Passkey"
         description="Jika aktif, login wajib verifikasi passkey/fingerprint setelah password."
-        checked={
-          config.webAuthEnabled
-        }
+        checked={config.webAuthEnabled}
         disabled={saving}
-        onChange={(value) =>
-          updateSetting(
-            "WEB_AUTH_ENABLED",
-            value
-          )
-        }
+        onChange={(value) => updateSetting("WEB_AUTH_ENABLED", value)}
       />
 
       <SettingRow
@@ -123,34 +91,19 @@ export default function AdminSettings() {
         description="Jika aktif, login wajib memasukkan PIN setelah password. PIN diminta setelah password. Jika WebAuth juga aktif, passkey tetap diminta setelah PIN."
         checked={config.pinEnabled}
         disabled={saving}
-        onChange={(value) =>
-          updateSetting(
-            "PIN_ENABLED",
-            value
-          )
-        }
+        onChange={(value) => updateSetting("PIN_ENABLED", value)}
       />
     </div>
   );
 }
 
-function SettingRow({
-  title,
-  description,
-  checked,
-  disabled,
-  onChange,
-}) {
+function SettingRow({ title, description, checked, disabled, onChange }) {
   return (
     <div style={styles.row}>
       <div>
-        <h3 style={styles.rowTitle}>
-          {title}
-        </h3>
+        <h3 style={styles.rowTitle}>{title}</h3>
 
-        <p style={styles.desc}>
-          {description}
-        </p>
+        <p style={styles.desc}>{description}</p>
       </div>
 
       <label style={styles.switch}>
@@ -158,11 +111,7 @@ function SettingRow({
           type="checkbox"
           checked={checked}
           disabled={disabled}
-          onChange={(e) =>
-            onChange(
-              e.target.checked
-            )
-          }
+          onChange={(e) => onChange(e.target.checked)}
           style={{
             display: "none",
           }}
@@ -171,17 +120,13 @@ function SettingRow({
         <span
           style={{
             ...styles.slider,
-            background: checked
-              ? "#4f46e5"
-              : "#cbd5e1",
+            background: checked ? "#4f46e5" : "#cbd5e1",
           }}
         >
           <span
             style={{
               ...styles.knob,
-              transform: checked
-                ? "translateX(22px)"
-                : "translateX(0)",
+              transform: checked ? "translateX(22px)" : "translateX(0)",
             }}
           />
         </span>
@@ -196,8 +141,7 @@ const styles = {
     color: "var(--admin-text)",
     borderRadius: 18,
     padding: 20,
-    boxShadow:
-      "0 10px 30px rgba(0,0,0,.18)",
+    boxShadow: "0 10px 30px rgba(0,0,0,.18)",
     border: "1px solid var(--admin-border)",
   },
 
@@ -213,8 +157,7 @@ const styles = {
     alignItems: "center",
     gap: 16,
     padding: "16px 0",
-    borderTop:
-      "1px solid var(--admin-border)",
+    borderTop: "1px solid var(--admin-border)",
   },
 
   rowTitle: {
@@ -251,7 +194,6 @@ const styles = {
     borderRadius: "50%",
     background: "#fff",
     transition: ".2s",
-    boxShadow:
-      "0 2px 6px rgba(0,0,0,.25)",
+    boxShadow: "0 2px 6px rgba(0,0,0,.25)",
   },
 };

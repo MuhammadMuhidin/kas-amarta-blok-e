@@ -1,79 +1,61 @@
-import { NextResponse } from "next/server"
-import { getSheets } from "@/lib/google"
-import { generateId } from "@/lib/id"
+import { NextResponse } from "next/server";
+import { getSheets } from "@/lib/google";
+import { generateId } from "@/lib/id";
 
-export const dynamic = "force-dynamic"
+export const dynamic = "force-dynamic";
 
-const spreadsheetId = process.env.SPREADSHEET_ID
+const spreadsheetId = process.env.SPREADSHEET_ID;
 
 function verifyCSRF(req) {
-  const csrfCookie =
-    req.cookies.get("csrf_token")?.value;
+  const csrfCookie = req.cookies.get("csrf_token")?.value;
 
-  const csrfHeader =
-    req.headers.get("x-csrf-token");
+  const csrfHeader = req.headers.get("x-csrf-token");
 
-  return (
-    csrfCookie &&
-    csrfHeader &&
-    csrfCookie === csrfHeader
-  );
+  return csrfCookie && csrfHeader && csrfCookie === csrfHeader;
 }
 
-export async function GET(){
-
-  const sheets = await getSheets()
+export async function GET() {
+  const sheets = await getSheets();
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range:"personal!A:F"
-  })
+    range: "personal!A:F",
+  });
 
-  const rows = res.data.values || []
+  const rows = res.data.values || [];
 
-  const data = rows.slice(1).map(r=>({
-    id:r[0],
-    house:r[1],
-    name:r[2],
-    trash:r[3],
-    active:r[4],
-    join_date:r[5]
-  }))
+  const data = rows.slice(1).map((r) => ({
+    id: r[0],
+    house: r[1],
+    name: r[2],
+    trash: r[3],
+    active: r[4],
+    join_date: r[5],
+  }));
 
-  return NextResponse.json(data)
+  return NextResponse.json(data);
 }
 
-export async function POST(req){
+export async function POST(req) {
+  const body = await req.json();
 
-  const body = await req.json()
+  const sheets = await getSheets();
 
-  const sheets = await getSheets()
-
-  const id = generateId()
+  const id = generateId();
 
   // verification CSRF
   if (!verifyCSRF(req)) {
-    return Response.json(
-      { error: "Invalid CSRF" },
-      { status: 403 }
-    );
+    return Response.json({ error: "Invalid CSRF" }, { status: 403 });
   }
-  
+
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range:"personal!A:F",
-    valueInputOption:"USER_ENTERED",
-    requestBody:{
-      values:[[
-        id,
-        body.house,
-        body.name,
-        body.trash,
-        "Y",
-        body.join_date
-      ]]
-    }
-  })
+    range: "personal!A:F",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[id, body.house, body.name, body.trash, "Y", body.join_date]],
+    },
+  });
 
-  return NextResponse.json({ success:true })
+  return NextResponse.json({ success: true });
 }

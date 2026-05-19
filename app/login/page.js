@@ -1,9 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-} from "react";
+import { useState, useEffect } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -18,62 +15,41 @@ import ConfirmModal from "@/components/ConfirmModal";
 export default function Login() {
   const router = useRouter();
 
-  const [isDark, setIsDark] =
-    useState(false);
+  const [isDark, setIsDark] = useState(false);
 
-  const [password, setPassword] =
-    useState("");
+  const [password, setPassword] = useState("");
 
-  const [pin, setPin] =
-    useState("");
+  const [pin, setPin] = useState("");
 
-  const [needPin, setNeedPin] =
-    useState(false);
+  const [needPin, setNeedPin] = useState(false);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const [confirmOpen, setConfirmOpen] =
-    useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const [toast, setToast] =
-    useState({
-      show: false,
-      type: "info",
-      message: "",
-    });
+  const [toast, setToast] = useState({
+    show: false,
+    type: "info",
+    message: "",
+  });
 
   useEffect(() => {
-    const media =
-      window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      );
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
 
     function updateTheme() {
-      setIsDark(
-        media.matches
-      );
+      setIsDark(media.matches);
     }
 
     updateTheme();
 
-    media.addEventListener(
-      "change",
-      updateTheme
-    );
+    media.addEventListener("change", updateTheme);
 
     return () => {
-      media.removeEventListener(
-        "change",
-        updateTheme
-      );
+      media.removeEventListener("change", updateTheme);
     };
   }, []);
 
-  function notify(
-    message,
-    type = "info"
-  ) {
+  function notify(message, type = "info") {
     setToast({
       show: true,
       type,
@@ -94,22 +70,13 @@ export default function Login() {
     if (loading) return;
 
     if (!password.trim()) {
-      notify(
-        "Password is required",
-        "warning"
-      );
+      notify("Password is required", "warning");
 
       return;
     }
 
-    if (
-      needPin &&
-      !pin.trim()
-    ) {
-      notify(
-        "PIN is required",
-        "warning"
-      );
+    if (needPin && !pin.trim()) {
+      notify("PIN is required", "warning");
 
       return;
     }
@@ -117,37 +84,24 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch(
-        "/api/login",
-        {
-          method: "POST",
+      const res = await fetch("/api/login", {
+        method: "POST",
 
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-          body:
-            JSON.stringify({
-              password,
+        body: JSON.stringify({
+          password,
 
-              pin:
-                needPin
-                  ? pin
-                  : undefined,
-            }),
-        }
-      );
+          pin: needPin ? pin : undefined,
+        }),
+      });
 
-      const data =
-        await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
-        notify(
-          data.error ||
-            "Sign in failed",
-          "error"
-        );
+        notify(data.error || "Sign in failed", "error");
 
         return;
       }
@@ -155,236 +109,141 @@ export default function Login() {
       if (data.need_pin) {
         setNeedPin(true);
 
-        notify(
-          "Enter PIN admin",
-          "info"
-        );
+        notify("Enter PIN admin", "info");
 
         return;
       }
 
       if (data.need_webauth) {
-        notify(
-          "Passkey verification  is required",
-          "info"
-        );
+        notify("Passkey verification  is required", "info");
 
         await loginWithWebAuth();
 
         return;
       }
 
-      notify(
-        "Sign in success",
-        "success"
-      );
+      notify("Sign in success", "success");
 
-      router.push(
-        "/admin"
-      );
+      router.push("/admin");
     } catch (err) {
-      notify(
-        err.message ||
-          "Sign in failed",
-        "error"
-      );
+      notify(err.message || "Sign in failed", "error");
     } finally {
-      setLoading(
-        false
-      );
+      setLoading(false);
     }
   }
 
   async function loginWithWebAuth() {
     try {
-      const optionsRes =
-        await fetch(
-          "/api/webauth/auth/options"
-        );
+      const optionsRes = await fetch("/api/webauth/auth/options");
 
-      const options =
-        await optionsRes.json();
+      const options = await optionsRes.json();
 
       if (!optionsRes.ok) {
-        notify(
-          options.error ||
-            "Passkey is not available",
-          "error"
-        );
+        notify(options.error || "Passkey is not available", "error");
 
         return;
       }
 
-      const credential =
-        await startAuthentication(
-          options
-        );
+      const credential = await startAuthentication(options);
 
-      const verifyRes =
-        await fetch(
-          "/api/webauth/auth/verify",
-          {
-            method:
-              "POST",
+      const verifyRes = await fetch("/api/webauth/auth/verify", {
+        method: "POST",
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-            body:
-              JSON.stringify(
-                credential
-              ),
-          }
-        );
+        body: JSON.stringify(credential),
+      });
 
-      const verifyData =
-        await verifyRes.json();
+      const verifyData = await verifyRes.json();
 
       if (!verifyRes.ok) {
-        notify(
-          verifyData.error ||
-            "Passkey verification failed",
-          "error"
-        );
+        notify(verifyData.error || "Passkey verification failed", "error");
 
         return;
       }
 
-      notify(
-        "Passkey verified",
-        "success"
-      );
+      notify("Passkey verified", "success");
 
-      router.push(
-        "/admin"
-      );
+      router.push("/admin");
     } catch (err) {
-      notify(
-        err.message ||
-          "Passkey verification cancelled",
-        "error"
-      );
+      notify(err.message || "Passkey verification cancelled", "error");
     }
   }
 
   function registerWebAuth() {
     if (loading) return;
 
-    setConfirmOpen(
-      true
-    );
+    setConfirmOpen(true);
   }
 
   async function handleConfirmRegister() {
-    setConfirmOpen(
-      false
-    );
+    setConfirmOpen(false);
 
-    setLoading(
-      true
-    );
+    setLoading(true);
 
     try {
-      notify(
-        "Preparing passkey",
-        "info"
-      );
+      notify("Preparing passkey", "info");
 
-      const optionsRes =
-        await fetch(
-          "/api/webauth/register/options"
-        );
+      const optionsRes = await fetch("/api/webauth/register/options");
 
-      const options =
-        await optionsRes.json();
+      const options = await optionsRes.json();
 
       if (!optionsRes.ok) {
-        notify(
-          options.error ||
-            "Failed to prepare passkey",
-          "error"
-        );
+        notify(options.error || "Failed to prepare passkey", "error");
 
         return;
       }
 
-      const credential =
-        await startRegistration(
-          options
-        );
+      const credential = await startRegistration(options);
 
-      const verifyRes =
-        await fetch(
-          "/api/webauth/register/verify",
-          {
-            method:
-              "POST",
+      const verifyRes = await fetch("/api/webauth/register/verify", {
+        method: "POST",
 
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-            body:
-              JSON.stringify(
-                credential
-              ),
-          }
-        );
+        body: JSON.stringify(credential),
+      });
 
-      const verifyData =
-        await verifyRes.json();
+      const verifyData = await verifyRes.json();
 
       if (!verifyRes.ok) {
-        notify(
-          verifyData.error ||
-            "Passkey registration failed",
-          "error"
-        );
+        notify(verifyData.error || "Passkey registration failed", "error");
 
         return;
       }
 
-      notify(
-        "Passkey registration successfully",
-        "success"
-      );
+      notify("Passkey registration successfully", "success");
     } catch (err) {
-      notify(
-        err.message ||
-          "Registration cancelled",
-        "error"
-      );
+      notify(err.message || "Registration cancelled", "error");
     } finally {
-      setLoading(
-        false
-      );
+      setLoading(false);
     }
   }
 
   return (
     <>
       <style jsx global>{`
-@keyframes securityPulse {
-  0%,100%{
-    opacity:.9;
-    transform:scale(.995);
-    filter:drop-shadow(0 0 0 rgba(250,204,21,0));
-  }
+        @keyframes securityPulse {
+          0%,
+          100% {
+            opacity: 0.9;
+            transform: scale(0.995);
+            filter: drop-shadow(0 0 0 rgba(250, 204, 21, 0));
+          }
 
-  50%{
-    opacity:1;
-    transform:scale(1);
-    filter:drop-shadow(0 0 6px rgba(250,204,21,.28));
-  }
-}
+          50% {
+            opacity: 1;
+            transform: scale(1);
+            filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.28));
+          }
+        }
       `}</style>
 
-      <Toast
-        {...toast}
-      />
+      <Toast {...toast} />
 
       <ConfirmModal
         open={confirmOpen}
@@ -393,24 +252,17 @@ export default function Login() {
         message="Existing credential will be replaced."
         confirmText="Register"
         cancelText="Cancel"
-        onCancel={() =>
-          setConfirmOpen(
-            false
-          )
-        }
-        onConfirm={
-          handleConfirmRegister
-        }
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmRegister}
       />
 
       <div
         style={{
           ...styles.wrapper,
 
-          background:
-            isDark
-              ? "linear-gradient(135deg,#020617,#0f172a)"
-              : "linear-gradient(135deg,#e0e7ff,#f8fafc)",
+          background: isDark
+            ? "linear-gradient(135deg,#020617,#0f172a)"
+            : "linear-gradient(135deg,#e0e7ff,#f8fafc)",
         }}
       >
         <form
@@ -418,39 +270,28 @@ export default function Login() {
           style={{
             ...styles.card,
 
-            background:
-              isDark
-                ? "#111827"
-                : "#ffffff",
+            background: isDark ? "#111827" : "#ffffff",
 
-            border:
-              isDark
-                ? "1px solid #334155"
-                : "1px solid rgba(226,232,240,.9)",
+            border: isDark
+              ? "1px solid #334155"
+              : "1px solid rgba(226,232,240,.9)",
           }}
         >
           <div
             style={{
               ...styles.badge,
 
-              background:
-                isDark
-                  ? "rgba(15,23,42,.92)"
-                  : "rgba(255,255,255,.92)",
+              background: isDark
+                ? "rgba(15,23,42,.92)"
+                : "rgba(255,255,255,.92)",
 
-              color:
-                "#facc15",
+              color: "#facc15",
 
-              border: `1px solid ${
-                isDark
-                  ? "#334155"
-                  : "#cbd5e1"
-              }`,
+              border: `1px solid ${isDark ? "#334155" : "#cbd5e1"}`,
 
-              boxShadow:
-                isDark
-                  ? "0 0 16px rgba(250,204,21,.14)"
-                  : "0 4px 18px rgba(250,204,21,.10)",
+              boxShadow: isDark
+                ? "0 0 16px rgba(250,204,21,.14)"
+                : "0 4px 18px rgba(250,204,21,.10)",
             }}
           >
             Management Access
@@ -460,10 +301,7 @@ export default function Login() {
             style={{
               ...styles.title,
 
-              color:
-                isDark
-                  ? "#f8fafc"
-                  : "#0f172a",
+              color: isDark ? "#f8fafc" : "#0f172a",
             }}
           >
             Administrator Sign In
@@ -473,10 +311,7 @@ export default function Login() {
             style={{
               ...styles.subtitle,
 
-              color:
-                isDark
-                  ? "#94a3b8"
-                  : "#64748b",
+              color: isDark ? "#94a3b8" : "#64748b",
             }}
           >
             Manage payments, cashflow, and monitoring
@@ -486,28 +321,15 @@ export default function Login() {
             type="password"
             placeholder="Password"
             value={password}
-            onChange={(e) =>
-              setPassword(
-                e.target.value
-              )
-            }
+            onChange={(e) => setPassword(e.target.value)}
             style={{
               ...styles.input,
 
-              background:
-                isDark
-                  ? "#1e293b"
-                  : "#fff",
+              background: isDark ? "#1e293b" : "#fff",
 
-              color:
-                isDark
-                  ? "#fff"
-                  : "#000",
+              color: isDark ? "#fff" : "#000",
 
-              border:
-                isDark
-                  ? "1px solid #334155"
-                  : "1px solid #cbd5e1",
+              border: isDark ? "1px solid #334155" : "1px solid #cbd5e1",
             }}
           />
 
@@ -516,28 +338,15 @@ export default function Login() {
               type="password"
               placeholder="PIN Admin"
               value={pin}
-              onChange={(e) =>
-                setPin(
-                  e.target.value
-                )
-              }
+              onChange={(e) => setPin(e.target.value)}
               style={{
                 ...styles.input,
 
-                background:
-                  isDark
-                    ? "#1e293b"
-                    : "#fff",
+                background: isDark ? "#1e293b" : "#fff",
 
-                color:
-                  isDark
-                    ? "#fff"
-                    : "#000",
+                color: isDark ? "#fff" : "#000",
 
-                border:
-                  isDark
-                    ? "1px solid #334155"
-                    : "1px solid #cbd5e1",
+                border: isDark ? "1px solid #334155" : "1px solid #cbd5e1",
               }}
             />
           )}
@@ -548,17 +357,10 @@ export default function Login() {
             style={{
               ...styles.button,
 
-              opacity:
-                loading
-                  ? 0.75
-                  : 1,
+              opacity: loading ? 0.75 : 1,
             }}
           >
-            {loading
-              ? "Processing..."
-              : needPin
-                ? "Verify PIN"
-                : "Login"}
+            {loading ? "Processing..." : needPin ? "Verify PIN" : "Login"}
           </button>
 
           <button
@@ -568,25 +370,13 @@ export default function Login() {
             style={{
               ...styles.secondaryButton,
 
-              color:
-                isDark
-                  ? "#fff"
-                  : "#0f172a",
+              color: isDark ? "#fff" : "#0f172a",
 
-              border:
-                isDark
-                  ? "1px solid #334155"
-                  : "1px solid #cbd5e1",
+              border: isDark ? "1px solid #334155" : "1px solid #cbd5e1",
 
-              background:
-                isDark
-                  ? "#1e293b"
-                  : "transparent",
+              background: isDark ? "#1e293b" : "transparent",
 
-              opacity:
-                loading
-                  ? 0.75
-                  : 1,
+              opacity: loading ? 0.75 : 1,
             }}
           >
             Register Passkey
@@ -621,8 +411,7 @@ const styles = {
     width: "100%",
     maxWidth: 360,
 
-    maxHeight:
-      "calc(100dvh - 40px)",
+    maxHeight: "calc(100dvh - 40px)",
 
     overflow: "hidden",
 
@@ -630,8 +419,7 @@ const styles = {
     boxSizing: "border-box",
 
     borderRadius: 22,
-    boxShadow:
-      "0 24px 70px rgba(15,23,42,.18)",
+    boxShadow: "0 24px 70px rgba(15,23,42,.18)",
 
     display: "flex",
     flexDirection: "column",
@@ -655,11 +443,9 @@ const styles = {
     letterSpacing: ".14em",
     textTransform: "uppercase",
 
-    textShadow:
-      "0 0 8px rgba(250,204,21,.25)",
+    textShadow: "0 0 8px rgba(250,204,21,.25)",
 
-    animation:
-      "securityPulse 3.6s ease-in-out infinite",
+    animation: "securityPulse 3.6s ease-in-out infinite",
   },
 
   title: {
@@ -686,8 +472,7 @@ const styles = {
     border: "none",
     borderRadius: 12,
 
-    background:
-      "linear-gradient(135deg,#4f46e5,#2563eb)",
+    background: "linear-gradient(135deg,#4f46e5,#2563eb)",
 
     color: "#fff",
     fontWeight: 800,

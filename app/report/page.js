@@ -1,30 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  Viewer,
-  Worker,
-  SpecialZoomLevel,
-} from "@react-pdf-viewer/core";
+import { Viewer, Worker, SpecialZoomLevel } from "@react-pdf-viewer/core";
 
 // Import styles
 import "@react-pdf-viewer/core/lib/styles/index.css";
 
 export default function Page() {
-  const [stage, setStage] =
-    useState("boot");
+  const [stage, setStage] = useState("boot");
 
-  const [progress, setProgress] =
-    useState(0);
+  const [progress, setProgress] = useState(0);
 
-  const [downloading, setDownloading] =
-    useState(false);
+  const [downloading, setDownloading] = useState(false);
 
-  const [pdfReady, setPdfReady] =
-    useState(false);
+  const [pdfReady, setPdfReady] = useState(false);
 
-  const [viewerReady, setViewerReady] =
-    useState(false);
+  const [viewerReady, setViewerReady] = useState(false);
 
   const stageText = {
     boot: "Memuat data keuangan",
@@ -40,24 +31,15 @@ export default function Page() {
         setStage("boot");
         setProgress(15);
 
-        await fetch(
-          "/api/sheets/summary",
-          {
-            cache: "no-store",
-          }
-        );
+        await fetch("/api/sheets/summary", {
+          cache: "no-store",
+        });
 
         // STEP 2
         setStage("prepare");
 
-        for (
-          let i = 15;
-          i <= 40;
-          i++
-        ) {
-          await new Promise((r) =>
-            setTimeout(r, 15)
-          );
+        for (let i = 15; i <= 40; i++) {
+          await new Promise((r) => setTimeout(r, 15));
 
           setProgress(i);
         }
@@ -65,36 +47,21 @@ export default function Page() {
         // STEP 3
         setStage("load");
 
-        for (
-          let i = 40;
-          i <= 75;
-          i++
-        ) {
-          await new Promise((r) =>
-            setTimeout(r, 12)
-          );
+        for (let i = 40; i <= 75; i++) {
+          await new Promise((r) => setTimeout(r, 12));
 
           setProgress(i);
         }
 
         // STEP 4
-        await fetch(
-          "/api/report/pdf",
-          {
-            cache: "no-store",
-          }
-        );
+        await fetch("/api/report/pdf", {
+          cache: "no-store",
+        });
 
         setStage("ready");
 
-        for (
-          let i = 75;
-          i <= 95;
-          i++
-        ) {
-          await new Promise((r) =>
-            setTimeout(r, 10)
-          );
+        for (let i = 75; i <= 95; i++) {
+          await new Promise((r) => setTimeout(r, 10));
 
           setProgress(i);
         }
@@ -114,8 +81,7 @@ export default function Page() {
     setDownloading(true);
 
     // Trigger download
-    window.location.href =
-      "/api/report/pdf?download=1";
+    window.location.href = "/api/report/pdf?download=1";
 
     setTimeout(() => {
       setDownloading(false);
@@ -155,8 +121,7 @@ export default function Page() {
               color: "#1f2937",
             }}
           >
-            {stageText[stage] ||
-              "Processing..."}
+            {stageText[stage] || "Processing..."}
           </div>
 
           <div
@@ -173,8 +138,7 @@ export default function Page() {
                 width: `${progress}%`,
                 height: "100%",
                 background: "#2563eb",
-                transition:
-                  "width 100ms ease-out",
+                transition: "width 100ms ease-out",
               }}
             />
           </div>
@@ -202,9 +166,7 @@ export default function Page() {
           <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
             <Viewer
               fileUrl="/api/report/pdf"
-              defaultScale={
-                SpecialZoomLevel.PageFit
-              }
+              defaultScale={SpecialZoomLevel.PageFit}
               onDocumentLoad={() => {
                 setProgress(100);
                 setViewerReady(true);
@@ -223,35 +185,25 @@ export default function Page() {
             position: "fixed",
             left: "50%",
             bottom: "32px",
-            transform:
-              "translateX(-50%)",
+            transform: "translateX(-50%)",
             border: "none",
             borderRadius: "50px",
             padding: "12px 24px",
-            background: downloading
-              ? "#93c5fd"
-              : "#2563eb",
+            background: downloading ? "#93c5fd" : "#2563eb",
             color: "#fff",
             fontSize: 15,
             fontWeight: 600,
-            cursor: downloading
-              ? "not-allowed"
-              : "pointer",
+            cursor: downloading ? "not-allowed" : "pointer",
             display: "flex",
             alignItems: "center",
             gap: 10,
-            boxShadow:
-              "0 4px 15px rgba(37, 99, 235, 0.3)",
+            boxShadow: "0 4px 15px rgba(37, 99, 235, 0.3)",
             zIndex: 10,
           }}
         >
-          {downloading && (
-            <div className="spinner-small" />
-          )}
+          {downloading && <div className="spinner-small" />}
 
-          {downloading
-            ? "Downloading..."
-            : "Download PDF"}
+          {downloading ? "Downloading..." : "Download PDF"}
         </button>
       )}
 
@@ -275,8 +227,7 @@ export default function Page() {
         .spinner-small {
           width: 16px;
           height: 16px;
-          border: 2px solid
-            rgba(255, 255, 255, 0.3);
+          border: 2px solid rgba(255, 255, 255, 0.3);
           border-top-color: #fff;
           border-radius: 50%;
           animation: spin 0.6s linear infinite;
