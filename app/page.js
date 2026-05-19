@@ -116,9 +116,15 @@ export default function CashflowPage() {
   };
 
   const formatPeriod = (period) => {
-    if (!period) return "-";
+    if (!period || period === "-") return "-";
 
-    return new Date(`${period.slice(0, 7)}-01`).toLocaleDateString("id-ID", {
+    const normalized = String(period).slice(0, 7);
+
+    if (!/^\d{4}-\d{2}$/.test(normalized)) {
+      return period;
+    }
+
+    return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
       month: "long",
       year: "numeric",
     });
@@ -755,11 +761,9 @@ export default function CashflowPage() {
                 </div>
 
                 <div className="resident-value">
-                  {selectedResident.notApplicable
-                    ? getLastPaymentPeriod(selectedResident)
-                    : formatPeriod(
-                        getLastPaymentPeriod(selectedResident),
-                      )}
+                  {formatPeriod(
+                    getLastPaymentPeriod(selectedResident),
+                  )}
                 </div>
               </div>
             </div>
