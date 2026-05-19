@@ -134,7 +134,7 @@ export default function CashflowPage() {
     if (!resident) return "";
 
     if (resident.notApplicable) {
-      return "Belum memulai pembayaran";
+      return "Belum menjadi anggota pada periode ini";
     }
 
     const paid = data.payments
