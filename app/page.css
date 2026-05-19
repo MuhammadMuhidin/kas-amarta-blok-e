@@ -923,3 +923,51 @@ th {
   line-height: 1.45;
   color: var(--muted);
 }
+
+.searchbox-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.searchbox-input {
+  padding-right: 42px;
+}
+
+.searchbox-clear {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+
+  width: 26px;
+  height: 26px;
+
+  display: grid;
+  place-items: center;
+
+  border: 0;
+  border-radius: 999px;
+
+  background: transparent;
+  color: var(--muted);
+
+  font-size: 20px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transform: translateY(-50%);
+
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.searchbox-clear:hover {
+  background: var(--surface-soft);
+  color: var(--text);
+}
+
+.searchbox-clear:active {
+  transform: translateY(-50%) scale(0.9);
+}

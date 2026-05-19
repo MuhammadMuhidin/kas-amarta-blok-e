@@ -174,6 +174,49 @@ export default function CashflowPage() {
     activeTab === "cashflow" ? totals.net : 0,
   );
 
+  const animatedLastMonthExpense = useAnimatedNumber(
+    activeTab === "insight"
+      ? insight?.lastMonth?.expenseTotal || 0
+      : 0,
+  );
+
+  const animatedLastMonthRemaining = useAnimatedNumber(
+    activeTab === "insight"
+      ? insight?.lastMonth?.remaining || 0
+      : 0,
+  );
+
+  const animatedCurrentIncomePlusLastRemaining =
+    useAnimatedNumber(
+      activeTab === "insight"
+        ? insight?.summary
+            ?.currentIncomePlusLastRemaining || 0
+        : 0,
+    );
+
+  const animatedCurrentMonthExpense =
+    useAnimatedNumber(
+      activeTab === "insight"
+        ? insight?.currentMonth?.expenseTotal || 0
+        : 0,
+    );
+
+  const animatedCurrentBalance =
+    useAnimatedNumber(
+      activeTab === "insight"
+        ? insight?.summary?.currentBalance || 0
+        : 0,
+    );
+
+  const animatedModalExpense =
+    useAnimatedNumber(
+      showInsightModal
+        ? modalType === "last"
+          ? insight?.lastMonth?.expenseTotal || 0
+          : insight?.currentMonth?.expenseTotal || 0
+        : 0,
+    );
+
   /* ==== LOGIC: INSIGHT ==== */
   const activeMembersCount = useMemo(() => {
     if (!data.periods.length) return 0;
@@ -385,14 +428,31 @@ export default function CashflowPage() {
 
         {/* CASHFLOW TAB */}
         <div className={activeTab !== "cashflow" ? "hidden" : ""}>
-          <input
-            placeholder="cari catatan..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setLoadedCashflow(20);
-            }}
-          />
+          <div className="searchbox-wrap">
+            <input
+              className="searchbox-input"
+              placeholder="cari catatan..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setLoadedCashflow(20);
+              }}
+            />
+
+            {searchTerm && (
+              <button
+                type="button"
+                className="searchbox-clear"
+                onClick={() => {
+                  setSearchTerm("");
+                  setLoadedCashflow(20);
+                }}
+                aria-label="Batalkan pencarian"
+              >
+                ×
+              </button>
+            )}
+          </div>
 
           <div className="summary">
             <div className="summary-item">
@@ -497,7 +557,7 @@ export default function CashflowPage() {
 
               <div className="insight-action">
                 <strong style={{ color: "#dc3545" }}>
-                  {format(insight?.lastMonth?.expenseTotal || 0)}
+                  {format(animatedLastMonthExpense)}
                 </strong>
 
                 <button
@@ -514,7 +574,7 @@ export default function CashflowPage() {
 
             <div className="insight-row-final highlight-blue">
               <span>Sisa saldo kumulatif per {insight?.lastMonth?.month}</span>
-              <strong>{format(insight?.lastMonth?.remaining || 0)}</strong>
+              <strong>{format(animatedLastMonthRemaining)}</strong>
             </div>
 
             <hr className="insight-divider" />
@@ -525,7 +585,7 @@ export default function CashflowPage() {
                 {paidInLastPeriodCount} rumah + sisa bulan lalu
               </span>
               <strong>
-                {format(insight?.summary?.currentIncomePlusLastRemaining || 0)}
+                {format(animatedCurrentIncomePlusLastRemaining)}
               </strong>
             </div>
 
@@ -540,7 +600,7 @@ export default function CashflowPage() {
                 }}
               >
                 <strong style={{ color: "#dc3545" }}>
-                  {format(insight?.currentMonth?.expenseTotal || 0)}
+                  {format(animatedCurrentMonthExpense)}
                 </strong>
 
                 <button
@@ -557,7 +617,7 @@ export default function CashflowPage() {
 
             <div className="insight-row final-balance">
               <span>Total saldo saat ini</span>
-              <strong>{format(insight?.summary?.currentBalance || 0)}</strong>
+              <strong>{format(animatedCurrentBalance)}</strong>
             </div>
           </div>
 
