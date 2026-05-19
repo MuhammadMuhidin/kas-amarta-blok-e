@@ -1,17 +1,12 @@
 import { NextResponse } from "next/server";
-import {
-  createCSRFToken,
-  getAuthConfigs,
-} from "@/lib/webauth";
+import { createCSRFToken, getAuthConfigs } from "@/lib/webauth";
 
 function createAuthResponse() {
-  const csrfToken =
-    createCSRFToken();
+  const csrfToken = createCSRFToken();
 
-  const res =
-    NextResponse.json({
-      ok: true,
-    });
+  const res = NextResponse.json({
+    ok: true,
+  });
 
   res.cookies.set("admin", "true", {
     httpOnly: true,
@@ -21,48 +16,33 @@ function createAuthResponse() {
     maxAge: 60 * 60 * 24,
   });
 
-  res.cookies.set(
-    "csrf_token",
-    csrfToken,
-    {
-      httpOnly: false,
-      secure: true,
-      sameSite: "strict",
-      path: "/",
-      maxAge: 60 * 60 * 24,
-    }
-  );
+  res.cookies.set("csrf_token", csrfToken, {
+    httpOnly: false,
+    secure: true,
+    sameSite: "strict",
+    path: "/",
+    maxAge: 60 * 60 * 24,
+  });
 
   return res;
 }
 
 export async function POST(req) {
   try {
-    const {
-      password,
-      pin,
-    } = await req.json();
+    const { password, pin } = await req.json();
 
-    if (
-      password !==
-      process.env.ADMIN_PASSWORD
-    ) {
+    if (password !== process.env.ADMIN_PASSWORD) {
       return NextResponse.json(
         {
-          error:
-            "Wrong password",
+          error: "Wrong password",
         },
         {
           status: 401,
-        }
+        },
       );
     }
 
-    const {
-      webAuthEnabled,
-      pinEnabled,
-    } =
-      await getAuthConfigs();
+    const { webAuthEnabled, pinEnabled } = await getAuthConfigs();
 
     /*
       STEP 1
@@ -73,23 +53,18 @@ export async function POST(req) {
       if (!pin) {
         return NextResponse.json({
           need_pin: true,
-          need_webauth:
-            false,
+          need_webauth: false,
         });
       }
 
-      if (
-        pin !==
-        process.env.ADMIN_PIN
-      ) {
+      if (pin !== process.env.ADMIN_PIN) {
         return NextResponse.json(
           {
-            error:
-              "Wrong PIN",
+            error: "Wrong PIN",
           },
           {
             status: 401,
-          }
+          },
         );
       }
     }
@@ -101,8 +76,7 @@ export async function POST(req) {
 
     if (webAuthEnabled) {
       return NextResponse.json({
-        need_webauth:
-          true,
+        need_webauth: true,
       });
     }
 
@@ -112,17 +86,14 @@ export async function POST(req) {
     */
 
     return createAuthResponse();
-
   } catch (err) {
     return NextResponse.json(
       {
-        error:
-          err.message ||
-          "Sign in failed",
+        error: err.message || "Sign in failed",
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }

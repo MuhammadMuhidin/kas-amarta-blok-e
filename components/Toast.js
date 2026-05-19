@@ -1,10 +1,6 @@
 "use client";
 
-export default function Toast({
-  show,
-  type = "info",
-  message,
-}) {
+export default function Toast({ show, type = "info", message }) {
   if (!show) return null;
 
   const config = {
@@ -34,8 +30,7 @@ export default function Toast({
     },
   };
 
-  const current =
-    config[type] || config.info;
+  const current = config[type] || config.info;
 
   return (
     <div style={styles.wrapper}>
@@ -100,8 +95,7 @@ const styles = {
     padding: "14px 16px",
     borderRadius: 16,
     border: "1px solid",
-    boxShadow:
-      "0 20px 45px rgba(15, 23, 42, 0.16)",
+    boxShadow: "0 20px 45px rgba(15, 23, 42, 0.16)",
     display: "flex",
     alignItems: "center",
     gap: 12,

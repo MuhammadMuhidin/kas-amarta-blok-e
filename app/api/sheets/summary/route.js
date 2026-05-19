@@ -10,10 +10,7 @@ export async function GET() {
     /* PAYMENTS */
     /* ========================= */
     const payments = rows.filter(
-      (r) =>
-        r.__type === "payment" &&
-        r.person_id &&
-        r.period
+      (r) => r.__type === "payment" && r.person_id && r.period,
     );
 
     /* ========================= */
@@ -24,19 +21,13 @@ export async function GET() {
         r.__type === "personal" &&
         r.house &&
         r.name &&
-        ["y", "yes", "true", "1"].includes(
-          (r.active || "").toLowerCase()
-        )
+        ["y", "yes", "true", "1"].includes((r.active || "").toLowerCase()),
     );
 
     /* ========================= */
     /* PERIODS */
     /* ========================= */
-    const periods = [
-      ...new Set(
-        payments.map((p) => p.period).filter(Boolean)
-      ),
-    ];
+    const periods = [...new Set(payments.map((p) => p.period).filter(Boolean))];
 
     /* ========================= */
     /* CASHFLOW */
@@ -45,37 +36,33 @@ export async function GET() {
       .filter(
         (r) =>
           r.__type === "cashflow" &&
-          ["income", "expense"].includes(
-            (r.type || "").toLowerCase()
-          )
+          ["income", "expense"].includes((r.type || "").toLowerCase()),
       )
-      .sort(
-        (a, b) =>
-          new Date(b.date || 0) - new Date(a.date || 0)
-      );
+      .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
     /* ========================= */
     /* 1. PENENTUAN TANGGAL & BULAN */
     /* ========================= */
     const now = new Date();
     // Akhir bulan lalu (Contoh: jika sekarang Mei, ini adalah 30 April)
-    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+    const endOfLastMonth = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      0,
+      23,
+      59,
+      59,
+    );
     // Awal bulan ini (1 Mei)
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonthName = endOfLastMonth.toLocaleString(
-      "id-ID",
-      {
-        month: "long",
-        year: "numeric",
-      }
-    );
-    const currentMonthName = startOfCurrentMonth.toLocaleString(
-      "id-ID",
-      {
-        month: "long",
-        year: "numeric",
-      }
-    );
+    const lastMonthName = endOfLastMonth.toLocaleString("id-ID", {
+      month: "long",
+      year: "numeric",
+    });
+    const currentMonthName = startOfCurrentMonth.toLocaleString("id-ID", {
+      month: "long",
+      year: "numeric",
+    });
     const currentMonthKey = startOfCurrentMonth.toISOString().slice(0, 7);
     const lastMonthKey = endOfLastMonth.toISOString().slice(0, 7);
 
@@ -92,13 +79,14 @@ export async function GET() {
       .reduce((sum, c) => sum + Number(c.amount || 0), 0);
 
     // Inilah angka "Total Seluruh Saldo per April"
-    const lastMonthRemaining = totalIncomeUntilLastMonth - totalExpenseUntilLastMonth;
+    const lastMonthRemaining =
+      totalIncomeUntilLastMonth - totalExpenseUntilLastMonth;
 
     /* ========================= */
     /* 3. TRANSAKSI KHUSUS BULAN LALU (Untuk Detail) */
     /* ========================= */
     const lastMonthCashflow = cashflows.filter(
-      (c) => (c.date || "").slice(0, 7) === lastMonthKey
+      (c) => (c.date || "").slice(0, 7) === lastMonthKey,
     );
 
     const lastMonthIncomeOnly = lastMonthCashflow
@@ -113,13 +101,16 @@ export async function GET() {
         amount: Number(c.amount || 0),
       }));
 
-    const lastMonthExpenseTotal = lastMonthExpenses.reduce((sum, item) => sum + item.amount, 0);
+    const lastMonthExpenseTotal = lastMonthExpenses.reduce(
+      (sum, item) => sum + item.amount,
+      0,
+    );
 
     /* ========================= */
     /* 4. TRANSAKSI BULAN INI */
     /* ========================= */
     const currentMonthCashflow = cashflows.filter(
-      (c) => (c.date || "").slice(0, 7) === currentMonthKey
+      (c) => (c.date || "").slice(0, 7) === currentMonthKey,
     );
 
     const currentMonthIncome = currentMonthCashflow
@@ -183,15 +174,11 @@ export async function GET() {
       persons,
       cashflows,
       periods,
-      insight
+      insight,
     });
-
   } catch (error) {
     console.error("SUMMARY ERROR:", error);
 
-    return Response.json(
-      { error: "Failed to fetch data" },
-      { status: 500 }
-    );
+    return Response.json({ error: "Failed to fetch data" }, { status: 500 });
   }
 }

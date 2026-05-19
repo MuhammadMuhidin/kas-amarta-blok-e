@@ -1,99 +1,72 @@
-import { NextResponse } from "next/server"
-import { getDrive } from "@/lib/google"
+import { NextResponse } from "next/server";
+import { getDrive } from "@/lib/google";
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export async function GET(){
+export async function GET() {
+  try {
+    const drive = await getDrive();
 
-  try{
+    const folderId = process.env.GOOGLE_DAILY_BACKUP_FOLDER_ID;
 
-    const drive = await getDrive()
+    let files = [];
+    let pageToken = null;
 
-    const folderId =
-      process.env.GOOGLE_DAILY_BACKUP_FOLDER_ID
+    do {
+      const res = await drive.files.list({
+        q: `'${folderId}' in parents and trashed = false`,
 
-    let files = []
-    let pageToken = null
+        fields:
+          "nextPageToken, files(id,name,mimeType,createdTime,modifiedTime)",
 
-    do{
+        orderBy: "createdTime desc",
 
-      const res =
-        await drive.files.list({
+        pageSize: 1000,
 
-          q:
-            `'${folderId}' in parents and trashed = false`,
+        pageToken,
 
-          fields:
-            "nextPageToken, files(id,name,mimeType,createdTime,modifiedTime)",
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+      });
 
-          orderBy:
-            "createdTime desc",
+      files.push(...(res.data.files || []));
 
-          pageSize: 1000,
+      pageToken = res.data.nextPageToken;
+    } while (pageToken);
 
-          pageToken,
+    const latest = files[0];
 
-          supportsAllDrives: true,
-          includeItemsFromAllDrives: true,
-        })
-
-      files.push(
-        ...(res.data.files || [])
-      )
-
-      pageToken =
-        res.data.nextPageToken
-
-    }while(pageToken)
-
-    const latest =
-      files[0]
-
-    if(!latest){
-
+    if (!latest) {
       return NextResponse.json({
-        ok:false,
-        count:0,
-      })
-
+        ok: false,
+        count: 0,
+      });
     }
 
     return NextResponse.json({
-
-      ok:true,
+      ok: true,
 
       // count real
       count: files.length,
 
       name: latest.name,
 
-      created_at:
-        new Date(
-          latest.createdTime
-        ).toLocaleString(
-          "id-ID",
-          {
-            timeZone:
-              "Asia/Jakarta",
+      created_at: new Date(latest.createdTime).toLocaleString("id-ID", {
+        timeZone: "Asia/Jakarta",
 
-            dateStyle:
-              "medium",
+        dateStyle: "medium",
 
-            timeStyle:
-              "short",
-          }
-        ),
-
-    })
-
-  }catch(err){
-
-    return NextResponse.json({
-      ok:false,
-      error:err.message,
-    },{status:500})
-
+        timeStyle: "short",
+      }),
+    });
+  } catch (err) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: err.message,
+      },
+      { status: 500 },
+    );
   }
-
 }

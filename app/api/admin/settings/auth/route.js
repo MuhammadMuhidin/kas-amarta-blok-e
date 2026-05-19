@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
-import {
-  getAuthConfigs,
-  updateAuthConfig,
-} from "@/lib/webauth";
-import {
-  isAdmin,
-  unauthorized,
-  validateCSRF,
-} from "@/lib/auth";
+import { getAuthConfigs, updateAuthConfig } from "@/lib/webauth";
+import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
@@ -17,8 +10,7 @@ export async function GET(req) {
       return unauthorized();
     }
 
-    const config =
-      await getAuthConfigs();
+    const config = await getAuthConfigs();
 
     return NextResponse.json({
       ok: true,
@@ -27,13 +19,11 @@ export async function GET(req) {
   } catch (err) {
     return NextResponse.json(
       {
-        error:
-          err.message ||
-          "Gagal membaca settings",
+        error: err.message || "Gagal membaca settings",
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }
@@ -51,17 +41,13 @@ export async function PATCH(req) {
         },
         {
           status: 403,
-        }
+        },
       );
     }
 
-    const { key, value } =
-      await req.json();
+    const { key, value } = await req.json();
 
-    await updateAuthConfig(
-      key,
-      value ? "true" : "false"
-    );
+    await updateAuthConfig(key, value ? "true" : "false");
 
     return NextResponse.json({
       ok: true,
@@ -69,13 +55,11 @@ export async function PATCH(req) {
   } catch (err) {
     return NextResponse.json(
       {
-        error:
-          err.message ||
-          "Gagal update settings",
+        error: err.message || "Gagal update settings",
       },
       {
         status: 500,
-      }
+      },
     );
   }
 }

@@ -18,9 +18,7 @@ export default function ConfirmModal({
         style={{
           ...styles.modal,
           background: isDark ? "#111827" : "#fff",
-          border: isDark
-            ? "1px solid #334155"
-            : "1px solid #e2e8f0",
+          border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
         }}
       >
         <h3
@@ -49,19 +47,13 @@ export default function ConfirmModal({
               ...styles.cancel,
               background: isDark ? "#1e293b" : "#fff",
               color: isDark ? "#f8fafc" : "#0f172a",
-              border: isDark
-                ? "1px solid #334155"
-                : "1px solid #cbd5e1",
+              border: isDark ? "1px solid #334155" : "1px solid #cbd5e1",
             }}
           >
             {cancelText}
           </button>
 
-          <button
-            type="button"
-            onClick={onConfirm}
-            style={styles.confirm}
-          >
+          <button type="button" onClick={onConfirm} style={styles.confirm}>
             {confirmText}
           </button>
         </div>

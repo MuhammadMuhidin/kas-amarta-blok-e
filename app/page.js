@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import "@/app/page.css";
 
 function useAnimatedNumber(value, duration = 900) {
-  const [displayValue, setDisplayValue] =
-    useState(0);
+  const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
     let frame;
@@ -16,17 +15,11 @@ function useAnimatedNumber(value, duration = 900) {
     const startTime = performance.now();
 
     function animate(now) {
-      const progress = Math.min(
-        (now - startTime) / duration,
-        1
-      );
+      const progress = Math.min((now - startTime) / duration, 1);
 
-      const eased =
-        1 - Math.pow(1 - progress, 3);
+      const eased = 1 - Math.pow(1 - progress, 3);
 
-      const current = Math.floor(
-        start + (end - start) * eased
-      );
+      const current = Math.floor(start + (end - start) * eased);
 
       setDisplayValue(current);
 
@@ -127,9 +120,7 @@ export default function CashflowPage() {
           notApplicable = true;
         } else {
           paid = data.payments.some(
-            (pay) =>
-              pay.person_id === p.id &&
-              pay.period.slice(0, 7) === per
+            (pay) => pay.person_id === p.id && pay.period.slice(0, 7) === per,
           );
         }
 
@@ -142,21 +133,16 @@ export default function CashflowPage() {
       .sort((a, b) =>
         a.house.localeCompare(b.house, undefined, {
           numeric: true,
-        })
+        }),
       );
   }, [selectedPeriod, data]);
 
-  const totalPagePay = Math.max(
-    1,
-    Math.ceil(paymentList.length / perPagePay)
-  );
+  const totalPagePay = Math.max(1, Math.ceil(paymentList.length / perPagePay));
 
   /* ==== LOGIC: CASHFLOW ==== */
   const filteredCashflow = useMemo(() => {
     return data.cashflows.filter((c) =>
-      (c.note || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase())
+      (c.note || "").toLowerCase().includes(searchTerm.toLowerCase()),
     );
   }, [searchTerm, data.cashflows]);
 
@@ -177,15 +163,15 @@ export default function CashflowPage() {
   }, [data.cashflows]);
 
   const animatedIncome = useAnimatedNumber(
-    activeTab === "cashflow" ? totals.inc : 0
+    activeTab === "cashflow" ? totals.inc : 0,
   );
 
   const animatedExpense = useAnimatedNumber(
-    activeTab === "cashflow" ? totals.exp : 0
+    activeTab === "cashflow" ? totals.exp : 0,
   );
 
   const animatedNet = useAnimatedNumber(
-    activeTab === "cashflow" ? totals.net : 0
+    activeTab === "cashflow" ? totals.net : 0,
   );
 
   /* ==== LOGIC: INSIGHT ==== */
@@ -203,14 +189,12 @@ export default function CashflowPage() {
   const paidInLastPeriodCount = useMemo(() => {
     if (!data.periods.length) return 0;
 
-    const last = [...data.periods]
-      .sort((a, b) => a.localeCompare(b))
-      .pop();
+    const last = [...data.periods].sort((a, b) => a.localeCompare(b)).pop();
 
     return new Set(
       data.payments
         .filter((p) => (p.period || "").slice(0, 7) === last)
-        .map((p) => `${p.person_id}-${p.person_house}`)
+        .map((p) => `${p.person_id}-${p.person_house}`),
     ).size;
   }, [data]);
 
@@ -226,15 +210,11 @@ export default function CashflowPage() {
 
         const paid = data.payments
           .filter(
-            (pay) =>
-              pay.person_id === p.id &&
-              pay.person_house === p.house
+            (pay) => pay.person_id === p.id && pay.person_house === p.house,
           )
           .map((pay) => pay.period.slice(0, 7));
 
-        const unpaid = validPeriods.filter(
-          (pr) => !paid.includes(pr)
-        );
+        const unpaid = validPeriods.filter((pr) => !paid.includes(pr));
 
         return {
           house: p.house,
@@ -247,13 +227,13 @@ export default function CashflowPage() {
       .sort((a, b) =>
         a.house.localeCompare(b.house, undefined, {
           numeric: true,
-        })
+        }),
       );
   }, [data]);
 
   const totalPageInsight = Math.max(
     1,
-    Math.ceil(insightResult.length / perPageInsight)
+    Math.ceil(insightResult.length / perPageInsight),
   );
 
   return (
@@ -269,9 +249,7 @@ export default function CashflowPage() {
                   <span></span>
                 </div>
 
-                <div className="loader-text">
-                  Sedang memuat data...
-                </div>
+                <div className="loader-text">Sedang memuat data...</div>
               </div>
             </div>
           </div>
@@ -287,21 +265,17 @@ export default function CashflowPage() {
                   <span></span>
                 </div>
 
-                <div className="loader-text">
-                  Sedang memproses laporan..
-                </div>
+                <div className="loader-text">Sedang memproses laporan..</div>
               </div>
             </div>
           </div>
         )}
-<header className="hero-header">
-  <div className="hero-eyebrow">
-    Amarta Residence • Blok E
-  </div>
-  <p className="hero-desc">
-    Pusat transparansi pembayaran dan pengelolaan kas warga.
-  </p>
-</header>
+        <header className="hero-header">
+          <div className="hero-eyebrow">Amarta Residence • Blok E</div>
+          <p className="hero-desc">
+            Pusat transparansi pembayaran dan pengelolaan kas warga.
+          </p>
+        </header>
 
         <div className="tab">
           <button
@@ -325,10 +299,7 @@ export default function CashflowPage() {
             📊 Laporan
           </button>
 
-          <button onClick={() => router.push("/login")}
-          >
-            🔒 Login
-          </button>
+          <button onClick={() => router.push("/login")}>🔒 Login</button>
         </div>
 
         {/* PAYMENT TAB */}
@@ -352,9 +323,7 @@ export default function CashflowPage() {
             onScroll={(e) => {
               const width = e.currentTarget.clientWidth;
 
-              const index = Math.round(
-                e.currentTarget.scrollLeft / width
-              );
+              const index = Math.round(e.currentTarget.scrollLeft / width);
 
               setPaySlideIndex(index);
             }}
@@ -362,7 +331,7 @@ export default function CashflowPage() {
             {Array.from({ length: totalPagePay }).map((_, pageIndex) => {
               const items = paymentList.slice(
                 pageIndex * perPagePay,
-                (pageIndex + 1) * perPagePay
+                (pageIndex + 1) * perPagePay,
               );
 
               return (
@@ -384,15 +353,15 @@ export default function CashflowPage() {
                               color: p.notApplicable
                                 ? "#6c757d"
                                 : p.paid
-                                ? "#28a745"
-                                : "#dc3545",
+                                  ? "#28a745"
+                                  : "#dc3545",
                             }}
                           >
                             {p.notApplicable
                               ? "Belum Bergabung"
                               : p.paid
-                              ? "Sudah Bayar"
-                              : "Belum Bayar"}
+                                ? "Sudah Bayar"
+                                : "Belum Bayar"}
                           </span>
                         </div>
                       </div>
@@ -408,10 +377,7 @@ export default function CashflowPage() {
               {Array.from({
                 length: totalPagePay,
               }).map((_, i) => (
-                <span
-                  key={i}
-                  className={paySlideIndex === i ? "active" : ""}
-                />
+                <span key={i} className={paySlideIndex === i ? "active" : ""} />
               ))}
             </div>
           )}
@@ -431,30 +397,21 @@ export default function CashflowPage() {
           <div className="summary">
             <div className="summary-item">
               <span className="summary-label">Total Pemasukan</span>
-              <span
-                style={{ color: "#28a745" }}
-                className="summary-value"
-              >
+              <span style={{ color: "#28a745" }} className="summary-value">
                 {format(animatedIncome)}
               </span>
             </div>
 
             <div className="summary-item">
               <span className="summary-label">Total Pengeluaran</span>
-              <span
-                style={{ color: "#dc3545" }}
-                className="summary-value"
-              >
+              <span style={{ color: "#dc3545" }} className="summary-value">
                 {format(animatedExpense)}
               </span>
             </div>
 
             <div className="summary-item">
               <span className="summary-label">Sisa Saldo</span>
-              <span
-                style={{ color: "#007bff" }}
-                className="summary-value"
-              >
+              <span style={{ color: "#007bff" }} className="summary-value">
                 {format(animatedNet)}
               </span>
             </div>
@@ -463,8 +420,7 @@ export default function CashflowPage() {
           <div
             className="table-container cashflow-body"
             onScroll={(e) => {
-              const { scrollTop, scrollHeight, clientHeight } =
-                e.currentTarget;
+              const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
 
               if (scrollTop + clientHeight >= scrollHeight - 1) {
                 setLoadedCashflow((prev) => prev + chunk);
@@ -482,25 +438,23 @@ export default function CashflowPage() {
               </thead>
 
               <tbody>
-                {filteredCashflow
-                  .slice(0, loadedCashflow)
-                  .map((c, i) => (
-                    <tr key={i}>
-                      <td>{c.date || "-"}</td>
+                {filteredCashflow.slice(0, loadedCashflow).map((c, i) => (
+                  <tr key={i}>
+                    <td>{c.date || "-"}</td>
 
-                      <td>
-                        <span className={`badge ${c.type}`}>
-                          {({
-                            income: "Pemasukan",
-                            expense: "Pengeluaran",
-                          }[c.type] || c.type)}
-                        </span>
-                      </td>
+                    <td>
+                      <span className={`badge ${c.type}`}>
+                        {{
+                          income: "Pemasukan",
+                          expense: "Pengeluaran",
+                        }[c.type] || c.type}
+                      </span>
+                    </td>
 
-                      <td>{format(c.amount)}</td>
-                      <td>{c.note || "-"}</td>
-                    </tr>
-                  ))}
+                    <td>{format(c.amount)}</td>
+                    <td>{c.note || "-"}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -559,12 +513,8 @@ export default function CashflowPage() {
             </div>
 
             <div className="insight-row-final highlight-blue">
-              <span>
-                Sisa saldo kumulatif per {insight?.lastMonth?.month}
-              </span>
-              <strong>
-                {format(insight?.lastMonth?.remaining || 0)}
-              </strong>
+              <span>Sisa saldo kumulatif per {insight?.lastMonth?.month}</span>
+              <strong>{format(insight?.lastMonth?.remaining || 0)}</strong>
             </div>
 
             <hr className="insight-divider" />
@@ -575,9 +525,7 @@ export default function CashflowPage() {
                 {paidInLastPeriodCount} rumah + sisa bulan lalu
               </span>
               <strong>
-                {format(
-                  insight?.summary?.currentIncomePlusLastRemaining || 0
-                )}
+                {format(insight?.summary?.currentIncomePlusLastRemaining || 0)}
               </strong>
             </div>
 
@@ -609,9 +557,7 @@ export default function CashflowPage() {
 
             <div className="insight-row final-balance">
               <span>Total saldo saat ini</span>
-              <strong>
-                {format(insight?.summary?.currentBalance || 0)}
-              </strong>
+              <strong>{format(insight?.summary?.currentBalance || 0)}</strong>
             </div>
           </div>
 
@@ -624,9 +570,7 @@ export default function CashflowPage() {
                 onScroll={(e) => {
                   const width = e.currentTarget.clientWidth;
 
-                  const index = Math.round(
-                    e.currentTarget.scrollLeft / width
-                  );
+                  const index = Math.round(e.currentTarget.scrollLeft / width);
 
                   setInsightSlideIndex(index);
                 }}
@@ -635,36 +579,25 @@ export default function CashflowPage() {
                   (_, pageIndex) => {
                     const items = insightResult.slice(
                       pageIndex * perPageInsight,
-                      (pageIndex + 1) * perPageInsight
+                      (pageIndex + 1) * perPageInsight,
                     );
 
                     return (
-                      <div
-                        className="insight-slide-page"
-                        key={pageIndex}
-                      >
+                      <div className="insight-slide-page" key={pageIndex}>
                         {items.map((r, i) => (
-                          <div
-                            key={i}
-                            className="insight-card"
-                          >
+                          <div key={i} className="insight-card">
                             <b>
-                              {pageIndex * perPageInsight + i + 1}.{" "}
-                              {r.house}
+                              {pageIndex * perPageInsight + i + 1}. {r.house}
                             </b>
 
-                            <div>
-                              • Nunggak: {r.jumlah} periode
-                            </div>
+                            <div>• Nunggak: {r.jumlah} periode</div>
 
-                            <div>
-                              • Periode: {r.unpaid.join(", ")}
-                            </div>
+                            <div>• Periode: {r.unpaid.join(", ")}</div>
                           </div>
                         ))}
                       </div>
                     );
-                  }
+                  },
                 )}
               </div>
 
@@ -675,18 +608,14 @@ export default function CashflowPage() {
                   }).map((_, i) => (
                     <span
                       key={i}
-                      className={
-                        insightSlideIndex === i ? "active" : ""
-                      }
+                      className={insightSlideIndex === i ? "active" : ""}
                     />
                   ))}
                 </div>
               )}
             </>
           ) : (
-            <div className="insight-card">
-              Tidak ada tunggakan.
-            </div>
+            <div className="insight-card">Tidak ada tunggakan.</div>
           )}
         </div>
 
@@ -696,10 +625,7 @@ export default function CashflowPage() {
             className="modal-overlay"
             onClick={() => setShowInsightModal(false)}
           >
-            <div
-              className="modal-box"
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className="modal-box" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <div className="modal-title">
                   Detail Pengeluaran Bulan{" "}
@@ -720,7 +646,7 @@ export default function CashflowPage() {
                   {format(
                     modalType === "last"
                       ? insight?.lastMonth?.expenseTotal || 0
-                      : insight?.currentMonth?.expenseTotal || 0
+                      : insight?.currentMonth?.expenseTotal || 0,
                   )}
                 </div>
 
