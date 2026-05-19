@@ -178,7 +178,6 @@ export default function CashflowPage() {
         return {
           id: p.id,
           house: p.house,
-          name: p.name,
           join_date: p.join_date,
           paid,
           notApplicable,
