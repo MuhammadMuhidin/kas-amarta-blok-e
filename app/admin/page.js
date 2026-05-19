@@ -908,7 +908,7 @@ export default function AdminPage() {
 
         {tab === "payment" && (
           <>
-          loadAppConfig();
+          await loadAppConfig();
           {configError && (
             <div style={styles.errorBox}>
               {configError}
