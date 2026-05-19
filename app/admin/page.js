@@ -136,8 +136,17 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (tab === "payment" || tab === "monitoring") {
+    if (tab === "payment") {
       loadAppConfig();
+    }
+
+    if (tab === "monitoring") {
+      loadAppConfig();
+      loadDailyBackupStatus();
+      loadPayment();
+      loadTrash();
+      loadPersonal();
+      loadCashflow();
     }
   }, [tab]);
 
