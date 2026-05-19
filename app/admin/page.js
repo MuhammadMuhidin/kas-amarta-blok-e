@@ -135,6 +135,12 @@ export default function AdminPage() {
     loadTrash();
   }, []);
 
+  useEffect(() => {
+    if (tab === "payment") {
+      loadAppConfig();
+    }
+  }, [tab]);
+
   async function addMember(e) {
     e.preventDefault();
 
@@ -908,7 +914,6 @@ export default function AdminPage() {
 
         {tab === "payment" && (
           <>
-          await loadAppConfig();
           {configError && (
             <div style={styles.errorBox}>
               {configError}
