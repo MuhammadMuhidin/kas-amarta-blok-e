@@ -200,7 +200,7 @@ export default function AdminSettings() {
         <div style={styles.section}>
           <ConfigItem
             label="Nominal Kas Bulanan"
-            description="Nilai iuran kas bulanan yang digunakan sebagai nominal default pembayaran warga."
+            description="Nominal default iuran kas bulanan untuk pembayaran warga dan perhitungan tunggakan dalam laporan PDF."
             type="number"
             value={appConfig?.monthly_fee}
             disabled={savingConfig}
@@ -210,7 +210,7 @@ export default function AdminSettings() {
 
           <ConfigItem
             label="Iuran Sampah"
-            description="Nilai iuran sampah bulanan yang digunakan dalam konfigurasi pembayaran warga."
+            description="Nominal default iuran sampah yang dibayar bersama iuran kas warga."
             type="number"
             value={appConfig?.trash_fee}
             disabled={savingConfig}
@@ -220,7 +220,7 @@ export default function AdminSettings() {
 
           <ConfigItem
             label="Mulai Monitoring"
-            description="Periode awal yang digunakan sistem untuk monitoring data kas dan pembayaran."
+            description="Periode awal yang digunakan sistem untuk monitoring pembayaran iuran sampah."
             type="month"
             value={appConfig?.start_monitoring_date}
             disabled={savingConfig}
