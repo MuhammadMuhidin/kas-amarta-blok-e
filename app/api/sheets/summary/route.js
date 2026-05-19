@@ -1,10 +1,12 @@
 import { getSheetData } from "@/lib/google";
+import { getAppConfig } from "@/lib/appConfig";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const rows = await getSheetData();
+    const appConfig = await getAppConfig();
 
     /* ========================= */
     /* PAYMENTS */
@@ -175,6 +177,7 @@ export async function GET() {
       cashflows,
       periods,
       insight,
+      config: appConfig,
     });
   } catch (error) {
     console.error("SUMMARY ERROR:", error);
