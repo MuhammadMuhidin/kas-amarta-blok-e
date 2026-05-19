@@ -7,7 +7,7 @@ import {
 import {
   getAppConfig,
   updateAppConfig,
-} from "@/lib/appConfig";
+} from "@/lib/configure";
 
 export const runtime = "nodejs";
 
@@ -15,6 +15,17 @@ export async function GET(req) {
   try {
     if (!isAdmin(req)) {
       return unauthorized();
+    }
+
+    if (!validateCSRF(req)) {
+      return NextResponse.json(
+        {
+          error: "CSRF tidak valid",
+        },
+        {
+          status: 403,
+        },
+      );
     }
 
     const config = await getAppConfig();

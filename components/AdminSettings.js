@@ -15,35 +15,26 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
 
   const [appConfig, setAppConfig] = useState(null);
-  const [loadingConfig, setLoadingConfig] =  useState(true);
-  const [savingConfig, setSavingConfig] =  useState(false);
+  const [loadingConfig, setLoadingConfig] = useState(true);
+  const [savingConfig, setSavingConfig] = useState(false);
 
   async function loadAppConfig() {
     try {
       setLoadingConfig(true);
 
-      const res = await fetch(
-        "/api/admin/settings/app",
-        {
-          cache: "no-store",
-        },
-      );
+      const res = await fetch("/api/admin/settings/app", {
+        cache: "no-store",
+      });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          data.error ||
-            "Gagal memuat konfigurasi kas",
-        );
+        throw new Error(data.error || "Gagal memuat konfigurasi kas");
       }
 
       setAppConfig(data.config);
     } catch (err) {
-      alert(
-        err.message ||
-          "Gagal memuat konfigurasi kas",
-      );
+      alert(err.message || "Gagal memuat konfigurasi kas");
     } finally {
       setLoadingConfig(false);
     }
@@ -53,43 +44,29 @@ export default function AdminSettings() {
     try {
       setSavingConfig(true);
 
-      const csrfToken =
-        getCookie("csrf_token");
+      const csrfToken = getCookie("csrf_token");
 
-      const res = await fetch(
-        "/api/admin/settings/app",
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            "x-csrf-token":
-              csrfToken,
-          },
-
-          body: JSON.stringify({
-            key,
-            value,
-          }),
+      const res = await fetch("/api/admin/settings/app", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
         },
-      );
+        body: JSON.stringify({
+          key,
+          value,
+        }),
+      });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(
-          data.error ||
-            "Gagal update config",
-        );
+        throw new Error(data.error || "Gagal update config");
       }
 
       await loadAppConfig();
     } catch (err) {
-      alert(
-        err.message ||
-          "Gagal update config",
-      );
+      alert(err.message || "Gagal update config");
     } finally {
       setSavingConfig(false);
     }
@@ -156,54 +133,38 @@ export default function AdminSettings() {
 
   return (
     <div style={styles.card}>
-      <h2 style={styles.title}>
-        Konfigurasi Kas
-      </h2>
+      <h2 style={styles.title}>Konfigurasi Kas</h2>
 
       {loadingConfig ? (
-        <div style={styles.card}>
-          Memuat konfigurasi...
-        </div>
+        <div style={styles.loadingBox}>Memuat konfigurasi...</div>
       ) : (
-        <div style={styles.configGrid}>
+        <div style={styles.section}>
           <ConfigItem
             label="Nominal Kas Bulanan"
+            description="Nilai iuran kas bulanan yang digunakan sebagai nominal default pembayaran warga."
             type="number"
             value={appConfig?.monthly_fee}
             disabled={savingConfig}
-            onSave={(value) =>
-              updateConfig(
-                "monthly_fee",
-                value,
-              )
-            }
+            onSave={(value) => updateConfig("monthly_fee", value)}
           />
 
           <ConfigItem
             label="Iuran Sampah"
+            description="Nilai iuran sampah bulanan yang digunakan dalam konfigurasi pembayaran warga."
             type="number"
             value={appConfig?.trash_fee}
             disabled={savingConfig}
-            onSave={(value) =>
-              updateConfig(
-                "trash_fee",
-                value,
-              )
-            }
+            onSave={(value) => updateConfig("trash_fee", value)}
           />
 
           <ConfigItem
             label="Mulai Monitoring"
+            description="Periode awal yang digunakan sistem untuk monitoring data kas dan pembayaran."
             type="month"
-            value={
-              appConfig?.start_monitoring_date
-            }
+            value={appConfig?.start_monitoring_date}
             disabled={savingConfig}
             onSave={(value) =>
-              updateConfig(
-                "start_monitoring_date",
-                value,
-              )
+              updateConfig("start_monitoring_date", value)
             }
           />
         </div>
@@ -270,22 +231,26 @@ function SettingRow({ title, description, checked, disabled, onChange }) {
 
 function ConfigItem({
   label,
+  description,
   type,
   value,
   onSave,
   disabled,
 }) {
-  const [local, setLocal] =
-    useState(value);
+  const [local, setLocal] = useState(value);
 
   useEffect(() => {
     setLocal(value);
   }, [value]);
 
+  const unchanged = String(local) === String(value);
+
   return (
-    <div style={styles.configCard}>
-      <div style={styles.configLabel}>
-        {label}
+    <div style={styles.row}>
+      <div>
+        <h3 style={styles.rowTitle}>{label}</h3>
+
+        <p style={styles.desc}>{description}</p>
       </div>
 
       <div style={styles.configAction}>
@@ -293,29 +258,18 @@ function ConfigItem({
           type={type}
           value={local || ""}
           disabled={disabled}
-          onChange={(e) =>
-            setLocal(e.target.value)
-          }
+          onChange={(e) => setLocal(e.target.value)}
           style={styles.input}
         />
 
         <button
           type="button"
-          disabled={
-            disabled ||
-            String(local) ===
-              String(value)
-          }
+          disabled={disabled || unchanged}
           onClick={() => onSave(local)}
           style={{
             ...styles.saveButton,
-
-            opacity:
-              disabled ||
-              String(local) ===
-                String(value)
-                ? 0.55
-                : 1,
+            opacity: disabled || unchanged ? 0.55 : 1,
+            cursor: disabled || unchanged ? "not-allowed" : "pointer",
           }}
         >
           Simpan
@@ -339,6 +293,17 @@ const styles = {
     margin: "0 0 18px",
     fontSize: 20,
     color: "var(--admin-text)",
+  },
+
+  section: {
+    marginBottom: 24,
+  },
+
+  loadingBox: {
+    padding: "16px 0",
+    marginBottom: 24,
+    color: "var(--admin-muted)",
+    borderTop: "1px solid var(--admin-border)",
   },
 
   row: {
@@ -387,49 +352,32 @@ const styles = {
     boxShadow: "0 2px 6px rgba(0,0,0,.25)",
   },
 
-  configGrid: {
-  display: "grid",
-  gap: 12,
-  marginBottom: 22,
-},
+  configAction: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 0,
+  },
 
-configCard: {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
+  input: {
+    width: 160,
+    height: 38,
+    padding: "0 12px",
+    borderRadius: 10,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-surface)",
+    color: "var(--admin-text)",
+    fontWeight: 600,
+    outline: "none",
+  },
 
-  gap: 14,
-
-  padding: 16,
-
-  borderRadius: 14,
-
-  border:
-    "1px solid var(--admin-border)",
-
-  background:
-    "var(--admin-surface)",
-},
-
-configLabel: {
-  fontWeight: 700,
-  color: "var(--admin-text)",
-},
-
-configAction: {
-  display: "flex",
-  alignItems: "center",
-  gap: 8,
-},
-
-saveButton: {
-  height: 38,
-  padding: "0 14px",
-  border: "none",
-  borderRadius: 10,
-  background: "#2563eb",
-  color: "#fff",
-  fontWeight: 700,
-  cursor: "pointer",
-},
+  saveButton: {
+    height: 38,
+    padding: "0 14px",
+    border: "none",
+    borderRadius: 10,
+    background: "#2563eb",
+    color: "#fff",
+    fontWeight: 700,
+  },
 };
