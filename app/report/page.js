@@ -31,9 +31,9 @@ export default function Page() {
         setStage("boot");
         setProgress(15);
 
-        await fetch("/api/sheets/summary", {
+        /*await fetch("/api/sheets/summary", {
           cache: "no-store",
-        });
+        });*/
 
         // STEP 2
         setStage("prepare");
@@ -54,9 +54,9 @@ export default function Page() {
         }
 
         // STEP 4
-        await fetch("/api/report/pdf", {
+        /*await fetch("/api/report/pdf", {
           cache: "no-store",
-        });
+        });*/
 
         setStage("ready");
 
