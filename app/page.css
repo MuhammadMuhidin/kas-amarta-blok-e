@@ -980,3 +980,70 @@ th {
     translateY(calc(-50% - 6px))
     scale(.92);
 }
+
+.pay-item {
+  cursor: pointer;
+
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.pay-item:hover {
+  transform: translateY(-1px);
+  border-color: var(--primary);
+}
+
+.pay-item:active {
+  transform: scale(0.985);
+}
+
+.resident-modal {
+  width: 100%;
+  max-width: 320px;
+
+  padding: 20px 18px;
+
+  border-radius: 18px;
+  border: 1px solid var(--border);
+
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.resident-house {
+  margin-bottom: 22px;
+
+  color: var(--text);
+
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.resident-section {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.resident-section + .resident-section {
+  margin-top: 14px;
+}
+
+.resident-label {
+  margin-bottom: 4px;
+
+  color: var(--muted);
+
+  font-size: var(--font-small);
+  font-weight: 700;
+}
+
+.resident-value {
+  color: var(--text);
+
+  font-size: var(--font-base);
+  font-weight: 800;
+}
