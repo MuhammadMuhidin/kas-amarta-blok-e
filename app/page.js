@@ -133,10 +133,6 @@ export default function CashflowPage() {
   const getLastPaymentPeriod = (resident) => {
     if (!resident) return "-";
 
-    if (resident.notApplicable) {
-      return "Belum menjadi anggota pada periode ini";
-    }
-
     const paid = data.payments
       .filter(
         (pay) =>
@@ -147,10 +143,17 @@ export default function CashflowPage() {
         String(b.period).localeCompare(String(a.period)),
       );
 
-    return (
-      paid[0]?.period ||
-      "Belum ada pembayaran periode ini"
-    );
+    return paid[0]?.period || "Belum ada pembayaran";
+  };
+
+  const getSelectedPeriodStatus = (resident) => {
+    if (!resident) return "-";
+
+    if (resident.notApplicable) {
+      return "Belum menjadi anggota";
+    }
+
+    return resident.paid ? "Sudah bayar" : "Belum bayar";
   };
 
   /* ==== LOGIC: PAYMENT ==== */
@@ -746,6 +749,16 @@ export default function CashflowPage() {
             >
               <div className="resident-house">
                 {selectedResident.house}
+              </div>
+
+              <div className="resident-section">
+                <div className="resident-label">
+                  Status periode ini
+                </div>
+
+                <div className="resident-value">
+                  {getSelectedPeriodStatus(selectedResident)}
+                </div>
               </div>
 
               <div className="resident-section">
