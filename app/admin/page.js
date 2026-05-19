@@ -928,12 +928,14 @@ export default function AdminPage() {
               />
 
               <input
-                style={styles.input}
+                style={{
+                  ...styles.input,
+                  ...styles.readOnlyInput,
+                }}
                 type="number"
                 value={payment.amount}
-                onChange={(e) =>
-                  setPayment({ ...payment, amount: e.target.value })
-                }
+                readOnly
+                aria-readonly="true"
               />
 
               <div style={styles.houseList}>
@@ -1560,5 +1562,12 @@ const styles = {
   color: "#991b1b",
   fontSize: 13,
   fontWeight: 700,
+  },
+
+  readOnlyInput: {
+    background: "var(--admin-row)",
+    color: "var(--admin-muted)",
+    cursor: "not-allowed",
+    fontWeight: 700,
   },
 };
