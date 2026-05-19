@@ -7,7 +7,7 @@ import {
 import {
   getAppConfig,
   updateAppConfig,
-} from "@/lib/configure";
+} from "@/lib/appConfig";
 
 export const runtime = "nodejs";
 

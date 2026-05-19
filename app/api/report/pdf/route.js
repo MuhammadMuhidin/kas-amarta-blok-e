@@ -1,4 +1,4 @@
-import { getAppConfig } from "@/lib/configure";
+import { getAppConfig } from "@/lib/appConfig";
 import { jsPDF } from "jspdf";
 import fs from "fs";
 import path from "path";
