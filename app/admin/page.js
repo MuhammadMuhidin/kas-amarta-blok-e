@@ -17,9 +17,11 @@ export default function AdminPage() {
   });
 
   const [selected, setSelected] = useState([]);
+  const [appConfig, setAppConfig] = useState(null);
+  const [configError, setConfigError] = useState("");
   const [payment, setPayment] = useState({
     period: "",
-    amount: 25000,
+    amount: "",
   });
 
   const [cashflow, setCashflow] = useState({
@@ -60,6 +62,36 @@ export default function AdminPage() {
     return joinMonth > currentMonth;
   }
 
+  async function loadAppConfig() {
+    try {
+      setConfigError("");
+
+      const res = await fetch("/api/admin/settings/app", {
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(
+          data.error || "Failed load a configuration",
+        );
+      }
+
+      setAppConfig(data.config);
+
+      setPayment((prev) => ({
+        ...prev,
+        amount: data.config.monthly_fee,
+      }));
+    } catch (err) {
+      setAppConfig(null);
+      setConfigError(
+        err.message || "Failed load a configuration",
+      );
+    }
+  }
+
   async function loadPersonal() {
     const res = await fetch("/api/sheets/personal", {
       cache: "no-store",
@@ -93,7 +125,19 @@ export default function AdminPage() {
     setTrashRecords(data || []);
   }
 
+  async function refreshMonitoring() {
+    await Promise.all([
+      loadAppConfig(),
+      loadDailyBackupStatus(),
+      loadPayment(),
+      loadTrash(),
+      loadPersonal(),
+      loadCashflow(),
+    ]);
+  }
+
   useEffect(() => {
+    loadAppConfig();
     loadPersonal();
     loadDailyBackupStatus();
     loadSummaryBackup();
@@ -101,6 +145,16 @@ export default function AdminPage() {
     loadCashflow();
     loadTrash();
   }, []);
+
+  useEffect(() => {
+    if (tab === "payment") {
+      loadAppConfig();
+    }
+
+    if (tab === "monitoring") {
+      refreshMonitoring();
+    }
+  }, [tab]);
 
   async function addMember(e) {
     e.preventDefault();
@@ -150,6 +204,11 @@ export default function AdminPage() {
   async function recordPayment(e) {
     e.preventDefault();
 
+    if (!appConfig) {
+      setMsg("Konfigurasi kas belum tersedia. Pembayaran tidak bisa dicatat.");
+      return;
+    }
+
     setLoadingPayment(true);
 
     try {
@@ -187,7 +246,7 @@ export default function AdminPage() {
               },
               body: JSON.stringify({
                 payment_id: paymentData.payment_id,
-                amount: payment.amount,
+                amount: appConfig.trash_fee,
               }),
             });
           }
@@ -198,7 +257,7 @@ export default function AdminPage() {
       setSelected([]);
       setPayment({
         period: "",
-        amount: 25000,
+        amount: appConfig.monthly_fee,
       });
     } finally {
       setLoadingPayment(false);
@@ -303,7 +362,7 @@ export default function AdminPage() {
     );
   }, [personal]);
 
-  const MONITORING_START_PERIOD = "2026-06";
+  const MONITORING_START_PERIOD = appConfig?.start_monitoring_date || "";
 
   const trashMismatch = useMemo(() => {
     const issues = [];
@@ -699,7 +758,13 @@ export default function AdminPage() {
 
           <button
             style={tab === "monitoring" ? styles.tabActive : styles.tab}
-            onClick={() => setTab("monitoring")}
+            onClick={() => {
+              setTab("monitoring");
+
+              if (tab === "monitoring") {
+                refreshMonitoring();
+              }
+            }}
           >
             🖥️ Monitoring
           </button>
@@ -869,6 +934,13 @@ export default function AdminPage() {
         )}
 
         {tab === "payment" && (
+          <>
+          {configError && (
+            <div style={styles.errorBox}>
+              {configError}
+            </div>
+          )}
+
           <div style={styles.card}>
             <h3>Bulk Payment</h3>
 
@@ -883,12 +955,14 @@ export default function AdminPage() {
               />
 
               <input
-                style={styles.input}
+                style={{
+                  ...styles.input,
+                  ...styles.readOnlyInput,
+                }}
                 type="number"
                 value={payment.amount}
-                onChange={(e) =>
-                  setPayment({ ...payment, amount: e.target.value })
-                }
+                readOnly
+                aria-readonly="true"
               />
 
               <div style={styles.houseList}>
@@ -932,6 +1006,7 @@ export default function AdminPage() {
               </button>
             </form>
           </div>
+          </>
         )}
 
         {tab === "cashflow" && (
@@ -1503,5 +1578,23 @@ const styles = {
   issueText: {
     color: "#991b1b",
     fontWeight: 600,
+  },
+
+  errorBox: {
+  marginBottom: 14,
+  padding: 12,
+  borderRadius: 12,
+  border: "1px solid #fecaca",
+  background: "#fef2f2",
+  color: "#991b1b",
+  fontSize: 13,
+  fontWeight: 700,
+  },
+
+  readOnlyInput: {
+    background: "var(--admin-row)",
+    color: "var(--admin-muted)",
+    cursor: "not-allowed",
+    fontWeight: 700,
   },
 };

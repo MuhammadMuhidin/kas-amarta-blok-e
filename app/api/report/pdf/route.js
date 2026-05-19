@@ -1,3 +1,4 @@
+import { getAppConfig } from "@/lib/appConfig";
 import { jsPDF } from "jspdf";
 import fs from "fs";
 import path from "path";
@@ -18,6 +19,8 @@ export async function GET(req) {
     }
 
     const data = await res.json();
+
+    const appConfig = await getAppConfig();
 
     const {
       insight,
@@ -109,7 +112,7 @@ export async function GET(req) {
       return arr.map((v) => Number(((v / total) * 100).toFixed(1)));
     };
 
-    const nominalIuran = 25000;
+    const nominalIuran = appConfig.monthly_fee;
 
     /* =========================================
        COLORS
@@ -767,7 +770,7 @@ export async function GET(req) {
 
     doc.text("Total rumah menunggak", 20, y + 9);
 
-    doc.text("Total piutang", 20, y + 18);
+    doc.text("Total piutang (estimasi)", 20, y + 18);
 
     doc.setFont("helvetica", "bold");
 
