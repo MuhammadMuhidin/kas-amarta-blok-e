@@ -473,10 +473,6 @@ const styles = {
     outline: "none",
   },
 
-  inputMobile: {
-    width: "100%",
-  },
-
   saveButton: {
     height: 38,
     padding: "0 14px",
@@ -487,7 +483,13 @@ const styles = {
     fontWeight: 700,
   },
 
+  inputMobile: {
+    width: "100%",
+    boxSizing: "border-box",
+  },
+
   saveButtonMobile: {
     width: "100%",
+    boxSizing: "border-box",
   },
 };
