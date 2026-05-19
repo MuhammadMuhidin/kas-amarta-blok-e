@@ -50,6 +50,18 @@ export default function AdminPage(){
       ?.split("=")[1];
   }
 
+  function isNewActiveMember(p){
+  if(p.active !== "Y") return false
+  if(!p.join_date) return false
+
+  const joinMonth = String(p.join_date).slice(0, 7)
+
+  const currentMonth =
+    new Date().toISOString().slice(0, 7)
+
+  return joinMonth > currentMonth
+  }
+
   async function loadPersonal(){
 
     const res = await fetch("/api/sheets/personal", {
@@ -971,6 +983,10 @@ if(memberFilter === "TRASH_INACTIVE"){
 
                   let rowStyle = i % 2 ? styles.rowAlt : null
 
+                   if(isNewActiveMember(p)){
+                     rowStyle = styles.rowNewActive
+                   }
+                   
                   if(p.active === "N"){
                     rowStyle = styles.rowInactive
                   }
@@ -1495,6 +1511,12 @@ const styles = {
 
   rowInactive: {
     background: "#7f1d1d",
+    color: "#fecaca",
+    fontWeight: 500,
+  },
+
+  rowNewActive: {
+    background: "#0927b0",
     color: "#fecaca",
     fontWeight: 500,
   },
