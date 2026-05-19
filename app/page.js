@@ -56,6 +56,7 @@ export default function CashflowPage() {
   const [modalType, setModalType] = useState("last");
   const [paySlideIndex, setPaySlideIndex] = useState(0);
   const [insightSlideIndex, setInsightSlideIndex] = useState(0);
+  const [selectedResident, setSelectedResident] = useState(null);
 
   const paySliderRef = useRef(null);
 
@@ -104,6 +105,38 @@ export default function CashflowPage() {
   /* ==== HELPERS ==== */
   const format = (n) => "Rp" + Number(n).toLocaleString("id-ID");
   const insight = data.insight || {};
+  const formatDate = (date) => {
+  if (!date) return "-";
+
+  return new Date(date).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const formatPeriod = (period) => {
+  if (!period) return "-";
+
+  return new Date(`${period.slice(0, 7)}-01`).toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+  });
+};
+
+const getLastPaymentPeriod = (resident) => {
+  const paid = data.payments
+    .filter(
+      (pay) =>
+        pay.person_id === resident.id &&
+        pay.person_house === resident.house,
+    )
+    .sort((a, b) =>
+      String(b.period).localeCompare(String(a.period)),
+    );
+
+  return paid[0]?.period || "";
+};
 
   /* ==== LOGIC: PAYMENT ==== */
   const paymentList = useMemo(() => {
@@ -125,7 +158,10 @@ export default function CashflowPage() {
         }
 
         return {
+          id: p.id,
           house: p.house,
+          name: p.name,
+          join_date: p.join_date,
           paid,
           notApplicable,
         };
@@ -381,7 +417,11 @@ export default function CashflowPage() {
                 <div className="pay-slide-page" key={pageIndex}>
                   <div className="pay-grid">
                     {items.map((p, idx) => (
-                      <div key={idx} className="pay-item">
+                      <div
+                        key={idx}
+                        className="pay-item"
+                        onClick={() => setSelectedResident(p)}
+                      >
                         <div
                           style={{
                             display: "flex",
@@ -678,6 +718,45 @@ export default function CashflowPage() {
             <div className="insight-card">Tidak ada tunggakan.</div>
           )}
         </div>
+
+        {/* MODAL RESIDENT */}
+        {selectedResident && (
+          <div
+            className="modal-overlay"
+            onClick={() => setSelectedResident(null)}
+          >
+            <div
+              className="resident-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="resident-house">
+                {selectedResident.house}
+              </div>
+
+              <div className="resident-section">
+                <div className="resident-label">
+                  Bergabung sejak
+                </div>
+
+                <div className="resident-value">
+                  {formatDate(selectedResident.join_date)}
+                </div>
+              </div>
+
+              <div className="resident-section">
+                <div className="resident-label">
+                  Pembayaran terakhir
+                </div>
+
+                <div className="resident-value">
+                  {formatPeriod(
+                    getLastPaymentPeriod(selectedResident),
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* MODAL DETAIL */}
         {showInsightModal && (
