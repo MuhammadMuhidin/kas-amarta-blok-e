@@ -753,21 +753,21 @@ export default function CashflowPage() {
 
               <div className="resident-section">
                 <div className="resident-label">
-                  Status periode ini
-                </div>
-
-                <div className="resident-value">
-                  {getSelectedPeriodStatus(selectedResident)}
-                </div>
-              </div>
-
-              <div className="resident-section">
-                <div className="resident-label">
                   Bergabung sejak
                 </div>
 
                 <div className="resident-value">
                   {formatDate(selectedResident.join_date)}
+                </div>
+              </div>
+
+              <div className="resident-section">
+                <div className="resident-label">
+                  Status periode dipilih
+                </div>
+
+                <div className="resident-value">
+                  {getSelectedPeriodStatus(selectedResident)}
                 </div>
               </div>
 
