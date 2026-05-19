@@ -131,7 +131,7 @@ export default function CashflowPage() {
   };
 
   const getLastPaymentPeriod = (resident) => {
-    if (!resident) return "";
+    if (!resident) return "-";
 
     if (resident.notApplicable) {
       return "Belum menjadi anggota pada periode ini";
@@ -147,7 +147,10 @@ export default function CashflowPage() {
         String(b.period).localeCompare(String(a.period)),
       );
 
-    return paid[0]?.period || "-";
+    return (
+      paid[0]?.period ||
+      "Belum ada pembayaran periode ini"
+    );
   };
 
   /* ==== LOGIC: PAYMENT ==== */
