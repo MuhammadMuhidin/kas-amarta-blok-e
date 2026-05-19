@@ -929,38 +929,45 @@ th {
   width: 100%;
 }
 
-.searchbox-input {
-  padding-right: 42px;
+.searchbox-wrap input {
+  width: 100%;
+  padding-right: 44px;
 }
 
 .searchbox-clear {
   position: absolute;
+
   top: 50%;
-  right: 10px;
+  right: 12px;
 
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
 
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-  border: 0;
+  border: none;
   border-radius: 999px;
 
   background: transparent;
+
   color: var(--muted);
 
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
 
   cursor: pointer;
 
-  transform: translateY(-50%);
+  padding: 0;
+  margin: 0;
+
+  transform: translateY(calc(-50% - 6px));
 
   transition:
-    background 0.18s ease,
-    color 0.18s ease,
-    transform 0.18s ease;
+    background .18s ease,
+    color .18s ease,
+    transform .18s ease;
 }
 
 .searchbox-clear:hover {
@@ -969,5 +976,7 @@ th {
 }
 
 .searchbox-clear:active {
-  transform: translateY(-50%) scale(0.9);
+  transform:
+    translateY(calc(-50% - 6px))
+    scale(.92);
 }
