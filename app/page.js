@@ -106,37 +106,41 @@ export default function CashflowPage() {
   const format = (n) => "Rp" + Number(n).toLocaleString("id-ID");
   const insight = data.insight || {};
   const formatDate = (date) => {
-  if (!date) return "-";
+    if (!date) return "-";
 
-  return new Date(date).toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-};
+    return new Date(date).toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
 
-const formatPeriod = (period) => {
-  if (!period) return "-";
+  const formatPeriod = (period) => {
+    if (!period) return "-";
 
-  return new Date(`${period.slice(0, 7)}-01`).toLocaleDateString("id-ID", {
-    month: "long",
-    year: "numeric",
-  });
-};
+    return new Date(`${period.slice(0, 7)}-01`).toLocaleDateString("id-ID", {
+      month: "long",
+      year: "numeric",
+    });
+  };
 
-const getLastPaymentPeriod = (resident) => {
-  const paid = data.payments
-    .filter(
-      (pay) =>
-        pay.person_id === resident.id &&
-        pay.person_house === resident.house,
-    )
-    .sort((a, b) =>
-      String(b.period).localeCompare(String(a.period)),
-    );
+  const getLastPaymentPeriod = (resident) => {
+    if (!resident || resident.notApplicable) {
+      return "";
+    }
 
-  return paid[0]?.period || "";
-};
+    const paid = data.payments
+      .filter(
+        (pay) =>
+          pay.person_id === resident.id &&
+          pay.person_house === resident.house,
+      )
+      .sort((a, b) =>
+        String(b.period).localeCompare(String(a.period)),
+      );
+
+    return paid[0]?.period || "";
+  };
 
   /* ==== LOGIC: PAYMENT ==== */
   const paymentList = useMemo(() => {
