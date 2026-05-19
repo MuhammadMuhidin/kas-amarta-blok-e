@@ -30,6 +30,7 @@ export default function AdminSettings() {
   const [savingConfig, setSavingConfig] = useState(false);
 
   const [popup, setPopup] = useState(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   async function loadAppConfig() {
     try {
@@ -160,6 +161,17 @@ export default function AdminSettings() {
     loadAppConfig();
   }, []);
 
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth <= 640);
+    }
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   if (loading) {
     return <div style={styles.card}>Memuat settings...</div>;
   }
@@ -192,6 +204,7 @@ export default function AdminSettings() {
             type="number"
             value={appConfig?.monthly_fee}
             disabled={savingConfig}
+            isMobile={isMobile}
             onSave={(value) => updateConfig("monthly_fee", value)}
           />
 
@@ -201,6 +214,7 @@ export default function AdminSettings() {
             type="number"
             value={appConfig?.trash_fee}
             disabled={savingConfig}
+            isMobile={isMobile}
             onSave={(value) => updateConfig("trash_fee", value)}
           />
 
@@ -210,6 +224,7 @@ export default function AdminSettings() {
             type="month"
             value={appConfig?.start_monitoring_date}
             disabled={savingConfig}
+            isMobile={isMobile}
             onSave={(value) =>
               updateConfig("start_monitoring_date", value)
             }
@@ -283,6 +298,7 @@ function ConfigItem({
   value,
   onSave,
   disabled,
+  isMobile,
 }) {
   const [local, setLocal] = useState(value);
 
@@ -293,20 +309,33 @@ function ConfigItem({
   const unchanged = String(local) === String(value);
 
   return (
-    <div style={styles.row}>
+    <div
+      style={{
+        ...styles.row,
+        ...(isMobile ? styles.rowMobile : {}),
+      }}
+    >
       <div>
         <h3 style={styles.rowTitle}>{label}</h3>
 
         <p style={styles.desc}>{description}</p>
       </div>
 
-      <div style={styles.configAction}>
+      <div
+        style={{
+          ...styles.configAction,
+          ...(isMobile ? styles.configActionMobile : {}),
+        }}
+      >
         <input
           type={type}
           value={local || ""}
           disabled={disabled}
           onChange={(e) => setLocal(e.target.value)}
-          style={styles.input}
+          style={{
+            ...styles.input,
+            ...(isMobile ? styles.inputMobile : {}),
+          }}
         />
 
         <button
@@ -315,6 +344,7 @@ function ConfigItem({
           onClick={() => onSave(local)}
           style={{
             ...styles.saveButton,
+            ...(isMobile ? styles.saveButtonMobile : {}),
             opacity: disabled || unchanged ? 0.55 : 1,
             cursor: disabled || unchanged ? "not-allowed" : "pointer",
           }}
@@ -376,6 +406,11 @@ const styles = {
     borderTop: "1px solid var(--admin-border)",
   },
 
+  rowMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
+
   rowTitle: {
     margin: 0,
     fontSize: 15,
@@ -420,6 +455,12 @@ const styles = {
     flexShrink: 0,
   },
 
+  configActionMobile: {
+    width: "100%",
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
+
   input: {
     width: 160,
     height: 38,
@@ -432,6 +473,10 @@ const styles = {
     outline: "none",
   },
 
+  inputMobile: {
+    width: "100%",
+  },
+
   saveButton: {
     height: 38,
     padding: "0 14px",
@@ -440,5 +485,9 @@ const styles = {
     background: "#2563eb",
     color: "#fff",
     fontWeight: 700,
+  },
+
+  saveButtonMobile: {
+    width: "100%",
   },
 };
