@@ -17,17 +17,6 @@ export async function GET(req) {
       return unauthorized();
     }
 
-    if (!validateCSRF(req)) {
-      return NextResponse.json(
-        {
-          error: "CSRF tidak valid",
-        },
-        {
-          status: 403,
-        },
-      );
-    }
-
     const config = await getAppConfig();
 
     return NextResponse.json({
