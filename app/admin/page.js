@@ -1515,6 +1515,12 @@ const styles = {
     fontWeight: 500,
   },
 
+  rowNewActive: {
+    background: "#0927b0",
+    color: "#fecaca",
+    fontWeight: 500,
+  },
+
   houseList: {
     display: "grid",
     gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
@@ -1679,8 +1685,5 @@ monitorDetail: {
 issueText: {
   color: "#991b1b",
   fontWeight: 600,
-},
-rowNewActive: {
-  background: "rgba(37, 99, 235, 0.18)",
 },
 };
