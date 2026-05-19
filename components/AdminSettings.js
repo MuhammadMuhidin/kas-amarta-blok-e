@@ -9,6 +9,17 @@ function getCookie(name) {
     ?.split("=")[1];
 }
 
+function showPopup(setPopup, text, type = "success") {
+  setPopup({
+    text,
+    type,
+  });
+
+  setTimeout(() => {
+    setPopup(null);
+  }, 2500);
+}
+
 export default function AdminSettings() {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -17,6 +28,8 @@ export default function AdminSettings() {
   const [appConfig, setAppConfig] = useState(null);
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
+
+  const [popup, setPopup] = useState(null);
 
   async function loadAppConfig() {
     try {
@@ -65,8 +78,18 @@ export default function AdminSettings() {
       }
 
       await loadAppConfig();
+
+      showPopup(
+        setPopup,
+        "Konfigurasi berhasil diperbarui",
+        "success",
+      );
     } catch (err) {
-      alert(err.message || "Gagal update config");
+      showPopup(
+        setPopup,
+        err.message || "Gagal update config",
+        "error",
+      );
     } finally {
       setSavingConfig(false);
     }
@@ -115,8 +138,18 @@ export default function AdminSettings() {
       }
 
       await loadConfig();
+
+      showPopup(
+        setPopup,
+        "Settings auth berhasil diperbarui",
+        "success",
+      );
     } catch (err) {
-      alert(err.message || "Gagal update setting");
+      showPopup(
+        setPopup,
+        err.message || "Gagal update setting",
+        "error",
+      );
     } finally {
       setSaving(false);
     }
@@ -133,6 +166,20 @@ export default function AdminSettings() {
 
   return (
     <div style={styles.card}>
+      {popup && (
+        <div
+          style={{
+            ...styles.popup,
+            background:
+              popup.type === "success"
+                ? "#166534"
+                : "#991b1b",
+          }}
+        >
+          {popup.text}
+        </div>
+      )}
+
       <h2 style={styles.title}>Konfigurasi Kas</h2>
 
       {loadingConfig ? (
@@ -281,12 +328,26 @@ function ConfigItem({
 
 const styles = {
   card: {
+    position: "relative",
     background: "var(--admin-card)",
     color: "var(--admin-text)",
     borderRadius: 18,
     padding: 20,
     boxShadow: "0 10px 30px rgba(0,0,0,.18)",
     border: "1px solid var(--admin-border)",
+  },
+
+  popup: {
+    position: "fixed",
+    top: 20,
+    right: 20,
+    zIndex: 9999,
+    color: "#fff",
+    padding: "12px 16px",
+    borderRadius: 12,
+    fontSize: 14,
+    fontWeight: 600,
+    boxShadow: "0 10px 25px rgba(0,0,0,.25)",
   },
 
   title: {
