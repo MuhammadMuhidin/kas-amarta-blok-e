@@ -125,8 +125,10 @@ export default function CashflowPage() {
   };
 
   const getLastPaymentPeriod = (resident) => {
-    if (!resident || resident.notApplicable) {
-      return "";
+    if (!resident) return "";
+
+    if (resident.notApplicable) {
+      return "Belum memulai pembayaran";
     }
 
     const paid = data.payments
@@ -139,7 +141,7 @@ export default function CashflowPage() {
         String(b.period).localeCompare(String(a.period)),
       );
 
-    return paid[0]?.period || "";
+    return paid[0]?.period || "-";
   };
 
   /* ==== LOGIC: PAYMENT ==== */
@@ -753,9 +755,11 @@ export default function CashflowPage() {
                 </div>
 
                 <div className="resident-value">
-                  {formatPeriod(
-                    getLastPaymentPeriod(selectedResident),
-                  )}
+                  {selectedResident.notApplicable
+                    ? getLastPaymentPeriod(selectedResident)
+                    : formatPeriod(
+                        getLastPaymentPeriod(selectedResident),
+                      )}
                 </div>
               </div>
             </div>
