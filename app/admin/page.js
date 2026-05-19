@@ -136,7 +136,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (tab === "payment") {
+    if (tab === "payment" || tab === "monitoring") {
       loadAppConfig();
     }
   }, [tab]);
