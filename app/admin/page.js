@@ -72,6 +72,21 @@ export default function AdminPage() {
     }, 2500);
   }
 
+function isHousePaidForPeriod(person) {
+  const period = normalize(payment.period);
+
+  if (!period) {
+    return false;
+  }
+
+  return payments.some(
+    (p) =>
+      normalize(p.person_id) === normalize(person.id) &&
+      normalize(p.person_house) === normalize(person.house) &&
+      normalize(p.period) === period,
+  );
+}
+
   function getCurrentPeriod() {
     return new Date().toISOString().slice(0, 7);
   }
@@ -303,13 +318,21 @@ export default function AdminPage() {
     }
   }
 
-  function toggleHouse(id) {
-    if (selected.includes(id)) {
-      setSelected(selected.filter((x) => x !== id));
-    } else {
-      setSelected([...selected, id]);
-    }
+function toggleHouse(id) {
+  const person = personal.find((p) => p.id === id);
+
+  if (!person) return;
+
+  if (isHousePaidForPeriod(person)) {
+    return;
   }
+
+  if (selected.includes(id)) {
+    setSelected(selected.filter((x) => x !== id));
+  } else {
+    setSelected([...selected, id]);
+  }
+}
 
   async function recordPayment(e) {
     e.preventDefault();
@@ -1354,33 +1377,48 @@ const sortedDeposits = useMemo(() => {
               />
 
               <div style={styles.houseList}>
-                {personal
-                  .filter((p) => p.active === "Y")
-                  .sort((a, b) =>
-                    a.house.localeCompare(b.house, undefined, {
-                      numeric: true,
-                    }),
-                  )
-                  .map((p) => (
-                    <label
-                      key={p.id}
-                      style={{
-                        ...styles.checkboxChip,
-                        ...(selected.includes(p.id)
-                          ? styles.checkboxChipActive
-                          : {}),
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        style={styles.checkboxInput}
-                        checked={selected.includes(p.id)}
-                        onChange={() => toggleHouse(p.id)}
-                      />
+{personal
+  .filter((p) => p.active === "Y")
+  .sort((a, b) =>
+    a.house.localeCompare(b.house, undefined, {
+      numeric: true,
+    }),
+  )
+  .map((p) => {
+    const alreadyPaid = isHousePaidForPeriod(p);
 
-                      {p.house}
-                    </label>
-                  ))}
+    return (
+      <label
+        key={p.id}
+        title={alreadyPaid ? "Already paid for this period" : ""}
+        style={{
+          ...styles.checkboxChip,
+          ...(selected.includes(p.id)
+            ? styles.checkboxChipActive
+            : {}),
+          ...(alreadyPaid
+            ? styles.checkboxChipPaid
+            : {}),
+        }}
+      >
+        <input
+          type="checkbox"
+          style={styles.checkboxInput}
+          checked={selected.includes(p.id)}
+          disabled={alreadyPaid}
+          onChange={() => toggleHouse(p.id)}
+        />
+
+        {p.house}
+
+        {alreadyPaid && (
+          <span style={styles.checkboxChipPaidText}>
+            Paid
+          </span>
+        )}
+      </label>
+    );
+  })}
               </div>
 
               <button
@@ -2357,4 +2395,18 @@ const styles = {
     maxWidth: "calc(100vw - 32px)",
     textAlign: "center",
   },
+
+  checkboxChipPaid: {
+  opacity: 0.55,
+  cursor: "not-allowed",
+  background: "#dcfce7",
+  color: "#166534",
+  border: "1px solid #86efac",
+},
+
+checkboxChipPaidText: {
+  marginLeft: 6,
+  fontSize: 11,
+  fontWeight: 800,
+},
 };
