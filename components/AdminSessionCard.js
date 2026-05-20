@@ -36,6 +36,7 @@ export default function AdminSessionCard() {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [revokingId, setRevokingId] = useState("");
+  const [pendingSession, setPendingSession] = useState(null);
   const [error, setError] = useState("");
 
   async function redirectToLogin() {
@@ -75,14 +76,10 @@ export default function AdminSessionCard() {
     }
   }
 
-  async function revokeSession(id) {
-    if (!id || revokingId) return;
+  async function revokeSession(session) {
+    if (!session?.id || revokingId) return;
 
-    const accepted = window.confirm("Putuskan session ini?");
-
-    if (!accepted) return;
-
-    setRevokingId(id);
+    setRevokingId(session.id);
     setError("");
 
     try {
@@ -94,7 +91,9 @@ export default function AdminSessionCard() {
           "Content-Type": "application/json",
           "x-csrf-token": csrfToken || "",
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({
+          id: session.id,
+        }),
       });
 
       if (res.status === 401) {
@@ -108,6 +107,7 @@ export default function AdminSessionCard() {
         throw new Error(data.error || "Gagal memutuskan session");
       }
 
+      setPendingSession(null);
       await loadSessions();
     } catch (err) {
       setError(err.message || "Gagal memutuskan session");
@@ -169,7 +169,7 @@ export default function AdminSessionCard() {
 
               <button
                 type="button"
-                onClick={() => revokeSession(session.id)}
+                onClick={() => setPendingSession(session)}
                 disabled={revokingId === session.id}
                 style={{
                   ...styles.dangerButton,
@@ -180,6 +180,57 @@ export default function AdminSessionCard() {
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {pendingSession && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalCard}>
+            <div style={styles.modalBadge}>Session Access</div>
+
+            <h3 style={styles.modalTitle}>Putuskan session ini?</h3>
+
+            <p style={styles.modalDesc}>
+              Perangkat ini akan kehilangan akses admin dan harus login ulang.
+            </p>
+
+            <div style={styles.modalSessionBox}>
+              <div style={styles.sessionDevice}>
+                {getDeviceName(pendingSession.user_agent)}
+              </div>
+
+              <div style={styles.sessionMeta}>
+                Last active: {getTimeAgo(pendingSession.last_active)}
+              </div>
+
+              {pendingSession.ip && (
+                <div style={styles.sessionMeta}>IP: {pendingSession.ip}</div>
+              )}
+            </div>
+
+            <div style={styles.modalActions}>
+              <button
+                type="button"
+                onClick={() => setPendingSession(null)}
+                disabled={!!revokingId}
+                style={styles.cancelButton}
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                onClick={() => revokeSession(pendingSession)}
+                disabled={!!revokingId}
+                style={{
+                  ...styles.confirmDangerButton,
+                  opacity: revokingId ? 0.65 : 1,
+                }}
+              >
+                {revokingId ? "Memutus..." : "Putuskan Session"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -272,5 +323,80 @@ const styles = {
     color: "#991b1b",
     fontSize: 13,
     fontWeight: 700,
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 9999,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 18,
+    background: "rgba(2,6,23,.62)",
+    backdropFilter: "blur(5px)",
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 390,
+    padding: 22,
+    boxSizing: "border-box",
+    borderRadius: 20,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-card)",
+    color: "var(--admin-text)",
+    boxShadow: "0 24px 70px rgba(0,0,0,.36)",
+  },
+  modalBadge: {
+    display: "inline-flex",
+    marginBottom: 12,
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: "#fee2e2",
+    color: "#991b1b",
+    fontSize: 11,
+    fontWeight: 900,
+    letterSpacing: ".08em",
+    textTransform: "uppercase",
+  },
+  modalTitle: {
+    margin: "0 0 8px",
+    fontSize: 20,
+    color: "var(--admin-text)",
+  },
+  modalDesc: {
+    margin: "0 0 16px",
+    color: "var(--admin-muted)",
+    fontSize: 14,
+    lineHeight: 1.5,
+  },
+  modalSessionBox: {
+    marginBottom: 18,
+    padding: 14,
+    borderRadius: 14,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+  },
+  modalActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
+  cancelButton: {
+    padding: "10px 14px",
+    borderRadius: 10,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+    color: "var(--admin-text)",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  confirmDangerButton: {
+    padding: "10px 14px",
+    borderRadius: 10,
+    border: "none",
+    background: "#dc2626",
+    color: "#fff",
+    fontWeight: 900,
+    cursor: "pointer",
   },
 };
