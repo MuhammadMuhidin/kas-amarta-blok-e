@@ -109,6 +109,18 @@ export default function AdminPage() {
     return Number(appConfig.monthly_fee || 0);
   }, [appConfig]);
 
+  const currentPeriod = new Date()
+  .toISOString()
+  .slice(0, 7);
+
+  const pendingCurrentDeposits = useMemo(() => {
+    return deposits.filter(
+      (d) =>
+        d.period === currentPeriod &&
+        d.status !== "paid",
+    );
+  }, [deposits, currentPeriod]);
+
   function isNewActiveMember(p) {
     if (p.active !== "Y") return false;
     if (!p.join_date) return false;
@@ -1040,7 +1052,15 @@ const searchedPersonal = useMemo(() => {
             style={tab === "payment" ? styles.tabActive : styles.tab}
             onClick={() => setTab("payment")}
           >
-            💳 Payment
+            <div style={styles.tabContent}>
+              <span>💳 Payment</span>
+
+              {pendingCurrentDeposits.length > 0 && (
+                <span style={styles.depositBadge}>
+                  {pendingCurrentDeposits.length} deposit pending
+                </span>
+              )}
+            </div>
           </button>
 
           <button
