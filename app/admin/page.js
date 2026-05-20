@@ -553,8 +553,7 @@ export default function AdminPage() {
 
   /* =========================================
      PAYMENT CASHFLOW INTEGRITY DATA
-  ========================================= */
-
+    ========================================= */
   const paymentCashflowIntegrity = useMemo(() => {
     const issues = [];
   
@@ -567,16 +566,24 @@ export default function AdminPage() {
       (p) => p.period && p.period >= MONITORING_START_PERIOD,
     );
   
-    const paymentLinkedCashflow  = cashflows.filter(
-      (c) => normalize(c.type).toLowerCase() === "income" && normalize(c.ref_id) !== "",
+    const paymentById = new Map(
+      payments.map((p) => [normalize(p.id), p]),
     );
+  
+    const paymentLinkedCashflow = cashflows.filter((c) => {
+      const refId = normalize(c.ref_id);
+      const datePeriod = normalize(c.date).slice(0, 7);
+  
+      if (normalize(c.type).toLowerCase() !== "income") return false;
+      if (!refId) return false;
+      if (refId.toUpperCase().startsWith("DIRECT")) return false;
+      if (!datePeriod) return false;
+  
+      return datePeriod >= MONITORING_START_PERIOD;
+    });
   
     const cashflowByRefId = new Map(
       paymentLinkedCashflow.map((c) => [normalize(c.ref_id), c]),
-    );
-  
-    const paymentById = new Map(
-      payments.map((p) => [normalize(p.id), p]),
     );
   
     const duplicateMap = new Map();
@@ -634,13 +641,6 @@ export default function AdminPage() {
   
     paymentLinkedCashflow.forEach((c) => {
       const refId = normalize(c.ref_id);
-  
-      if (!refId) return;
-
-      // skip direct/manual cashflow
-      if (refId.startsWith("DIRECT")) {
-        return;
-      }
   
       const payment = paymentById.get(refId);
   
