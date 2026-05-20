@@ -1453,7 +1453,26 @@ const searchedPersonal = useMemo(() => {
                 <tbody>
                   {deposits.map((d, i) => {
                     const depositStatus = getDepositStatus(d);
+
+                    const paymentExists = payments.some(
+                      (p) =>
+                        normalize(p.person_id) === normalize(d.person_id) &&
+                        normalize(p.person_house) === normalize(d.house) &&
+                        normalize(p.period) === normalize(d.period),
+                    );
+
                     const canPay = depositStatus === "pending";
+
+                    const buttonText =
+                      depositStatus === "paid"
+                        ? "Paid"
+                        : depositStatus === "waiting"
+                          ? "Waiting"
+                          : depositStatus === "missed"
+                            ? paymentExists
+                              ? "Paid"
+                              : "Unpaid"
+                            : "Pay Now";
 
                     return (
                       <tr key={d.id || i} style={i % 2 ? styles.rowAlt : null}>
@@ -1485,26 +1504,20 @@ const searchedPersonal = useMemo(() => {
                         </td>
 
                         <td style={styles.td}>
-                          {depositStatus !== "missed" && (
-                            <button
-                              type="button"
-                              style={{
-                                ...styles.smallBtn,
-                                ...(depositStatus === "paid"
-                                  ? styles.smallBtnPaid
-                                  : {}),
-                                ...(!canPay ? styles.btnDisabled : {}),
-                              }}
-                              disabled={!canPay || loadingDeposit}
-                              onClick={() => payDeposit(d.id)}
-                            >
-                              {depositStatus === "paid"
-                                ? "Paid"
-                                : depositStatus === "waiting"
-                                  ? "Waiting"
-                                  : "Pay Now"}
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            style={{
+                              ...styles.smallBtn,
+                              ...(buttonText === "Paid"
+                                ? styles.smallBtnPaid
+                                : {}),
+                              ...(!canPay ? styles.btnDisabled : {}),
+                            }}
+                            disabled={!canPay || loadingDeposit}
+                            onClick={() => payDeposit(d.id)}
+                          >
+                            {buttonText}
+                          </button>
                         </td>
                       </tr>
                     );
