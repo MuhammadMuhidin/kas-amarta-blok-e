@@ -45,7 +45,7 @@ export async function PATCH(req) {
       );
     }
 
-    const { key, value } = await req.json();
+    const { key, value, pin } = await req.json();
 
     if (pin !== process.env.ADMIN_PIN) {
       return NextResponse.json(
