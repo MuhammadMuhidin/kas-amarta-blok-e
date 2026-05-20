@@ -37,6 +37,7 @@ export default function AdminPage() {
   const [payments, setPayments] = useState([]);
   const [trashRecords, setTrashRecords] = useState([]);
   const [memberFilter, setMemberFilter] = useState("");
+  const [memberSearch, setMemberSearch] = useState("");
 
   const [msg, setMsg] = useState("");
   const [loadingAdd, setLoadingAdd] = useState(false);
@@ -671,6 +672,21 @@ export default function AdminPage() {
     return sorted;
   }, [personal, memberFilter]);
 
+const searchedPersonal = useMemo(() => {
+  const keyword = memberSearch.toLowerCase().trim();
+
+  if (!keyword) {
+    return filteredPersonal;
+  }
+
+  return filteredPersonal.filter((p) => {
+    return (
+      p.name?.toLowerCase().includes(keyword) ||
+      p.house?.toLowerCase().includes(keyword)
+    );
+  });
+}, [filteredPersonal, memberSearch]);
+  
   return (
     <>
       <style jsx global>{`
@@ -885,6 +901,14 @@ export default function AdminPage() {
               </div>
             </div>
 
+<input
+  type="text"
+  placeholder="Search name or house..."
+  value={memberSearch}
+  onChange={(e) => setMemberSearch(e.target.value)}
+  style={styles.searchInput}
+/>
+
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
                 <thead>
@@ -899,13 +923,7 @@ export default function AdminPage() {
                 </thead>
 
                 <tbody>
-                  {filteredPersonal
-                    .sort((a, b) =>
-                      a.house.localeCompare(b.house, undefined, {
-                        numeric: true,
-                      }),
-                    )
-                    .map((p, i) => {
+                   {searchedPersonal.map((p, i) => {
                       let rowStyle = i % 2 ? styles.rowAlt : null;
 
                       if (isNewActiveMember(p)) {
@@ -1596,5 +1614,18 @@ const styles = {
     color: "var(--admin-muted)",
     cursor: "not-allowed",
     fontWeight: 700,
+  },
+
+  searchInput: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "12px 14px",
+    marginBottom: 14,
+    borderRadius: 12,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-card)",
+    color: "var(--admin-text)",
+    fontSize: 14,
+    outline: "none",
   },
 };
