@@ -79,12 +79,13 @@ function isHousePaidForPeriod(person) {
     return false;
   }
 
-  return payments.some(
-    (p) =>
-      normalize(p.person_id) === normalize(person.id) &&
-      normalize(p.person_house) === normalize(person.house) &&
-      normalize(p.period) === period,
-  );
+  return payments.some((p) => {
+    const samePeriod = normalize(p.period) === period;
+    const samePerson = normalize(p.person_id) === normalize(person.id);
+    const sameHouse = normalize(p.person_house) === normalize(person.house);
+
+    return samePeriod && (samePerson || sameHouse);
+  });
 }
 
   function getCurrentPeriod() {
@@ -276,12 +277,23 @@ function isHousePaidForPeriod(person) {
   useEffect(() => {
     if (tab === "payment") {
       loadAppConfig();
+      loadPayment();
     }
 
     if (tab === "monitoring") {
       refreshMonitoring();
     }
   }, [tab]);
+
+useEffect(() => {
+  setSelected((prev) =>
+    prev.filter((id) => {
+      const person = personal.find((p) => p.id === id);
+
+      return person && !isHousePaidForPeriod(person);
+    }),
+  );
+}, [payment.period, payments, personal]);
 
   async function addMember(e) {
     e.preventDefault();
@@ -341,6 +353,16 @@ function toggleHouse(id) {
       showPopup("Konfigurasi kas belum tersedia. Pembayaran tidak bisa dicatat.", "error");
       return;
     }
+
+if (!payment.period) {
+  showPopup("Masukkan periode pembayaran terlebih dahulu", "error");
+  return;
+}
+
+if (selected.length === 0) {
+  showPopup("Pilih minimal 1 rumah yang belum dibayar", "error");
+  return;
+}
 
     setLoadingPayment(true);
 
