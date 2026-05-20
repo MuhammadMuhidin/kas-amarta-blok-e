@@ -35,12 +35,17 @@ function formatDate(value) {
   });
 }
 
-function formatMetadata(metadata) {
-  if (!metadata || Object.keys(metadata).length === 0) {
-    return "-";
+function severityClass(value) {
+  switch (value) {
+    case "success":
+      return styles.successBadge;
+    case "warning":
+      return styles.warningBadge;
+    case "error":
+      return styles.errorBadge;
+    default:
+      return styles.infoBadge;
   }
-
-  return JSON.stringify(metadata, null, 2);
 }
 
 export default function AdminActivityPanel() {
@@ -49,11 +54,18 @@ export default function AdminActivityPanel() {
   const [severity, setSeverity] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    total_pages: 1,
+    total: 0,
+  });
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
 
-    params.set("limit", "100");
+    params.set("limit", "20");
+    params.set("page", String(page));
 
     if (module) {
       params.set("module", module);
@@ -64,7 +76,7 @@ export default function AdminActivityPanel() {
     }
 
     return params.toString();
-  }, [module, severity]);
+  }, [module, severity, page]);
 
   async function loadActivities() {
     setLoading(true);
@@ -82,6 +94,7 @@ export default function AdminActivityPanel() {
       }
 
       setActivities(data.activities || []);
+      setPagination(data.pagination || {});
     } catch (err) {
       setActivities([]);
       setError(err.message || "Failed load activities");
@@ -94,13 +107,17 @@ export default function AdminActivityPanel() {
     loadActivities();
   }, [query]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [module, severity]);
+
   return (
     <div style={styles.card}>
       <div style={styles.header}>
         <div>
           <h3 style={styles.title}>Activity Audit</h3>
           <p style={styles.subtitle}>
-            Log aktivitas admin dari Supabase admin_activities.
+            Session, payment, settings, dan activity admin.
           </p>
         </div>
 
@@ -142,67 +159,109 @@ export default function AdminActivityPanel() {
 
       {error && <div style={styles.errorBox}>{error}</div>}
 
-      <div style={styles.tableWrapper}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>Time</th>
-              <th style={styles.th}>Module</th>
-              <th style={styles.th}>Type</th>
-              <th style={styles.th}>Severity</th>
-              <th style={styles.th}>Message</th>
-              <th style={styles.th}>Actor</th>
-              <th style={styles.th}>Device</th>
-              <th style={styles.th}>IP</th>
-              <th style={styles.th}>Location</th>
-              <th style={styles.th}>Metadata</th>
-            </tr>
-          </thead>
+      <div style={styles.summaryBar}>
+        <div style={styles.summaryItem}>
+          <b>{pagination.total || 0}</b>
+          <span>Total Activity</span>
+        </div>
 
-          <tbody>
-            {activities.length === 0 && !loading ? (
-              <tr>
-                <td style={styles.emptyTd} colSpan={10}>
-                  No activity found
-                </td>
-              </tr>
-            ) : (
-              activities.map((item, index) => (
-                <tr key={item.id} style={index % 2 ? styles.rowAlt : null}>
-                  <td style={styles.td}>{formatDate(item.created_at)}</td>
-                  <td style={styles.td}>{item.module}</td>
-                  <td style={styles.td}>{item.type}</td>
-                  <td style={styles.td}>
-                    <span
-                      style={{
-                        ...styles.badge,
-                        ...(item.severity === "success"
-                          ? styles.successBadge
-                          : item.severity === "warning"
-                            ? styles.warningBadge
-                            : item.severity === "error"
-                              ? styles.errorBadge
-                              : styles.infoBadge),
-                      }}
-                    >
-                      {item.severity || "info"}
-                    </span>
-                  </td>
-                  <td style={styles.td}>{item.message}</td>
-                  <td style={styles.td}>{item.actor || "-"}</td>
-                  <td style={styles.td}>{item.device_name || "-"}</td>
-                  <td style={styles.td}>{item.ip || "-"}</td>
-                  <td style={styles.td}>{item.location || "-"}</td>
-                  <td style={styles.metaTd}>
-                    <pre style={styles.pre}>
-                      {formatMetadata(item.metadata)}
-                    </pre>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+        <div style={styles.summaryItem}>
+          <b>{pagination.page || 1}</b>
+          <span>Current Page</span>
+        </div>
+
+        <div style={styles.summaryItem}>
+          <b>{pagination.total_pages || 1}</b>
+          <span>Total Pages</span>
+        </div>
+      </div>
+
+      <div style={styles.list}>
+        {activities.length === 0 && !loading ? (
+          <div style={styles.emptyBox}>No activity found</div>
+        ) : (
+          activities.map((item) => (
+            <div key={item.id} style={styles.activityCard}>
+              <div style={styles.activityTop}>
+                <div style={styles.activityLeft}>
+                  <div style={styles.message}>{item.message}</div>
+
+                  <div style={styles.metaLine}>
+                    <span style={styles.module}>{item.module}</span>
+                    <span style={styles.dot}>•</span>
+                    <span>{item.type}</span>
+                    <span style={styles.dot}>•</span>
+                    <span>{formatDate(item.created_at)}</span>
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    ...styles.badge,
+                    ...severityClass(item.severity),
+                  }}
+                >
+                  {item.severity || "info"}
+                </span>
+              </div>
+
+              <div style={styles.metaGrid}>
+                <div style={styles.metaItem}>
+                  <div style={styles.metaLabel}>Actor</div>
+                  <div style={styles.metaValue}>{item.actor || "-"}</div>
+                </div>
+
+                <div style={styles.metaItem}>
+                  <div style={styles.metaLabel}>Device</div>
+                  <div style={styles.metaValue}>{item.device_name || "-"}</div>
+                </div>
+
+                <div style={styles.metaItem}>
+                  <div style={styles.metaLabel}>IP</div>
+                  <div style={styles.metaValue}>{item.ip || "-"}</div>
+                </div>
+
+                <div style={styles.metaItem}>
+                  <div style={styles.metaLabel}>Location</div>
+                  <div style={styles.metaValue}>{item.location || "-"}</div>
+                </div>
+              </div>
+
+              {item.metadata &&
+              Object.keys(item.metadata || {}).length > 0 ? (
+                <pre style={styles.metadata}>
+                  {JSON.stringify(item.metadata, null, 2)}
+                </pre>
+              ) : null}
+            </div>
+          ))
+        )}
+      </div>
+
+      <div style={styles.pagination}>
+        <button
+          type="button"
+          style={styles.pageBtn}
+          disabled={page <= 1 || loading}
+          onClick={() => setPage((p) => Math.max(p - 1, 1))}
+        >
+          Previous
+        </button>
+
+        <div style={styles.pageInfo}>
+          Page {pagination.page || 1} / {pagination.total_pages || 1}
+        </div>
+
+        <button
+          type="button"
+          style={styles.pageBtn}
+          disabled={
+            page >= (pagination.total_pages || 1) || loading
+          }
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Next
+        </button>
       </div>
     </div>
   );
@@ -238,8 +297,8 @@ const styles = {
   },
 
   refreshBtn: {
-    padding: "9px 12px",
-    borderRadius: 10,
+    padding: "10px 14px",
+    borderRadius: 12,
     border: "1px solid var(--admin-border)",
     background: "var(--admin-primary)",
     color: "#020617",
@@ -249,21 +308,186 @@ const styles = {
 
   filters: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
     gap: 10,
-    marginBottom: 14,
+    marginBottom: 16,
   },
 
   input: {
     padding: 12,
     border: "1px solid var(--admin-border)",
-    borderRadius: 10,
-    fontSize: 14,
-    width: "100%",
-    boxSizing: "border-box",
+    borderRadius: 12,
     background: "var(--admin-input)",
     color: "var(--admin-text)",
-    outline: "none",
+    fontSize: 14,
+  },
+
+  summaryBar: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(120px,1fr))",
+    gap: 10,
+    marginBottom: 18,
+  },
+
+  summaryItem: {
+    padding: 14,
+    borderRadius: 14,
+    background: "var(--admin-row)",
+    border: "1px solid var(--admin-border)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+
+  list: {
+    display: "grid",
+    gap: 14,
+  },
+
+  activityCard: {
+    border: "1px solid var(--admin-border)",
+    borderRadius: 16,
+    padding: 16,
+    background: "var(--admin-row)",
+  },
+
+  activityTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 14,
+  },
+
+  activityLeft: {
+    flex: 1,
+    minWidth: 0,
+  },
+
+  message: {
+    fontWeight: 700,
+    fontSize: 15,
+    marginBottom: 8,
+    wordBreak: "break-word",
+  },
+
+  metaLine: {
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+    color: "var(--admin-muted)",
+    fontSize: 13,
+  },
+
+  module: {
+    textTransform: "capitalize",
+    fontWeight: 700,
+  },
+
+  dot: {
+    opacity: 0.5,
+  },
+
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "5px 10px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 800,
+    textTransform: "capitalize",
+    flexShrink: 0,
+  },
+
+  infoBadge: {
+    background: "#dbeafe",
+    color: "#1e40af",
+  },
+
+  successBadge: {
+    background: "#dcfce7",
+    color: "#166534",
+  },
+
+  warningBadge: {
+    background: "#fef3c7",
+    color: "#92400e",
+  },
+
+  errorBadge: {
+    background: "#fee2e2",
+    color: "#991b1b",
+  },
+
+  metaGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+    gap: 10,
+    marginBottom: 12,
+  },
+
+  metaItem: {
+    background: "var(--admin-card)",
+    border: "1px solid var(--admin-border)",
+    borderRadius: 12,
+    padding: 10,
+  },
+
+  metaLabel: {
+    fontSize: 12,
+    color: "var(--admin-muted)",
+    marginBottom: 4,
+  },
+
+  metaValue: {
+    fontWeight: 600,
+    wordBreak: "break-word",
+  },
+
+  metadata: {
+    margin: 0,
+    borderRadius: 12,
+    padding: 12,
+    background: "#020617",
+    color: "#cbd5e1",
+    overflowX: "auto",
+    fontSize: 12,
+    lineHeight: 1.5,
+  },
+
+  pagination: {
+    marginTop: 18,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+
+  pageBtn: {
+    padding: "10px 14px",
+    borderRadius: 12,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-primary)",
+    color: "#020617",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+
+  pageInfo: {
+    fontSize: 14,
+    color: "var(--admin-muted)",
+    fontWeight: 600,
+  },
+
+  emptyBox: {
+    padding: 20,
+    borderRadius: 14,
+    background: "var(--admin-row)",
+    border: "1px solid var(--admin-border)",
+    color: "var(--admin-muted)",
+    textAlign: "center",
   },
 
   errorBox: {
@@ -275,99 +499,5 @@ const styles = {
     color: "#991b1b",
     fontSize: 13,
     fontWeight: 700,
-  },
-
-  tableWrapper: {
-    width: "100%",
-    overflowX: "auto",
-    WebkitOverflowScrolling: "touch",
-  },
-
-  table: {
-    width: "100%",
-    borderCollapse: "collapse",
-    minWidth: 1100,
-    color: "var(--admin-text)",
-    background: "var(--admin-card)",
-  },
-
-  th: {
-    textAlign: "center",
-    verticalAlign: "middle",
-    padding: "14px 12px",
-    whiteSpace: "nowrap",
-    background: "var(--admin-row)",
-    color: "var(--admin-text)",
-    borderBottom: "2px solid var(--admin-border)",
-  },
-
-  td: {
-    textAlign: "center",
-    verticalAlign: "middle",
-    padding: 12,
-    borderBottom: "1px solid var(--admin-border)",
-    whiteSpace: "nowrap",
-    color: "var(--admin-text)",
-  },
-
-  metaTd: {
-    textAlign: "left",
-    verticalAlign: "top",
-    padding: 12,
-    borderBottom: "1px solid var(--admin-border)",
-    minWidth: 260,
-  },
-
-  emptyTd: {
-    textAlign: "center",
-    padding: 18,
-    color: "var(--admin-muted)",
-    borderBottom: "1px solid var(--admin-border)",
-  },
-
-  rowAlt: {
-    background: "var(--admin-row)",
-  },
-
-  badge: {
-    display: "inline-block",
-    padding: "4px 9px",
-    borderRadius: 999,
-    fontSize: 12,
-    fontWeight: 800,
-    textTransform: "capitalize",
-  },
-
-  infoBadge: {
-    background: "#dbeafe",
-    color: "#1e40af",
-    border: "1px solid #93c5fd",
-  },
-
-  successBadge: {
-    background: "#dcfce7",
-    color: "#166534",
-    border: "1px solid #86efac",
-  },
-
-  warningBadge: {
-    background: "#fef3c7",
-    color: "#92400e",
-    border: "1px solid #fcd34d",
-  },
-
-  errorBadge: {
-    background: "#fee2e2",
-    color: "#991b1b",
-    border: "1px solid #fca5a5",
-  },
-
-  pre: {
-    margin: 0,
-    fontSize: 12,
-    whiteSpace: "pre-wrap",
-    wordBreak: "break-word",
-    color: "var(--admin-text)",
-    fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
   },
 };
