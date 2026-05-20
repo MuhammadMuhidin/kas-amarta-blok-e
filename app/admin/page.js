@@ -109,9 +109,28 @@ export default function AdminPage() {
     return Number(appConfig.monthly_fee || 0);
   }, [appConfig]);
 
+  const normalize = (v) => String(v || "").trim();
+
   const currentPeriod = new Date()
-  .toISOString()
-  .slice(0, 7);
+    .toISOString()
+    .slice(0, 7);
+
+  function getDepositStatus(d) {
+    const isPaid =
+      normalize(d.status).toLowerCase() === "paid" &&
+      normalize(d.paid_at) !== "" &&
+      normalize(d.payment_id) !== "";
+
+    if (isPaid) {
+      return "paid";
+    }
+
+    if (normalize(d.period) > currentPeriod) {
+      return "waiting";
+    }
+
+    return "pending";
+  }
 
   const pendingCurrentDeposits = useMemo(() => {
     return deposits.filter(
@@ -1435,11 +1454,8 @@ const searchedPersonal = useMemo(() => {
 
                 <tbody>
                   {deposits.map((d, i) => {
-                    const normalize = (v) => String(v || "").trim();
-                    const alreadyPaid =
-                      normalize(d.status).toLowerCase() === "paid" &&
-                      normalize(d.paid_at) !== "" &&
-                      normalize(d.payment_id) !== "";
+                    const depositStatus = getDepositStatus(d);
+                    const canPay = depositStatus === "pending";
 
                     return (
                       <tr key={d.id || i} style={i % 2 ? styles.rowAlt : null}>
@@ -1450,19 +1466,37 @@ const searchedPersonal = useMemo(() => {
                           Rp{Number(d.amount || 0).toLocaleString("id-ID")}
                         </td>
                         <td style={styles.td}>
-                          {alreadyPaid ? "paid" : "pending"}
+                          <span
+                            style={{
+                              ...styles.depositStatus,
+                              ...(depositStatus === "paid"
+                                ? styles.depositStatusPaid
+                                : depositStatus === "waiting"
+                                  ? styles.depositStatusWaiting
+                                  : styles.depositStatusPending),
+                            }}
+                          >
+                            {depositStatus}
+                          </span>
                         </td>
                         <td style={styles.td}>
                         <button
                           type="button"
                           style={{
                             ...styles.smallBtn,
-                            ...(alreadyPaid ? styles.btnDisabled : {}),
+                            ...(depositStatus === "paid"
+                              ? styles.smallBtnPaid
+                              : {}),
+                            ...(!canPay ? styles.btnDisabled : {}),
                           }}
-                          disabled={alreadyPaid || loadingDeposit}
+                          disabled={!canPay || loadingDeposit}
                           onClick={() => payDeposit(d.id)}
                         >
-                          {alreadyPaid ? "Paid" : "Pay Now"}
+                          {depositStatus === "paid"
+                            ? "Paid"
+                            : depositStatus === "waiting"
+                              ? "Waiting"
+                              : "Pay Now"}
                         </button>
                         </td>
                       </tr>
@@ -2192,4 +2226,33 @@ const styles = {
     borderRadius: 999,
     lineHeight: 1.2,
   },
+
+  depositStatus: {
+  display: "inline-block",
+  padding: "4px 9px",
+  borderRadius: 999,
+  fontSize: 12,
+  fontWeight: 800,
+  textTransform: "capitalize",
+},
+
+depositStatusPaid: {
+  background: "#dcfce7",
+  color: "#166534",
+},
+
+depositStatusWaiting: {
+  background: "var(--admin-row)",
+  color: "var(--admin-muted)",
+},
+
+depositStatusPending: {
+  background: "#fef3c7",
+  color: "#92400e",
+},
+
+smallBtnPaid: {
+  background: "#16a34a",
+  color: "#ffffff",
+},
 };
