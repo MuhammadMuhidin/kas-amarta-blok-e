@@ -1431,13 +1431,18 @@ const sortedDeposits = useMemo(() => {
           onChange={() => toggleHouse(p.id)}
         />
 
-        {p.house}
+<div style={styles.houseChipContent}>
+  <div style={styles.houseChipHouse}>
+    {p.house}
+  </div>
 
-        {alreadyPaid && (
-          <span style={styles.checkboxChipPaidText}>
-            Paid
-          </span>
-        )}
+  {alreadyPaid && (
+    <div style={styles.houseChipPaid}>
+      Paid
+    </div>
+  )}
+</div>
+  
       </label>
     );
   })}
@@ -2418,17 +2423,37 @@ const styles = {
     textAlign: "center",
   },
 
-  checkboxChipPaid: {
+checkboxChipPaid: {
   opacity: 0.55,
   cursor: "not-allowed",
-  background: "#dcfce7",
-  color: "#166534",
-  border: "1px solid #86efac",
+  background: "#cbd5e1",
+  color: "#334155",
+  border: "1px solid #94a3b8",
 },
 
 checkboxChipPaidText: {
   marginLeft: 6,
   fontSize: 11,
   fontWeight: 800,
+},
+
+houseChipContent: {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 4,
+  width: "100%",
+},
+
+houseChipHouse: {
+  fontWeight: 700,
+  lineHeight: 1.2,
+},
+
+houseChipPaid: {
+  fontSize: 11,
+  fontWeight: 700,
+  opacity: 0.7,
 },
 };
