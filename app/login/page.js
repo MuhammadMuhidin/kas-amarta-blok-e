@@ -25,6 +25,8 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
 
+  const [checkingSession, setCheckingSession] = useState(true);
+
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const [toast, setToast] = useState({
@@ -32,6 +34,32 @@ export default function Login() {
     type: "info",
     message: "",
   });
+
+  useEffect(() => {
+    async function checkExistingSession() {
+      try {
+        const res = await fetch("/api/admin/sessions/check", {
+          cache: "no-store",
+        });
+
+        if (res.ok) {
+          router.replace("/admin");
+          return;
+        }
+
+        if (res.status === 401) {
+          await fetch("/api/logout", {
+            method: "POST",
+            cache: "no-store",
+          });
+        }
+      } finally {
+        setCheckingSession(false);
+      }
+    }
+
+    checkExistingSession();
+  }, [router]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -124,7 +152,7 @@ export default function Login() {
 
       notify("Sign in success", "success");
 
-      router.push("/admin");
+      router.replace("/admin");
     } catch (err) {
       notify(err.message || "Sign in failed", "error");
     } finally {
@@ -166,7 +194,7 @@ export default function Login() {
 
       notify("Passkey verified", "success");
 
-      router.push("/admin");
+      router.replace("/admin");
     } catch (err) {
       notify(err.message || "Passkey verification cancelled", "error");
     }
@@ -222,6 +250,10 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checkingSession) {
+    return null;
   }
 
   return (
