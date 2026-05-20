@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 
 import {
+  createAdminSession,
+  getSessionCookieName,
+} from "@/lib/adminSession";
+
+import {
   createCSRFToken,
   getActiveCredential,
   getWebAuthConfig,
@@ -10,14 +15,16 @@ import {
 
 export const runtime = "nodejs";
 
-function createAuthResponse() {
+async function createAuthResponse(req) {
   const csrfToken = createCSRFToken();
 
   const res = NextResponse.json({
     ok: true,
   });
 
-  res.cookies.set("admin", "true", {
+  const token = await createAdminSession(req);
+
+  res.cookies.set(getSessionCookieName(), token, {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
@@ -98,7 +105,7 @@ export async function POST(req) {
       verification.authenticationInfo.newCounter,
     );
 
-    return createAuthResponse();
+    return createAuthResponse(req);
   } catch (err) {
     return NextResponse.json(
       {
