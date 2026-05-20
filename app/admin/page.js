@@ -97,11 +97,17 @@ export default function AdminPage() {
       );
   }, [personal]);
 
+  const selectedDepositPerson = useMemo(() => {
+    return personal.find(
+      (p) => p.id === depositForm.person_id,
+    );
+  }, [personal, depositForm.person_id]);
+
   const depositAmount = useMemo(() => {
-    if (!selectedDepositPerson || !appConfig) return 0;
+    if (!appConfig) return 0;
 
     return Number(appConfig.monthly_fee || 0);
-  }, [selectedDepositPerson, appConfig]);
+  }, [appConfig]);
 
   function isNewActiveMember(p) {
     if (p.active !== "Y") return false;
