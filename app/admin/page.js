@@ -75,7 +75,7 @@ export default function AdminPage() {
     const current = getCurrentPeriod();
 
     return Array.from({ length: 6 }).map((_, i) =>
-      addMonths(current, i),
+      addMonths(current, i + 2),
     );
   }, []);
 

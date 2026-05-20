@@ -45,7 +45,10 @@ export async function POST(req) {
   const sheets = await getSheets();
 
   if (!verifyCSRF(req)) {
-    return Response.json({ error: "Invalid CSRF" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Invalid CSRF" },
+      { status: 403 },
+    );
   }
 
   const { person_id, house, name, periods, amount } = body;
@@ -92,12 +95,192 @@ export async function POST(req) {
       spreadsheetId,
       range: "Deposit!A:J",
       valueInputOption: "USER_ENTERED",
-      requestBody: { values },
+      requestBody: {
+        values,
+      },
     });
   }
 
   return NextResponse.json({
     success: true,
     inserted: values.length,
+  });
+}
+
+export async function PATCH(req) {
+  const body = await req.json();
+  const sheets = await getSheets();
+
+  if (!verifyCSRF(req)) {
+    return NextResponse.json(
+      { error: "Invalid CSRF" },
+      { status: 403 },
+    );
+  }
+
+  const { id, action } = body;
+
+  if (action !== "PAY_NOW") {
+    return NextResponse.json(
+      { error: "Invalid action" },
+      { status: 400 },
+    );
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const depositRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Deposit!A:J",
+  });
+
+  const depositRows = depositRes.data.values || [];
+
+  const depositIndex = depositRows
+    .slice(1)
+    .findIndex((r) => r[0] === id);
+
+  if (depositIndex === -1) {
+    return NextResponse.json(
+      { error: "Deposit not found" },
+      { status: 404 },
+    );
+  }
+
+  const depositRowNumber = depositIndex + 2;
+  const deposit = depositRows[depositRowNumber - 1];
+
+  if (deposit[6] === "paid") {
+    return NextResponse.json(
+      { error: "Deposit already paid" },
+      { status: 400 },
+    );
+  }
+
+  const person_id = deposit[1];
+  const person_house = deposit[2];
+  const person_name = deposit[3];
+  const period = deposit[4];
+  const amount = Number(deposit[5]) || 0;
+
+  const paymentRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Payment!A:G",
+  });
+
+  const paymentRows = paymentRes.data.values || [];
+
+  const duplicatePayment = paymentRows
+    .slice(1)
+    .some((r) => r[1] === person_id && r[4] === period);
+
+  if (duplicatePayment) {
+    return NextResponse.json(
+      { error: "Period already paid" },
+      { status: 400 },
+    );
+  }
+
+  const personalRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Personal!A:F",
+  });
+
+  const personalRows = personalRes.data.values || [];
+
+  const member = personalRows
+    .slice(1)
+    .find((r) => r[0] === person_id);
+
+  if (!member) {
+    return NextResponse.json(
+      { error: "Member not found" },
+      { status: 404 },
+    );
+  }
+
+  const isTrashUser = String(member[3] || "").toUpperCase() === "Y";
+
+  const paymentId = generateId("PAY-");
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: "Payment!A:G",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [
+        [
+          paymentId,
+          person_id,
+          person_house,
+          person_name,
+          period,
+          amount,
+          today,
+        ],
+      ],
+    },
+  });
+
+  const note = `Pembayaran Kas ${person_house} Periode ${period}`;
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: "Cashflow!A:F",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [
+        [
+          generateId("CSFLOW-"),
+          paymentId,
+          "income",
+          amount,
+          note,
+          today,
+        ],
+      ],
+    },
+  });
+
+  if (isTrashUser) {
+    const appConfig = await getAppConfig();
+    const trashFee = Number(appConfig?.trash_fee) || 0;
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: "Trash!A:D",
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [
+          [
+            generateId("TRASH-"),
+            paymentId,
+            trashFee,
+            today,
+          ],
+        ],
+      },
+    });
+  }
+
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `Deposit!G${depositRowNumber}:J${depositRowNumber}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [
+        [
+          "paid",
+          deposit[7] || "",
+          today,
+          paymentId,
+        ],
+      ],
+    },
+  });
+
+  return NextResponse.json({
+    success: true,
+    payment_id: paymentId,
   });
 }
