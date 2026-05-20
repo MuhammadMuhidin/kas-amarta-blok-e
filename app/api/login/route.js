@@ -91,7 +91,7 @@ export async function POST(req) {
       LOGIN
     */
 
-    return createAuthResponse();
+    return createAuthResponse(req);
   } catch (err) {
     return NextResponse.json(
       {
