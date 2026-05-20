@@ -25,6 +25,12 @@ function clean(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function numberParam(value, fallback) {
+  const parsed = Number(value || fallback);
+
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
 export async function GET(req) {
   try {
     if (!(await isAdmin(req))) {
@@ -34,20 +40,24 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const module = clean(searchParams.get("module"));
     const severity = clean(searchParams.get("severity"));
-    const limitRaw = Number(searchParams.get("limit") || 100);
-    const limit = Number.isFinite(limitRaw)
-      ? Math.min(Math.max(limitRaw, 1), 200)
-      : 100;
+    const page = Math.max(numberParam(searchParams.get("page"), 1), 1);
+    const limitRaw = numberParam(searchParams.get("limit"), 20);
+    const limit = Math.min(Math.max(limitRaw, 5), 50);
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
     let query = supabase
       .from("admin_activities")
       .select(
         "id,type,module,severity,message,metadata,actor,device_name,ip,location,created_at",
+        {
+          count: "exact",
+        },
       )
       .order("created_at", {
         ascending: false,
       })
-      .limit(limit);
+      .range(from, to);
 
     if (modules.has(module)) {
       query = query.eq("module", module);
@@ -57,7 +67,7 @@ export async function GET(req) {
       query = query.eq("severity", severity);
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
 
     if (error) {
       throw new Error(error.message);
@@ -66,6 +76,12 @@ export async function GET(req) {
     return NextResponse.json({
       ok: true,
       activities: data || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        total_pages: Math.max(Math.ceil((count || 0) / limit), 1),
+      },
     });
   } catch (err) {
     return NextResponse.json(
