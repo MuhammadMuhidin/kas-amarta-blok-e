@@ -56,7 +56,7 @@ export default function AdminPage() {
   const [cashflows, setCashflows] = useState([]);
 
   async function checkSession() {
-    const res = await fetch("/api/admin/session/check", {
+    const res = await fetch("/api/admin/sessions/check", {
       cache: "no-store",
     });
 
@@ -276,7 +276,7 @@ function isHousePaidForPeriod(person) {
 
   useEffect(() => {
     checkSession();
-    
+
     loadAppConfig();
     loadPersonal();
     loadDailyBackupStatus();
