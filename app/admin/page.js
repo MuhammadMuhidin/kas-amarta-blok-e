@@ -680,7 +680,7 @@ export default function AdminPage() {
   ]);
   
   /* =========================================
-     SUSPICIOUS DATA
+     DATA QUALITY CHECK
   ========================================= */
   const suspiciousData = useMemo(() => {
     const issues = [];
@@ -1311,7 +1311,7 @@ const searchedPersonal = useMemo(() => {
 
               {/* Suspicious Data */}
               <div style={styles.statusCard}>
-                <div style={styles.statusLabel}>Suspicious Data</div>
+                <div style={styles.statusLabel}>Data Quality Check</div>
 
                 <div style={styles.statusValue}>
                   {suspiciousData.length} issue
