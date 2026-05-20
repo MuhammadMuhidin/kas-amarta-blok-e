@@ -2169,9 +2169,27 @@ const styles = {
   },
 
   depositMeta: {
-  marginTop: -8,
-  marginBottom: 8,
-  fontSize: 13,
-  color: "var(--admin-muted)",
-},
+    marginTop: -8,
+    marginBottom: 8,
+    fontSize: 13,
+    color: "var(--admin-muted)",
+  },
+
+  tabContent: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    justifyContent: "center",
+    flexWrap: "wrap",
+  },
+
+  depositBadge: {
+    background: "#16a34a",
+    color: "#dcfce7",
+    fontSize: 11,
+    fontWeight: 700,
+    padding: "3px 8px",
+    borderRadius: 999,
+    lineHeight: 1.2,
+  },
 };
