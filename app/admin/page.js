@@ -121,13 +121,11 @@ export default function AdminPage() {
       normalize(d.paid_at) !== "" &&
       normalize(d.payment_id) !== "";
 
-    if (isPaid) {
-      return "paid";
-    }
+    if (isPaid) return "paid";
 
-    if (normalize(d.period) > currentPeriod) {
-      return "waiting";
-    }
+    if (normalize(d.period) > currentPeriod) return "waiting";
+
+    if (normalize(d.period) < currentPeriod) return "missed";
 
     return "pending";
   }
@@ -1460,11 +1458,15 @@ const searchedPersonal = useMemo(() => {
                     return (
                       <tr key={d.id || i} style={i % 2 ? styles.rowAlt : null}>
                         <td style={styles.td}>{d.house}</td>
+
                         <td style={styles.td}>{d.name}</td>
+
                         <td style={styles.td}>{d.period}</td>
+
                         <td style={styles.td}>
                           Rp{Number(d.amount || 0).toLocaleString("id-ID")}
                         </td>
+
                         <td style={styles.td}>
                           <span
                             style={{
@@ -1473,31 +1475,36 @@ const searchedPersonal = useMemo(() => {
                                 ? styles.depositStatusPaid
                                 : depositStatus === "waiting"
                                   ? styles.depositStatusWaiting
-                                  : styles.depositStatusPending),
+                                  : depositStatus === "missed"
+                                    ? styles.depositStatusMissed
+                                    : styles.depositStatusPending),
                             }}
                           >
                             {depositStatus}
                           </span>
                         </td>
+
                         <td style={styles.td}>
-                        <button
-                          type="button"
-                          style={{
-                            ...styles.smallBtn,
-                            ...(depositStatus === "paid"
-                              ? styles.smallBtnPaid
-                              : {}),
-                            ...(!canPay ? styles.btnDisabled : {}),
-                          }}
-                          disabled={!canPay || loadingDeposit}
-                          onClick={() => payDeposit(d.id)}
-                        >
-                          {depositStatus === "paid"
-                            ? "Paid"
-                            : depositStatus === "waiting"
-                              ? "Waiting"
-                              : "Pay Now"}
-                        </button>
+                          {depositStatus !== "missed" && (
+                            <button
+                              type="button"
+                              style={{
+                                ...styles.smallBtn,
+                                ...(depositStatus === "paid"
+                                  ? styles.smallBtnPaid
+                                  : {}),
+                                ...(!canPay ? styles.btnDisabled : {}),
+                              }}
+                              disabled={!canPay || loadingDeposit}
+                              onClick={() => payDeposit(d.id)}
+                            >
+                              {depositStatus === "paid"
+                                ? "Paid"
+                                : depositStatus === "waiting"
+                                  ? "Waiting"
+                                  : "Pay Now"}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -2228,31 +2235,36 @@ const styles = {
   },
 
   depositStatus: {
-  display: "inline-block",
-  padding: "4px 9px",
-  borderRadius: 999,
-  fontSize: 12,
-  fontWeight: 800,
-  textTransform: "capitalize",
-},
+    display: "inline-block",
+    padding: "4px 9px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 800,
+    textTransform: "capitalize",
+  },
 
-depositStatusPaid: {
-  background: "#dcfce7",
-  color: "#166534",
-},
+  depositStatusPaid: {
+    background: "#dcfce7",
+    color: "#166534",
+  },
 
-depositStatusWaiting: {
-  background: "var(--admin-row)",
-  color: "var(--admin-muted)",
-},
+  depositStatusWaiting: {
+    background: "var(--admin-row)",
+    color: "var(--admin-muted)",
+  },
 
-depositStatusPending: {
-  background: "#fef3c7",
-  color: "#92400e",
-},
+  depositStatusPending: {
+    background: "#fef3c7",
+    color: "#92400e",
+  },
 
-smallBtnPaid: {
-  background: "#16a34a",
-  color: "#ffffff",
-},
+  depositStatusMissed: {
+    background: "#fee2e2",
+    color: "#991b1b",
+  },
+
+  smallBtnPaid: {
+    background: "#16a34a",
+    color: "#ffffff",
+  },
 };
