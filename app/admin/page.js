@@ -1003,6 +1003,31 @@ const searchedPersonal = useMemo(() => {
     );
   });
 }, [filteredPersonal, memberSearch]);
+
+const sortedDeposits = useMemo(() => {
+  const priority = {
+    pending: 0,
+    waiting: 1,
+    missed: 2,
+    paid: 3,
+  };
+
+  return [...deposits].sort((a, b) => {
+    const statusA = getDepositStatus(a);
+    const statusB = getDepositStatus(b);
+
+    const statusCompare =
+      priority[statusA] - priority[statusB];
+
+    if (statusCompare !== 0) {
+      return statusCompare;
+    }
+
+    return String(a.period).localeCompare(
+      String(b.period),
+    );
+  });
+}, [deposits]);
   
   return (
     <>
@@ -1466,7 +1491,7 @@ const searchedPersonal = useMemo(() => {
                 </thead>
 
                 <tbody>
-                  {deposits.map((d, i) => {
+                  {sortedDeposits.map((d, i) => {
                     const depositStatus = getDepositStatus(d);
 
                     const paymentExists = payments.some(
