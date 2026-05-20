@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
+import { recordAdminActivity } from "@/lib/adminActivity";
 
 export const dynamic = "force-dynamic";
 
@@ -52,10 +53,13 @@ export async function POST(req) {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // verification CSRF
   if (!verifyCSRF(req)) {
     return Response.json({ error: "Invalid CSRF" }, { status: 403 });
   }
+
+  const cashflowId = generateId("CSFLOW-");
+  const refId = generateId("DIRECT-");
+  const note = toTitleCase(body.note);
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
@@ -64,14 +68,29 @@ export async function POST(req) {
     requestBody: {
       values: [
         [
-          generateId("CSFLOW-"),
-          generateId("DIRECT-"),
+          cashflowId,
+          refId,
           body.type,
           body.amount,
-          toTitleCase(body.note),
+          note,
           today,
         ],
       ],
+    },
+  });
+
+  await recordAdminActivity(req, {
+    type: "create",
+    module: "cashflow",
+    severity: body.type === "expense" ? "warning" : "success",
+    message: `Record ${body.type} cashflow ${note}`,
+    metadata: {
+      cashflow_id: cashflowId,
+      ref_id: refId,
+      type: body.type,
+      amount: body.amount,
+      note,
+      date: today,
     },
   });
 
