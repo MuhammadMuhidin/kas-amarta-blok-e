@@ -55,6 +55,16 @@ export default function AdminPage() {
   const [loadingCashflow, setLoadingCashflow] = useState(false);
   const [cashflows, setCashflows] = useState([]);
 
+  async function checkSession() {
+    const res = await fetch("/api/admin/sessions/check", {
+      cache: "no-store",
+    });
+
+    if (res.status === 401) {
+      router.replace("/login");
+    }
+  }
+
   function getCookie(name) {
     return document.cookie
       .split("; ")
@@ -265,6 +275,8 @@ function isHousePaidForPeriod(person) {
   }
 
   useEffect(() => {
+    checkSession();
+
     loadAppConfig();
     loadPersonal();
     loadDailyBackupStatus();
