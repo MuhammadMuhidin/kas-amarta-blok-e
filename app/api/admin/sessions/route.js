@@ -20,7 +20,7 @@ export async function GET(req) {
     }
 
     const sessions =
-      await getAdminSessions();
+      await getAdminSessions(req);
 
     return NextResponse.json({
       ok: true,
