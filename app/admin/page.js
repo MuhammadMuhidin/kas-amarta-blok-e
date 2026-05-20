@@ -47,7 +47,7 @@ export default function AdminPage() {
   const [memberFilter, setMemberFilter] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
 
-  const [msg, setMsg] = useState("");
+  const [popup, setPopup] = useState(null);
   const [loadingAdd, setLoadingAdd] = useState(false);
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [loadingCashflow, setLoadingCashflow] = useState(false);
@@ -58,6 +58,17 @@ export default function AdminPage() {
       .split("; ")
       .find((row) => row.startsWith(name + "="))
       ?.split("=")[1];
+  }
+
+  function showPopup(text, type = "success") {
+    setPopup({
+      text,
+      type,
+    });
+
+    setTimeout(() => {
+      setPopup(null);
+    }, 2500);
   }
 
   function getCurrentPeriod() {
@@ -273,7 +284,7 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        setMsg("Member added successfully");
+        showPopup("Member added successfully", "success");
 
         setMember({
           house: "",
@@ -284,12 +295,10 @@ export default function AdminPage() {
 
         loadPersonal();
       } else {
-        setMsg("Failed to add member");
+        showPopup("Failed to add member", "error");
       }
     } finally {
       setLoadingAdd(false);
-
-      setTimeout(() => setMsg(""), 3000);
     }
   }
 
@@ -305,7 +314,7 @@ export default function AdminPage() {
     e.preventDefault();
 
     if (!appConfig) {
-      setMsg("Konfigurasi kas belum tersedia. Pembayaran tidak bisa dicatat.");
+      showPopup("Konfigurasi kas belum tersedia. Pembayaran tidak bisa dicatat.", "error");
       return;
     }
 
@@ -353,7 +362,7 @@ export default function AdminPage() {
         }
       }
 
-      setMsg(`Payment recorded for ${success} house successfully`);
+      showPopup(`Payment recorded for ${success} house successfully`, "success");
       setSelected([]);
       setPayment({
         period: "",
@@ -361,8 +370,6 @@ export default function AdminPage() {
       });
     } finally {
       setLoadingPayment(false);
-
-      setTimeout(() => setMsg(""), 3000);
     }
   }
 
@@ -370,7 +377,7 @@ export default function AdminPage() {
     e.preventDefault();
 
     if (!selectedDepositPerson || selectedDepositPeriods.length === 0) {
-      setMsg("Pilih rumah dan periode titipan terlebih dahulu");
+      showPopup("Pilih rumah dan periode titipan terlebih dahulu", "error");
       return;
     }
 
@@ -399,7 +406,7 @@ export default function AdminPage() {
         throw new Error(data.error || "Failed save deposit");
       }
 
-      setMsg("Deposit balance saved successfully");
+      showPopup("Deposit balance saved successfully", "success");
       setDepositForm({
         person_id: "",
         end_period: "",
@@ -407,10 +414,9 @@ export default function AdminPage() {
 
       await loadDeposit();
     } catch (err) {
-      setMsg(err.message || "Failed save deposit");
+      showPopup(err.message || "Failed save deposit", "error");
     } finally {
       setLoadingDeposit(false);
-      setTimeout(() => setMsg(""), 3000);
     }
   }
 
@@ -437,7 +443,7 @@ export default function AdminPage() {
         throw new Error(data.error || "Failed pay deposit");
       }
 
-      setMsg("Deposit paid successfully");
+      showPopup("Deposit paid successfully", "success");
 
       await Promise.all([
         loadDeposit(),
@@ -446,10 +452,9 @@ export default function AdminPage() {
         loadCashflow(),
       ]);
     } catch (err) {
-      setMsg(err.message || "Failed pay deposit");
+      showPopup(err.message || "Failed pay deposit", "error");
     } finally {
       setLoadingDeposit(false);
-      setTimeout(() => setMsg(""), 3000);
     }
   }
 
@@ -470,7 +475,7 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        setMsg("Transaction recorded successfully");
+        showPopup("Transaction recorded successfully", "success");
 
         setCashflow({
           type: "",
@@ -478,12 +483,10 @@ export default function AdminPage() {
           note: "",
         });
       } else {
-        setMsg("Failed to record transaction");
+        showPopup("Failed to record transaction", "error");
       }
     } finally {
       setLoadingCashflow(false);
-
-      setTimeout(() => setMsg(""), 3000);
     }
   }
 
@@ -1055,7 +1058,19 @@ const searchedPersonal = useMemo(() => {
           <h1 style={styles.title}>Cash Flow Management</h1>
         </div>
 
-        {msg && <div style={styles.msg}>{msg}</div>}
+        {popup && (
+          <div
+            style={{
+              ...styles.popup,
+              background:
+                popup.type === "success"
+                  ? "#166534"
+                  : "#991b1b",
+            }}
+          >
+            {popup.text}
+          </div>
+        )}
 
         <div style={styles.tabs}>
           <button
@@ -2283,5 +2298,21 @@ const styles = {
   smallBtnPaid: {
     background: "#16a34a",
     color: "#ffffff",
+  },
+
+  popup: {
+    position: "fixed",
+    top: 20,
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: 9999,
+    color: "#fff",
+    padding: "12px 16px",
+    borderRadius: 12,
+    fontSize: 14,
+    fontWeight: 600,
+    boxShadow: "0 10px 25px rgba(0,0,0,.25)",
+    maxWidth: "calc(100vw - 32px)",
+    textAlign: "center",
   },
 };
