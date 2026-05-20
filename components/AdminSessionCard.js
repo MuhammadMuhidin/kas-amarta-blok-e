@@ -10,13 +10,8 @@ function getCookie(name) {
     ?.split("=")[1];
 }
 
-function getDeviceName(userAgent = "") {
-  if (userAgent.includes("Android")) return "Chrome Android";
-  if (userAgent.includes("iPhone")) return "Safari iPhone";
-  if (userAgent.includes("Windows")) return "Chrome Windows";
-  if (userAgent.includes("Mac")) return "Safari Mac";
-
-  return "Unknown device";
+function getDeviceName(session) {
+  return session.device_name || "Unknown device";
 }
 
 function getTimeAgo(date) {
@@ -154,30 +149,42 @@ export default function AdminSessionCard() {
           {sessions.map((session) => (
             <div key={session.id} style={styles.sessionItem}>
               <div style={styles.sessionInfo}>
-                <div style={styles.sessionDevice}>
-                  {getDeviceName(session.user_agent)}
+                <div style={styles.sessionTop}>
+                  <div style={styles.sessionDevice}>
+                    {getDeviceName(session)}
+                  </div>
+
+                  {session.current && (
+                    <div style={styles.currentBadge}>
+                      Session Saat Ini
+                    </div>
+                  )}
                 </div>
+
+                {session.location && (
+                  <div style={styles.locationText}>
+                    {session.location}
+                  </div>
+                )}
 
                 <div style={styles.sessionMeta}>
                   Last active: {getTimeAgo(session.last_active)}
                 </div>
-
-                {session.ip && (
-                  <div style={styles.sessionMeta}>IP: {session.ip}</div>
-                )}
               </div>
 
-              <button
-                type="button"
-                onClick={() => setPendingSession(session)}
-                disabled={revokingId === session.id}
-                style={{
-                  ...styles.dangerButton,
-                  opacity: revokingId === session.id ? 0.6 : 1,
-                }}
-              >
-                {revokingId === session.id ? "Memutus..." : "Putuskan"}
-              </button>
+              {!session.current && (
+                <button
+                  type="button"
+                  onClick={() => setPendingSession(session)}
+                  disabled={revokingId === session.id}
+                  style={{
+                    ...styles.dangerButton,
+                    opacity: revokingId === session.id ? 0.6 : 1,
+                  }}
+                >
+                  {revokingId === session.id ? "Memutus..." : "Putuskan"}
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -196,16 +203,18 @@ export default function AdminSessionCard() {
 
             <div style={styles.modalSessionBox}>
               <div style={styles.sessionDevice}>
-                {getDeviceName(pendingSession.user_agent)}
+                {getDeviceName(pendingSession)}
               </div>
+
+              {pendingSession.location && (
+                <div style={styles.locationText}>
+                  {pendingSession.location}
+                </div>
+              )}
 
               <div style={styles.sessionMeta}>
                 Last active: {getTimeAgo(pendingSession.last_active)}
               </div>
-
-              {pendingSession.ip && (
-                <div style={styles.sessionMeta}>IP: {pendingSession.ip}</div>
-              )}
             </div>
 
             <div style={styles.modalActions}>
@@ -286,11 +295,36 @@ const styles = {
   },
   sessionInfo: {
     minWidth: 0,
+    flex: 1,
+  },
+  sessionTop: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
   },
   sessionDevice: {
     fontSize: 14,
     fontWeight: 800,
     color: "var(--admin-text)",
+  },
+  currentBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "4px 8px",
+    borderRadius: 999,
+    background: "rgba(37,99,235,.12)",
+    color: "#2563eb",
+    fontSize: 11,
+    fontWeight: 900,
+    letterSpacing: ".03em",
+  },
+  locationText: {
+    marginTop: 5,
+    fontSize: 12,
+    fontWeight: 700,
+    color: "var(--admin-text)",
+    opacity: 0.82,
   },
   sessionMeta: {
     marginTop: 4,
