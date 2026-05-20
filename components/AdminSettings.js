@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AdminSessionCard from "@/components/AdminSessionCard";
 
 function getCookie(name) {
   return document.cookie
@@ -280,13 +281,15 @@ async function confirmPin() {
         onChange={(value) => updateSetting("WEB_AUTH_ENABLED", value)}
       />
 
-            <SettingRow
+      <SettingRow
         title="PIN Login"
         description="Jika aktif, login wajib memasukkan PIN setelah password. PIN diminta setelah password. Jika WebAuth juga aktif, passkey tetap diminta setelah PIN."
         checked={config.pinEnabled}
         disabled={saving}
         onChange={(value) => updateSetting("PIN_ENABLED", value)}
       />
+
+      <AdminSessionCard />
 
       {pinModal && (
         <div style={styles.pinOverlay}>
