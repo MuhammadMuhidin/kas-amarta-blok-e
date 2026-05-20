@@ -202,6 +202,7 @@ export default function AdminPage() {
       loadTrash(),
       loadPersonal(),
       loadCashflow(),
+      loadDeposit()
     ]);
   }
 
@@ -213,6 +214,7 @@ export default function AdminPage() {
     loadPayment();
     loadCashflow();
     loadTrash();
+    loadDeposit()
   }, []);
 
   useEffect(() => {
