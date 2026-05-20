@@ -923,13 +923,7 @@ const searchedPersonal = useMemo(() => {
                 </thead>
 
                 <tbody>
-                  {searchedPersonal.map
-                    .sort((a, b) =>
-                      a.house.localeCompare(b.house, undefined, {
-                        numeric: true,
-                      }),
-                    )
-                    .map((p, i) => {
+                   {searchedPersonal.map((p, i) => {
                       let rowStyle = i % 2 ? styles.rowAlt : null;
 
                       if (isNewActiveMember(p)) {
