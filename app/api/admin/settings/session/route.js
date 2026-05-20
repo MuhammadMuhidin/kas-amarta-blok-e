@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
-import { getAuthConfigs, updateAuthConfig } from "@/lib/webauth";
-import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+
+import {
+  isAdmin,
+  unauthorized,
+  validateCSRF,
+} from "@/lib/auth";
+
+import {
+  getAdminSessions,
+  revokeAdminSession,
+} from "@/lib/adminSession";
 
 export const runtime = "nodejs";
 
@@ -10,16 +19,19 @@ export async function GET(req) {
       return unauthorized();
     }
 
-    const config = await getAuthConfigs();
+    const sessions =
+      await getAdminSessions();
 
     return NextResponse.json({
       ok: true,
-      config,
+      sessions,
     });
   } catch (err) {
     return NextResponse.json(
       {
-        error: err.message || "Gagal membaca settings",
+        error:
+          err.message ||
+          "Gagal mengambil session",
       },
       {
         status: 500,
@@ -28,7 +40,7 @@ export async function GET(req) {
   }
 }
 
-export async function PATCH(req) {
+export async function DELETE(req) {
   try {
     if (!(await isAdmin(req))) {
       return unauthorized();
@@ -45,20 +57,9 @@ export async function PATCH(req) {
       );
     }
 
-    const { key, value, pin } = await req.json();
+    const { id } = await req.json();
 
-    if (pin !== process.env.ADMIN_PIN) {
-      return NextResponse.json(
-        {
-          error: "PIN tidak valid",
-        },
-        {
-          status: 403,
-        },
-      );
-    }
-
-    await updateAuthConfig(key, value ? "true" : "false");
+    await revokeAdminSession(id);
 
     return NextResponse.json({
       ok: true,
@@ -66,7 +67,9 @@ export async function PATCH(req) {
   } catch (err) {
     return NextResponse.json(
       {
-        error: err.message || "Gagal update settings",
+        error:
+          err.message ||
+          "Gagal memutuskan session",
       },
       {
         status: 500,

@@ -13,7 +13,7 @@ export const runtime = "nodejs";
 
 export async function GET(req) {
   try {
-    if (!isAdmin(req)) {
+    if (!(await isAdmin(req))) {
       return unauthorized();
     }
 
@@ -39,7 +39,7 @@ export async function GET(req) {
 
 export async function PATCH(req) {
   try {
-    if (!isAdmin(req)) {
+    if (!(await isAdmin(req))) {
       return unauthorized();
     }
 

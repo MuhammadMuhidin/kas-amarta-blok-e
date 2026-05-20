@@ -1,14 +1,20 @@
 import { NextResponse } from "next/server";
 import { createCSRFToken, getAuthConfigs } from "@/lib/webauth";
+import {
+  createAdminSession,
+  getSessionCookieName,
+} from "@/lib/adminSession";
 
-function createAuthResponse() {
+async function createAuthResponse(req) {
   const csrfToken = createCSRFToken();
 
   const res = NextResponse.json({
     ok: true,
   });
 
-  res.cookies.set("admin", "true", {
+  const token = await createAdminSession(req);
+
+  res.cookies.set(getSessionCookieName(), token, {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
