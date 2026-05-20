@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
 import { getAppConfig } from "@/lib/appConfig";
+import { recordAdminActivity } from "@/lib/adminActivity";
 
 export const dynamic = "force-dynamic";
 
@@ -100,6 +101,22 @@ export async function POST(req) {
       },
     });
   }
+
+  await recordAdminActivity(req, {
+    type: "create",
+    module: "deposit",
+    severity: "success",
+    message: `Save deposit ${house} ${values.length} period`,
+    metadata: {
+      person_id,
+      house,
+      name,
+      periods,
+      amount,
+      inserted: values.length,
+      deposit_ids: values.map((item) => item[0]),
+    },
+  });
 
   return NextResponse.json({
     success: true,
@@ -276,6 +293,24 @@ export async function PATCH(req) {
           paymentId,
         ],
       ],
+    },
+  });
+
+  await recordAdminActivity(req, {
+    type: "pay",
+    module: "deposit",
+    severity: "success",
+    message: `Pay deposit ${person_house} ${period}`,
+    metadata: {
+      deposit_id: id,
+      payment_id: paymentId,
+      person_id,
+      house: person_house,
+      name: person_name,
+      period,
+      amount,
+      paid_at: today,
+      trash_recorded: isTrashUser,
     },
   });
 
