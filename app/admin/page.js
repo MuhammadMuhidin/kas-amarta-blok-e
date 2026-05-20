@@ -552,7 +552,135 @@ export default function AdminPage() {
   }, [personal, payments, trashRecords]);
 
   /* =========================================
-     SUSPICIOUS DATA
+     PAYMENT CASHFLOW INTEGRITY DATA
+    ========================================= */
+  const paymentCashflowIntegrity = useMemo(() => {
+    const issues = [];
+  
+    const normalize = (v) => String(v || "").trim();
+    const toNumber = (v) => Number(v || 0);
+  
+    const monthlyFee = toNumber(appConfig?.monthly_fee);
+  
+    const monitoredPayments = payments.filter(
+      (p) => p.period && p.period >= MONITORING_START_PERIOD,
+    );
+  
+    const paymentById = new Map(
+      payments.map((p) => [normalize(p.id), p]),
+    );
+  
+    const paymentLinkedCashflow = cashflows.filter((c) => {
+      const refId = normalize(c.ref_id);
+      const datePeriod = normalize(c.date).slice(0, 7);
+  
+      if (normalize(c.type).toLowerCase() !== "income") return false;
+      if (!refId) return false;
+      if (refId.toUpperCase().startsWith("DIRECT")) return false;
+      if (!datePeriod) return false;
+  
+      return datePeriod >= MONITORING_START_PERIOD;
+    });
+  
+    const cashflowByRefId = new Map(
+      paymentLinkedCashflow.map((c) => [normalize(c.ref_id), c]),
+    );
+  
+    const duplicateMap = new Map();
+  
+    monitoredPayments.forEach((p) => {
+      const paymentId = normalize(p.id);
+      const amount = toNumber(p.amount);
+  
+      const duplicateKey = [
+        normalize(p.person_id),
+        normalize(p.person_house),
+        normalize(p.period),
+      ].join("|");
+  
+      if (!duplicateMap.has(duplicateKey)) {
+        duplicateMap.set(duplicateKey, []);
+      }
+  
+      duplicateMap.get(duplicateKey).push(p);
+  
+      if (monthlyFee && amount !== monthlyFee) {
+        issues.push({
+          type: "INVALID_PAYMENT_AMOUNT",
+          house: p.person_house || "-",
+          name: p.person_name || "-",
+          period: p.period || "-",
+          detail: `Payment amount ${amount} should be ${monthlyFee}`,
+        });
+      }
+  
+      const cashflow = cashflowByRefId.get(paymentId);
+  
+      if (!cashflow) {
+        issues.push({
+          type: "MISSING_CASHFLOW",
+          house: p.person_house || "-",
+          name: p.person_name || "-",
+          period: p.period || "-",
+          detail: `Payment ${paymentId} has no linked cashflow income`,
+        });
+  
+        return;
+      }
+  
+      if (toNumber(cashflow.amount) !== amount) {
+        issues.push({
+          type: "AMOUNT_MISMATCH",
+          house: p.person_house || "-",
+          name: p.person_name || "-",
+          period: p.period || "-",
+          detail: `Payment ${amount} but cashflow ${cashflow.amount}`,
+        });
+      }
+    });
+  
+    paymentLinkedCashflow.forEach((c) => {
+      const refId = normalize(c.ref_id);
+  
+      const payment = paymentById.get(refId);
+  
+      if (!payment) {
+        issues.push({
+          type: "ORPHAN_CASHFLOW",
+          house: "-",
+          name: "-",
+          period: c.date || "-",
+          detail: `Cashflow references invalid payment_id: ${refId}`,
+        });
+      }
+    });
+  
+    duplicateMap.forEach((items) => {
+      if (items.length > 1) {
+        const first = items[0];
+  
+        issues.push({
+          type: "DUPLICATE_PAYMENT",
+          house: first.person_house || "-",
+          name: first.person_name || "-",
+          period: first.period || "-",
+          detail: `${items.length} payments found for same house and period`,
+        });
+      }
+    });
+  
+    return issues.sort((a, b) =>
+      String(a.period).localeCompare(String(b.period)),
+    );
+  }, [
+    payments,
+    cashflows,
+    appConfig,
+    MONITORING_START_PERIOD,
+  ]);
+  
+  /* =========================================
+     DATA QUALITY CHECK
   ========================================= */
   const suspiciousData = useMemo(() => {
     const issues = [];
@@ -901,13 +1029,13 @@ const searchedPersonal = useMemo(() => {
               </div>
             </div>
 
-<input
-  type="text"
-  placeholder="Search name or house..."
-  value={memberSearch}
-  onChange={(e) => setMemberSearch(e.target.value)}
-  style={styles.searchInput}
-/>
+            <input
+              type="text"
+              placeholder="Search name or house..."
+              value={memberSearch}
+              onChange={(e) => setMemberSearch(e.target.value)}
+              style={styles.searchInput}
+            />
 
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
@@ -1149,6 +1277,23 @@ const searchedPersonal = useMemo(() => {
                 )}
               </div>
 
+              {/* Payment Cashflow Integrity */}
+              <div style={styles.statusCard}>
+                <div style={styles.statusLabel}>
+                  Payment Cashflow Integrity
+                </div>
+              
+                <div style={styles.statusValue}>
+                  {paymentCashflowIntegrity.length} issue
+                </div>
+              
+                <div style={styles.statusMeta}>
+                  {paymentCashflowIntegrity.length === 0
+                    ? "No issue detected"
+                    : "Need review"}
+                </div>
+              </div>
+
               {/* Trash Integrity */}
               <div style={styles.statusCard}>
                 <div style={styles.statusLabel}>Trash Payment Integrity</div>
@@ -1166,7 +1311,7 @@ const searchedPersonal = useMemo(() => {
 
               {/* Suspicious Data */}
               <div style={styles.statusCard}>
-                <div style={styles.statusLabel}>Suspicious Data</div>
+                <div style={styles.statusLabel}>Data Quality Check</div>
 
                 <div style={styles.statusValue}>
                   {suspiciousData.length} issue
@@ -1179,6 +1324,49 @@ const searchedPersonal = useMemo(() => {
                 </div>
               </div>
             </div>
+
+            {/* Detail Payment Cashlflow */}
+            {paymentCashflowIntegrity.length > 0 && (
+              <div style={styles.monitorDetail}>
+                <h3>Payment Cashflow Integrity</h3>
+            
+                <div style={styles.tableWrapper}>
+                  <table style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>House</th>
+                        <th style={styles.th}>Name</th>
+                        <th style={styles.th}>Period</th>
+                        <th style={styles.th}>Type</th>
+                        <th style={styles.th}>Issue</th>
+                      </tr>
+                    </thead>
+            
+                    <tbody>
+                      {paymentCashflowIntegrity.map((x, i) => (
+                        <tr key={i} style={i % 2 ? styles.rowAlt : null}>
+                          <td style={{ ...styles.td, ...styles.issueText }}>
+                            {x.house}
+                          </td>
+                          <td style={{ ...styles.td, ...styles.issueText }}>
+                            {x.name}
+                          </td>
+                          <td style={{ ...styles.td, ...styles.issueText }}>
+                            {x.period}
+                          </td>
+                          <td style={{ ...styles.td, ...styles.issueText }}>
+                            {x.type}
+                          </td>
+                          <td style={{ ...styles.td, ...styles.issueText }}>
+                            {x.detail}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Detail Trash */}
             {trashMismatch.length > 0 && (

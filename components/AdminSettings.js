@@ -220,7 +220,7 @@ export default function AdminSettings() {
 
           <ConfigItem
             label="Mulai Monitoring"
-            description="Periode awal sistem untuk monitoring pembayaran iuran sampah."
+            description="Periode awal validasi monitoring sistem. Data sebelum periode ini akan diabaikan dari integrity check."
             type="month"
             value={appConfig?.start_monitoring_date}
             disabled={savingConfig}
