@@ -97,22 +97,10 @@ export default function AdminPage() {
       );
   }, [personal]);
 
-  const selectedDepositPerson = useMemo(() => {
-    return personal.find((p) => p.id === depositForm.person_id);
-  }, [personal, depositForm.person_id]);
-
   const depositAmount = useMemo(() => {
     if (!selectedDepositPerson || !appConfig) return 0;
 
-    const monthly = Number(appConfig.monthly_fee || 0);
-    const trash = Number(appConfig.trash_fee || 0);
-
-    return (
-      monthly +
-      ((selectedDepositPerson.trash || "").toUpperCase() === "Y"
-        ? trash
-        : 0)
-    );
+    return Number(appConfig.monthly_fee || 0);
   }, [selectedDepositPerson, appConfig]);
 
   function isNewActiveMember(p) {
@@ -1357,6 +1345,14 @@ const searchedPersonal = useMemo(() => {
                 readOnly
               />
 
+              {selectedDepositPerson && (
+                <div style={styles.depositMeta}>
+                  {(selectedDepositPerson.trash || "").toUpperCase() === "Y"
+                    ? `Layanan: Kas + Sampah. Sampah dicatat terpisah Rp${Number(appConfig?.trash_fee || 0).toLocaleString("id-ID")} saat Pay Now.`
+                    : "Layanan: Kas"}
+                </div>
+              )}
+
               <div style={styles.depositChips}>
                 {nextSixPeriods.map((period) => {
                   const active = selectedDepositPeriods.includes(period);
@@ -2143,4 +2139,11 @@ const styles = {
     fontWeight: 700,
     cursor: "pointer",
   },
+
+  depositMeta: {
+  marginTop: -8,
+  marginBottom: 8,
+  fontSize: 13,
+  color: "var(--admin-muted)",
+},
 };
