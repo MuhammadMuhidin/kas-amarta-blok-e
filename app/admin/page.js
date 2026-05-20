@@ -636,6 +636,11 @@ export default function AdminPage() {
       const refId = normalize(c.ref_id);
   
       if (!refId) return;
+
+      // skip direct/manual cashflow
+      if (refId.startsWith("DIRECT")) {
+        return;
+      }
   
       const payment = paymentById.get(refId);
   
