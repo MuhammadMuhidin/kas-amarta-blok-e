@@ -156,6 +156,18 @@ export default function CashflowPage() {
     return resident.paid ? "Sudah bayar" : "Belum bayar";
   };
 
+const getRegisteredServices = (resident) => {
+  if (!resident) return "-";
+
+  const services = ["Kas"];
+
+  if ((resident.trash || "").toUpperCase() === "Y") {
+    services.push("Sampah");
+  }
+
+  return services.join(" dan ");
+};
+
   /* ==== LOGIC: PAYMENT ==== */
   const paymentList = useMemo(() => {
     if (!selectedPeriod || !data.persons.length) return [];
@@ -179,6 +191,7 @@ export default function CashflowPage() {
           id: p.id,
           house: p.house,
           join_date: p.join_date,
+          trash: p.trash,
           paid,
           notApplicable,
         };
@@ -749,6 +762,16 @@ export default function CashflowPage() {
               <div className="resident-house">
                 {selectedResident.house}
               </div>
+
+<div className="resident-section">
+  <div className="resident-label">
+    Layanan terdaftar
+  </div>
+
+  <div className="resident-value">
+    {getRegisteredServices(selectedResident)}
+  </div>
+</div>
 
               <div className="resident-section">
                 <div className="resident-label">
