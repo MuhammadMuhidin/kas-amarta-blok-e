@@ -32,6 +32,10 @@ export default function AdminSettings() {
   const [popup, setPopup] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
 
+  const [pinModal, setPinModal] = useState(false);
+  const [pinValue, setPinValue] = useState("");
+  const [pendingAction, setPendingAction] = useState(null);
+
   async function loadAppConfig() {
     try {
       setLoadingConfig(true);
@@ -55,52 +59,49 @@ export default function AdminSettings() {
   }
 
   async function updateConfig(key, value) {
-    const pin = window.prompt("Re-auth PIN for apply change");
+    requestPin(async (pin) => {
 
-      if (!pin) {
-        return;
+      try {
+        setSavingConfig(true);
+
+        const csrfToken = getCookie("csrf_token");
+
+        const res = await fetch("/api/admin/settings/app", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": csrfToken,
+          },
+          body: JSON.stringify({
+            key,
+            value,
+            pin,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Gagal update config");
+        }
+
+        await loadAppConfig();
+
+        showPopup(
+          setPopup,
+          "Konfigurasi berhasil diperbarui",
+          "success",
+        );
+      } catch (err) {
+        showPopup(
+          setPopup,
+          err.message || "Gagal update config",
+          "error",
+        );
+      } finally {
+        setSavingConfig(false);
       }
-
-    try {
-      setSavingConfig(true);
-
-      const csrfToken = getCookie("csrf_token");
-
-      const res = await fetch("/api/admin/settings/app", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": csrfToken,
-        },
-        body: JSON.stringify({
-          key,
-          value,
-          pin,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal update config");
-      }
-
-      await loadAppConfig();
-
-      showPopup(
-        setPopup,
-        "Konfigurasi berhasil diperbarui",
-        "success",
-      );
-    } catch (err) {
-      showPopup(
-        setPopup,
-        err.message || "Gagal update config",
-        "error",
-      );
-    } finally {
-      setSavingConfig(false);
-    }
+    });
   }
 
   async function loadConfig() {
@@ -122,52 +123,49 @@ export default function AdminSettings() {
   }
 
   async function updateSetting(key, value) {
-    const pin = window.prompt("Re-auth PIN for apply change");
+    requestPin(async (pin) => {
 
-    if (!pin) {
-      return;
-    }
+      setSaving(true);
 
-    setSaving(true);
+      try {
+        const csrf = getCookie("csrf_token");
 
-    try {
-      const csrf = getCookie("csrf_token");
+        const res = await fetch("/api/admin/settings/auth", {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "x-csrf-token": csrf || "",
+          },
+          body: JSON.stringify({
+            key,
+            value,
+            pin,
+          }),
+        });
 
-      const res = await fetch("/api/admin/settings/auth", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": csrf || "",
-        },
-        body: JSON.stringify({
-          key,
-          value,
-          pin,
-        }),
-      });
+        const data = await res.json();
 
-      const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error);
+        }
 
-      if (!res.ok) {
-        throw new Error(data.error);
+        await loadConfig();
+
+        showPopup(
+          setPopup,
+          "Settings auth berhasil diperbarui",
+          "success",
+        );
+      } catch (err) {
+        showPopup(
+          setPopup,
+          err.message || "Gagal update setting",
+          "error",
+        );
+      } finally {
+        setSaving(false);
       }
-
-      await loadConfig();
-
-      showPopup(
-        setPopup,
-        "Settings auth berhasil diperbarui",
-        "success",
-      );
-    } catch (err) {
-      showPopup(
-        setPopup,
-        err.message || "Gagal update setting",
-        "error",
-      );
-    } finally {
-      setSaving(false);
-    }
+    });
   }
 
   useEffect(() => {
@@ -189,6 +187,21 @@ export default function AdminSettings() {
   if (loading) {
     return <div style={styles.card}>Memuat settings...</div>;
   }
+
+function requestPin(action) {
+  setPinValue("");
+  setPendingAction(() => action);
+  setPinModal(true);
+}
+
+async function confirmPin() {
+  if (!pendingAction) return;
+
+  await pendingAction(pinValue);
+
+  setPinModal(false);
+  setPendingAction(null);
+}
 
   return (
     <div style={styles.card}>
@@ -256,13 +269,59 @@ export default function AdminSettings() {
         onChange={(value) => updateSetting("WEB_AUTH_ENABLED", value)}
       />
 
-      <SettingRow
+            <SettingRow
         title="PIN Login"
         description="Jika aktif, login wajib memasukkan PIN setelah password. PIN diminta setelah password. Jika WebAuth juga aktif, passkey tetap diminta setelah PIN."
         checked={config.pinEnabled}
         disabled={saving}
         onChange={(value) => updateSetting("PIN_ENABLED", value)}
       />
+
+      {pinModal && (
+        <div style={styles.pinOverlay}>
+          <div style={styles.pinModal}>
+            <div style={styles.pinTitle}>
+              Re-auth PIN
+            </div>
+
+            <div style={styles.pinDesc}>
+              Confirm administrator PIN to apply changes.
+            </div>
+
+            <input
+              type="password"
+              placeholder="Enter PIN"
+              value={pinValue}
+              onChange={(e) =>
+                setPinValue(e.target.value)
+              }
+              style={styles.pinInput}
+              autoFocus
+            />
+
+            <div style={styles.pinActions}>
+              <button
+                type="button"
+                style={styles.pinCancel}
+                onClick={() => {
+                  setPinModal(false);
+                  setPendingAction(null);
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                style={styles.pinConfirm}
+                onClick={confirmPin}
+              >
+                Apply Change
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -506,4 +565,78 @@ const styles = {
     width: "100%",
     boxSizing: "border-box",
   },
+
+  pinOverlay: {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(2,6,23,.6)",
+  backdropFilter: "blur(4px)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  zIndex: 9999,
+},
+
+pinModal: {
+  width: "100%",
+  maxWidth: 360,
+  background: "var(--admin-card)",
+  border: "1px solid var(--admin-border)",
+  borderRadius: 18,
+  padding: 22,
+  boxSizing: "border-box",
+  boxShadow: "0 20px 50px rgba(0,0,0,.35)",
+},
+
+pinTitle: {
+  fontSize: 18,
+  fontWeight: 700,
+  marginBottom: 8,
+  color: "var(--admin-text)",
+},
+
+pinDesc: {
+  fontSize: 14,
+  color: "var(--admin-muted)",
+  marginBottom: 16,
+  lineHeight: 1.5,
+},
+
+pinInput: {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: "12px 14px",
+  borderRadius: 12,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-input)",
+  color: "var(--admin-text)",
+  fontSize: 15,
+  outline: "none",
+  marginBottom: 16,
+},
+
+pinActions: {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: 10,
+},
+
+pinCancel: {
+  padding: "10px 14px",
+  borderRadius: 10,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  color: "var(--admin-text)",
+  cursor: "pointer",
+},
+
+pinConfirm: {
+  padding: "10px 14px",
+  borderRadius: 10,
+  border: "none",
+  background: "var(--admin-primary)",
+  color: "#020617",
+  fontWeight: 700,
+  cursor: "pointer",
+},
 };
