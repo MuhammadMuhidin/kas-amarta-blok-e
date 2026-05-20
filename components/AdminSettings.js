@@ -36,6 +36,8 @@ export default function AdminSettings() {
   const [pinValue, setPinValue] = useState("");
   const [pendingAction, setPendingAction] = useState(null);
 
+  const [configResetKey, setConfigResetKey] = useState(0);
+
   async function loadAppConfig() {
     try {
       setLoadingConfig(true);
@@ -93,6 +95,9 @@ export default function AdminSettings() {
           "success",
         );
       } catch (err) {
+
+        setConfigResetKey((prev) => prev + 1);
+
         showPopup(
           setPopup,
           err.message || "Gagal update config",
@@ -157,6 +162,9 @@ export default function AdminSettings() {
           "success",
         );
       } catch (err) {
+
+        setConfigResetKey((prev) => prev + 1);
+
         showPopup(
           setPopup,
           err.message || "Gagal update setting",
@@ -230,6 +238,7 @@ async function confirmPin() {
             description="Default iuran kas bulanan saat pembayaran dan laporan tunggakan."
             type="number"
             value={appConfig?.monthly_fee}
+            resetKey={configResetKey}
             disabled={savingConfig}
             isMobile={isMobile}
             onSave={(value) => updateConfig("monthly_fee", value)}
@@ -240,6 +249,7 @@ async function confirmPin() {
             description="Default iuran sampah yang dibayar bersama iuran kas warga."
             type="number"
             value={appConfig?.trash_fee}
+            resetKey={configResetKey}
             disabled={savingConfig}
             isMobile={isMobile}
             onSave={(value) => updateConfig("trash_fee", value)}
@@ -250,6 +260,7 @@ async function confirmPin() {
             description="Periode awal validasi monitoring sistem. Data sebelum periode ini akan diabaikan dari integrity check."
             type="month"
             value={appConfig?.start_monitoring_date}
+            resetKey={configResetKey}
             disabled={savingConfig}
             isMobile={isMobile}
             onSave={(value) =>
@@ -369,6 +380,7 @@ function ConfigItem({
   description,
   type,
   value,
+  resetKey,
   onSave,
   disabled,
   isMobile,
@@ -377,7 +389,7 @@ function ConfigItem({
 
   useEffect(() => {
     setLocal(value);
-  }, [value]);
+  }, [value, resetKey]);
 
   const unchanged = String(local) === String(value);
 
