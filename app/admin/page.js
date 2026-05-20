@@ -2259,21 +2259,25 @@ const styles = {
   depositStatusPaid: {
     background: "#dcfce7",
     color: "#166534",
+    border: "1px solid #86efac",
   },
 
   depositStatusWaiting: {
     background: "var(--admin-row)",
     color: "var(--admin-muted)",
+    border: "1px solid var(--admin-border)",
   },
 
   depositStatusPending: {
     background: "#fef3c7",
     color: "#92400e",
+    border: "1px solid #fcd34d",
   },
 
   depositStatusMissed: {
     background: "#fee2e2",
     color: "#991b1b",
+    border: "1px solid #fca5a5",
   },
 
   smallBtnPaid: {
