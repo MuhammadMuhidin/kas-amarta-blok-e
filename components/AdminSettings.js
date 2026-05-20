@@ -55,6 +55,12 @@ export default function AdminSettings() {
   }
 
   async function updateConfig(key, value) {
+    const pin = window.prompt("Re-auth PIN for apply change");
+
+      if (!pin) {
+        return;
+      }
+
     try {
       setSavingConfig(true);
 
@@ -69,6 +75,7 @@ export default function AdminSettings() {
         body: JSON.stringify({
           key,
           value,
+          pin,
         }),
       });
 
@@ -115,6 +122,12 @@ export default function AdminSettings() {
   }
 
   async function updateSetting(key, value) {
+    const pin = window.prompt("Re-auth PIN for apply change");
+
+    if (!pin) {
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -129,6 +142,7 @@ export default function AdminSettings() {
         body: JSON.stringify({
           key,
           value,
+          pin,
         }),
       });
 
