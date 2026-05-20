@@ -1468,7 +1468,7 @@ const sortedDeposits = useMemo(() => {
               <button
                 style={{
                   ...styles.btn,
-                  ...(loadingDeposit ? styles.btnDisabled : {}),
+                  ...(savingDeposit ? styles.btnDisabled : {}),
                 }}
                 disabled={savingDeposit}
               >
