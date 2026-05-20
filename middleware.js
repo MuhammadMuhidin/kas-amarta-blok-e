@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 export function middleware(request) {
-  const token = request.cookies.get("admin")?.value;
+  const token = request.cookies.get("admin_session")?.value;
   const { pathname } = request.nextUrl;
 
   /* LOGIN PAGE */
