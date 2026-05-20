@@ -1407,45 +1407,64 @@ const sortedDeposits = useMemo(() => {
     }),
   )
   .map((p) => {
-    const alreadyPaid = isHousePaidForPeriod(p);
+const period = normalize(payment.period);
+const joinPeriod = normalize(p.join_date).slice(0, 7);
 
-    return (
-      <label
-        key={p.id}
-        title={alreadyPaid ? "Already paid for this period" : ""}
-        style={{
-          ...styles.checkboxChip,
-          ...(selected.includes(p.id)
-            ? styles.checkboxChipActive
-            : {}),
-          ...(alreadyPaid
-            ? styles.checkboxChipPaid
-            : {}),
-        }}
-      >
-        <input
-          type="checkbox"
-          style={styles.checkboxInput}
-          checked={selected.includes(p.id)}
-          disabled={alreadyPaid}
-          onChange={() => toggleHouse(p.id)}
-        />
+const alreadyPaid = isHousePaidForPeriod(p);
+const notJoined =
+  period &&
+  joinPeriod &&
+  period < joinPeriod;
 
-<div style={styles.houseChipContent}>
-  <div style={styles.houseChipHouse}>
-    {p.house}
-  </div>
+const disabledChip = alreadyPaid || notJoined;
 
-  {alreadyPaid && (
-    <div style={styles.houseChipPaid}>
-      Paid
+return (
+  <label
+    key={p.id}
+    title={
+      alreadyPaid
+        ? "Already paid for this period"
+        : notJoined
+          ? "Not joined yet for this period"
+          : ""
+    }
+    style={{
+      ...styles.checkboxChip,
+      ...(selected.includes(p.id)
+        ? styles.checkboxChipActive
+        : {}),
+      ...(disabledChip
+        ? styles.checkboxChipPaid
+        : {}),
+    }}
+  >
+    <input
+      type="checkbox"
+      style={styles.checkboxInput}
+      checked={selected.includes(p.id)}
+      disabled={disabledChip}
+      onChange={() => toggleHouse(p.id)}
+    />
+
+    <div style={styles.houseChipContent}>
+      <div style={styles.houseChipHouse}>
+        {p.house}
+      </div>
+
+      {alreadyPaid && (
+        <div style={styles.houseChipPaid}>
+          Paid
+        </div>
+      )}
+
+      {notJoined && (
+        <div style={styles.houseChipPaid}>
+          Not join
+        </div>
+      )}
     </div>
-  )}
-</div>
-  
-      </label>
-    );
-  })}
+  </label>
+);
               </div>
 
               <button
