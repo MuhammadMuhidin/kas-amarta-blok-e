@@ -567,12 +567,12 @@ export default function AdminPage() {
       (p) => p.period && p.period >= MONITORING_START_PERIOD,
     );
   
-    const cashflowIncome = cashflows.filter(
-      (c) => normalize(c.type).toLowerCase() === "income",
+    const paymentLinkedCashflow  = cashflows.filter(
+      (c) => normalize(c.type).toLowerCase() === "income" && normalize(c.ref_id) !== "",
     );
   
     const cashflowByRefId = new Map(
-      cashflowIncome.map((c) => [normalize(c.ref_id), c]),
+      paymentLinkedCashflow.map((c) => [normalize(c.ref_id), c]),
     );
   
     const paymentById = new Map(
@@ -632,7 +632,7 @@ export default function AdminPage() {
       }
     });
   
-    cashflowIncome.forEach((c) => {
+    paymentLinkedCashflow.forEach((c) => {
       const refId = normalize(c.ref_id);
   
       if (!refId) return;
