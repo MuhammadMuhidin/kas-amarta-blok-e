@@ -35,6 +35,7 @@ export default function Toast({ show, type = "info", message }) {
   return (
     <div style={styles.wrapper}>
       <div
+        className="toast-card"
         style={{
           ...styles.toast,
           background: current.bg,
@@ -61,8 +62,9 @@ export default function Toast({ show, type = "info", message }) {
       </div>
 
       <style jsx>{`
-        div {
+        .toast-card {
           animation: toastEnter 0.24s ease;
+          transform-origin: top center;
         }
 
         @keyframes toastEnter {
@@ -85,12 +87,14 @@ const styles = {
   wrapper: {
     position: "fixed",
     top: 18,
-    left: "50%",
-    transform: "translateX(-50%)",
+    left: 0,
+    right: 0,
     zIndex: 99999,
-    width: "calc(100% - 24px)",
+    width: "100%",
     display: "flex",
     justifyContent: "center",
+    padding: "0 12px",
+    boxSizing: "border-box",
     pointerEvents: "none",
   },
 
