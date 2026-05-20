@@ -21,7 +21,8 @@ export default function AdminPage() {
   const [configError, setConfigError] = useState("");
 
   const [deposits, setDeposits] = useState([]);
-  const [loadingDeposit, setLoadingDeposit] = useState(false);
+  const [savingDeposit, setSavingDeposit] = useState(false);
+  const [payingDepositId, setPayingDepositId] = useState("");
   const [depositForm, setDepositForm] = useState({
     person_id: "",
     end_period: "",
@@ -381,7 +382,7 @@ export default function AdminPage() {
       return;
     }
 
-    setLoadingDeposit(true);
+    setSavingDeposit(true);
 
     try {
       const csrfToken = getCookie("csrf_token");
@@ -416,12 +417,12 @@ export default function AdminPage() {
     } catch (err) {
       showPopup(err.message || "Failed save deposit", "error");
     } finally {
-      setLoadingDeposit(false);
+      setSavingDeposit(false);
     }
   }
 
   async function payDeposit(id) {
-    setLoadingDeposit(true);
+    setPayingDepositId(id);
 
     try {
       const csrfToken = getCookie("csrf_token");
@@ -454,7 +455,7 @@ export default function AdminPage() {
     } catch (err) {
       showPopup(err.message || "Failed pay deposit", "error");
     } finally {
-      setLoadingDeposit(false);
+      setPayingDepositId("");;
     }
   }
 
@@ -1469,9 +1470,9 @@ const sortedDeposits = useMemo(() => {
                   ...styles.btn,
                   ...(loadingDeposit ? styles.btnDisabled : {}),
                 }}
-                disabled={loadingDeposit}
+                disabled={savingDeposit}
               >
-                {loadingDeposit ? "Saving..." : "Save Deposit"}
+                {savingDeposit ? "Saving..." : "Save Deposit"}
               </button>
             </form>
 
@@ -1493,6 +1494,8 @@ const sortedDeposits = useMemo(() => {
                 <tbody>
                   {sortedDeposits.map((d, i) => {
                     const depositStatus = getDepositStatus(d);
+
+                    const isPayingThisDeposit = payingDepositId === d.id;
 
                     const paymentExists = payments.some(
                       (p) =>
@@ -1553,10 +1556,12 @@ const sortedDeposits = useMemo(() => {
                                 : {}),
                               ...(!canPay ? styles.btnDisabled : {}),
                             }}
-                            disabled={!canPay || loadingDeposit}
+                            disabled={!canPay || isPayingThisDeposit}
                             onClick={() => payDeposit(d.id)}
                           >
-                            {buttonText}
+                            {isPayingThisDeposit
+                            ? "Paying..."
+                            : buttonText}
                           </button>
                         </td>
                       </tr>
