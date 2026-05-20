@@ -455,7 +455,7 @@ export default function AdminPage() {
     } catch (err) {
       showPopup(err.message || "Failed pay deposit", "error");
     } finally {
-      setPayingDepositId("");;
+      setPayingDepositId("");
     }
   }
 
@@ -1551,17 +1551,29 @@ const sortedDeposits = useMemo(() => {
                             type="button"
                             style={{
                               ...styles.smallBtn,
+
                               ...(buttonText === "Paid"
                                 ? styles.smallBtnPaid
                                 : {}),
-                              ...(!canPay ? styles.btnDisabled : {}),
+
+                              ...(
+                                !canPay ||
+                                isPayingThisDeposit ||
+                                savingDeposit
+                              )
+                                ? styles.btnDisabled
+                                : {},
                             }}
-                            disabled={!canPay || isPayingThisDeposit}
+                            disabled={
+                              !canPay ||
+                              isPayingThisDeposit ||
+                              savingDeposit
+                            }
                             onClick={() => payDeposit(d.id)}
                           >
                             {isPayingThisDeposit
-                            ? "Paying..."
-                            : buttonText}
+                              ? "Paying..."
+                              : buttonText}
                           </button>
                         </td>
                       </tr>
