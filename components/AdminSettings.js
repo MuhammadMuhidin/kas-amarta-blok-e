@@ -93,6 +93,9 @@ export default function AdminSettings() {
           "success",
         );
       } catch (err) {
+
+        await loadAppConfig();
+        
         showPopup(
           setPopup,
           err.message || "Gagal update config",
@@ -157,6 +160,9 @@ export default function AdminSettings() {
           "success",
         );
       } catch (err) {
+
+        await loadConfig();
+
         showPopup(
           setPopup,
           err.message || "Gagal update setting",
