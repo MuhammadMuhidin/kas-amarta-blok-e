@@ -763,15 +763,15 @@ const getRegisteredServices = (resident) => {
                 {selectedResident.house}
               </div>
 
-<div className="resident-section">
-  <div className="resident-label">
-    Layanan terdaftar
-  </div>
+              <div className="resident-section">
+                <div className="resident-label">
+                  Layanan terdaftar
+                </div>
 
-  <div className="resident-value">
-    {getRegisteredServices(selectedResident)}
-  </div>
-</div>
+                <div className="resident-value">
+                  {getRegisteredServices(selectedResident)}
+                </div>
+              </div>
 
               <div className="resident-section">
                 <div className="resident-label">

@@ -19,6 +19,15 @@ export default function AdminPage() {
   const [selected, setSelected] = useState([]);
   const [appConfig, setAppConfig] = useState(null);
   const [configError, setConfigError] = useState("");
+
+  const [deposits, setDeposits] = useState([]);
+  const [savingDeposit, setSavingDeposit] = useState(false);
+  const [payingDepositId, setPayingDepositId] = useState("");
+  const [depositForm, setDepositForm] = useState({
+    person_id: "",
+    end_period: "",
+  });
+
   const [payment, setPayment] = useState({
     period: "",
     amount: "",
@@ -39,7 +48,7 @@ export default function AdminPage() {
   const [memberFilter, setMemberFilter] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
 
-  const [msg, setMsg] = useState("");
+  const [popup, setPopup] = useState(null);
   const [loadingAdd, setLoadingAdd] = useState(false);
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [loadingCashflow, setLoadingCashflow] = useState(false);
@@ -51,6 +60,95 @@ export default function AdminPage() {
       .find((row) => row.startsWith(name + "="))
       ?.split("=")[1];
   }
+
+  function showPopup(text, type = "success") {
+    setPopup({
+      text,
+      type,
+    });
+
+    setTimeout(() => {
+      setPopup(null);
+    }, 2500);
+  }
+
+  function getCurrentPeriod() {
+    return new Date().toISOString().slice(0, 7);
+  }
+
+  function addMonths(period, count) {
+    const [year, month] = period.split("-").map(Number);
+    const date = new Date(year, month - 1 + count, 1);
+
+    return date.toISOString().slice(0, 7);
+  }
+
+  const nextSixPeriods = useMemo(() => {
+    const current = getCurrentPeriod();
+
+    return Array.from({ length: 6 }).map((_, i) =>
+      addMonths(current, i + 2),
+    );
+  }, []);
+
+  const selectedDepositPeriods = useMemo(() => {
+    if (!depositForm.end_period) return [];
+
+    return nextSixPeriods.filter(
+      (period) => period <= depositForm.end_period,
+    );
+  }, [depositForm.end_period, nextSixPeriods]);
+
+  const activePersons = useMemo(() => {
+    return personal
+      .filter((p) => p.active === "Y")
+      .sort((a, b) =>
+        a.house.localeCompare(b.house, undefined, {
+          numeric: true,
+        }),
+      );
+  }, [personal]);
+
+  const selectedDepositPerson = useMemo(() => {
+    return personal.find(
+      (p) => p.id === depositForm.person_id,
+    );
+  }, [personal, depositForm.person_id]);
+
+  const depositAmount = useMemo(() => {
+    if (!appConfig) return 0;
+
+    return Number(appConfig.monthly_fee || 0);
+  }, [appConfig]);
+
+  const normalize = (v) => String(v || "").trim();
+
+  const currentPeriod = new Date()
+    .toISOString()
+    .slice(0, 7);
+
+  function getDepositStatus(d) {
+    const isPaid =
+      normalize(d.status).toLowerCase() === "paid" &&
+      normalize(d.paid_at) !== "" &&
+      normalize(d.payment_id) !== "";
+
+    if (isPaid) return "paid";
+
+    if (normalize(d.period) > currentPeriod) return "waiting";
+
+    if (normalize(d.period) < currentPeriod) return "missed";
+
+    return "pending";
+  }
+
+  const pendingCurrentDeposits = useMemo(() => {
+    return deposits.filter(
+      (d) =>
+        d.period === currentPeriod &&
+        d.status !== "paid",
+    );
+  }, [deposits, currentPeriod]);
 
   function isNewActiveMember(p) {
     if (p.active !== "Y") return false;
@@ -126,6 +224,17 @@ export default function AdminPage() {
     setTrashRecords(data || []);
   }
 
+  async function loadDeposit() {
+    const res = await fetch("/api/sheets/deposit", {
+      cache: "no-store",
+      method: "GET",
+    });
+
+    const data = await res.json();
+
+    setDeposits(data || []);
+  }
+
   async function refreshMonitoring() {
     await Promise.all([
       loadAppConfig(),
@@ -134,6 +243,7 @@ export default function AdminPage() {
       loadTrash(),
       loadPersonal(),
       loadCashflow(),
+      loadDeposit()
     ]);
   }
 
@@ -145,6 +255,7 @@ export default function AdminPage() {
     loadPayment();
     loadCashflow();
     loadTrash();
+    loadDeposit()
   }, []);
 
   useEffect(() => {
@@ -174,7 +285,7 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        setMsg("Member added successfully");
+        showPopup("Member added successfully", "success");
 
         setMember({
           house: "",
@@ -185,12 +296,10 @@ export default function AdminPage() {
 
         loadPersonal();
       } else {
-        setMsg("Failed to add member");
+        showPopup("Failed to add member", "error");
       }
     } finally {
       setLoadingAdd(false);
-
-      setTimeout(() => setMsg(""), 3000);
     }
   }
 
@@ -206,7 +315,7 @@ export default function AdminPage() {
     e.preventDefault();
 
     if (!appConfig) {
-      setMsg("Konfigurasi kas belum tersedia. Pembayaran tidak bisa dicatat.");
+      showPopup("Konfigurasi kas belum tersedia. Pembayaran tidak bisa dicatat.", "error");
       return;
     }
 
@@ -254,7 +363,7 @@ export default function AdminPage() {
         }
       }
 
-      setMsg(`Payment recorded for ${success} house successfully`);
+      showPopup(`Payment recorded for ${success} house successfully`, "success");
       setSelected([]);
       setPayment({
         period: "",
@@ -262,8 +371,91 @@ export default function AdminPage() {
       });
     } finally {
       setLoadingPayment(false);
+    }
+  }
 
-      setTimeout(() => setMsg(""), 3000);
+  async function saveDeposit(e) {
+    e.preventDefault();
+
+    if (!selectedDepositPerson || selectedDepositPeriods.length === 0) {
+      showPopup("Pilih rumah dan periode titipan terlebih dahulu", "error");
+      return;
+    }
+
+    setSavingDeposit(true);
+
+    try {
+      const csrfToken = getCookie("csrf_token");
+
+      const res = await fetch("/api/sheets/deposit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          person_id: selectedDepositPerson.id,
+          house: selectedDepositPerson.house,
+          name: selectedDepositPerson.name,
+          periods: selectedDepositPeriods,
+          amount: depositAmount,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed save deposit");
+      }
+
+      showPopup("Deposit balance saved successfully", "success");
+      setDepositForm({
+        person_id: "",
+        end_period: "",
+      });
+
+      await loadDeposit();
+    } catch (err) {
+      showPopup(err.message || "Failed save deposit", "error");
+    } finally {
+      setSavingDeposit(false);
+    }
+  }
+
+  async function payDeposit(id) {
+    setPayingDepositId(id);
+
+    try {
+      const csrfToken = getCookie("csrf_token");
+
+      const res = await fetch("/api/sheets/deposit", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          id,
+          action: "PAY_NOW",
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed pay deposit");
+      }
+
+      showPopup("Deposit paid successfully", "success");
+
+      await Promise.all([
+        loadDeposit(),
+        loadPayment(),
+        loadTrash(),
+        loadCashflow(),
+      ]);
+    } catch (err) {
+      showPopup(err.message || "Failed pay deposit", "error");
+    } finally {
+      setPayingDepositId("");
     }
   }
 
@@ -284,7 +476,7 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        setMsg("Transaction recorded successfully");
+        showPopup("Transaction recorded successfully", "success");
 
         setCashflow({
           type: "",
@@ -292,12 +484,10 @@ export default function AdminPage() {
           note: "",
         });
       } else {
-        setMsg("Failed to record transaction");
+        showPopup("Failed to record transaction", "error");
       }
     } finally {
       setLoadingCashflow(false);
-
-      setTimeout(() => setMsg(""), 3000);
     }
   }
 
@@ -814,6 +1004,31 @@ const searchedPersonal = useMemo(() => {
     );
   });
 }, [filteredPersonal, memberSearch]);
+
+const sortedDeposits = useMemo(() => {
+  const priority = {
+    pending: 0,
+    waiting: 1,
+    missed: 2,
+    paid: 3,
+  };
+
+  return [...deposits].sort((a, b) => {
+    const statusA = getDepositStatus(a);
+    const statusB = getDepositStatus(b);
+
+    const statusCompare =
+      priority[statusA] - priority[statusB];
+
+    if (statusCompare !== 0) {
+      return statusCompare;
+    }
+
+    return String(a.period).localeCompare(
+      String(b.period),
+    );
+  });
+}, [deposits]);
   
   return (
     <>
@@ -869,7 +1084,19 @@ const searchedPersonal = useMemo(() => {
           <h1 style={styles.title}>Cash Flow Management</h1>
         </div>
 
-        {msg && <div style={styles.msg}>{msg}</div>}
+        {popup && (
+          <div
+            style={{
+              ...styles.popup,
+              background:
+                popup.type === "success"
+                  ? "#166534"
+                  : "#991b1b",
+            }}
+          >
+            {popup.text}
+          </div>
+        )}
 
         <div style={styles.tabs}>
           <button
@@ -883,7 +1110,22 @@ const searchedPersonal = useMemo(() => {
             style={tab === "payment" ? styles.tabActive : styles.tab}
             onClick={() => setTab("payment")}
           >
-            💳 Payment
+            <div style={styles.tabContent}>
+              <span>💳 Payment</span>
+
+              {pendingCurrentDeposits.length > 0 && (
+                <span style={styles.depositBadge}>
+                  {pendingCurrentDeposits.length} deposit pending
+                </span>
+              )}
+            </div>
+          </button>
+
+          <button
+            style={tab === "deposit" ? styles.tabActive : styles.tab}
+            onClick={() => setTab("deposit")}
+          >
+            💰 Deposit Balance
           </button>
 
           <button
@@ -1153,6 +1395,194 @@ const searchedPersonal = useMemo(() => {
             </form>
           </div>
           </>
+        )}
+
+        {tab === "deposit" && (
+          <div style={styles.card}>
+            <h3>Deposit Balance</h3>
+
+            <form onSubmit={saveDeposit} style={styles.form}>
+              <select
+                style={styles.input}
+                value={depositForm.person_id}
+                onChange={(e) =>
+                  setDepositForm({
+                    ...depositForm,
+                    person_id: e.target.value,
+                    end_period: "",
+                  })
+                }
+              >
+                <option value="">Select active house</option>
+
+                {activePersons.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.house} - {p.name}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                style={{
+                  ...styles.input,
+                  ...styles.readOnlyInput,
+                }}
+                value={`Rp${depositAmount.toLocaleString("id-ID")}`}
+                readOnly
+              />
+
+              {selectedDepositPerson && (
+                <div style={styles.depositMeta}>
+                  {(selectedDepositPerson.trash || "").toUpperCase() === "Y"
+                    ? `Layanan: Kas + Sampah. Sampah dicatat terpisah Rp${Number(appConfig?.trash_fee || 0).toLocaleString("id-ID")} saat Pay Now.`
+                    : "Layanan: Kas"}
+                </div>
+              )}
+
+              <div style={styles.depositChips}>
+                {nextSixPeriods.map((period) => {
+                  const active = selectedDepositPeriods.includes(period);
+
+                  return (
+                    <button
+                      key={period}
+                      type="button"
+                      style={{
+                        ...styles.depositChip,
+                        ...(active ? styles.depositChipActive : {}),
+                      }}
+                      onClick={() =>
+                        setDepositForm({
+                          ...depositForm,
+                          end_period: period,
+                        })
+                      }
+                      disabled={!depositForm.person_id}
+                    >
+                      {period}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                style={{
+                  ...styles.btn,
+                  ...(savingDeposit ? styles.btnDisabled : {}),
+                }}
+                disabled={savingDeposit}
+              >
+                {savingDeposit ? "Saving..." : "Save Deposit"}
+              </button>
+            </form>
+
+            <h4>Deposit List</h4>
+
+            <div style={styles.tableWrapper}>
+              <table style={styles.table}>
+                <thead>
+                  <tr>
+                    <th style={styles.th}>House</th>
+                    <th style={styles.th}>Name</th>
+                    <th style={styles.th}>Period</th>
+                    <th style={styles.th}>Amount</th>
+                    <th style={styles.th}>Status</th>
+                    <th style={styles.th}>Action</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {sortedDeposits.map((d, i) => {
+                    const depositStatus = getDepositStatus(d);
+
+                    const isPayingThisDeposit = payingDepositId === d.id;
+
+                    const paymentExists = payments.some(
+                      (p) =>
+                        normalize(p.person_id) === normalize(d.person_id) &&
+                        normalize(p.person_house) === normalize(d.house) &&
+                        normalize(p.period) === normalize(d.period),
+                    );
+
+                    const canPay = depositStatus === "pending";
+
+                    const buttonText =
+                      depositStatus === "paid"
+                        ? "Paid"
+                        : depositStatus === "waiting"
+                          ? "Waiting"
+                          : depositStatus === "missed"
+                            ? paymentExists
+                              ? "Paid"
+                              : "Unpaid"
+                            : "Pay Now";
+
+                    return (
+                      <tr key={d.id || i} style={i % 2 ? styles.rowAlt : null}>
+                        <td style={styles.td}>{d.house}</td>
+
+                        <td style={styles.td}>{d.name}</td>
+
+                        <td style={styles.td}>{d.period}</td>
+
+                        <td style={styles.td}>
+                          Rp{Number(d.amount || 0).toLocaleString("id-ID")}
+                        </td>
+
+                        <td style={styles.td}>
+                          <span
+                            style={{
+                              ...styles.depositStatus,
+                              ...(depositStatus === "paid"
+                                ? styles.depositStatusPaid
+                                : depositStatus === "waiting"
+                                  ? styles.depositStatusWaiting
+                                  : depositStatus === "missed"
+                                    ? styles.depositStatusMissed
+                                    : styles.depositStatusPending),
+                            }}
+                          >
+                            {depositStatus}
+                          </span>
+                        </td>
+
+                        <td style={styles.td}>
+                          <button
+                            type="button"
+                            style={{
+                              ...styles.smallBtn,
+
+                              ...(buttonText === "Paid"
+                                ? styles.smallBtnPaid
+                                : {}),
+
+                              ...(
+                                !canPay ||
+                                isPayingThisDeposit ||
+                                savingDeposit
+                              )
+                                ? styles.btnDisabled
+                                : {},
+                            }}
+                            disabled={
+                              !canPay ||
+                              isPayingThisDeposit ||
+                              savingDeposit
+                            }
+                            onClick={() => payDeposit(d.id)}
+                          >
+                            {isPayingThisDeposit
+                              ? "Paying..."
+                              : buttonText}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
         )}
 
         {tab === "cashflow" && (
@@ -1815,5 +2245,116 @@ const styles = {
     color: "var(--admin-text)",
     fontSize: 14,
     outline: "none",
+  },
+
+  depositChips: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+
+  depositChip: {
+    padding: "9px 12px",
+    borderRadius: 999,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+    color: "var(--admin-text)",
+    cursor: "pointer",
+    fontWeight: 600,
+  },
+
+  depositChipActive: {
+    background: "var(--admin-primary)",
+    color: "#020617",
+    border: "1px solid var(--admin-primary)",
+  },
+
+  smallBtn: {
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: "none",
+    background: "var(--admin-primary)",
+    color: "#020617",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+
+  depositMeta: {
+    marginTop: -8,
+    marginBottom: 8,
+    fontSize: 13,
+    color: "var(--admin-muted)",
+  },
+
+  tabContent: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    justifyContent: "center",
+    flexWrap: "wrap",
+  },
+
+  depositBadge: {
+    background: "#16a34a",
+    color: "#dcfce7",
+    fontSize: 11,
+    fontWeight: 700,
+    padding: "3px 8px",
+    borderRadius: 999,
+    lineHeight: 1.2,
+  },
+
+  depositStatus: {
+    display: "inline-block",
+    padding: "4px 9px",
+    borderRadius: 999,
+    fontSize: 12,
+    fontWeight: 800,
+    textTransform: "capitalize",
+  },
+
+  depositStatusPaid: {
+    background: "#dcfce7",
+    color: "#166534",
+    border: "1px solid #86efac",
+  },
+
+  depositStatusWaiting: {
+    background: "var(--admin-row)",
+    color: "var(--admin-muted)",
+    border: "1px solid var(--admin-border)",
+  },
+
+  depositStatusPending: {
+    background: "#fef3c7",
+    color: "#92400e",
+    border: "1px solid #fcd34d",
+  },
+
+  depositStatusMissed: {
+    background: "#fee2e2",
+    color: "#991b1b",
+    border: "1px solid #fca5a5",
+  },
+
+  smallBtnPaid: {
+    background: "#16a34a",
+    color: "#ffffff",
+  },
+
+  popup: {
+    position: "fixed",
+    top: 20,
+    left: "50%",
+    transform: "translateX(-50%)",
+    zIndex: 9999,
+    color: "#fff",
+    padding: "12px 16px",
+    borderRadius: 12,
+    fontSize: 14,
+    fontWeight: 600,
+    boxShadow: "0 10px 25px rgba(0,0,0,.25)",
+    maxWidth: "calc(100vw - 32px)",
+    textAlign: "center",
   },
 };

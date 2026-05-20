@@ -455,7 +455,8 @@ const styles = {
   popup: {
     position: "fixed",
     top: 20,
-    right: 20,
+    left: "50%",
+    transform: "translateX(-50%)",
     zIndex: 9999,
     color: "#fff",
     padding: "12px 16px",
