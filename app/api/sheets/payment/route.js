@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
+import { recordAdminActivity } from "@/lib/adminActivity";
 
 export const dynamic = "force-dynamic";
 
@@ -44,10 +45,6 @@ export async function POST(req) {
 
   const today = new Date().toISOString().slice(0, 10);
 
-  /* ========================= */
-  /* lookup personal */
-  /* ========================= */
-
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range: "personal!A:F",
@@ -65,20 +62,11 @@ export async function POST(req) {
   const person_house = member[1];
   const person_name = member[2];
 
-  /* ========================= */
-  /* generate payment id */
-  /* ========================= */
-
   const paymentId = generateId("PAY-");
 
-  // verification CSRF
   if (!verifyCSRF(req)) {
     return Response.json({ error: "Invalid CSRF" }, { status: 403 });
   }
-
-  /* ========================= */
-  /* insert PAYMENT */
-  /* ========================= */
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
@@ -99,10 +87,6 @@ export async function POST(req) {
     },
   });
 
-  /* ========================= */
-  /* insert CASHFLOW */
-  /* ========================= */
-
   const note = `Pembayaran Kas ${person_house} Periode ${body.period}`;
 
   await sheets.spreadsheets.values.append({
@@ -113,6 +97,21 @@ export async function POST(req) {
       values: [
         [generateId("CSFLOW-"), paymentId, "income", body.amount, note, today],
       ],
+    },
+  });
+
+  await recordAdminActivity(req, {
+    type: "create",
+    module: "payment",
+    severity: "success",
+    message: `Record payment ${person_house} ${body.period}`,
+    metadata: {
+      payment_id: paymentId,
+      person_id,
+      house: person_house,
+      name: person_name,
+      period: body.period,
+      amount: body.amount,
     },
   });
 
