@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
+import { recordAdminActivity } from "@/lib/adminActivity";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,6 @@ export async function POST(req) {
 
   const id = generateId();
 
-  // verification CSRF
   if (!verifyCSRF(req)) {
     return Response.json({ error: "Invalid CSRF" }, { status: 403 });
   }
@@ -54,6 +54,21 @@ export async function POST(req) {
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: [[id, body.house, body.name, body.trash, "Y", body.join_date]],
+    },
+  });
+
+  await recordAdminActivity(req, {
+    type: "create",
+    module: "personal",
+    severity: "success",
+    message: `Add member ${body.house} - ${body.name}`,
+    metadata: {
+      id,
+      house: body.house,
+      name: body.name,
+      trash: body.trash,
+      active: "Y",
+      join_date: body.join_date,
     },
   });
 
