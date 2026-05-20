@@ -1,6 +1,7 @@
 "use client";
 
 import AdminSettings from "@/components/AdminSettings";
+import Toast from "@/components/Toast";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 
@@ -1120,6 +1121,12 @@ const sortedDeposits = useMemo(() => {
         }
       `}</style>
 
+<Toast
+  show={!!popup}
+  type={popup?.type}
+  message={popup?.text}
+/>
+
       <div style={styles.wrapper}>
         <div style={styles.header}>
           <button style={styles.homeBtn} onClick={() => router.push("/")}>
@@ -1128,20 +1135,6 @@ const sortedDeposits = useMemo(() => {
 
           <h1 style={styles.title}>Cash Flow Management</h1>
         </div>
-
-        {popup && (
-          <div
-            style={{
-              ...styles.popup,
-              background:
-                popup.type === "success"
-                  ? "#166534"
-                  : "#991b1b",
-            }}
-          >
-            {popup.text}
-          </div>
-        )}
 
         <div style={styles.tabs}>
           <button
@@ -2425,22 +2418,6 @@ const styles = {
   smallBtnPaid: {
     background: "#16a34a",
     color: "#ffffff",
-  },
-
-  popup: {
-    position: "fixed",
-    top: 20,
-    left: "50%",
-    transform: "translateX(-50%)",
-    zIndex: 9999,
-    color: "#fff",
-    padding: "12px 16px",
-    borderRadius: 12,
-    fontSize: 14,
-    fontWeight: 600,
-    boxShadow: "0 10px 25px rgba(0,0,0,.25)",
-    maxWidth: "calc(100vw - 32px)",
-    textAlign: "center",
   },
 
 checkboxChipPaid: {
