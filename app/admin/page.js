@@ -1435,13 +1435,11 @@ const searchedPersonal = useMemo(() => {
 
                 <tbody>
                   {deposits.map((d, i) => {
+                    const normalize = (v) => String(v || "").trim();
                     const alreadyPaid =
-                      d.status === "paid" ||
-                      payments.some(
-                        (p) =>
-                          p.person_id === d.person_id &&
-                          p.period === d.period,
-                      );
+                      normalize(d.status).toLowerCase() === "paid" &&
+                      normalize(d.paid_at) !== "" &&
+                      normalize(d.payment_id) !== "";
 
                     return (
                       <tr key={d.id || i} style={i % 2 ? styles.rowAlt : null}>
@@ -1451,19 +1449,21 @@ const searchedPersonal = useMemo(() => {
                         <td style={styles.td}>
                           Rp{Number(d.amount || 0).toLocaleString("id-ID")}
                         </td>
-                        <td style={styles.td}>{alreadyPaid ? "paid" : d.status}</td>
                         <td style={styles.td}>
-                          <button
-                            type="button"
-                            style={{
-                              ...styles.smallBtn,
-                              ...(alreadyPaid ? styles.btnDisabled : {}),
-                            }}
-                            disabled={alreadyPaid || loadingDeposit}
-                            onClick={() => payDeposit(d.id)}
-                          >
-                            {alreadyPaid ? "Paid" : "Pay Now"}
-                          </button>
+                          {alreadyPaid ? "paid" : "pending"}
+                        </td>
+                        <td style={styles.td}>
+                        <button
+                          type="button"
+                          style={{
+                            ...styles.smallBtn,
+                            ...(alreadyPaid ? styles.btnDisabled : {}),
+                          }}
+                          disabled={alreadyPaid || loadingDeposit}
+                          onClick={() => payDeposit(d.id)}
+                        >
+                          {alreadyPaid ? "Paid" : "Pay Now"}
+                        </button>
                         </td>
                       </tr>
                     );
