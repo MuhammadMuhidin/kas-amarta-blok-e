@@ -1,0 +1,479 @@
+html,
+body {
+  margin: 0;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  color-scheme: light dark;
+}
+
+:root {
+  --admin-bg: #f1f5f9;
+  --admin-text: #0f172a;
+  --admin-card: #ffffff;
+  --admin-muted: #475569;
+  --admin-border: #e5e7eb;
+  --admin-input: #ffffff;
+  --admin-row: #f9fafb;
+  --admin-button: #e5e7eb;
+  --admin-primary: #60a5fa;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --admin-bg: #020617;
+    --admin-text: #e5e7eb;
+    --admin-card: #0f172a;
+    --admin-muted: #94a3b8;
+    --admin-border: #1e293b;
+    --admin-input: #1e293b;
+    --admin-row: #111827;
+    --admin-button: #1e293b;
+    --admin-primary: #60a5fa;
+  }
+}
+
+input,
+select,
+textarea,
+button {
+  color-scheme: light dark;
+}
+
+.admin-wrapper {
+  width: 100%;
+  max-width: 900px;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 20px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  font-family: system-ui;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+}
+
+.admin-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.admin-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+  color: var(--admin-text);
+}
+
+.admin-home-btn,
+.admin-tab,
+.admin-small-btn,
+.admin-btn,
+.admin-deposit-chip {
+  cursor: pointer;
+}
+
+.admin-home-btn {
+  padding: 8px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 8px;
+  background: var(--admin-button);
+  color: var(--admin-text);
+  font-size: 14px;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.admin-tab {
+  padding: 10px 18px;
+  background: var(--admin-button);
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.admin-tab-active {
+  background: var(--admin-primary);
+  color: #020617;
+  border-color: var(--admin-primary);
+  font-weight: 600;
+}
+
+.admin-tab-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.admin-deposit-badge {
+  background: #16a34a;
+  color: #dcfce7;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+
+.admin-card {
+  background: var(--admin-card);
+  color: var(--admin-text);
+  padding: 20px;
+  border-radius: 18px;
+  border: 1px solid var(--admin-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.admin-form {
+  display: grid;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 25px;
+}
+
+.admin-input,
+.admin-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-input);
+  color: var(--admin-text);
+  outline: none;
+}
+
+.admin-input {
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.admin-search-input {
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  background: var(--admin-card);
+}
+
+.admin-readonly-input {
+  background: var(--admin-row);
+  color: var(--admin-muted);
+  cursor: not-allowed;
+  font-weight: 700;
+}
+
+.admin-btn {
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--admin-primary);
+  color: #020617;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.admin-btn-disabled,
+.admin-btn:disabled,
+.admin-small-btn:disabled,
+.admin-deposit-chip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.admin-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+  table-layout: auto;
+  color: var(--admin-text);
+  background: var(--admin-card);
+}
+
+.admin-th {
+  text-align: center;
+  vertical-align: middle;
+  padding: 14px 12px;
+  white-space: nowrap;
+  background: var(--admin-row);
+  color: var(--admin-text);
+  border-bottom: 2px solid var(--admin-border);
+}
+
+.admin-td {
+  text-align: center;
+  vertical-align: middle;
+  padding: 12px;
+  border-bottom: 1px solid var(--admin-border);
+  white-space: nowrap;
+  color: var(--admin-text);
+  background: transparent;
+}
+
+.admin-row-alt {
+  background: var(--admin-row);
+}
+
+.admin-row-inactive {
+  background: #7f1d1d;
+  color: #fecaca;
+  font-weight: 500;
+}
+
+.admin-row-new-active {
+  background: #0927b0;
+  color: #fecaca;
+  font-weight: 500;
+}
+
+.admin-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.admin-summary-card {
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--admin-row);
+  color: var(--admin-text);
+  border: 1px solid var(--admin-border);
+  text-align: center;
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+
+.admin-summary-card-active {
+  background: var(--admin-primary);
+  color: #020617;
+  border-color: var(--admin-primary);
+}
+
+.admin-house-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.admin-checkbox-input {
+  display: none;
+}
+
+.admin-checkbox-chip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-row);
+  color: var(--admin-text);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: 0.15s ease;
+  user-select: none;
+}
+
+.admin-checkbox-chip-active {
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: #020617;
+  font-weight: 700;
+}
+
+.admin-checkbox-chip-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #cbd5e1;
+  color: #334155;
+  border: 1px solid #94a3b8;
+}
+
+.admin-house-chip-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.admin-house-chip-house {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.admin-house-chip-paid {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.admin-error-box {
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-deposit-meta {
+  margin-top: -8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--admin-muted);
+}
+
+.admin-deposit-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-deposit-chip {
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-row);
+  color: var(--admin-text);
+  font-weight: 600;
+}
+
+.admin-deposit-chip-active {
+  background: var(--admin-primary);
+  color: #020617;
+  border-color: var(--admin-primary);
+}
+
+.admin-small-btn {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: none;
+  background: var(--admin-primary);
+  color: #020617;
+  font-weight: 700;
+}
+
+.admin-small-btn-paid {
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.admin-deposit-status {
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+
+.admin-deposit-status-paid {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.admin-deposit-status-waiting {
+  background: var(--admin-row);
+  color: var(--admin-muted);
+  border: 1px solid var(--admin-border);
+}
+
+.admin-deposit-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+}
+
+.admin-deposit-status-missed {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.admin-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.admin-monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.admin-status-card {
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--admin-row);
+  border: 1px solid var(--admin-border);
+}
+
+.admin-status-label {
+  font-size: 13px;
+  color: var(--admin-muted);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.admin-status-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--admin-text);
+  word-break: break-word;
+  margin-bottom: 6px;
+}
+
+.admin-status-meta {
+  font-size: 13px;
+  color: var(--admin-muted);
+  margin-top: 4px;
+}
+
+.admin-status-error {
+  font-size: 14px;
+  color: #991b1b;
+  font-weight: 700;
+}
+
+.admin-monitor-detail {
+  margin-top: 20px;
+}
+
+.admin-issue-text {
+  color: #991b1b;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .admin-house-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
