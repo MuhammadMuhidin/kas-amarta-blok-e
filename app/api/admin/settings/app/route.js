@@ -8,6 +8,7 @@ import {
   getAppConfig,
   updateAppConfig,
 } from "@/lib/appConfig";
+import { recordAdminActivity } from "@/lib/adminActivity";
 
 export const runtime = "nodejs";
 
@@ -68,6 +69,17 @@ export async function PATCH(req) {
     }
 
     await updateAppConfig(key, value);
+
+    await recordAdminActivity(req, {
+      type: "update",
+      module: "settings-app",
+      severity: "success",
+      message: `Update app config ${key}`,
+      metadata: {
+        key,
+        value,
+      },
+    });
 
     return NextResponse.json({
       ok: true,
