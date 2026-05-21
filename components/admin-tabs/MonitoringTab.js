@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import MonitoringCard from "@/components/admin/MonitoringCard";
 
 function IssueTable({ title, rows, columns }) {
@@ -36,6 +37,25 @@ function IssueTable({ title, rows, columns }) {
   );
 }
 
+function formatBuildTime(value) {
+  if (!value || value === "unknown") return "unknown";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleString("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function formatPlatform(value) {
+  if (!value) return "UNKNOWN";
+
+  return value.toUpperCase();
+}
+
 export default function MonitoringTab({
   loadingDailyBackup,
   dailyBackup,
@@ -43,9 +63,57 @@ export default function MonitoringTab({
   trashMismatch,
   suspiciousData,
 }) {
+  const [buildInfo, setBuildInfo] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadBuildInfo() {
+      try {
+        const res = await fetch("/api/build-info", {
+          cache: "no-store",
+        });
+
+        const data = await res.json();
+
+        if (active) {
+          setBuildInfo(data?.build || null);
+        }
+      } catch {
+        if (active) {
+          setBuildInfo(null);
+        }
+      }
+    }
+
+    loadBuildInfo();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="admin-card">
       <div className="admin-monitor-grid">
+        <MonitoringCard
+          label="Current Build"
+          value={
+            buildInfo
+              ? `${formatPlatform(buildInfo.platform)} • ${buildInfo.branch}`
+              : "Checking..."
+          }
+          meta={
+            buildInfo
+              ? [
+                  `Commit: ${buildInfo.commitShort}`,
+                  `Env: ${buildInfo.environment}`,
+                  `Built: ${formatBuildTime(buildInfo.buildTime)}`,
+                ]
+              : []
+          }
+        />
+
         <MonitoringCard
           label="Daily Backup Status"
           value={
