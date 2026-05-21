@@ -1,3 +1,6 @@
+import PersonalFilters from "@/components/admin/PersonalFilters";
+import PersonalTable from "@/components/admin/PersonalTable";
+
 export default function PersonalTab({
   member,
   setMember,
@@ -48,71 +51,14 @@ export default function PersonalTab({
       </form>
 
       <h4>Member List</h4>
-      <div className="admin-summary-cards">
-        <div
-          onClick={() => toggleMemberFilter("ACTIVE")}
-          className={memberFilter === "ACTIVE" ? "admin-summary-card admin-summary-card-active" : "admin-summary-card"}
-        >
-          <div>Active</div>
-          <b>{stats.active}</b>
-        </div>
-        <div
-          onClick={() => toggleMemberFilter("INACTIVE")}
-          className={memberFilter === "INACTIVE" ? "admin-summary-card admin-summary-card-active" : "admin-summary-card"}
-        >
-          <div>Inactive</div>
-          <b>{stats.inactive}</b>
-        </div>
-        <div
-          onClick={() => toggleMemberFilter("TRASH_ACTIVE")}
-          className={memberFilter === "TRASH_ACTIVE" ? "admin-summary-card admin-summary-card-active" : "admin-summary-card"}
-        >
-          <div>Trash Active</div>
-          <b>{stats.trashActive}</b>
-        </div>
-        <div
-          onClick={() => toggleMemberFilter("TRASH_INACTIVE")}
-          className={memberFilter === "TRASH_INACTIVE" ? "admin-summary-card admin-summary-card-active" : "admin-summary-card"}
-        >
-          <div>Trash Inactive</div>
-          <b>{stats.trashInactive}</b>
-        </div>
-      </div>
-
-      <input
-        type="text"
-        placeholder="Search name or house..."
-        value={memberSearch}
-        onChange={(e) => setMemberSearch(e.target.value)}
-        className="admin-search-input"
+      <PersonalFilters
+        memberFilter={memberFilter}
+        toggleMemberFilter={toggleMemberFilter}
+        stats={stats}
+        memberSearch={memberSearch}
+        setMemberSearch={setMemberSearch}
       />
-
-      <div className="admin-table-wrapper">
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th className="admin-th">ID</th>
-              <th className="admin-th">House</th>
-              <th className="admin-th">Name</th>
-              <th className="admin-th">Trash</th>
-              <th className="admin-th">Active</th>
-              <th className="admin-th">Join Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {searchedPersonal.map((p, i) => (
-              <tr key={p.id} className={rowClassName(p, i)}>
-                <td className="admin-td">{p.id}</td>
-                <td className="admin-td">{p.house}</td>
-                <td className="admin-td">{p.name}</td>
-                <td className="admin-td">{p.trash}</td>
-                <td className="admin-td">{p.active}</td>
-                <td className="admin-td">{p.join_date}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <PersonalTable rows={searchedPersonal} rowClassName={rowClassName} />
     </div>
   );
 }
