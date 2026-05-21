@@ -46,6 +46,7 @@ export default function PersonalTab({
           onChange={(e) => setMember({ ...member, join_date: e.target.value })}
         />
         <button className="admin-btn" disabled={loadingAdd}>
+          {loadingAdd && <span className="admin-btn-spinner" aria-hidden="true" />}
           {loadingAdd ? "Adding..." : "Add Member"}
         </button>
       </form>
