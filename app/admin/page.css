@@ -480,7 +480,7 @@ button {
 
 .activity-header {
   display: flex;
-  justify-content: space-between;
+ justify-content: space-between;
   align-items: flex-start;
   gap: 14px;
   flex-wrap: wrap;
@@ -634,7 +634,23 @@ button {
 
 @media (max-width: 640px) {
   .admin-house-list {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .admin-checkbox-chip {
+    min-height: 32px;
+    padding: 7px 4px;
+    border-radius: 9px;
+    font-size: 12px;
+  }
+
+  .admin-house-chip-content {
+    gap: 2px;
+  }
+
+  .admin-house-chip-paid {
+    font-size: 9.5px;
   }
 
   .activity-search {
