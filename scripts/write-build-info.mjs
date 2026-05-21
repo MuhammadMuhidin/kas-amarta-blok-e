@@ -31,6 +31,12 @@ const branch =
   safeGit("git rev-parse --abbrev-ref HEAD") ||
   "unknown";
 
+const commitMessage =
+  process.env.VERCEL_GIT_COMMIT_MESSAGE ||
+  process.env.COMMIT_MESSAGE ||
+  safeGit("git log -1 --pretty=%s") ||
+  "unknown";
+
 const environment =
   process.env.VERCEL_ENV ||
   process.env.CONTEXT ||
@@ -54,6 +60,7 @@ const buildInfo = {
   branch,
   commit,
   commitShort: commit === "unknown" ? "unknown" : commit.slice(0, 7),
+  commitMessage,
   environment,
   deployId,
   deployUrl,
