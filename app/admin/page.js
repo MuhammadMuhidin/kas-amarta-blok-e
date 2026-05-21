@@ -2,6 +2,12 @@
 
 import AdminActivityPanel from "@/components/AdminActivityPanel";
 import AdminSettings from "@/components/AdminSettings";
+import CashflowTab from "@/components/admin-tabs/CashflowTab";
+import DepositTab from "@/components/admin-tabs/DepositTab";
+import MonitoringTab from "@/components/admin-tabs/MonitoringTab";
+import PaymentTab from "@/components/admin-tabs/PaymentTab";
+import PersonalTab from "@/components/admin-tabs/PersonalTab";
+import SummaryBackupTab from "@/components/admin-tabs/SummaryBackupTab";
 import Toast from "@/components/Toast";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -930,205 +936,86 @@ export default function AdminPage() {
         </div>
 
         {tab === "personal" && (
-          <div className="admin-card">
-            <h3>Add Personal</h3>
-            <form onSubmit={addMember} className="admin-form">
-              <input className="admin-input" placeholder="House" value={member.house} onChange={(e) => setMember({ ...member, house: e.target.value })} />
-              <input className="admin-input" placeholder="Name" value={member.name} onChange={(e) => setMember({ ...member, name: e.target.value })} />
-              <select className="admin-input" value={member.trash} onChange={(e) => setMember({ ...member, trash: e.target.value })}>
-                <option value="">Join trash collection?</option>
-                <option value="Y">Yes</option>
-                <option value="N">No</option>
-              </select>
-              <input className="admin-input" type="date" value={member.join_date} onChange={(e) => setMember({ ...member, join_date: e.target.value })} />
-              <button className="admin-btn" disabled={loadingAdd}>{loadingAdd ? "Adding..." : "Add Member"}</button>
-            </form>
-
-            <h4>Member List</h4>
-            <div className="admin-summary-cards">
-              <div onClick={() => toggleMemberFilter("ACTIVE")} className={memberFilter === "ACTIVE" ? "admin-summary-card admin-summary-card-active" : "admin-summary-card"}><div>Active</div><b>{stats.active}</b></div>
-              <div onClick={() => toggleMemberFilter("INACTIVE")} className={memberFilter === "INACTIVE" ? "admin-summary-card admin-summary-card-active" : "admin-summary-card"}><div>Inactive</div><b>{stats.inactive}</b></div>
-              <div onClick={() => toggleMemberFilter("TRASH_ACTIVE")} className={memberFilter === "TRASH_ACTIVE" ? "admin-summary-card admin-summary-card-active" : "admin-summary-card"}><div>Trash Active</div><b>{stats.trashActive}</b></div>
-              <div onClick={() => toggleMemberFilter("TRASH_INACTIVE")} className={memberFilter === "TRASH_INACTIVE" ? "admin-summary-card admin-summary-card-active" : "admin-summary-card"}><div>Trash Inactive</div><b>{stats.trashInactive}</b></div>
-            </div>
-
-            <input type="text" placeholder="Search name or house..." value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)} className="admin-search-input" />
-
-            <div className="admin-table-wrapper">
-              <table className="admin-table">
-                <thead><tr><th className="admin-th">ID</th><th className="admin-th">House</th><th className="admin-th">Name</th><th className="admin-th">Trash</th><th className="admin-th">Active</th><th className="admin-th">Join Date</th></tr></thead>
-                <tbody>
-                  {searchedPersonal.map((p, i) => (
-                    <tr key={p.id} className={rowClassName(p, i)}>
-                      <td className="admin-td">{p.id}</td><td className="admin-td">{p.house}</td><td className="admin-td">{p.name}</td><td className="admin-td">{p.trash}</td><td className="admin-td">{p.active}</td><td className="admin-td">{p.join_date}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <PersonalTab
+            member={member}
+            setMember={setMember}
+            addMember={addMember}
+            loadingAdd={loadingAdd}
+            memberFilter={memberFilter}
+            toggleMemberFilter={toggleMemberFilter}
+            stats={stats}
+            memberSearch={memberSearch}
+            setMemberSearch={setMemberSearch}
+            searchedPersonal={searchedPersonal}
+            rowClassName={rowClassName}
+          />
         )}
 
         {tab === "payment" && (
-          <>
-            {configError && <div className="admin-error-box">{configError}</div>}
-            <div className="admin-card">
-              <h3>Bulk Payment</h3>
-              <form onSubmit={recordPayment} className="admin-form">
-                <input className="admin-input" placeholder="Period (2026-02)" value={payment.period} onChange={(e) => setPayment({ ...payment, period: e.target.value })} />
-                <input className="admin-input admin-readonly-input" type="number" value={payment.amount} readOnly aria-readonly="true" />
-                <div className="admin-house-list">
-                  {personal
-                    .filter((p) => p.active === "Y")
-                    .sort((a, b) => a.house.localeCompare(b.house, undefined, { numeric: true }))
-                    .map((p) => {
-                      const period = normalize(payment.period);
-                      const joinPeriod = normalize(p.join_date).slice(0, 7);
-                      const alreadyPaid = isHousePaidForPeriod(p);
-                      const notJoined = period && joinPeriod && period < joinPeriod;
-                      const disabledChip = alreadyPaid || notJoined;
-                      const chipClass = [
-                        "admin-checkbox-chip",
-                        selected.includes(p.id) ? "admin-checkbox-chip-active" : "",
-                        disabledChip ? "admin-checkbox-chip-disabled" : "",
-                      ].filter(Boolean).join(" ");
-
-                      return (
-                        <label key={p.id} title={alreadyPaid ? "Already paid for this period" : notJoined ? "Not joined yet for this period" : ""} className={chipClass}>
-                          <input type="checkbox" className="admin-checkbox-input" checked={selected.includes(p.id)} disabled={disabledChip} onChange={() => toggleHouse(p.id)} />
-                          <div className="admin-house-chip-content">
-                            <div className="admin-house-chip-house">{p.house}</div>
-                            {alreadyPaid && <div className="admin-house-chip-paid">Paid</div>}
-                            {notJoined && <div className="admin-house-chip-paid">Not join</div>}
-                          </div>
-                        </label>
-                      );
-                    })}
-                </div>
-                <button className="admin-btn" disabled={loadingPayment}>{loadingPayment ? "Recording..." : "Record Payment"}</button>
-              </form>
-            </div>
-          </>
+          <PaymentTab
+            configError={configError}
+            recordPayment={recordPayment}
+            payment={payment}
+            setPayment={setPayment}
+            personal={personal}
+            selected={selected}
+            toggleHouse={toggleHouse}
+            normalize={normalize}
+            isHousePaidForPeriod={isHousePaidForPeriod}
+            loadingPayment={loadingPayment}
+          />
         )}
 
         {tab === "deposit" && (
-          <div className="admin-card">
-            <h3>Deposit Balance</h3>
-            <form onSubmit={saveDeposit} className="admin-form">
-              <select className="admin-input" value={depositForm.person_id} onChange={(e) => setDepositForm({ ...depositForm, person_id: e.target.value, end_period: "" })}>
-                <option value="">Select active house</option>
-                {activePersons.map((p) => <option key={p.id} value={p.id}>{p.house} - {p.name}</option>)}
-              </select>
-              <input className="admin-input admin-readonly-input" value={`Rp${depositAmount.toLocaleString("id-ID")}`} readOnly />
-              {selectedDepositPerson && <div className="admin-deposit-meta">{(selectedDepositPerson.trash || "").toUpperCase() === "Y" ? `Layanan: Kas + Sampah. Sampah dicatat terpisah Rp${Number(appConfig?.trash_fee || 0).toLocaleString("id-ID")} saat Pay Now.` : "Layanan: Kas"}</div>}
-              <div className="admin-deposit-chips">
-                {nextSixPeriods.map((period) => {
-                  const active = selectedDepositPeriods.includes(period);
-                  return <button key={period} type="button" className={active ? "admin-deposit-chip admin-deposit-chip-active" : "admin-deposit-chip"} onClick={() => setDepositForm({ ...depositForm, end_period: period })} disabled={!depositForm.person_id}>{period}</button>;
-                })}
-              </div>
-              <button className="admin-btn" disabled={savingDeposit}>{savingDeposit ? "Saving..." : "Save Deposit"}</button>
-            </form>
-
-            <h4>Deposit List</h4>
-            <div className="admin-table-wrapper">
-              <table className="admin-table">
-                <thead><tr><th className="admin-th">House</th><th className="admin-th">Name</th><th className="admin-th">Period</th><th className="admin-th">Amount</th><th className="admin-th">Status</th><th className="admin-th">Action</th></tr></thead>
-                <tbody>
-                  {sortedDeposits.map((d, i) => {
-                    const depositStatus = getDepositStatus(d);
-                    const isPayingThisDeposit = payingDepositId === d.id;
-                    const paymentExists = payments.some((p) => normalize(p.person_id) === normalize(d.person_id) && normalize(p.person_house) === normalize(d.house) && normalize(p.period) === normalize(d.period));
-                    const canPay = depositStatus === "pending";
-                    const buttonText = depositStatus === "paid" ? "Paid" : depositStatus === "waiting" ? "Waiting" : depositStatus === "missed" ? paymentExists ? "Paid" : "Unpaid" : "Pay Now";
-                    const statusClass = `admin-deposit-status admin-deposit-status-${depositStatus}`;
-                    const buttonClass = buttonText === "Paid" ? "admin-small-btn admin-small-btn-paid" : "admin-small-btn";
-
-                    return (
-                      <tr key={d.id || i} className={i % 2 ? "admin-row-alt" : ""}>
-                        <td className="admin-td">{d.house}</td><td className="admin-td">{d.name}</td><td className="admin-td">{d.period}</td><td className="admin-td">Rp{Number(d.amount || 0).toLocaleString("id-ID")}</td><td className="admin-td"><span className={statusClass}>{depositStatus}</span></td><td className="admin-td"><button type="button" className={buttonClass} disabled={!canPay || isPayingThisDeposit || savingDeposit} onClick={() => payDeposit(d.id)}>{isPayingThisDeposit ? "Paying..." : buttonText}</button></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <DepositTab
+            saveDeposit={saveDeposit}
+            depositForm={depositForm}
+            setDepositForm={setDepositForm}
+            activePersons={activePersons}
+            depositAmount={depositAmount}
+            selectedDepositPerson={selectedDepositPerson}
+            appConfig={appConfig}
+            nextSixPeriods={nextSixPeriods}
+            selectedDepositPeriods={selectedDepositPeriods}
+            savingDeposit={savingDeposit}
+            sortedDeposits={sortedDeposits}
+            getDepositStatus={getDepositStatus}
+            payingDepositId={payingDepositId}
+            payments={payments}
+            normalize={normalize}
+            payDeposit={payDeposit}
+          />
         )}
 
         {tab === "cashflow" && (
-          <div className="admin-card">
-            <h3>Cashflow</h3>
-            <form onSubmit={addCashflow} className="admin-form">
-              <select className="admin-input" value={cashflow.type} onChange={(e) => setCashflow({ ...cashflow, type: e.target.value })}><option value="">Type</option><option value="income">Income</option><option value="expense">Expense</option></select>
-              <input className="admin-input" placeholder="Amount" value={cashflow.amount} onChange={(e) => setCashflow({ ...cashflow, amount: e.target.value })} />
-              <input className="admin-input" placeholder="Note" value={cashflow.note} onChange={(e) => setCashflow({ ...cashflow, note: e.target.value })} />
-              <button className="admin-btn" disabled={loadingCashflow}>{loadingCashflow ? "Recording..." : "Record Transaction"}</button>
-            </form>
-          </div>
+          <CashflowTab
+            addCashflow={addCashflow}
+            cashflow={cashflow}
+            setCashflow={setCashflow}
+            loadingCashflow={loadingCashflow}
+          />
         )}
 
         {tab === "summary" && (
-          <div className="admin-card">
-            <div className="admin-summary-header"><h3>Summary Backup</h3></div>
-            {loadingSummary ? <p>Loading summary...</p> : (
-              <div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th className="admin-th">Date</th><th className="admin-th">Income</th><th className="admin-th">Expense</th><th className="admin-th">Net</th><th className="admin-th">Personal Active</th></tr></thead><tbody>{summaryBackup.map((x, i) => <tr key={i} className={i % 2 ? "admin-row-alt" : ""}><td className="admin-td">{x.created_at}</td><td className="admin-td">Rp{Number(x.total_income || 0).toLocaleString()}</td><td className="admin-td">Rp{Number(x.total_expense || 0).toLocaleString()}</td><td className="admin-td">Rp{Number(x.net_saldo || 0).toLocaleString()}</td><td className="admin-td">{x.total_personal_active}</td></tr>)}</tbody></table></div>
-            )}
-          </div>
+          <SummaryBackupTab
+            loadingSummary={loadingSummary}
+            summaryBackup={summaryBackup}
+          />
         )}
 
         {tab === "monitoring" && (
-          <div className="admin-card">
-            <div className="admin-monitor-grid">
-              <StatusCard label="Daily Backup Status" value={loadingDailyBackup ? "Checking..." : dailyBackup?.ok ? dailyBackup.name : "Backup file not found"} meta={dailyBackup?.ok ? [`Last created: ${dailyBackup.created_at}`, `Retention: ${dailyBackup?.count} backup files`] : []} error={!loadingDailyBackup && !dailyBackup?.ok} />
-              <StatusCard label="Payment Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length === 0 ? "No issue detected" : "Need review"]} />
-              <StatusCard label="Trash Payment Integrity" value={`${trashMismatch.length} issue`} meta={[trashMismatch.length === 0 ? "No issue detected" : "Need review"]} />
-              <StatusCard label="Data Quality Check" value={`${suspiciousData.length} issue`} meta={[suspiciousData.length === 0 ? "No suspicious data" : "Need review"]} />
-            </div>
-
-            <IssueTable title="Payment Cashflow Integrity" rows={paymentCashflowIntegrity} columns={["house", "name", "period", "type", "detail"]} />
-            <IssueTable title="Trash Payment Integrity" rows={trashMismatch} columns={["house", "name", "period", "detail"]} />
-            <IssueTable title="Suspicious Data" rows={suspiciousData} columns={["sheet", "row", "type", "detail"]} />
-          </div>
+          <MonitoringTab
+            loadingDailyBackup={loadingDailyBackup}
+            dailyBackup={dailyBackup}
+            paymentCashflowIntegrity={paymentCashflowIntegrity}
+            trashMismatch={trashMismatch}
+            suspiciousData={suspiciousData}
+          />
         )}
 
         {tab === "activity" && <AdminActivityPanel />}
         {tab === "settings" && <AdminSettings />}
       </div>
     </>
-  );
-}
-
-function StatusCard({ label, value, meta = [], error = false }) {
-  return (
-    <div className="admin-status-card">
-      <div className="admin-status-label">{label}</div>
-      <div className={error ? "admin-status-error" : "admin-status-value"}>{value}</div>
-      {meta.map((item) => <div key={item} className="admin-status-meta">{item}</div>)}
-    </div>
-  );
-}
-
-function IssueTable({ title, rows, columns }) {
-  if (!rows || rows.length === 0) return null;
-
-  return (
-    <div className="admin-monitor-detail">
-      <h3>{title}</h3>
-      <div className="admin-table-wrapper">
-        <table className="admin-table">
-          <thead>
-            <tr>{columns.map((column) => <th key={column} className="admin-th">{column === "detail" ? "Issue" : column}</th>)}</tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr key={i} className={i % 2 ? "admin-row-alt" : ""}>
-                {columns.map((column) => <td key={column} className="admin-td admin-issue-text">{row[column]}</td>)}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
   );
 }
