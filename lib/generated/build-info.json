@@ -3,6 +3,7 @@
   "branch": "unknown",
   "commit": "unknown",
   "commitShort": "unknown",
+  "commitMessage": "unknown",
   "environment": "development",
   "deployId": "local",
   "deployUrl": "",
