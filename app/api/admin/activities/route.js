@@ -27,8 +27,12 @@ function clean(value) {
 
 function numberParam(value, fallback) {
   const parsed = Number(value || fallback);
-
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function dateParam(value) {
+  const text = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(text) ? text : "";
 }
 
 export async function GET(req) {
@@ -40,6 +44,10 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const module = clean(searchParams.get("module"));
     const severity = clean(searchParams.get("severity"));
+    const search = String(searchParams.get("search") || "").trim();
+    const sort = clean(searchParams.get("sort")) === "asc" ? "asc" : "desc";
+    const dateFrom = dateParam(searchParams.get("from"));
+    const dateTo = dateParam(searchParams.get("to"));
     const page = Math.max(numberParam(searchParams.get("page"), 1), 1);
     const limitRaw = numberParam(searchParams.get("limit"), 20);
     const limit = Math.min(Math.max(limitRaw, 5), 50);
@@ -50,28 +58,26 @@ export async function GET(req) {
       .from("admin_activities")
       .select(
         "id,type,module,severity,message,metadata,actor,device_name,ip,location,created_at",
-        {
-          count: "exact",
-        },
+        { count: "exact" },
       )
-      .order("created_at", {
-        ascending: false,
-      })
-      .range(from, to);
+      .order("created_at", { ascending: sort === "asc" });
 
-    if (modules.has(module)) {
-      query = query.eq("module", module);
+    if (modules.has(module)) query = query.eq("module", module);
+    if (severities.has(severity)) query = query.eq("severity", severity);
+    if (dateFrom) query = query.gte("created_at", `${dateFrom}T00:00:00.000Z`);
+    if (dateTo) query = query.lte("created_at", `${dateTo}T23:59:59.999Z`);
+
+    if (search) {
+      const safe = search.replaceAll("%", "").replaceAll(",", "");
+      const pattern = `%${safe}%`;
+      query = query.or(
+        `message.ilike.${pattern},actor.ilike.${pattern},module.ilike.${pattern},type.ilike.${pattern},ip.ilike.${pattern},location.ilike.${pattern},device_name.ilike.${pattern}`,
+      );
     }
 
-    if (severities.has(severity)) {
-      query = query.eq("severity", severity);
-    }
+    const { data, error, count } = await query.range(from, to);
 
-    const { data, error, count } = await query;
-
-    if (error) {
-      throw new Error(error.message);
-    }
+    if (error) throw new Error(error.message);
 
     return NextResponse.json({
       ok: true,
@@ -85,12 +91,8 @@ export async function GET(req) {
     });
   } catch (err) {
     return NextResponse.json(
-      {
-        error: err.message || "Gagal membaca activity audit",
-      },
-      {
-        status: 500,
-      },
+      { error: err.message || "Gagal membaca activity audit" },
+      { status: 500 },
     );
   }
 }
