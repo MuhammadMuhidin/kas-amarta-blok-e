@@ -57,39 +57,21 @@ export default function PersonalTable({
     const saving = savingKey === key;
 
     return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-        }}
+      <select
+        className="admin-inline-select"
+        style={inlineSelectStyle}
+        value={
+          confirmState?.person?.id === person.id &&
+          confirmState?.field === field
+            ? confirmState.value
+            : person[field] || ""
+        }
+        disabled={saving}
+        onChange={(e) => askUpdate(person, field, e.target.value)}
       >
-        <select
-          className="admin-inline-select"
-          style={inlineSelectStyle}
-          value={
-            confirmState?.person?.id === person.id &&
-            confirmState?.field === field
-              ? confirmState.value
-              : person[field] || ""
-          }
-          disabled={saving}
-          onChange={(e) => askUpdate(person, field, e.target.value)}
-        >
-          <option value="Y">Y</option>
-          <option value="N">N</option>
-        </select>
-
-        <span
-          style={{
-            fontSize: 11,
-            opacity: 0.7,
-            lineHeight: 1,
-          }}
-        >
-          ˅
-        </span>
-      </div>
+        <option value="Y">Y</option>
+        <option value="N">N</option>
+      </select>
     );
   }
 
