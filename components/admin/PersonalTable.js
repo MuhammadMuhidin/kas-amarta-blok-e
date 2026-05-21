@@ -1,3 +1,4 @@
+import ConfirmModal from "@/components/ConfirmModal";
 import { useState } from "react";
 
 const inlineSelectStyle = {
@@ -24,21 +25,33 @@ export default function PersonalTable({
   onUpdateMember,
 }) {
   const [savingKey, setSavingKey] = useState("");
+  const [confirmState, setConfirmState] = useState(null);
 
-  async function updateInline(person, field, value) {
-    const currentValue = String(person[field] || "").trim();
-    const nextValue = String(value || "").trim();
-
-    if (!onUpdateMember || !nextValue || currentValue === nextValue) return;
-
+  async function submitUpdate(person, field, value) {
     const key = `${person.id}-${field}`;
     setSavingKey(key);
 
     try {
-      await onUpdateMember(person, field, nextValue);
+      await onUpdateMember(person, field, value);
     } finally {
       setSavingKey("");
+      setConfirmState(null);
     }
+  }
+
+  function askUpdate(person, field, value) {
+    const currentValue = String(person[field] || "").trim();
+    const nextValue = String(value || "").trim();
+
+    if (!onUpdateMember || !nextValue || currentValue === nextValue) {
+      return;
+    }
+
+    setConfirmState({
+      person,
+      field,
+      value: nextValue,
+    });
   }
 
   function renderEditableSelect(person, field) {
@@ -56,9 +69,14 @@ export default function PersonalTable({
         <select
           className="admin-inline-select"
           style={inlineSelectStyle}
-          value={person[field] || ""}
+          value={
+            confirmState?.person?.id === person.id &&
+            confirmState?.field === field
+              ? confirmState.value
+              : person[field] || ""
+          }
           disabled={saving}
-          onChange={(e) => updateInline(person, field, e.target.value)}
+          onChange={(e) => askUpdate(person, field, e.target.value)}
         >
           <option value="Y">Y</option>
           <option value="N">N</option>
@@ -78,32 +96,55 @@ export default function PersonalTable({
   }
 
   return (
-    <div className="admin-table-wrapper">
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th className="admin-th">ID</th>
-            <th className="admin-th">House</th>
-            <th className="admin-th">Name</th>
-            <th className="admin-th">Trash</th>
-            <th className="admin-th">Active</th>
-            <th className="admin-th">Join Date</th>
-          </tr>
-        </thead>
+    <>
+      <ConfirmModal
+        open={!!confirmState}
+        title="Konfirmasi Perubahan"
+        message={
+          confirmState
+            ? `Ubah ${confirmState.field} menjadi ${confirmState.value} untuk ${confirmState.person.name}?`
+            : ""
+        }
+        confirmText="Lanjutkan"
+        cancelText="Batal"
+        onCancel={() => setConfirmState(null)}
+        onConfirm={() =>
+          submitUpdate(
+            confirmState.person,
+            confirmState.field,
+            confirmState.value,
+          )
+        }
+        isDark
+      />
 
-        <tbody>
-          {rows.map((person, index) => (
-            <tr key={person.id} className={rowClassName(person, index)}>
-              <td className="admin-td">{person.id}</td>
-              <td className="admin-td">{person.house}</td>
-              <td className="admin-td">{person.name}</td>
-              <td className="admin-td">{renderEditableSelect(person, "trash")}</td>
-              <td className="admin-td">{renderEditableSelect(person, "active")}</td>
-              <td className="admin-td">{person.join_date}</td>
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th className="admin-th">ID</th>
+              <th className="admin-th">House</th>
+              <th className="admin-th">Name</th>
+              <th className="admin-th">Trash</th>
+              <th className="admin-th">Active</th>
+              <th className="admin-th">Join Date</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+
+          <tbody>
+            {rows.map((person, index) => (
+              <tr key={person.id} className={rowClassName(person, index)}>
+                <td className="admin-td">{person.id}</td>
+                <td className="admin-td">{person.house}</td>
+                <td className="admin-td">{person.name}</td>
+                <td className="admin-td">{renderEditableSelect(person, "trash")}</td>
+                <td className="admin-td">{renderEditableSelect(person, "active")}</td>
+                <td className="admin-td">{person.join_date}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
