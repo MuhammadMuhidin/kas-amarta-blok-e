@@ -5,18 +5,13 @@ const inlineSelectStyle = {
   background: "transparent",
   border: "none",
   boxShadow: "none",
-  padding: "0 10px 0 0",
+  padding: "0 18px 0 0",
   minHeight: "auto",
   height: "auto",
-  width: "42px",
-  minWidth: "42px",
+  width: "100%",
   color: "inherit",
   font: "inherit",
   cursor: "pointer",
-  appearance: "none",
-  WebkitAppearance: "none",
-  MozAppearance: "none",
-  textAlign: "center",
 };
 
 export default function PersonalTable({
