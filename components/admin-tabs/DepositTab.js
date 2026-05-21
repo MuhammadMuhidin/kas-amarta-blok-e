@@ -18,6 +18,20 @@ export default function DepositTab({
   normalize,
   payDeposit,
 }) {
+  const trashFee = Number(appConfig?.trash_fee || 0);
+  const personById = new Map(activePersons.map((p) => [normalize(p.id), p]));
+
+  const activeDepositTotal = sortedDeposits.reduce((total, d) => {
+    const status = getDepositStatus(d);
+
+    if (!["pending", "waiting"].includes(status)) return total;
+
+    const person = personById.get(normalize(d.person_id));
+    const includeTrash = normalize(person?.trash).toUpperCase() === "Y";
+
+    return total + Number(d.amount || 0) + (includeTrash ? trashFee : 0);
+  }, 0);
+
   return (
     <div className="admin-card">
       <h3>Deposit Balance</h3>
@@ -87,7 +101,7 @@ export default function DepositTab({
         </button>
       </form>
 
-      <h4>Deposit List</h4>
+      <h4>Deposit List (Rp{activeDepositTotal.toLocaleString("id-ID")})</h4>
 
       <div className="admin-table-wrapper">
         <table className="admin-table">
