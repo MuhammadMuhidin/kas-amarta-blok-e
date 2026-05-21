@@ -8,7 +8,7 @@ import {
 
 import {
   createCSRFToken,
-  getActiveCredential,
+  getCredentialById,
   getWebAuthConfig,
   updateCounter,
 } from "@/lib/webauth";
@@ -60,7 +60,9 @@ export async function POST(req) {
       );
     }
 
-    const savedCredential = await getActiveCredential();
+    const credentialId = body?.id;
+
+    const savedCredential = await getCredentialById(credentialId);
 
     if (!savedCredential) {
       return NextResponse.json(
