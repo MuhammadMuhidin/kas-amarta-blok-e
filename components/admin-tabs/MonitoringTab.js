@@ -107,6 +107,7 @@ export default function MonitoringTab({
             buildInfo
               ? [
                   `Commit: ${buildInfo.commitShort}`,
+                  `Message: ${buildInfo.commitMessage || "unknown"}`,
                   `Env: ${buildInfo.environment}`,
                   `Built: ${formatBuildTime(buildInfo.buildTime)}`,
                 ]
