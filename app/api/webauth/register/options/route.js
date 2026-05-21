@@ -26,7 +26,8 @@ export async function GET() {
       supportedAlgorithmIDs: [-7, -257],
 
       authenticatorSelection: {
-        residentKey: "preferred",
+        authenticatorAttachment: "platform",
+        residentKey: "required",
         userVerification: "required",
       },
 
