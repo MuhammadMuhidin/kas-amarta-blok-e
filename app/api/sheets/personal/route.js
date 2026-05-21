@@ -2,18 +2,11 @@ import { NextResponse } from "next/server";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
 import { recordAdminActivity } from "@/lib/adminActivity";
+import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
-
-function verifyCSRF(req) {
-  const csrfCookie = req.cookies.get("csrf_token")?.value;
-
-  const csrfHeader = req.headers.get("x-csrf-token");
-
-  return csrfCookie && csrfHeader && csrfCookie === csrfHeader;
-}
 
 export async function GET() {
   const sheets = await getSheets();
@@ -38,15 +31,19 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  if (!(await isAdmin(req))) {
+    return unauthorized();
+  }
+
+  if (!validateCSRF(req)) {
+    return NextResponse.json({ error: "Invalid CSRF" }, { status: 403 });
+  }
+
   const body = await req.json();
 
   const sheets = await getSheets();
 
   const id = generateId();
-
-  if (!verifyCSRF(req)) {
-    return Response.json({ error: "Invalid CSRF" }, { status: 403 });
-  }
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
