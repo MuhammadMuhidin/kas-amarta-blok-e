@@ -41,6 +41,22 @@ export async function POST(req) {
 
   const body = await req.json();
 
+  const house = String(body.house || "").trim();
+  const name = String(body.name || "").trim();
+  const trash = String(body.trash || "").trim();
+  const joinDate = String(body.join_date || "").trim();
+
+  if (!house || !name || !trash || !joinDate) {
+    return NextResponse.json(
+      {
+        error: "All member fields are required",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
   const sheets = await getSheets();
 
   const id = generateId();
@@ -50,7 +66,7 @@ export async function POST(req) {
     range: "personal!A:F",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [[id, body.house, body.name, body.trash, "Y", body.join_date]],
+      values: [[id, house, name, trash, "Y", joinDate]],
     },
   });
 
@@ -58,14 +74,14 @@ export async function POST(req) {
     type: "create",
     module: "personal",
     severity: "success",
-    message: `Add member ${body.house} - ${body.name}`,
+    message: `Add member ${house} - ${name}`,
     metadata: {
       id,
-      house: body.house,
-      name: body.name,
-      trash: body.trash,
+      house,
+      name,
+      trash,
       active: "Y",
-      join_date: body.join_date,
+      join_date: joinDate,
     },
   });
 
