@@ -93,12 +93,14 @@ export default function MonitoringTab({
       }
     }
 
-    loadBuildInfo();
+    if (loadingDailyBackup || !buildInfo) {
+      loadBuildInfo();
+    }
 
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadingDailyBackup]);
 
   return (
     <div className="admin-card">
