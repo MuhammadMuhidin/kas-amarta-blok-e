@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { generateAuthenticationOptions } from "@simplewebauthn/server";
 
-import { getActiveCredential, getWebAuthConfig } from "@/lib/webauth";
+import { getActiveCredentials, getWebAuthConfig } from "@/lib/webauth";
 
 export const runtime = "nodejs";
 
@@ -9,9 +9,9 @@ export async function GET() {
   try {
     const { rpID } = getWebAuthConfig();
 
-    const credential = await getActiveCredential();
+    const credentials = await getActiveCredentials();
 
-    if (!credential) {
+    if (!credentials.length) {
       return NextResponse.json(
         {
           error: "Credential WebAuth not registered",
@@ -25,12 +25,10 @@ export async function GET() {
     const options = await generateAuthenticationOptions({
       rpID,
       userVerification: "required",
-      allowCredentials: [
-        {
-          id: credential.credential_id,
-          type: "public-key",
-        },
-      ],
+      allowCredentials: credentials.map((credential) => ({
+        id: credential.credential_id,
+        type: "public-key",
+      })),
     });
 
     const res = NextResponse.json(options);
