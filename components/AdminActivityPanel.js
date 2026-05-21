@@ -64,7 +64,7 @@ export default function AdminActivityPanel() {
     return params.toString();
   }, [module, severity, search, sort, dateFrom, dateTo, page]);
 
-  const filteredLabel = useMemo(() => {
+  const activeFilterLabel = useMemo(() => {
     const items = [];
 
     if (module) items.push(titleCase(module));
@@ -121,9 +121,8 @@ export default function AdminActivityPanel() {
     <div className="admin-card activity-panel">
       <div className="activity-header">
         <div>
-          <div className="activity-kicker">Admin Audit Log</div>
-          <h3 className="activity-title">Activity</h3>
-          <p className="activity-subtitle">Track admin actions, login activity, device, location, and system status.</p>
+          <h3 className="activity-title">Activity Log</h3>
+          <p className="activity-subtitle">Riwayat aktivitas admin dan perubahan data.</p>
         </div>
 
         <button
@@ -136,24 +135,15 @@ export default function AdminActivityPanel() {
         </button>
       </div>
 
-      <div className="admin-monitor-grid activity-stats-grid">
-        <div className="admin-status-card">
-          <div className="admin-status-label">Total Activity</div>
-          <div className="admin-status-value">{pagination.total || 0}</div>
-          <div className="admin-status-meta">{filteredLabel}</div>
+      <div className="activity-summary-bar">
+        <div>
+          <b>{pagination.total || 0}</b> records
         </div>
-
-        <div className="admin-status-card">
-          <div className="admin-status-label">Current Page</div>
-          <div className="admin-status-value">{pagination.page || 1} / {pagination.total_pages || 1}</div>
-          <div className="admin-status-meta">Sorted by {sort === "desc" ? "newest first" : "oldest first"}</div>
-        </div>
-
-        <div className="admin-status-card">
-          <div className="admin-status-label">Load Status</div>
-          <div className={error ? "admin-status-error" : "admin-status-value"}>{error ? "Error" : loading ? "Loading" : "Ready"}</div>
-          <div className="admin-status-meta">{error || "Activity log is available"}</div>
-        </div>
+        <span>{activeFilterLabel}</span>
+        <span>{sort === "desc" ? "Newest first" : "Oldest first"}</span>
+        <span className={error ? "activity-status-error" : "activity-status-ready"}>
+          {error ? "Error" : loading ? "Loading" : "Ready"}
+        </span>
       </div>
 
       <div className="activity-toolbar">
@@ -281,10 +271,10 @@ export default function AdminActivityPanel() {
           disabled={page <= 1 || loading}
           onClick={() => setPage((p) => Math.max(p - 1, 1))}
         >
-          Previous
+          Prev
         </button>
 
-        <span className="activity-page-info">Page {pagination.page || 1} of {pagination.total_pages || 1}</span>
+        <span className="activity-page-info">{pagination.page || 1} / {pagination.total_pages || 1}</span>
 
         <button
           type="button"
