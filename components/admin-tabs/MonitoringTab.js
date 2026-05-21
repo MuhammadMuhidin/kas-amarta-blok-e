@@ -1,18 +1,4 @@
-function StatusCard({ label, value, meta = [], error = false }) {
-  return (
-    <div className="admin-status-card">
-      <div className="admin-status-label">{label}</div>
-      <div className={error ? "admin-status-error" : "admin-status-value"}>
-        {value}
-      </div>
-      {meta.map((item) => (
-        <div key={item} className="admin-status-meta">
-          {item}
-        </div>
-      ))}
-    </div>
-  );
-}
+import MonitoringCard from "@/components/admin/MonitoringCard";
 
 function IssueTable({ title, rows, columns }) {
   if (!rows || rows.length === 0) return null;
@@ -60,7 +46,7 @@ export default function MonitoringTab({
   return (
     <div className="admin-card">
       <div className="admin-monitor-grid">
-        <StatusCard
+        <MonitoringCard
           label="Daily Backup Status"
           value={
             loadingDailyBackup
@@ -80,7 +66,7 @@ export default function MonitoringTab({
           error={!loadingDailyBackup && !dailyBackup?.ok}
         />
 
-        <StatusCard
+        <MonitoringCard
           label="Payment Cashflow Integrity"
           value={`${paymentCashflowIntegrity.length} issue`}
           meta={[
@@ -90,7 +76,7 @@ export default function MonitoringTab({
           ]}
         />
 
-        <StatusCard
+        <MonitoringCard
           label="Trash Payment Integrity"
           value={`${trashMismatch.length} issue`}
           meta={[
@@ -100,7 +86,7 @@ export default function MonitoringTab({
           ]}
         />
 
-        <StatusCard
+        <MonitoringCard
           label="Data Quality Check"
           value={`${suspiciousData.length} issue`}
           meta={[
