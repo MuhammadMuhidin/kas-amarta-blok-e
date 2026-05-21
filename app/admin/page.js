@@ -20,6 +20,12 @@ import {
   getDepositStatus as resolveDepositStatus,
   sortDeposits,
 } from "@/lib/depositUtils";
+import {
+  calculatePersonalStats,
+  filterPersonal,
+  searchPersonal,
+  sortPersonal,
+} from "@/lib/personalUtils";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import "./page.css";
@@ -508,11 +514,7 @@ export default function AdminPage() {
   }, [depositForm.end_period, nextSixPeriods]);
 
   const activePersons = useMemo(() => {
-    return personal
-      .filter((p) => p.active === "Y")
-      .sort((a, b) =>
-        a.house.localeCompare(b.house, undefined, { numeric: true }),
-      );
+    return sortPersonal(personal.filter((p) => p.active === "Y"));
   }, [personal]);
 
   const selectedDepositPerson = useMemo(() => {
@@ -531,18 +533,7 @@ export default function AdminPage() {
   }, [deposits, currentPeriod]);
 
   const stats = useMemo(() => {
-    return personal.reduce(
-      (acc, p) => {
-        if (p.active === "Y") acc.active += 1;
-        else acc.inactive += 1;
-
-        if (p.trash === "Y") acc.trashActive += 1;
-        else acc.trashInactive += 1;
-
-        return acc;
-      },
-      { active: 0, inactive: 0, trashActive: 0, trashInactive: 0 },
-    );
+    return calculatePersonalStats(personal);
   }, [personal]);
 
   const monitoringStartPeriod = appConfig?.start_monitoring_date || "";
@@ -578,33 +569,11 @@ export default function AdminPage() {
   }, [personal, payments, cashflows, trashRecords]);
 
   const filteredPersonal = useMemo(() => {
-    const sorted = [...personal].sort((a, b) =>
-      a.house.localeCompare(b.house, undefined, { numeric: true }),
-    );
-
-    if (!memberFilter) return sorted;
-    if (memberFilter === "ACTIVE") return sorted.filter((p) => p.active === "Y");
-    if (memberFilter === "INACTIVE") return sorted.filter((p) => p.active === "N");
-    if (memberFilter === "TRASH_ACTIVE") {
-      return sorted.filter((p) => p.active === "Y" && p.trash === "Y");
-    }
-    if (memberFilter === "TRASH_INACTIVE") {
-      return sorted.filter((p) => p.trash !== "Y");
-    }
-
-    return sorted;
+    return filterPersonal(sortPersonal(personal), memberFilter);
   }, [personal, memberFilter]);
 
   const searchedPersonal = useMemo(() => {
-    const keyword = memberSearch.toLowerCase().trim();
-    if (!keyword) return filteredPersonal;
-
-    return filteredPersonal.filter((p) => {
-      return (
-        p.name?.toLowerCase().includes(keyword) ||
-        p.house?.toLowerCase().includes(keyword)
-      );
-    });
+    return searchPersonal(filteredPersonal, memberSearch);
   }, [filteredPersonal, memberSearch]);
 
   const sortedDeposits = useMemo(() => {
