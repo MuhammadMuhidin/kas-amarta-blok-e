@@ -1,3 +1,4 @@
+import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import PersonalFilters from "@/components/admin/PersonalFilters";
 import PersonalTable from "@/components/admin/PersonalTable";
 
@@ -46,8 +47,9 @@ export default function PersonalTab({
           onChange={(e) => setMember({ ...member, join_date: e.target.value })}
         />
         <button className="admin-btn" disabled={loadingAdd}>
-          {loadingAdd && <span className="admin-btn-spinner" aria-hidden="true" />}
-          {loadingAdd ? "Adding..." : "Add Member"}
+          <LoadingButtonContent loading={loadingAdd} loadingText="Adding...">
+            Add Member
+          </LoadingButtonContent>
         </button>
       </form>
 
