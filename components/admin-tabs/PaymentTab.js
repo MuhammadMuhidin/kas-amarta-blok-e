@@ -1,3 +1,5 @@
+import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+
 export default function PaymentTab({
   configError,
   recordPayment,
@@ -68,7 +70,9 @@ export default function PaymentTab({
               })}
           </div>
           <button className="admin-btn" disabled={loadingPayment}>
-            {loadingPayment ? "Recording..." : "Record Payment"}
+            <LoadingButtonContent loading={loadingPayment} loadingText="Recording...">
+              Record Payment
+            </LoadingButtonContent>
           </button>
         </form>
       </div>
