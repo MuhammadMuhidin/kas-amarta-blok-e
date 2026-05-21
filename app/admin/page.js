@@ -275,7 +275,7 @@ export default function AdminPage() {
       !member.trash.trim() ||
       !member.join_date.trim()
     ) {
-      showPopup("Complete all member fields before adding", "error");
+      showPopup("Lengkapi semua data warga terlebih dahulu", "error");
       return;
     }
 
@@ -293,12 +293,12 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        showPopup("Member added successfully", "success");
+        showPopup("Warga berhasil ditambahkan", "success");
         setMember({ house: "", name: "", join_date: "", trash: "" });
         loadPersonal();
       } else {
         const data = await res.json();
-        showPopup(data.error || "Failed to add member", "error");
+        showPopup(data.error || "Gagal menambahkan warga", "error");
       }
     } finally {
       setLoadingAdd(false);
@@ -372,7 +372,7 @@ export default function AdminPage() {
         }
       }
 
-      showPopup(`Payment recorded for ${success} house successfully`, "success");
+      showPopup(`Pembayaran berhasil dicatat untuk ${success} rumah`, "success");
       setSelected([]);
       setPayment({ period: "", amount: appConfig.monthly_fee });
       await Promise.all([loadPayment(), loadTrash(), loadCashflow()]);
@@ -410,14 +410,14 @@ export default function AdminPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed save deposit");
+        throw new Error(data.error || "Gagal menyimpan titipan");
       }
 
-      showPopup("Deposit balance saved successfully", "success");
+      showPopup("Saldo titipan berhasil disimpan", "success");
       setDepositForm({ person_id: "", end_period: "" });
       await loadDeposit();
     } catch (err) {
-      showPopup(err.message || "Failed save deposit", "error");
+      showPopup(err.message || "Gagal menyimpan titipan", "error");
     } finally {
       setSavingDeposit(false);
     }
@@ -439,10 +439,10 @@ export default function AdminPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Failed pay deposit");
+        throw new Error(data.error || "Gagal membayar titipan");
       }
 
-      showPopup("Deposit paid successfully", "success");
+      showPopup("Titipan berhasil dibayarkan", "success");
 
       await Promise.all([
         loadDeposit(),
@@ -451,7 +451,7 @@ export default function AdminPage() {
         loadCashflow(),
       ]);
     } catch (err) {
-      showPopup(err.message || "Failed pay deposit", "error");
+      showPopup(err.message || "Gagal membayar titipan", "error");
     } finally {
       setPayingDepositId("");
     }
@@ -465,7 +465,7 @@ export default function AdminPage() {
       !String(cashflow.amount || "").trim() ||
       !cashflow.note.trim()
     ) {
-      showPopup("Complete type, amount, and note before recording", "error");
+      showPopup("Lengkapi jenis, nominal, dan catatan transaksi", "error");
       return;
     }
 
@@ -483,12 +483,12 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        showPopup("Transaction recorded successfully", "success");
+        showPopup("Transaksi berhasil dicatat", "success");
         setCashflow({ type: "", amount: "", note: "" });
         await loadCashflow();
       } else {
         const data = await res.json();
-        showPopup(data.error || "Failed to record transaction", "error");
+        showPopup(data.error || "Gagal mencatat transaksi", "error");
       }
     } finally {
       setLoadingCashflow(false);
