@@ -8,6 +8,10 @@ export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
 
+function normalize(value) {
+  return String(value || "").trim();
+}
+
 export async function GET() {
   const sheets = await getSheets();
 
@@ -41,9 +45,18 @@ export async function POST(req) {
   }
 
   const body = await req.json();
+  const house = normalize(body.house);
+  const period = normalize(body.period);
+  const amount = Number(body.amount || 0);
+
+  if (!house || !period || !amount) {
+    return NextResponse.json(
+      { error: "House, period, and amount are required" },
+      { status: 400 },
+    );
+  }
 
   const sheets = await getSheets();
-
   const today = new Date().toISOString().slice(0, 10);
 
   const res = await sheets.spreadsheets.values.get({
@@ -52,8 +65,7 @@ export async function POST(req) {
   });
 
   const rows = res.data.values || [];
-
-  const member = rows.slice(1).find((r) => r[1] === body.house);
+  const member = rows.slice(1).find((r) => normalize(r[1]) === house);
 
   if (!member) {
     return NextResponse.json({ error: "House not found" }, { status: 404 });
@@ -62,6 +74,28 @@ export async function POST(req) {
   const person_id = member[0];
   const person_house = member[1];
   const person_name = member[2];
+
+  const paymentRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Payment!A:G",
+  });
+
+  const paymentRows = paymentRes.data.values || [];
+
+  const duplicatePayment = paymentRows.slice(1).some((r) => {
+    const samePerson = normalize(r[1]) === normalize(person_id);
+    const sameHouse = normalize(r[2]) === normalize(person_house);
+    const samePeriod = normalize(r[4]) === period;
+
+    return samePeriod && (samePerson || sameHouse);
+  });
+
+  if (duplicatePayment) {
+    return NextResponse.json(
+      { error: "Period already paid for this house" },
+      { status: 409 },
+    );
+  }
 
   const paymentId = generateId("PAY-");
 
@@ -76,24 +110,22 @@ export async function POST(req) {
           person_id,
           person_house,
           person_name,
-          body.period,
-          body.amount,
+          period,
+          amount,
           today,
         ],
       ],
     },
   });
 
-  const note = `Pembayaran Kas ${person_house} Periode ${body.period}`;
+  const note = `Pembayaran Kas ${person_house} Periode ${period}`;
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
     range: "cashflow!A:F",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [
-        [generateId("CSFLOW-"), paymentId, "income", body.amount, note, today],
-      ],
+      values: [[generateId("CSFLOW-"), paymentId, "income", amount, note, today]],
     },
   });
 
@@ -101,14 +133,14 @@ export async function POST(req) {
     type: "create",
     module: "payment",
     severity: "success",
-    message: `Record payment ${person_house} ${body.period}`,
+    message: `Record payment ${person_house} ${period}`,
     metadata: {
       payment_id: paymentId,
       person_id,
       house: person_house,
       name: person_name,
-      period: body.period,
-      amount: body.amount,
+      period,
+      amount,
     },
   });
 
