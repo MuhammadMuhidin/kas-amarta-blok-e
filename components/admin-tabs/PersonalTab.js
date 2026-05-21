@@ -14,6 +14,7 @@ export default function PersonalTab({
   setMemberSearch,
   searchedPersonal,
   rowClassName,
+  onUpdateMember,
 }) {
   return (
     <div className="admin-card">
@@ -61,7 +62,12 @@ export default function PersonalTab({
         memberSearch={memberSearch}
         setMemberSearch={setMemberSearch}
       />
-      <PersonalTable rows={searchedPersonal} rowClassName={rowClassName} />
+
+      <PersonalTable
+        rows={searchedPersonal}
+        rowClassName={rowClassName}
+        onUpdateMember={onUpdateMember}
+      />
     </div>
   );
 }
