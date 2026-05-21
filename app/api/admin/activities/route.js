@@ -9,9 +9,10 @@ const modules = new Set([
   "payment",
   "deposit",
   "cashflow",
-  "settings",
-  "setting",
+  "trash",
   "session",
+  "settings-app",
+  "settings-auth",
 ]);
 
 const severities = new Set([
@@ -70,6 +71,7 @@ export async function GET(req) {
     if (search) {
       const safe = search.replaceAll("%", "").replaceAll(",", "");
       const pattern = `%${safe}%`;
+
       query = query.or(
         `message.ilike.${pattern},actor.ilike.${pattern},module.ilike.${pattern},type.ilike.${pattern},ip.ilike.${pattern},location.ilike.${pattern},device_name.ilike.${pattern}`,
       );
