@@ -4,13 +4,18 @@ const inlineSelectStyle = {
   background: "transparent",
   border: "none",
   boxShadow: "none",
-  padding: "0 18px 0 0",
+  padding: "0 10px 0 0",
   minHeight: "auto",
   height: "auto",
-  width: "100%",
+  width: "42px",
+  minWidth: "42px",
   color: "inherit",
   font: "inherit",
   cursor: "pointer",
+  appearance: "none",
+  WebkitAppearance: "none",
+  MozAppearance: "none",
+  textAlign: "center",
 };
 
 export default function PersonalTable({
@@ -41,16 +46,34 @@ export default function PersonalTable({
     const saving = savingKey === key;
 
     return (
-      <select
-        className="admin-inline-select"
-        style={inlineSelectStyle}
-        value={person[field] || ""}
-        disabled={saving}
-        onChange={(e) => updateInline(person, field, e.target.value)}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}
       >
-        <option value="Y">Y</option>
-        <option value="N">N</option>
-      </select>
+        <select
+          className="admin-inline-select"
+          style={inlineSelectStyle}
+          value={person[field] || ""}
+          disabled={saving}
+          onChange={(e) => updateInline(person, field, e.target.value)}
+        >
+          <option value="Y">Y</option>
+          <option value="N">N</option>
+        </select>
+
+        <span
+          style={{
+            fontSize: 11,
+            opacity: 0.7,
+            lineHeight: 1,
+          }}
+        >
+          ˅
+        </span>
+      </div>
     );
   }
 
