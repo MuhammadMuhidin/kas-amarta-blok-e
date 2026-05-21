@@ -1,3 +1,5 @@
+import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+
 export default function CashflowTab({
   addCashflow,
   cashflow,
@@ -30,7 +32,9 @@ export default function CashflowTab({
           onChange={(e) => setCashflow({ ...cashflow, note: e.target.value })}
         />
         <button className="admin-btn" disabled={loadingCashflow}>
-          {loadingCashflow ? "Recording..." : "Record Transaction"}
+          <LoadingButtonContent loading={loadingCashflow} loadingText="Recording...">
+            Record Transaction
+          </LoadingButtonContent>
         </button>
       </form>
     </div>
