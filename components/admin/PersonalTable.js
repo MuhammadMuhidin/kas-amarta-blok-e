@@ -12,6 +12,9 @@ const inlineSelectStyle = {
   color: "inherit",
   font: "inherit",
   cursor: "pointer",
+  appearance: "none",
+  WebkitAppearance: "none",
+  MozAppearance: "none",
 };
 
 export default function PersonalTable({
