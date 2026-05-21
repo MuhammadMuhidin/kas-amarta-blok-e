@@ -9,9 +9,24 @@ import PaymentTab from "@/components/admin-tabs/PaymentTab";
 import PersonalTab from "@/components/admin-tabs/PersonalTab";
 import SummaryBackupTab from "@/components/admin-tabs/SummaryBackupTab";
 import Toast from "@/components/Toast";
-import { useState, useEffect, useMemo } from "react";
+import {
+  buildPaymentCashflowIntegrity,
+  buildSuspiciousData,
+  buildTrashMismatch,
+} from "@/lib/adminMonitoring";
+import {
+  addMonths,
+  getCurrentPeriod,
+  getDepositStatus as resolveDepositStatus,
+  sortDeposits,
+} from "@/lib/depositUtils";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import "./page.css";
+
+function normalize(value) {
+  return String(value || "").trim();
+}
 
 export default function AdminPage() {
   const router = useRouter();
@@ -63,13 +78,12 @@ export default function AdminPage() {
   const [loadingCashflow, setLoadingCashflow] = useState(false);
   const [cashflows, setCashflows] = useState([]);
 
-  const normalize = (v) => String(v || "").trim();
-  const currentPeriod = new Date().toISOString().slice(0, 7);
+  const currentPeriod = getCurrentPeriod();
 
   function getCookie(name) {
     return document.cookie
       .split("; ")
-      .find((row) => row.startsWith(name + "="))
+      .find((row) => row.startsWith(`${name}=`))
       ?.split("=")[1];
   }
 
@@ -88,15 +102,8 @@ export default function AdminPage() {
     }
   }
 
-  function getCurrentPeriod() {
-    return new Date().toISOString().slice(0, 7);
-  }
-
-  function addMonths(period, count) {
-    const [year, month] = period.split("-").map(Number);
-    const date = new Date(year, month - 1 + count, 1);
-
-    return date.toISOString().slice(0, 7);
+  function getDepositStatus(deposit) {
+    return resolveDepositStatus(deposit, currentPeriod, normalize);
   }
 
   function isHousePaidForPeriod(person) {
@@ -113,27 +120,13 @@ export default function AdminPage() {
     });
   }
 
-  function getDepositStatus(d) {
-    const isPaid =
-      normalize(d.status).toLowerCase() === "paid" &&
-      normalize(d.paid_at) !== "" &&
-      normalize(d.payment_id) !== "";
+  function isNewActiveMember(person) {
+    if (person.active !== "Y") return false;
+    if (!person.join_date) return false;
 
-    if (isPaid) return "paid";
-    if (normalize(d.period) > currentPeriod) return "waiting";
-    if (normalize(d.period) < currentPeriod) return "missed";
+    const joinMonth = String(person.join_date).slice(0, 7);
 
-    return "pending";
-  }
-
-  function isNewActiveMember(p) {
-    if (p.active !== "Y") return false;
-    if (!p.join_date) return false;
-
-    const joinMonth = String(p.join_date).slice(0, 7);
-    const currentMonth = new Date().toISOString().slice(0, 7);
-
-    return joinMonth > currentMonth;
+    return joinMonth > currentPeriod;
   }
 
   function toggleMemberFilter(type) {
@@ -337,7 +330,7 @@ export default function AdminPage() {
         });
 
         if (res.ok) {
-          success++;
+          success += 1;
           const paymentData = await res.json();
 
           if ((p.trash || "").toUpperCase() === "Y") {
@@ -540,11 +533,11 @@ export default function AdminPage() {
   const stats = useMemo(() => {
     return personal.reduce(
       (acc, p) => {
-        if (p.active === "Y") acc.active++;
-        else acc.inactive++;
+        if (p.active === "Y") acc.active += 1;
+        else acc.inactive += 1;
 
-        if (p.trash === "Y") acc.trashActive++;
-        else acc.trashInactive++;
+        if (p.trash === "Y") acc.trashActive += 1;
+        else acc.trashInactive += 1;
 
         return acc;
       },
@@ -552,290 +545,36 @@ export default function AdminPage() {
     );
   }, [personal]);
 
-  const MONITORING_START_PERIOD = appConfig?.start_monitoring_date || "";
+  const monitoringStartPeriod = appConfig?.start_monitoring_date || "";
 
   const trashMismatch = useMemo(() => {
-    const issues = [];
-    const monitoredPayments = payments.filter(
-      (p) => p.period && p.period >= MONITORING_START_PERIOD,
-    );
-    const trashPaymentIds = new Set(
-      trashRecords.map((t) => normalize(t.payment_id)),
-    );
-    const personalMap = new Map(personal.map((p) => [normalize(p.id), p]));
-    const paymentMap = new Map(payments.map((p) => [normalize(p.id), p]));
-
-    monitoredPayments.forEach((pay) => {
-      const person = personalMap.get(normalize(pay.person_id));
-
-      if (!person) {
-        issues.push({
-          type: "MISSING_PERSON",
-          house: "-",
-          name: "-",
-          period: pay.period,
-          detail: `Payment references missing person_id: ${pay.person_id}`,
-        });
-        return;
-      }
-
-      const isTrashUser = normalize(person.trash).toUpperCase() === "Y";
-      const hasTrash = trashPaymentIds.has(normalize(pay.id));
-
-      if (isTrashUser && !hasTrash) {
-        issues.push({
-          type: "PAYMENT_WITHOUT_TRASH",
-          house: person.house || "-",
-          name: person.name || "-",
-          period: pay.period,
-          detail: "Missing required trash record",
-        });
-      }
-
-      if (!isTrashUser && hasTrash) {
-        issues.push({
-          type: "NON_TRASH_HAS_TRASH",
-          house: person.house || "-",
-          name: person.name || "-",
-          period: pay.period,
-          detail: "Non-trash user linked to trash record",
-        });
-      }
+    return buildTrashMismatch({
+      personal,
+      payments,
+      trashRecords,
+      monitoringStartPeriod,
+      normalize,
     });
-
-    trashRecords.forEach((t) => {
-      const tPaymentId = normalize(t.payment_id);
-      const payment = paymentMap.get(tPaymentId);
-
-      if (!payment) {
-        issues.push({
-          type: "ORPHAN_TRASH_RECORD",
-          house: "-",
-          name: "-",
-          period: `Payment ID: ${tPaymentId}`,
-          detail: "Trash record references invalid payment",
-        });
-        return;
-      }
-
-      if (payment.period < MONITORING_START_PERIOD) return;
-
-      const person = personalMap.get(normalize(payment.person_id));
-
-      if (!person) {
-        issues.push({
-          type: "MISSING_PERSON",
-          house: "-",
-          name: "-",
-          period: payment.period,
-          detail: `Payment references missing person_id: ${payment.person_id}`,
-        });
-        return;
-      }
-
-      if (normalize(person.trash).toUpperCase() !== "Y") {
-        issues.push({
-          type: "NON_TRASH_HAS_TRASH",
-          house: person.house || "-",
-          name: person.name || "-",
-          period: payment.period,
-          detail: "Non-trash user linked to trash record",
-        });
-      }
-    });
-
-    return Array.from(
-      new Map(
-        issues.map((i) => [
-          [i.type, i.house, i.name, i.period, i.detail].join("|"),
-          i,
-        ]),
-      ).values(),
-    ).sort((a, b) => String(a.period).localeCompare(String(b.period)));
-  }, [personal, payments, trashRecords, MONITORING_START_PERIOD]);
+  }, [personal, payments, trashRecords, monitoringStartPeriod]);
 
   const paymentCashflowIntegrity = useMemo(() => {
-    const issues = [];
-    const toNumber = (v) => Number(v || 0);
-    const monthlyFee = toNumber(appConfig?.monthly_fee);
-    const monitoredPayments = payments.filter(
-      (p) => p.period && p.period >= MONITORING_START_PERIOD,
-    );
-    const paymentById = new Map(payments.map((p) => [normalize(p.id), p]));
-    const paymentLinkedCashflow = cashflows.filter((c) => {
-      const refId = normalize(c.ref_id);
-      const datePeriod = normalize(c.date).slice(0, 7);
-
-      if (normalize(c.type).toLowerCase() !== "income") return false;
-      if (!refId) return false;
-      if (refId.toUpperCase().startsWith("DIRECT")) return false;
-      if (!datePeriod) return false;
-
-      return datePeriod >= MONITORING_START_PERIOD;
+    return buildPaymentCashflowIntegrity({
+      payments,
+      cashflows,
+      appConfig,
+      monitoringStartPeriod,
+      normalize,
     });
-    const cashflowByRefId = new Map(
-      paymentLinkedCashflow.map((c) => [normalize(c.ref_id), c]),
-    );
-    const duplicateMap = new Map();
-
-    monitoredPayments.forEach((p) => {
-      const paymentId = normalize(p.id);
-      const amount = toNumber(p.amount);
-      const duplicateKey = [
-        normalize(p.person_id),
-        normalize(p.person_house),
-        normalize(p.period),
-      ].join("|");
-
-      if (!duplicateMap.has(duplicateKey)) {
-        duplicateMap.set(duplicateKey, []);
-      }
-
-      duplicateMap.get(duplicateKey).push(p);
-
-      if (monthlyFee && amount !== monthlyFee) {
-        issues.push({
-          type: "INVALID_PAYMENT_AMOUNT",
-          house: p.person_house || "-",
-          name: p.person_name || "-",
-          period: p.period || "-",
-          detail: `Payment amount ${amount} should be ${monthlyFee}`,
-        });
-      }
-
-      const cashflow = cashflowByRefId.get(paymentId);
-
-      if (!cashflow) {
-        issues.push({
-          type: "MISSING_CASHFLOW",
-          house: p.person_house || "-",
-          name: p.person_name || "-",
-          period: p.period || "-",
-          detail: `Payment ${paymentId} has no linked cashflow income`,
-        });
-        return;
-      }
-
-      if (toNumber(cashflow.amount) !== amount) {
-        issues.push({
-          type: "AMOUNT_MISMATCH",
-          house: p.person_house || "-",
-          name: p.person_name || "-",
-          period: p.period || "-",
-          detail: `Payment ${amount} but cashflow ${cashflow.amount}`,
-        });
-      }
-    });
-
-    paymentLinkedCashflow.forEach((c) => {
-      const refId = normalize(c.ref_id);
-      const payment = paymentById.get(refId);
-
-      if (!payment) {
-        issues.push({
-          type: "ORPHAN_CASHFLOW",
-          house: "-",
-          name: "-",
-          period: c.date || "-",
-          detail: `Cashflow references invalid payment_id: ${refId}`,
-        });
-      }
-    });
-
-    duplicateMap.forEach((items) => {
-      if (items.length > 1) {
-        const first = items[0];
-        issues.push({
-          type: "DUPLICATE_PAYMENT",
-          house: first.person_house || "-",
-          name: first.person_name || "-",
-          period: first.period || "-",
-          detail: `${items.length} payments found for same house and period`,
-        });
-      }
-    });
-
-    return issues.sort((a, b) =>
-      String(a.period).localeCompare(String(b.period)),
-    );
-  }, [payments, cashflows, appConfig, MONITORING_START_PERIOD]);
+  }, [payments, cashflows, appConfig, monitoringStartPeriod]);
 
   const suspiciousData = useMemo(() => {
-    const issues = [];
-
-    function checkDuplicateId(sheetName, rows) {
-      const map = new Map();
-
-      rows.forEach((row, index) => {
-        const id = normalize(row.id);
-        if (!id) return;
-        if (!map.has(id)) map.set(id, []);
-        map.get(id).push(index + 2);
-      });
-
-      map.forEach((rowNumbers, id) => {
-        if (rowNumbers.length > 1) {
-          issues.push({
-            sheet: sheetName,
-            type: "DUPLICATE_ID",
-            row: rowNumbers.join(", "),
-            detail: `Duplicate ID: ${id}`,
-          });
-        }
-      });
-    }
-
-    function checkEmptyFields(sheetName, rows, fields) {
-      rows.forEach((row, index) => {
-        const emptyFields = fields.filter(
-          (field) => normalize(row[field]) === "",
-        );
-
-        if (emptyFields.length > 0) {
-          issues.push({
-            sheet: sheetName,
-            type: "EMPTY_FIELD",
-            row: index + 2,
-            detail: `Empty field: ${emptyFields.join(", ")}`,
-          });
-        }
-      });
-    }
-
-    checkDuplicateId("Personal", personal);
-    checkDuplicateId("Payment", payments);
-    checkDuplicateId("Cashflow", cashflows);
-    checkDuplicateId("Trash", trashRecords);
-
-    checkEmptyFields("Personal", personal, [
-      "id",
-      "house",
-      "name",
-      "trash",
-      "active",
-      "join_date",
-    ]);
-
-    checkEmptyFields("Payment", payments, [
-      "id",
-      "person_id",
-      "person_house",
-      "person_name",
-      "period",
-      "amount",
-      "date",
-    ]);
-
-    checkEmptyFields("Cashflow", cashflows, [
-      "id",
-      "ref_id",
-      "type",
-      "amount",
-      "note",
-      "date",
-    ]);
-
-    return issues;
+    return buildSuspiciousData({
+      personal,
+      payments,
+      cashflows,
+      trashRecords,
+      normalize,
+    });
   }, [personal, payments, cashflows, trashRecords]);
 
   const filteredPersonal = useMemo(() => {
@@ -869,26 +608,12 @@ export default function AdminPage() {
   }, [filteredPersonal, memberSearch]);
 
   const sortedDeposits = useMemo(() => {
-    const priority = {
-      pending: 0,
-      waiting: 1,
-      missed: 2,
-      paid: 3,
-    };
+    return sortDeposits(deposits, currentPeriod, normalize);
+  }, [deposits, currentPeriod]);
 
-    return [...deposits].sort((a, b) => {
-      const statusCompare =
-        priority[getDepositStatus(a)] - priority[getDepositStatus(b)];
-
-      if (statusCompare !== 0) return statusCompare;
-
-      return String(a.period).localeCompare(String(b.period));
-    });
-  }, [deposits]);
-
-  function rowClassName(p, index) {
-    if (p.active === "N") return "admin-row-inactive";
-    if (isNewActiveMember(p)) return "admin-row-new-active";
+  function rowClassName(person, index) {
+    if (person.active === "N") return "admin-row-inactive";
+    if (isNewActiveMember(person)) return "admin-row-new-active";
     if (index % 2) return "admin-row-alt";
     return "";
   }
