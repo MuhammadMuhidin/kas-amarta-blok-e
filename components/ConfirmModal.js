@@ -1,5 +1,7 @@
 "use client";
 
+import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+
 export default function ConfirmModal({
   open,
   title,
@@ -9,6 +11,7 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
   isDark = false,
+  loading = false,
 }) {
   if (!open) return null;
 
@@ -43,18 +46,37 @@ export default function ConfirmModal({
           <button
             type="button"
             onClick={onCancel}
+            disabled={loading}
             style={{
               ...styles.cancel,
               background: isDark ? "#1e293b" : "#fff",
               color: isDark ? "#f8fafc" : "#0f172a",
               border: isDark ? "1px solid #334155" : "1px solid #cbd5e1",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.55 : 1,
             }}
           >
             {cancelText}
           </button>
 
-          <button type="button" onClick={onConfirm} style={styles.confirm}>
-            {confirmText}
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={loading}
+            style={{
+              ...styles.confirm,
+              background: loading ? "#3730a3" : styles.confirm.background,
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
+            {loading ? (
+              <LoadingButtonContent loading loadingText="">
+                {confirmText}
+              </LoadingButtonContent>
+            ) : (
+              confirmText
+            )}
           </button>
         </div>
       </div>
@@ -104,10 +126,11 @@ const styles = {
     padding: "10px 14px",
     borderRadius: 10,
     fontWeight: 700,
-    cursor: "pointer",
   },
 
   confirm: {
+    minWidth: 82,
+    minHeight: 40,
     padding: "10px 14px",
     borderRadius: 10,
     border: "none",

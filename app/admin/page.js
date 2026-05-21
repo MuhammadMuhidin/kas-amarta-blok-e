@@ -305,6 +305,55 @@ export default function AdminPage() {
     }
   }
 
+  async function updateMemberInline(person, field, value) {
+    const currentValue = normalize(person?.[field]);
+    const nextValue = normalize(value).toUpperCase();
+
+    if (!person?.id || !["trash", "active"].includes(field)) return;
+    if (!nextValue || currentValue === nextValue) return;
+
+    const csrfToken = getCookie("csrf_token");
+    const previousPersonal = personal;
+
+    setPersonal((prev) =>
+      prev.map((item) =>
+        item.id === person.id
+          ? {
+              ...item,
+              [field]: nextValue,
+            }
+          : item,
+      ),
+    );
+
+    try {
+      const res = await fetch("/api/sheets/personal", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          id: person.id,
+          field,
+          value: nextValue,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal memperbarui data warga");
+      }
+
+      showPopup("Data warga berhasil diperbarui", "success");
+      await loadPersonal();
+    } catch (err) {
+      setPersonal(previousPersonal);
+      showPopup(err.message || "Gagal memperbarui data warga", "error");
+      throw err;
+    }
+  }
+
   async function recordPayment(e) {
     e.preventDefault();
 
@@ -672,6 +721,7 @@ export default function AdminPage() {
             setMemberSearch={setMemberSearch}
             searchedPersonal={searchedPersonal}
             rowClassName={rowClassName}
+            onUpdateMember={updateMemberInline}
           />
         )}
 
