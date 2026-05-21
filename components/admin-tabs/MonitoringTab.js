@@ -64,11 +64,14 @@ export default function MonitoringTab({
   suspiciousData,
 }) {
   const [buildInfo, setBuildInfo] = useState(null);
+  const [loadingBuildInfo, setLoadingBuildInfo] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     async function loadBuildInfo() {
+      setLoadingBuildInfo(true);
+
       try {
         const res = await fetch("/api/build-info", {
           cache: "no-store",
@@ -82,6 +85,10 @@ export default function MonitoringTab({
       } catch {
         if (active) {
           setBuildInfo(null);
+        }
+      } finally {
+        if (active) {
+          setLoadingBuildInfo(false);
         }
       }
     }
@@ -99,9 +106,11 @@ export default function MonitoringTab({
         <MonitoringCard
           label="Current Build"
           value={
-            buildInfo
-              ? `${formatPlatform(buildInfo.platform)} • ${buildInfo.branch}`
-              : "Checking..."
+            loadingBuildInfo
+              ? "Checking..."
+              : buildInfo
+                ? `${formatPlatform(buildInfo.platform)} • ${buildInfo.branch}`
+                : "Build info not found"
           }
           meta={
             buildInfo
@@ -113,6 +122,7 @@ export default function MonitoringTab({
                 ]
               : []
           }
+          error={!loadingBuildInfo && !buildInfo}
         />
 
         <MonitoringCard
