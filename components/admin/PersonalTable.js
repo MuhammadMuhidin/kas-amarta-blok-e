@@ -1,5 +1,18 @@
 import { useState } from "react";
 
+const inlineSelectStyle = {
+  background: "transparent",
+  border: "none",
+  boxShadow: "none",
+  padding: "0 18px 0 0",
+  minHeight: "auto",
+  height: "auto",
+  width: "100%",
+  color: "inherit",
+  font: "inherit",
+  cursor: "pointer",
+};
+
 export default function PersonalTable({
   rows,
   rowClassName,
@@ -29,7 +42,8 @@ export default function PersonalTable({
 
     return (
       <select
-        className="admin-input admin-inline-select"
+        className="admin-inline-select"
+        style={inlineSelectStyle}
         value={person[field] || ""}
         disabled={saving}
         onChange={(e) => updateInline(person, field, e.target.value)}
