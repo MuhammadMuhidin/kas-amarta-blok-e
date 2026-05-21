@@ -1,23 +1,31 @@
-export default function LoadingButtonContent({ loading, loadingText, children }) {
+export default function LoadingButtonContent({
+  loading,
+  loadingText,
+  children,
+}) {
   if (!loading) return children;
+
+  const onlySpinner = !loadingText;
 
   return (
     <span
       style={{
+        width: "100%",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: 8,
+        gap: onlySpinner ? 0 : 8,
       }}
     >
       <svg
-        width="14"
-        height="14"
+        width={onlySpinner ? "20" : "14"}
+        height={onlySpinner ? "20" : "14"}
         viewBox="0 0 24 24"
         role="img"
         aria-label="Loading"
         style={{
           flexShrink: 0,
+          display: "block",
         }}
       >
         <circle
@@ -26,14 +34,15 @@ export default function LoadingButtonContent({ loading, loadingText, children })
           r="9"
           fill="none"
           stroke="currentColor"
-          strokeWidth="3"
+          strokeWidth={onlySpinner ? "3.5" : "3"}
           opacity="0.25"
         />
+
         <path
           d="M21 12a9 9 0 0 0-9-9"
           fill="none"
           stroke="currentColor"
-          strokeWidth="3"
+          strokeWidth={onlySpinner ? "3.5" : "3"}
           strokeLinecap="round"
         >
           <animateTransform
@@ -46,7 +55,8 @@ export default function LoadingButtonContent({ loading, loadingText, children })
           />
         </path>
       </svg>
-      <span>{loadingText}</span>
+
+      {!onlySpinner && <span>{loadingText}</span>}
     </span>
   );
 }
