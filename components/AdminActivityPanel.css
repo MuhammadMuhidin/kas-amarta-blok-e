@@ -251,10 +251,16 @@
   .activity-mobile-info {
     display: flex;
     gap: 6px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow: hidden;
   }
 
   .activity-mobile-info span {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     padding: 4px 7px;
     border-radius: 999px;
     background: var(--admin-card);
