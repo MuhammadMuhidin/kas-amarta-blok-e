@@ -9,17 +9,12 @@ function formatDate(value) {
   if (!value) return "-";
 
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleString("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   });
-}
-
-function hasMetadata(value) {
-  return value && Object.keys(value || {}).length > 0;
 }
 
 function titleCase(value) {
@@ -30,6 +25,15 @@ function titleCase(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function DetailRow({ label, value }) {
+  return (
+    <div className="activity-modal-row">
+      <span>{label}</span>
+      <b>{value || "-"}</b>
+    </div>
+  );
+}
+
 export default function AdminActivityPanel() {
   const [activities, setActivities] = useState([]);
   const [module, setModule] = useState("");
@@ -38,7 +42,7 @@ export default function AdminActivityPanel() {
   const [sort, setSort] = useState("desc");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [expandedId, setExpandedId] = useState(null);
+  const [selectedActivity, setSelectedActivity] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
@@ -105,7 +109,7 @@ export default function AdminActivityPanel() {
     setDateFrom("");
     setDateTo("");
     setPage(1);
-    setExpandedId(null);
+    setSelectedActivity(null);
   }
 
   useEffect(() => {
@@ -114,7 +118,7 @@ export default function AdminActivityPanel() {
 
   useEffect(() => {
     setPage(1);
-    setExpandedId(null);
+    setSelectedActivity(null);
   }, [module, severity, search, sort, dateFrom, dateTo]);
 
   return (
@@ -136,9 +140,7 @@ export default function AdminActivityPanel() {
       </div>
 
       <div className="activity-summary-bar">
-        <div>
-          <b>{pagination.total || 0}</b> records
-        </div>
+        <div><b>{pagination.total || 0}</b> records</div>
         <span>{activeFilterLabel}</span>
         <span>{sort === "desc" ? "Newest first" : "Oldest first"}</span>
         <span className={error ? "activity-status-error" : "activity-status-ready"}>
@@ -197,10 +199,10 @@ export default function AdminActivityPanel() {
         <table className="admin-table activity-table">
           <thead>
             <tr>
-              <th className="admin-th">When</th>
-              <th className="admin-th">Who</th>
-              <th className="admin-th">What</th>
-              <th className="admin-th">Where</th>
+              <th className="admin-th">Date</th>
+              <th className="admin-th">Actor</th>
+              <th className="admin-th">Action</th>
+              <th className="admin-th">Location</th>
               <th className="admin-th">Status</th>
               <th className="admin-th">Detail</th>
             </tr>
@@ -212,56 +214,79 @@ export default function AdminActivityPanel() {
                 <td colSpan={6} className="admin-td activity-empty">No activity found</td>
               </tr>
             ) : (
-              activities.map((item, index) => {
-                const opened = expandedId === item.id;
+              activities.map((item, index) => (
+                <tr key={item.id} className={index % 2 ? "admin-row-alt activity-row" : "activity-row"}>
+                  <td className="admin-td activity-cell">
+                    <div className="activity-when">{formatDate(item.created_at)}</div>
+                  </td>
 
-                return (
-                  <tr key={item.id} className={index % 2 ? "admin-row-alt activity-row" : "activity-row"}>
-                    <td className="admin-td activity-cell" data-label="When">
-                      <div className="activity-when">{formatDate(item.created_at)}</div>
-                    </td>
+                  <td className="admin-td activity-cell">
+                    <div className="activity-primary">{item.actor || "-"}</div>
+                    <div className="activity-muted">{item.device_name || "-"}</div>
+                  </td>
 
-                    <td className="admin-td activity-cell" data-label="Who">
-                      <div className="activity-primary">{item.actor || "-"}</div>
-                      <div className="activity-muted">{item.device_name || "-"}</div>
-                    </td>
+                  <td className="admin-td activity-cell activity-message-cell">
+                    <div className="activity-primary">{item.message}</div>
+                    <div className="activity-muted">{item.module} • {item.type}</div>
+                  </td>
 
-                    <td className="admin-td activity-cell activity-message-cell" data-label="What">
-                      <div className="activity-primary">{item.message}</div>
-                      <div className="activity-muted">{item.module} • {item.type}</div>
-                    </td>
+                  <td className="admin-td activity-cell">
+                    <div className="activity-primary">{item.location || "-"}</div>
+                    <div className="activity-muted">{item.ip || "-"}</div>
+                  </td>
 
-                    <td className="admin-td activity-cell" data-label="Where">
-                      <div className="activity-primary">{item.location || "-"}</div>
-                      <div className="activity-muted">{item.ip || "-"}</div>
-                    </td>
+                  <td className="admin-td activity-cell">
+                    <span className={`activity-badge activity-badge-${item.severity || "info"}`}>
+                      {item.severity || "info"}
+                    </span>
+                  </td>
 
-                    <td className="admin-td activity-cell" data-label="Status">
-                      <span className={`activity-badge activity-badge-${item.severity || "info"}`}>
-                        {item.severity || "info"}
-                      </span>
-                    </td>
-
-                    <td className="admin-td activity-cell activity-detail-cell" data-label="Detail">
-                      <button
-                        type="button"
-                        className="admin-small-btn activity-detail-btn"
-                        disabled={!hasMetadata(item.metadata)}
-                        onClick={() => setExpandedId(opened ? null : item.id)}
-                      >
-                        {opened ? "Hide" : "View"}
-                      </button>
-
-                      {opened && hasMetadata(item.metadata) && (
-                        <pre className="activity-metadata">{JSON.stringify(item.metadata, null, 2)}</pre>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })
+                  <td className="admin-td activity-cell">
+                    <button
+                      type="button"
+                      className="admin-small-btn activity-detail-btn"
+                      onClick={() => setSelectedActivity(item)}
+                    >
+                      Detail
+                    </button>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>
+      </div>
+
+      <div className="activity-mobile-list">
+        {activities.length === 0 && !loading ? (
+          <div className="activity-empty-card">No activity found</div>
+        ) : (
+          activities.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="activity-mobile-card"
+              onClick={() => setSelectedActivity(item)}
+            >
+              <div className="activity-mobile-top">
+                <div>
+                  <div className="activity-mobile-title">{item.message || "Activity"}</div>
+                  <div className="activity-mobile-meta">{formatDate(item.created_at)}</div>
+                </div>
+
+                <span className={`activity-badge activity-badge-${item.severity || "info"}`}>
+                  {item.severity || "info"}
+                </span>
+              </div>
+
+              <div className="activity-mobile-info">
+                <span>{item.actor || "-"}</span>
+                <span>{item.module || "-"}</span>
+                <span>{item.location || item.ip || "-"}</span>
+              </div>
+            </button>
+          ))
+        )}
       </div>
 
       <div className="activity-pagination">
@@ -285,6 +310,39 @@ export default function AdminActivityPanel() {
           Next
         </button>
       </div>
+
+      {selectedActivity && (
+        <div className="activity-modal-overlay" onClick={() => setSelectedActivity(null)}>
+          <div className="activity-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="activity-modal-header">
+              <div>
+                <h3>Activity Detail</h3>
+                <p>{formatDate(selectedActivity.created_at)}</p>
+              </div>
+
+              <button type="button" className="activity-modal-close" onClick={() => setSelectedActivity(null)}>×</button>
+            </div>
+
+            <div className="activity-modal-body">
+              <DetailRow label="Actor" value={selectedActivity.actor} />
+              <DetailRow label="Action" value={selectedActivity.message} />
+              <DetailRow label="Module" value={selectedActivity.module} />
+              <DetailRow label="Type" value={selectedActivity.type} />
+              <DetailRow label="Status" value={selectedActivity.severity || "info"} />
+              <DetailRow label="Device" value={selectedActivity.device_name} />
+              <DetailRow label="Location" value={selectedActivity.location} />
+              <DetailRow label="IP Address" value={selectedActivity.ip} />
+
+              {selectedActivity.metadata && Object.keys(selectedActivity.metadata || {}).length > 0 && (
+                <div className="activity-modal-meta">
+                  <span>Metadata</span>
+                  <pre>{JSON.stringify(selectedActivity.metadata, null, 2)}</pre>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
