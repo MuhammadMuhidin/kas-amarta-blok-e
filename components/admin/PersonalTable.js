@@ -26,15 +26,19 @@ export default function PersonalTable({
 }) {
   const [savingKey, setSavingKey] = useState("");
   const [confirmState, setConfirmState] = useState(null);
+  const [confirmLoading, setConfirmLoading] = useState(false);
 
   async function submitUpdate(person, field, value) {
     const key = `${person.id}-${field}`;
+
     setSavingKey(key);
+    setConfirmLoading(true);
 
     try {
       await onUpdateMember(person, field, value);
     } finally {
       setSavingKey("");
+      setConfirmLoading(false);
       setConfirmState(null);
     }
   }
@@ -68,7 +72,7 @@ export default function PersonalTable({
             ? confirmState.value
             : person[field] || ""
         }
-        disabled={saving}
+        disabled={saving || confirmLoading}
         onChange={(e) => askUpdate(person, field, e.target.value)}
       >
         <option value="Y">Y</option>
@@ -89,7 +93,11 @@ export default function PersonalTable({
         }
         confirmText="Lanjutkan"
         cancelText="Batal"
-        onCancel={() => setConfirmState(null)}
+        loading={confirmLoading}
+        onCancel={() => {
+          if (confirmLoading) return;
+          setConfirmState(null);
+        }}
         onConfirm={() =>
           submitUpdate(
             confirmState.person,
