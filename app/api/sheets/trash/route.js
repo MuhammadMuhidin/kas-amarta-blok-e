@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
+import { recordAdminActivity } from "@/lib/adminActivity";
+import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
-
-function verifyCSRF(req) {
-  const csrfCookie = req.cookies.get("csrf_token")?.value;
-
-  const csrfHeader = req.headers.get("x-csrf-token");
-
-  return csrfCookie && csrfHeader && csrfCookie === csrfHeader;
-}
 
 export async function GET() {
   const sheets = await getSheets();
@@ -36,6 +30,21 @@ export async function GET() {
 
 export async function POST(req) {
   try {
+    if (!(await isAdmin(req))) {
+      return unauthorized();
+    }
+
+    if (!validateCSRF(req)) {
+      return NextResponse.json(
+        {
+          error: "Invalid CSRF",
+        },
+        {
+          status: 403,
+        },
+      );
+    }
+
     const body = await req.json();
 
     const sheets = await getSheets();
@@ -44,17 +53,26 @@ export async function POST(req) {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    // verification CSRF
-    if (!verifyCSRF(req)) {
-      return Response.json({ error: "Invalid CSRF" }, { status: 403 });
-    }
-
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range: "trash!A:D",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values: [[trashId, body.payment_id, body.amount, today]],
+      },
+    });
+
+    await recordAdminActivity(req, {
+      type: "create",
+      module: "trash",
+      severity: "success",
+      message: `Record trash payment ${body.payment_id || "manual"}`,
+      metadata: {
+        trash_id: trashId,
+        payment_id: body.payment_id || null,
+        amount: Number(body.amount || 0),
+        date: today,
+        actor: "system",
       },
     });
 

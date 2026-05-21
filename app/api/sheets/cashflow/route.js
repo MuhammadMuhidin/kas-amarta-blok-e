@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
+import { recordAdminActivity } from "@/lib/adminActivity";
+import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,14 +15,6 @@ function toTitleCase(str = "") {
     .split(/\s+/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
-}
-
-function verifyCSRF(req) {
-  const csrfCookie = req.cookies.get("csrf_token")?.value;
-
-  const csrfHeader = req.headers.get("x-csrf-token");
-
-  return csrfCookie && csrfHeader && csrfCookie === csrfHeader;
 }
 
 export async function GET() {
@@ -46,32 +40,60 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  if (!(await isAdmin(req))) {
+    return unauthorized();
+  }
+
+  if (!validateCSRF(req)) {
+    return NextResponse.json({ error: "Invalid CSRF" }, { status: 403 });
+  }
+
   const body = await req.json();
+
+  const type = String(body.type || "").trim().toLowerCase();
+  const amount = Number(body.amount || 0);
+  const rawNote = String(body.note || "").trim();
+
+  if (!type || !amount || !rawNote) {
+    return NextResponse.json(
+      {
+        error: "Type, amount, and note are required",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
 
   const sheets = await getSheets();
 
   const today = new Date().toISOString().slice(0, 10);
 
-  // verification CSRF
-  if (!verifyCSRF(req)) {
-    return Response.json({ error: "Invalid CSRF" }, { status: 403 });
-  }
+  const cashflowId = generateId("CSFLOW-");
+  const refId = generateId("DIRECT-");
+  const note = toTitleCase(rawNote);
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
     range: "cashflow!A:F",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [
-        [
-          generateId("CSFLOW-"),
-          generateId("DIRECT-"),
-          body.type,
-          body.amount,
-          toTitleCase(body.note),
-          today,
-        ],
-      ],
+      values: [[cashflowId, refId, type, amount, note, today]],
+    },
+  });
+
+  await recordAdminActivity(req, {
+    type: "create",
+    module: "cashflow",
+    severity: type === "expense" ? "warning" : "success",
+    message: `Record ${type} cashflow ${note}`,
+    metadata: {
+      cashflow_id: cashflowId,
+      ref_id: refId,
+      type,
+      amount,
+      note,
+      date: today,
     },
   });
 

@@ -2,17 +2,12 @@ import { NextResponse } from "next/server";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
 import { getAppConfig } from "@/lib/appConfig";
+import { recordAdminActivity } from "@/lib/adminActivity";
+import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
-
-function verifyCSRF(req) {
-  const csrfCookie = req.cookies.get("csrf_token")?.value;
-  const csrfHeader = req.headers.get("x-csrf-token");
-
-  return csrfCookie && csrfHeader && csrfCookie === csrfHeader;
-}
 
 export async function GET() {
   const sheets = await getSheets();
@@ -41,15 +36,19 @@ export async function GET() {
 }
 
 export async function POST(req) {
-  const body = await req.json();
-  const sheets = await getSheets();
+  if (!(await isAdmin(req))) {
+    return unauthorized();
+  }
 
-  if (!verifyCSRF(req)) {
+  if (!validateCSRF(req)) {
     return NextResponse.json(
       { error: "Invalid CSRF" },
       { status: 403 },
     );
   }
+
+  const body = await req.json();
+  const sheets = await getSheets();
 
   const { person_id, house, name, periods, amount } = body;
 
@@ -101,6 +100,22 @@ export async function POST(req) {
     });
   }
 
+  await recordAdminActivity(req, {
+    type: "create",
+    module: "deposit",
+    severity: "success",
+    message: `Save deposit ${house} ${values.length} period`,
+    metadata: {
+      person_id,
+      house,
+      name,
+      periods,
+      amount,
+      inserted: values.length,
+      deposit_ids: values.map((item) => item[0]),
+    },
+  });
+
   return NextResponse.json({
     success: true,
     inserted: values.length,
@@ -108,15 +123,19 @@ export async function POST(req) {
 }
 
 export async function PATCH(req) {
-  const body = await req.json();
-  const sheets = await getSheets();
+  if (!(await isAdmin(req))) {
+    return unauthorized();
+  }
 
-  if (!verifyCSRF(req)) {
+  if (!validateCSRF(req)) {
     return NextResponse.json(
       { error: "Invalid CSRF" },
       { status: 403 },
     );
   }
+
+  const body = await req.json();
+  const sheets = await getSheets();
 
   const { id, action } = body;
 
@@ -276,6 +295,24 @@ export async function PATCH(req) {
           paymentId,
         ],
       ],
+    },
+  });
+
+  await recordAdminActivity(req, {
+    type: "pay",
+    module: "deposit",
+    severity: "success",
+    message: `Pay deposit ${person_house} ${period}`,
+    metadata: {
+      deposit_id: id,
+      payment_id: paymentId,
+      person_id,
+      house: person_house,
+      name: person_name,
+      period,
+      amount,
+      paid_at: today,
+      trash_recorded: isTrashUser,
     },
   });
 

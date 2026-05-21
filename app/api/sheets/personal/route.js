@@ -1,18 +1,12 @@
 import { NextResponse } from "next/server";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
+import { recordAdminActivity } from "@/lib/adminActivity";
+import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
-
-function verifyCSRF(req) {
-  const csrfCookie = req.cookies.get("csrf_token")?.value;
-
-  const csrfHeader = req.headers.get("x-csrf-token");
-
-  return csrfCookie && csrfHeader && csrfCookie === csrfHeader;
-}
 
 export async function GET() {
   const sheets = await getSheets();
@@ -37,23 +31,57 @@ export async function GET() {
 }
 
 export async function POST(req) {
+  if (!(await isAdmin(req))) {
+    return unauthorized();
+  }
+
+  if (!validateCSRF(req)) {
+    return NextResponse.json({ error: "Invalid CSRF" }, { status: 403 });
+  }
+
   const body = await req.json();
+
+  const house = String(body.house || "").trim();
+  const name = String(body.name || "").trim();
+  const trash = String(body.trash || "").trim();
+  const joinDate = String(body.join_date || "").trim();
+
+  if (!house || !name || !trash || !joinDate) {
+    return NextResponse.json(
+      {
+        error: "All member fields are required",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
 
   const sheets = await getSheets();
 
   const id = generateId();
-
-  // verification CSRF
-  if (!verifyCSRF(req)) {
-    return Response.json({ error: "Invalid CSRF" }, { status: 403 });
-  }
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
     range: "personal!A:F",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [[id, body.house, body.name, body.trash, "Y", body.join_date]],
+      values: [[id, house, name, trash, "Y", joinDate]],
+    },
+  });
+
+  await recordAdminActivity(req, {
+    type: "create",
+    module: "personal",
+    severity: "success",
+    message: `Add member ${house} - ${name}`,
+    metadata: {
+      id,
+      house,
+      name,
+      trash,
+      active: "Y",
+      join_date: joinDate,
     },
   });
 

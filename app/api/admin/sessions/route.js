@@ -11,6 +11,8 @@ import {
   revokeAdminSession,
 } from "@/lib/adminSession";
 
+import { recordAdminActivity } from "@/lib/adminActivity";
+
 export const runtime = "nodejs";
 
 export async function GET(req) {
@@ -58,8 +60,27 @@ export async function DELETE(req) {
     }
 
     const { id } = await req.json();
+    const sessions = await getAdminSessions(req);
+    const targetSession = sessions.find(
+      (session) => String(session.id) === String(id),
+    );
 
     await revokeAdminSession(id);
+
+    await recordAdminActivity(req, {
+      type: "revoke",
+      module: "session",
+      severity: "warning",
+      message: `Revoke admin session ${id}`,
+      metadata: {
+        session_id: id,
+        device_name: targetSession?.device_name || null,
+        ip: targetSession?.ip || null,
+        location: targetSession?.location || null,
+        last_active: targetSession?.last_active || null,
+        current: Boolean(targetSession?.current),
+      },
+    });
 
     return NextResponse.json({
       ok: true,

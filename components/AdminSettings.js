@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import AdminSessionCard from "@/components/AdminSessionCard";
 
 function getCookie(name) {
@@ -50,12 +51,12 @@ export default function AdminSettings() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Gagal memuat konfigurasi kas");
+        throw new Error(data.error || "Failed to load cash configuration");
       }
 
       setAppConfig(data.config);
     } catch (err) {
-      alert(err.message || "Gagal memuat konfigurasi kas");
+      alert(err.message || "Failed to load cash configuration");
     } finally {
       setLoadingConfig(false);
     }
@@ -63,7 +64,6 @@ export default function AdminSettings() {
 
   async function updateConfig(key, value) {
     requestPin(async (pin) => {
-
       try {
         setSavingConfig(true);
 
@@ -85,23 +85,22 @@ export default function AdminSettings() {
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data.error || "Gagal update config");
+          throw new Error(data.error || "Failed to update configuration");
         }
 
         await loadAppConfig();
 
         showPopup(
           setPopup,
-          "Konfigurasi berhasil diperbarui",
+          "Configuration updated successfully",
           "success",
         );
       } catch (err) {
-
         setConfigResetKey((prev) => prev + 1);
 
         showPopup(
           setPopup,
-          err.message || "Gagal update config",
+          err.message || "Failed to update configuration",
           "error",
         );
       } finally {
@@ -130,7 +129,6 @@ export default function AdminSettings() {
 
   async function updateSetting(key, value) {
     requestPin(async (pin) => {
-
       setSaving(true);
 
       try {
@@ -159,16 +157,15 @@ export default function AdminSettings() {
 
         showPopup(
           setPopup,
-          "Settings auth berhasil diperbarui",
+          "Auth settings updated successfully",
           "success",
         );
       } catch (err) {
-
         setConfigResetKey((prev) => prev + 1);
 
         showPopup(
           setPopup,
-          err.message || "Gagal update setting",
+          err.message || "Failed to update auth setting",
           "error",
         );
       } finally {
@@ -194,23 +191,25 @@ export default function AdminSettings() {
   }, []);
 
   if (loading) {
-    return <div style={styles.card}>Memuat settings...</div>;
+    return <div style={styles.card}>Loading settings...</div>;
   }
 
-function requestPin(action) {
-  setPinValue("");
-  setPendingAction(() => action);
-  setPinModal(true);
-}
+  function requestPin(action) {
+    setPinValue("");
+    setPendingAction(() => action);
+    setPinModal(true);
+  }
 
-async function confirmPin() {
-  if (!pendingAction) return;
+  async function confirmPin() {
+    if (!pendingAction || saving || savingConfig) return;
 
-  await pendingAction(pinValue);
+    await pendingAction(pinValue);
 
-  setPinModal(false);
-  setPendingAction(null);
-}
+    setPinModal(false);
+    setPendingAction(null);
+  }
+
+  const applyingChange = saving || savingConfig;
 
   return (
     <div style={styles.card}>
@@ -231,7 +230,7 @@ async function confirmPin() {
       <h2 style={styles.title}>Konfigurasi Kas</h2>
 
       {loadingConfig ? (
-        <div style={styles.loadingBox}>Memuat konfigurasi...</div>
+        <div style={styles.loadingBox}>Loading configuration...</div>
       ) : (
         <div style={styles.section}>
           <ConfigItem
@@ -241,6 +240,7 @@ async function confirmPin() {
             value={appConfig?.monthly_fee}
             resetKey={configResetKey}
             disabled={savingConfig}
+            saving={savingConfig}
             isMobile={isMobile}
             onSave={(value) => updateConfig("monthly_fee", value)}
           />
@@ -252,6 +252,7 @@ async function confirmPin() {
             value={appConfig?.trash_fee}
             resetKey={configResetKey}
             disabled={savingConfig}
+            saving={savingConfig}
             isMobile={isMobile}
             onSave={(value) => updateConfig("trash_fee", value)}
           />
@@ -263,6 +264,7 @@ async function confirmPin() {
             value={appConfig?.start_monitoring_date}
             resetKey={configResetKey}
             disabled={savingConfig}
+            saving={savingConfig}
             isMobile={isMobile}
             onSave={(value) =>
               updateConfig("start_monitoring_date", value)
@@ -310,6 +312,7 @@ async function confirmPin() {
                 setPinValue(e.target.value)
               }
               style={styles.pinInput}
+              disabled={applyingChange}
               autoFocus
             />
 
@@ -317,6 +320,7 @@ async function confirmPin() {
               <button
                 type="button"
                 style={styles.pinCancel}
+                disabled={applyingChange}
                 onClick={() => {
                   setPinModal(false);
                   setPendingAction(null);
@@ -327,10 +331,17 @@ async function confirmPin() {
 
               <button
                 type="button"
-                style={styles.pinConfirm}
+                style={{
+                  ...styles.pinConfirm,
+                  opacity: applyingChange ? 0.7 : 1,
+                  cursor: applyingChange ? "not-allowed" : "pointer",
+                }}
+                disabled={applyingChange}
                 onClick={confirmPin}
               >
-                Apply Change
+                <LoadingButtonContent loading={applyingChange} loadingText="Applying...">
+                  Apply Change
+                </LoadingButtonContent>
               </button>
             </div>
           </div>
@@ -386,6 +397,7 @@ function ConfigItem({
   resetKey,
   onSave,
   disabled,
+  saving,
   isMobile,
 }) {
   const [local, setLocal] = useState(value);
@@ -395,6 +407,7 @@ function ConfigItem({
   }, [value, resetKey]);
 
   const unchanged = String(local) === String(value);
+  const loading = saving && !unchanged;
 
   return (
     <div
@@ -437,7 +450,9 @@ function ConfigItem({
             cursor: disabled || unchanged ? "not-allowed" : "pointer",
           }}
         >
-          Simpan
+          <LoadingButtonContent loading={loading} loadingText="Saving...">
+            Save
+          </LoadingButtonContent>
         </button>
       </div>
     </div>
@@ -583,76 +598,76 @@ const styles = {
   },
 
   pinOverlay: {
-  position: "fixed",
-  inset: 0,
-  background: "rgba(2,6,23,.6)",
-  backdropFilter: "blur(4px)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  zIndex: 9999,
-},
+    position: "fixed",
+    inset: 0,
+    background: "rgba(2,6,23,.6)",
+    backdropFilter: "blur(4px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999,
+  },
 
-pinModal: {
-  width: "100%",
-  maxWidth: 360,
-  background: "var(--admin-card)",
-  border: "1px solid var(--admin-border)",
-  borderRadius: 18,
-  padding: 22,
-  boxSizing: "border-box",
-  boxShadow: "0 20px 50px rgba(0,0,0,.35)",
-},
+  pinModal: {
+    width: "100%",
+    maxWidth: 360,
+    background: "var(--admin-card)",
+    border: "1px solid var(--admin-border)",
+    borderRadius: 18,
+    padding: 22,
+    boxSizing: "border-box",
+    boxShadow: "0 20px 50px rgba(0,0,0,.35)",
+  },
 
-pinTitle: {
-  fontSize: 18,
-  fontWeight: 700,
-  marginBottom: 8,
-  color: "var(--admin-text)",
-},
+  pinTitle: {
+    fontSize: 18,
+    fontWeight: 700,
+    marginBottom: 8,
+    color: "var(--admin-text)",
+  },
 
-pinDesc: {
-  fontSize: 14,
-  color: "var(--admin-muted)",
-  marginBottom: 16,
-  lineHeight: 1.5,
-},
+  pinDesc: {
+    fontSize: 14,
+    color: "var(--admin-muted)",
+    marginBottom: 16,
+    lineHeight: 1.5,
+  },
 
-pinInput: {
-  width: "100%",
-  boxSizing: "border-box",
-  padding: "12px 14px",
-  borderRadius: 12,
-  border: "1px solid var(--admin-border)",
-  background: "var(--admin-input)",
-  color: "var(--admin-text)",
-  fontSize: 15,
-  outline: "none",
-  marginBottom: 16,
-},
+  pinInput: {
+    width: "100%",
+    boxSizing: "border-box",
+    padding: "12px 14px",
+    borderRadius: 12,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-input)",
+    color: "var(--admin-text)",
+    fontSize: 15,
+    outline: "none",
+    marginBottom: 16,
+  },
 
-pinActions: {
-  display: "flex",
-  justifyContent: "flex-end",
-  gap: 10,
-},
+  pinActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 10,
+  },
 
-pinCancel: {
-  padding: "10px 14px",
-  borderRadius: 10,
-  border: "1px solid var(--admin-border)",
-  background: "var(--admin-row)",
-  color: "var(--admin-text)",
-  cursor: "pointer",
-},
+  pinCancel: {
+    padding: "10px 14px",
+    borderRadius: 10,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+    color: "var(--admin-text)",
+    cursor: "pointer",
+  },
 
-pinConfirm: {
-  padding: "10px 14px",
-  borderRadius: 10,
-  border: "none",
-  background: "var(--admin-primary)",
-  color: "#020617",
-  fontWeight: 700,
-  cursor: "pointer",
-},
+  pinConfirm: {
+    padding: "10px 14px",
+    borderRadius: 10,
+    border: "none",
+    background: "var(--admin-primary)",
+    color: "#020617",
+    fontWeight: 700,
+    cursor: "pointer",
+  },
 };

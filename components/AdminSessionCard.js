@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 
 function getCookie(name) {
   return document.cookie
@@ -19,11 +20,11 @@ function getTimeAgo(date) {
 
   const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
 
-  if (diff < 60) return "baru saja";
-  if (diff < 3600) return `${Math.floor(diff / 60)} menit lalu`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} jam lalu`;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
 
-  return `${Math.floor(diff / 86400)} hari lalu`;
+  return `${Math.floor(diff / 86400)} days ago`;
 }
 
 export default function AdminSessionCard() {
@@ -60,12 +61,12 @@ export default function AdminSessionCard() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Gagal memuat session");
+        throw new Error(data.error || "Failed to load sessions");
       }
 
       setSessions(data.sessions || []);
     } catch (err) {
-      setError(err.message || "Gagal memuat session");
+      setError(err.message || "Failed to load sessions");
     } finally {
       setLoading(false);
     }
@@ -99,13 +100,13 @@ export default function AdminSessionCard() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Gagal memutuskan session");
+        throw new Error(data.error || "Failed to revoke session");
       }
 
       setPendingSession(null);
       await loadSessions();
     } catch (err) {
-      setError(err.message || "Gagal memutuskan session");
+      setError(err.message || "Failed to revoke session");
     } finally {
       setRevokingId("");
     }
@@ -119,9 +120,9 @@ export default function AdminSessionCard() {
     <div style={styles.card}>
       <div style={styles.header}>
         <div>
-          <h2 style={styles.title}>Session Aktif</h2>
+          <h2 style={styles.title}>Active Sessions</h2>
           <p style={styles.description}>
-            Daftar perangkat yang sedang memiliki akses admin.
+            List of devices currently holding administrator access.
           </p>
         </div>
 
@@ -134,16 +135,18 @@ export default function AdminSessionCard() {
             opacity: loading ? 0.6 : 1,
           }}
         >
-          Refresh
+          <LoadingButtonContent loading={loading} loadingText="Refreshing...">
+            Refresh
+          </LoadingButtonContent>
         </button>
       </div>
 
       {error && <div style={styles.errorBox}>{error}</div>}
 
       {loading ? (
-        <div style={styles.emptyBox}>Memuat session...</div>
+        <div style={styles.emptyBox}>Loading sessions...</div>
       ) : sessions.length === 0 ? (
-        <div style={styles.emptyBox}>Tidak ada session aktif.</div>
+        <div style={styles.emptyBox}>No active sessions.</div>
       ) : (
         <div style={styles.sessionList}>
           {sessions.map((session) => (
@@ -156,7 +159,7 @@ export default function AdminSessionCard() {
 
                   {session.current && (
                     <div style={styles.currentBadge}>
-                      Session Saat Ini
+                      Current Session
                     </div>
                   )}
                 </div>
@@ -182,7 +185,12 @@ export default function AdminSessionCard() {
                     opacity: revokingId === session.id ? 0.6 : 1,
                   }}
                 >
-                  {revokingId === session.id ? "Memutus..." : "Putuskan"}
+                  <LoadingButtonContent
+                    loading={revokingId === session.id}
+                    loadingText="Revoking..."
+                  >
+                    Revoke
+                  </LoadingButtonContent>
                 </button>
               )}
             </div>
@@ -195,10 +203,10 @@ export default function AdminSessionCard() {
           <div style={styles.modalCard}>
             <div style={styles.modalBadge}>Session Access</div>
 
-            <h3 style={styles.modalTitle}>Putuskan session ini?</h3>
+            <h3 style={styles.modalTitle}>Revoke this session?</h3>
 
             <p style={styles.modalDesc}>
-              Perangkat ini akan kehilangan akses admin dan harus login ulang.
+              This device will lose administrator access and must sign in again.
             </p>
 
             <div style={styles.modalSessionBox}>
@@ -224,7 +232,7 @@ export default function AdminSessionCard() {
                 disabled={!!revokingId}
                 style={styles.cancelButton}
               >
-                Batal
+                Cancel
               </button>
 
               <button
@@ -236,7 +244,12 @@ export default function AdminSessionCard() {
                   opacity: revokingId ? 0.65 : 1,
                 }}
               >
-                {revokingId ? "Memutus..." : "Putuskan Session"}
+                <LoadingButtonContent
+                  loading={!!revokingId}
+                  loadingText="Revoking..."
+                >
+                  Revoke Session
+                </LoadingButtonContent>
               </button>
             </div>
           </div>

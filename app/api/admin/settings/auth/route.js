@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthConfigs, updateAuthConfig } from "@/lib/webauth";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import { recordAdminActivity } from "@/lib/adminActivity";
 
 export const runtime = "nodejs";
 
@@ -59,6 +60,17 @@ export async function PATCH(req) {
     }
 
     await updateAuthConfig(key, value ? "true" : "false");
+
+    await recordAdminActivity(req, {
+      type: "update",
+      module: "settings-auth",
+      severity: "success",
+      message: `Update auth setting ${key}`,
+      metadata: {
+        key,
+        value: Boolean(value),
+      },
+    });
 
     return NextResponse.json({
       ok: true,
