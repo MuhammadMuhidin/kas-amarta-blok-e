@@ -7,8 +7,11 @@ const severities = ["", "info", "success", "warning", "error"];
 
 function formatDate(value) {
   if (!value) return "-";
+
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
+
   return date.toLocaleString("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -17,6 +20,14 @@ function formatDate(value) {
 
 function hasMetadata(value) {
   return value && Object.keys(value || {}).length > 0;
+}
+
+function titleCase(value) {
+  if (!value) return "All";
+
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export default function AdminActivityPanel() {
@@ -39,6 +50,7 @@ export default function AdminActivityPanel() {
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
+
     params.set("limit", "20");
     params.set("page", String(page));
     params.set("sort", sort);
@@ -51,6 +63,17 @@ export default function AdminActivityPanel() {
 
     return params.toString();
   }, [module, severity, search, sort, dateFrom, dateTo, page]);
+
+  const filteredLabel = useMemo(() => {
+    const items = [];
+
+    if (module) items.push(titleCase(module));
+    if (severity) items.push(titleCase(severity));
+    if (dateFrom || dateTo) items.push(`${dateFrom || "..."} - ${dateTo || "..."}`);
+    if (search.trim()) items.push(`Search: ${search.trim()}`);
+
+    return items.length ? items.join(" • ") : "All activity";
+  }, [module, severity, dateFrom, dateTo, search]);
 
   async function loadActivities() {
     setLoading(true);
@@ -98,18 +121,39 @@ export default function AdminActivityPanel() {
     <div className="admin-card activity-panel">
       <div className="activity-header">
         <div>
-          <h3 className="activity-title">Activity Audit</h3>
-          <p className="activity-subtitle">Cari siapa melakukan apa, dimana, dan kapan.</p>
+          <div className="activity-kicker">Admin Audit Log</div>
+          <h3 className="activity-title">Activity</h3>
+          <p className="activity-subtitle">Track admin actions, login activity, device, location, and system status.</p>
         </div>
 
         <button
           type="button"
           onClick={loadActivities}
-          className="activity-refresh-btn"
+          className="admin-small-btn activity-refresh-btn"
           disabled={loading}
         >
-          {loading ? "Loading..." : "Refresh"}
+          {loading ? "Refreshing..." : "Refresh"}
         </button>
+      </div>
+
+      <div className="admin-monitor-grid activity-stats-grid">
+        <div className="admin-status-card">
+          <div className="admin-status-label">Total Activity</div>
+          <div className="admin-status-value">{pagination.total || 0}</div>
+          <div className="admin-status-meta">{filteredLabel}</div>
+        </div>
+
+        <div className="admin-status-card">
+          <div className="admin-status-label">Current Page</div>
+          <div className="admin-status-value">{pagination.page || 1} / {pagination.total_pages || 1}</div>
+          <div className="admin-status-meta">Sorted by {sort === "desc" ? "newest first" : "oldest first"}</div>
+        </div>
+
+        <div className="admin-status-card">
+          <div className="admin-status-label">Load Status</div>
+          <div className={error ? "admin-status-error" : "admin-status-value"}>{error ? "Error" : loading ? "Loading" : "Ready"}</div>
+          <div className="admin-status-meta">{error || "Activity log is available"}</div>
+        </div>
       </div>
 
       <div className="activity-toolbar">
@@ -117,23 +161,23 @@ export default function AdminActivityPanel() {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="activity-search"
+          className="admin-input activity-search"
           placeholder="Search actor, action, IP, device, location..."
         />
 
-        <select value={module} onChange={(e) => setModule(e.target.value)} className="activity-input">
+        <select value={module} onChange={(e) => setModule(e.target.value)} className="admin-input activity-input">
           {modules.map((item) => (
-            <option key={item || "all-module"} value={item}>{item || "All modules"}</option>
+            <option key={item || "all-module"} value={item}>{item ? titleCase(item) : "All modules"}</option>
           ))}
         </select>
 
-        <select value={severity} onChange={(e) => setSeverity(e.target.value)} className="activity-input">
+        <select value={severity} onChange={(e) => setSeverity(e.target.value)} className="admin-input activity-input">
           {severities.map((item) => (
-            <option key={item || "all-severity"} value={item}>{item || "All severities"}</option>
+            <option key={item || "all-severity"} value={item}>{item ? titleCase(item) : "All severities"}</option>
           ))}
         </select>
 
-        <select value={sort} onChange={(e) => setSort(e.target.value)} className="activity-input">
+        <select value={sort} onChange={(e) => setSort(e.target.value)} className="admin-input activity-input">
           <option value="desc">Newest first</option>
           <option value="asc">Oldest first</option>
         </select>
@@ -142,7 +186,7 @@ export default function AdminActivityPanel() {
           type="date"
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
-          className="activity-input"
+          className="admin-input activity-input"
           aria-label="From date"
         />
 
@@ -150,73 +194,68 @@ export default function AdminActivityPanel() {
           type="date"
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
-          className="activity-input"
+          className="admin-input activity-input"
           aria-label="To date"
         />
 
-        <button type="button" className="activity-reset-btn" onClick={resetFilters}>Reset</button>
+        <button type="button" className="admin-small-btn activity-reset-btn" onClick={resetFilters}>Reset</button>
       </div>
 
       {error && <div className="admin-error-box">{error}</div>}
 
-      <div className="activity-summary">
-        <span>{pagination.total || 0} activity</span>
-        <span>Page {pagination.page || 1} of {pagination.total_pages || 1}</span>
-      </div>
-
-      <div className="activity-table-wrap">
-        <table className="activity-table">
+      <div className="admin-table-wrapper activity-table-wrap">
+        <table className="admin-table activity-table">
           <thead>
             <tr>
-              <th>When</th>
-              <th>Who</th>
-              <th>What</th>
-              <th>Where</th>
-              <th>Status</th>
-              <th>Detail</th>
+              <th className="admin-th">When</th>
+              <th className="admin-th">Who</th>
+              <th className="admin-th">What</th>
+              <th className="admin-th">Where</th>
+              <th className="admin-th">Status</th>
+              <th className="admin-th">Detail</th>
             </tr>
           </thead>
 
           <tbody>
             {activities.length === 0 && !loading ? (
               <tr>
-                <td colSpan={6} className="activity-empty">No activity found</td>
+                <td colSpan={6} className="admin-td activity-empty">No activity found</td>
               </tr>
             ) : (
-              activities.map((item) => {
+              activities.map((item, index) => {
                 const opened = expandedId === item.id;
 
                 return (
-                  <tr key={item.id} className="activity-row">
-                    <td data-label="When">
+                  <tr key={item.id} className={index % 2 ? "admin-row-alt activity-row" : "activity-row"}>
+                    <td className="admin-td activity-cell" data-label="When">
                       <div className="activity-when">{formatDate(item.created_at)}</div>
                     </td>
 
-                    <td data-label="Who">
+                    <td className="admin-td activity-cell" data-label="Who">
                       <div className="activity-primary">{item.actor || "-"}</div>
                       <div className="activity-muted">{item.device_name || "-"}</div>
                     </td>
 
-                    <td data-label="What">
+                    <td className="admin-td activity-cell activity-message-cell" data-label="What">
                       <div className="activity-primary">{item.message}</div>
                       <div className="activity-muted">{item.module} • {item.type}</div>
                     </td>
 
-                    <td data-label="Where">
+                    <td className="admin-td activity-cell" data-label="Where">
                       <div className="activity-primary">{item.location || "-"}</div>
                       <div className="activity-muted">{item.ip || "-"}</div>
                     </td>
 
-                    <td data-label="Status">
+                    <td className="admin-td activity-cell" data-label="Status">
                       <span className={`activity-badge activity-badge-${item.severity || "info"}`}>
                         {item.severity || "info"}
                       </span>
                     </td>
 
-                    <td data-label="Detail">
+                    <td className="admin-td activity-cell activity-detail-cell" data-label="Detail">
                       <button
                         type="button"
-                        className="activity-detail-btn"
+                        className="admin-small-btn activity-detail-btn"
                         disabled={!hasMetadata(item.metadata)}
                         onClick={() => setExpandedId(opened ? null : item.id)}
                       >
@@ -238,18 +277,18 @@ export default function AdminActivityPanel() {
       <div className="activity-pagination">
         <button
           type="button"
-          className="activity-page-btn"
+          className="admin-small-btn activity-page-btn"
           disabled={page <= 1 || loading}
           onClick={() => setPage((p) => Math.max(p - 1, 1))}
         >
           Previous
         </button>
 
-        <span>{pagination.page || 1} / {pagination.total_pages || 1}</span>
+        <span className="activity-page-info">Page {pagination.page || 1} of {pagination.total_pages || 1}</span>
 
         <button
           type="button"
-          className="activity-page-btn"
+          className="admin-small-btn activity-page-btn"
           disabled={page >= (pagination.total_pages || 1) || loading}
           onClick={() => setPage((p) => p + 1)}
         >
