@@ -3,7 +3,18 @@
 import { useEffect, useMemo, useState } from "react";
 import "./AdminActivityPanel.css";
 
-const modules = ["", "personal", "payment", "deposit", "cashflow", "settings", "session"];
+const modules = [
+  "",
+  "personal",
+  "payment",
+  "deposit",
+  "cashflow",
+  "trash",
+  "session",
+  "settings-app",
+  "settings-auth",
+];
+
 const severities = ["", "info", "success", "warning", "error"];
 
 function formatDate(value) {
@@ -23,6 +34,7 @@ function titleCase(value) {
 
   return String(value)
     .replace(/_/g, " ")
+    .replace(/-/g, " ")
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
