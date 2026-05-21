@@ -50,42 +50,48 @@ export async function POST(req) {
 
   const body = await req.json();
 
+  const type = String(body.type || "").trim().toLowerCase();
+  const amount = Number(body.amount || 0);
+  const rawNote = String(body.note || "").trim();
+
+  if (!type || !amount || !rawNote) {
+    return NextResponse.json(
+      {
+        error: "Type, amount, and note are required",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
   const sheets = await getSheets();
 
   const today = new Date().toISOString().slice(0, 10);
 
   const cashflowId = generateId("CSFLOW-");
   const refId = generateId("DIRECT-");
-  const note = toTitleCase(body.note);
+  const note = toTitleCase(rawNote);
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
     range: "cashflow!A:F",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [
-        [
-          cashflowId,
-          refId,
-          body.type,
-          body.amount,
-          note,
-          today,
-        ],
-      ],
+      values: [[cashflowId, refId, type, amount, note, today]],
     },
   });
 
   await recordAdminActivity(req, {
     type: "create",
     module: "cashflow",
-    severity: body.type === "expense" ? "warning" : "success",
-    message: `Record ${body.type} cashflow ${note}`,
+    severity: type === "expense" ? "warning" : "success",
+    message: `Record ${type} cashflow ${note}`,
     metadata: {
       cashflow_id: cashflowId,
       ref_id: refId,
-      type: body.type,
-      amount: body.amount,
+      type,
+      amount,
       note,
       date: today,
     },
