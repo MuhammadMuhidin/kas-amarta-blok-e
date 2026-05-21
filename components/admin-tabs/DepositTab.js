@@ -144,6 +144,7 @@ export default function DepositTab({
                     <button
                       type="button"
                       className={buttonClass}
+                      style={{ minWidth: 96 }}
                       disabled={!canPay || isPayingThisDeposit || savingDeposit}
                       onClick={() => payDeposit(d.id)}
                     >
