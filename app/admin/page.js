@@ -626,6 +626,119 @@ export default function AdminPage() {
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
 
       <div className="admin-wrapper">
+        <div className="admin-header">
+          <button className="admin-home-btn" onClick={() => router.push("/")}>« Home</button>
+          <h1 className="admin-title">Cash Flow Management</h1>
+        </div>
+
+        <div className="admin-tabs">
+          <button className={tabClassName("personal")} onClick={() => setTab("personal")}>👤 Personal</button>
+          <button className={tabClassName("payment")} onClick={() => setTab("payment")}>
+            <div className="admin-tab-content">
+              <span>💳 Payment</span>
+              {pendingCurrentDeposits.length > 0 && (
+                <span className="admin-deposit-badge">
+                  {pendingCurrentDeposits.length} deposit pending
+                </span>
+              )}
+            </div>
+          </button>
+          <button className={tabClassName("deposit")} onClick={() => setTab("deposit")}>💰 Deposit Balance</button>
+          <button className={tabClassName("cashflow")} onClick={() => setTab("cashflow")}>📝 Cashflow</button>
+          <button className={tabClassName("summary")} onClick={() => setTab("summary")}>🛡️ Summary Backup</button>
+          <button
+            className={tabClassName("monitoring")}
+            onClick={() => {
+              setTab("monitoring");
+              if (tab === "monitoring") refreshMonitoring();
+            }}
+          >
+            🖥️ Monitoring
+          </button>
+          <button className={tabClassName("activity")} onClick={() => setTab("activity")}>📋 Activity</button>
+          <button className={tabClassName("settings")} onClick={() => setTab("settings")}>⚙️ Settings</button>
+        </div>
+
+        {tab === "personal" && (
+          <PersonalTab
+            member={member}
+            setMember={setMember}
+            addMember={addMember}
+            loadingAdd={loadingAdd}
+            memberFilter={memberFilter}
+            toggleMemberFilter={toggleMemberFilter}
+            stats={stats}
+            memberSearch={memberSearch}
+            setMemberSearch={setMemberSearch}
+            searchedPersonal={searchedPersonal}
+            rowClassName={rowClassName}
+          />
+        )}
+
+        {tab === "payment" && (
+          <PaymentTab
+            configError={configError}
+            recordPayment={recordPayment}
+            payment={payment}
+            setPayment={setPayment}
+            personal={personal}
+            selected={selected}
+            toggleHouse={toggleHouse}
+            normalize={normalize}
+            isHousePaidForPeriod={isHousePaidForPeriod}
+            loadingPayment={loadingPayment}
+          />
+        )}
+
+        {tab === "deposit" && (
+          <DepositTab
+            saveDeposit={saveDeposit}
+            depositForm={depositForm}
+            setDepositForm={setDepositForm}
+            activePersons={activePersons}
+            depositAmount={depositAmount}
+            selectedDepositPerson={selectedDepositPerson}
+            appConfig={appConfig}
+            nextSixPeriods={nextSixPeriods}
+            selectedDepositPeriods={selectedDepositPeriods}
+            savingDeposit={savingDeposit}
+            sortedDeposits={sortedDeposits}
+            getDepositStatus={getDepositStatus}
+            payingDepositId={payingDepositId}
+            payments={payments}
+            normalize={normalize}
+            payDeposit={payDeposit}
+          />
+        )}
+
+        {tab === "cashflow" && (
+          <CashflowTab
+            addCashflow={addCashflow}
+            cashflow={cashflow}
+            setCashflow={setCashflow}
+            loadingCashflow={loadingCashflow}
+          />
+        )}
+
+        {tab === "summary" && (
+          <SummaryBackupTab
+            loadingSummary={loadingSummary}
+            summaryBackup={summaryBackup}
+          />
+        )}
+
+        {tab === "monitoring" && (
+          <MonitoringTab
+            loadingDailyBackup={loadingDailyBackup}
+            dailyBackup={dailyBackup}
+            paymentCashflowIntegrity={paymentCashflowIntegrity}
+            trashMismatch={trashMismatch}
+            suspiciousData={suspiciousData}
+          />
+        )}
+
+        {tab === "activity" && <AdminActivityPanel />}
+        {tab === "settings" && <AdminSettings />}
       </div>
     </>
   );
