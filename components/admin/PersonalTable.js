@@ -5,7 +5,7 @@ const inlineSelectStyle = {
   background: "transparent",
   border: "none",
   boxShadow: "none",
-  padding: "0 18px 0 0",
+  padding: 0,
   minHeight: "auto",
   height: "auto",
   width: "100%",
@@ -15,6 +15,8 @@ const inlineSelectStyle = {
   appearance: "none",
   WebkitAppearance: "none",
   MozAppearance: "none",
+  textAlign: "center",
+  textAlignLast: "center",
 };
 
 export default function PersonalTable({
