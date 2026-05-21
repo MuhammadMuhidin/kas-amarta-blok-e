@@ -1,4 +1,17 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import { useEffect, useMemo, useState } from "react";
+
+function getCurrentPeriod() {
+  return new Date().toISOString().slice(0, 7);
+}
+
+function isDepositPaid(deposit, normalize) {
+  return (
+    normalize(deposit.status).toLowerCase() === "paid" &&
+    normalize(deposit.paid_at) !== "" &&
+    normalize(deposit.payment_id) !== ""
+  );
+}
 
 export default function PaymentTab({
   configError,
@@ -12,9 +25,43 @@ export default function PaymentTab({
   isHousePaidForPeriod,
   loadingPayment,
 }) {
+  const [deposits, setDeposits] = useState([]);
+  const currentPeriod = getCurrentPeriod();
+
+  useEffect(() => {
+    async function loadDeposit() {
+      const res = await fetch("/api/sheets/deposit", {
+        cache: "no-store",
+        method: "GET",
+      });
+
+      const data = await res.json();
+      setDeposits(data || []);
+    }
+
+    loadDeposit();
+  }, []);
+
+  const pendingCurrentDeposits = useMemo(() => {
+    return deposits.filter((deposit) => {
+      const samePeriod = normalize(deposit.period) === currentPeriod;
+      const notPaid = !isDepositPaid(deposit, normalize);
+
+      return samePeriod && notPaid;
+    });
+  }, [deposits, currentPeriod, normalize]);
+
+  const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
+  const disableRecordPayment = loadingPayment || hasPendingCurrentDeposit;
+
   return (
     <>
       {configError && <div className="admin-error-box">{configError}</div>}
+      {hasPendingCurrentDeposit && (
+        <div className="admin-error-box">
+          Selesaikan {pendingCurrentDeposits.length} deposit bulan berjalan lewat Pay Now sebelum mencatat payment manual.
+        </div>
+      )}
       <div className="admin-card">
         <h3>Bulk Payment</h3>
         <form onSubmit={recordPayment} className="admin-form">
@@ -69,7 +116,7 @@ export default function PaymentTab({
                 );
               })}
           </div>
-          <button className="admin-btn" disabled={loadingPayment}>
+          <button className="admin-btn" disabled={disableRecordPayment}>
             <LoadingButtonContent loading={loadingPayment} loadingText="Recording...">
               Record Payment
             </LoadingButtonContent>
