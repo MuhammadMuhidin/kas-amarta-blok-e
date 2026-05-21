@@ -1,3 +1,5 @@
+import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+
 export default function DepositTab({
   saveDeposit,
   depositForm,
@@ -79,7 +81,9 @@ export default function DepositTab({
         </div>
 
         <button className="admin-btn" disabled={savingDeposit}>
-          {savingDeposit ? "Saving..." : "Save Deposit"}
+          <LoadingButtonContent loading={savingDeposit} loadingText="Saving...">
+            Save Deposit
+          </LoadingButtonContent>
         </button>
       </form>
 
@@ -143,7 +147,9 @@ export default function DepositTab({
                       disabled={!canPay || isPayingThisDeposit || savingDeposit}
                       onClick={() => payDeposit(d.id)}
                     >
-                      {isPayingThisDeposit ? "Paying..." : buttonText}
+                      <LoadingButtonContent loading={isPayingThisDeposit} loadingText="Paying...">
+                        {buttonText}
+                      </LoadingButtonContent>
                     </button>
                   </td>
                 </tr>
