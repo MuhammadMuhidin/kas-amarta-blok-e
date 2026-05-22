@@ -15,6 +15,18 @@ body {
   --admin-row: #f9fafb;
   --admin-button: #e5e7eb;
   --admin-primary: #60a5fa;
+  --admin-primary-soft: rgba(96,165,250,.14);
+  --admin-on-primary: #020617;
+  --admin-income: #2563eb;
+  --admin-income-soft: rgba(37,99,235,.12);
+  --admin-expense: #dc2626;
+  --admin-expense-soft: rgba(220,38,38,.12);
+  --admin-success: #16a34a;
+  --admin-success-soft: rgba(22,163,74,.12);
+  --admin-warning: #d97706;
+  --admin-warning-soft: rgba(217,119,6,.14);
+  --admin-danger: #dc2626;
+  --admin-danger-soft: rgba(220,38,38,.12);
 }
 
 :root[data-admin-theme="ios"] {
@@ -27,6 +39,18 @@ body {
   --admin-row: rgba(255,255,255,.58);
   --admin-button: rgba(255,255,255,.82);
   --admin-primary: #007aff;
+  --admin-primary-soft: rgba(0,122,255,.14);
+  --admin-on-primary: #ffffff;
+  --admin-income: #007aff;
+  --admin-income-soft: rgba(0,122,255,.12);
+  --admin-expense: #ff3b30;
+  --admin-expense-soft: rgba(255,59,48,.12);
+  --admin-success: #34c759;
+  --admin-success-soft: rgba(52,199,89,.14);
+  --admin-warning: #ff9500;
+  --admin-warning-soft: rgba(255,149,0,.14);
+  --admin-danger: #ff3b30;
+  --admin-danger-soft: rgba(255,59,48,.12);
 }
 
 :root[data-admin-theme="midnight"] {
@@ -39,6 +63,18 @@ body {
   --admin-row: #111827;
   --admin-button: #1e293b;
   --admin-primary: #3b82f6;
+  --admin-primary-soft: rgba(59,130,246,.16);
+  --admin-on-primary: #ffffff;
+  --admin-income: #60a5fa;
+  --admin-income-soft: rgba(96,165,250,.16);
+  --admin-expense: #f87171;
+  --admin-expense-soft: rgba(248,113,113,.16);
+  --admin-success: #4ade80;
+  --admin-success-soft: rgba(74,222,128,.14);
+  --admin-warning: #fbbf24;
+  --admin-warning-soft: rgba(251,191,36,.16);
+  --admin-danger: #f87171;
+  --admin-danger-soft: rgba(248,113,113,.16);
 }
 
 :root[data-admin-theme="emerald"] {
@@ -51,6 +87,18 @@ body {
   --admin-row: #f0fdf4;
   --admin-button: #d1fae5;
   --admin-primary: #10b981;
+  --admin-primary-soft: rgba(16,185,129,.16);
+  --admin-on-primary: #022c22;
+  --admin-income: #047857;
+  --admin-income-soft: rgba(4,120,87,.12);
+  --admin-expense: #dc2626;
+  --admin-expense-soft: rgba(220,38,38,.12);
+  --admin-success: #059669;
+  --admin-success-soft: rgba(5,150,105,.14);
+  --admin-warning: #b45309;
+  --admin-warning-soft: rgba(180,83,9,.14);
+  --admin-danger: #dc2626;
+  --admin-danger-soft: rgba(220,38,38,.12);
 }
 
 :root[data-admin-theme="amoled"] {
@@ -63,6 +111,18 @@ body {
   --admin-row: #0d0d0d;
   --admin-button: #101010;
   --admin-primary: #ffffff;
+  --admin-primary-soft: rgba(255,255,255,.12);
+  --admin-on-primary: #000000;
+  --admin-income: #93c5fd;
+  --admin-income-soft: rgba(147,197,253,.14);
+  --admin-expense: #fca5a5;
+  --admin-expense-soft: rgba(252,165,165,.14);
+  --admin-success: #86efac;
+  --admin-success-soft: rgba(134,239,172,.12);
+  --admin-warning: #fde68a;
+  --admin-warning-soft: rgba(253,230,138,.12);
+  --admin-danger: #fca5a5;
+  --admin-danger-soft: rgba(252,165,165,.14);
 }
 
 :root[data-admin-theme="hacker"] {
@@ -75,6 +135,18 @@ body {
   --admin-row: #052105;
   --admin-button: #0b2a0b;
   --admin-primary: #22c55e;
+  --admin-primary-soft: rgba(34,197,94,.18);
+  --admin-on-primary: #021302;
+  --admin-income: #4ade80;
+  --admin-income-soft: rgba(74,222,128,.16);
+  --admin-expense: #fb7185;
+  --admin-expense-soft: rgba(251,113,133,.14);
+  --admin-success: #22c55e;
+  --admin-success-soft: rgba(34,197,94,.16);
+  --admin-warning: #bef264;
+  --admin-warning-soft: rgba(190,242,100,.14);
+  --admin-danger: #fb7185;
+  --admin-danger-soft: rgba(251,113,133,.14);
 }
 
 :root[data-admin-theme="ios"] .admin-card,
