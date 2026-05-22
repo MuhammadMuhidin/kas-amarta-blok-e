@@ -5,9 +5,9 @@ import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import { useState } from "react";
 
 const pageSize = 10;
-const incomeColor = "#2563eb";
-const expenseColor = "#dc2626";
-const successColor = "#16a34a";
+const incomeColor = "var(--admin-income)";
+const expenseColor = "var(--admin-expense)";
+const successColor = "var(--admin-success)";
 
 function formatRupiah(value) {
   return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
@@ -366,8 +366,8 @@ const styles = {
   latestBadge: {
     padding: "3px 8px",
     borderRadius: 999,
-    background: "rgba(37,99,235,.12)",
-    color: "#2563eb",
+    background: "var(--admin-primary-soft)",
+    color: "var(--admin-primary)",
     fontSize: 11,
     fontWeight: 800,
   },
