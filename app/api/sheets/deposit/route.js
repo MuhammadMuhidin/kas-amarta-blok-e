@@ -9,6 +9,10 @@ export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
 
+function normalize(value) {
+  return String(value || "").trim();
+}
+
 export async function GET() {
   const sheets = await getSheets();
 
@@ -189,6 +193,43 @@ export async function PATCH(req) {
   const depositRowNumber = depositIndex + 2;
   const deposit = depositRows[depositRowNumber - 1];
 
+  const appConfig = await getAppConfig();
+  const currentMonthlyFee = Number(appConfig?.monthly_fee) || 0;
+  const currentTrashFee = Number(appConfig?.trash_fee) || 0;
+
+  const personalRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Personal!A:F",
+  });
+
+  const personalRows = personalRes.data.values || [];
+  const member = personalRows.slice(1).find((r) => r[0] === deposit[1]);
+
+  if (!member) {
+    return NextResponse.json(
+      { error: "Member not found" },
+      { status: 404 },
+    );
+  }
+
+  const isTrashUser = normalize(member[3]).toUpperCase() === "Y";
+
+  function validateBookingAmount(amount, trashAmount) {
+    if (amount !== currentMonthlyFee) {
+      return `Kas booking Rp${amount.toLocaleString("id-ID")} berbeda dengan tarif aktif Rp${currentMonthlyFee.toLocaleString("id-ID")}`;
+    }
+
+    if (!isTrashUser && trashAmount > 0) {
+      return "Warga ini tidak terdaftar iuran sampah, trash booking harus Rp0";
+    }
+
+    if (isTrashUser && trashAmount !== currentTrashFee) {
+      return `Trash booking Rp${trashAmount.toLocaleString("id-ID")} berbeda dengan tarif aktif Rp${currentTrashFee.toLocaleString("id-ID")}`;
+    }
+
+    return "";
+  }
+
   if (action === "UPDATE_SNAPSHOT") {
     if (!["pending", "waiting"].includes(String(deposit[7] || ""))) {
       return NextResponse.json(
@@ -200,9 +241,23 @@ export async function PATCH(req) {
     const amount = Number(body.amount);
     const trashAmount = Number(body.trash_amount || 0);
 
-    if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(trashAmount) || trashAmount < 0) {
+    if (
+      !Number.isFinite(amount) ||
+      amount < 0 ||
+      !Number.isFinite(trashAmount) ||
+      trashAmount < 0
+    ) {
       return NextResponse.json(
         { error: "Invalid booking amount" },
+        { status: 400 },
+      );
+    }
+
+    const validationError = validateBookingAmount(amount, trashAmount);
+
+    if (validationError) {
+      return NextResponse.json(
+        { error: validationError },
         { status: 400 },
       );
     }
@@ -253,6 +308,15 @@ export async function PATCH(req) {
   const amount = Number(deposit[5]) || 0;
   const trashAmount = Number(deposit[6]) || 0;
 
+  const validationError = validateBookingAmount(amount, trashAmount);
+
+  if (validationError) {
+    return NextResponse.json(
+      { error: validationError },
+      { status: 400 },
+    );
+  }
+
   const paymentRes = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range: "Payment!A:G",
@@ -269,20 +333,6 @@ export async function PATCH(req) {
       { error: "Period already paid" },
       { status: 400 },
     );
-  }
-
-  if (trashAmount > 0) {
-    const appConfig = await getAppConfig();
-    const currentTrashFee = Number(appConfig?.trash_fee) || 0;
-
-    if (trashAmount !== currentTrashFee) {
-      return NextResponse.json(
-        {
-          error: `Trash booking Rp${trashAmount.toLocaleString("id-ID")} berbeda dengan tarif aktif Rp${currentTrashFee.toLocaleString("id-ID")}`,
-        },
-        { status: 400 },
-      );
-    }
   }
 
   const paymentId = generateId("PAY-");
