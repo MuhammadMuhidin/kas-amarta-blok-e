@@ -23,7 +23,7 @@ function buildPeriodRange(startPeriod, endPeriod) {
   let cursor = startPeriod;
   let guard = 0;
 
-  while (cursor <= endPeriod && guard < 240) {
+  while (cursor <= endPeriod && guard < 24) {
     periods.push(cursor);
     cursor = addMonth(cursor);
     guard += 1;
@@ -102,7 +102,9 @@ export default function PaymentTab({
 
         if (!isValidPeriod(joinPeriod)) return;
 
-        buildPeriodRange(joinPeriod, currentPeriod).forEach((period) => {
+        const firstPaymentPeriod = addMonth(joinPeriod);
+
+        buildPeriodRange(firstPaymentPeriod, currentPeriod).forEach((period) => {
           if (!isPaidForPeriod(person, period)) {
             periods.add(period);
           }
@@ -150,8 +152,11 @@ export default function PaymentTab({
               .map((p) => {
                 const period = normalize(payment.period);
                 const joinPeriod = normalize(p.join_date).slice(0, 7);
+                const firstPaymentPeriod = isValidPeriod(joinPeriod)
+                  ? addMonth(joinPeriod)
+                  : "";
                 const alreadyPaid = isHousePaidForPeriod(p);
-                const notJoined = period && joinPeriod && period < joinPeriod;
+                const notJoined = period && firstPaymentPeriod && period < firstPaymentPeriod;
                 const disabledChip = alreadyPaid || notJoined;
                 const chipClass = [
                   "admin-checkbox-chip",
