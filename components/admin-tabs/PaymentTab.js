@@ -5,6 +5,25 @@ function getCurrentPeriod() {
   return new Date().toISOString().slice(0, 7);
 }
 
+function addMonth(period) {
+  const [year, month] = period.split("-").map(Number);
+  const date = new Date(year, month, 1);
+
+  return date.toISOString().slice(0, 7);
+}
+
+function buildPeriodRange(startPeriod, endPeriod) {
+  const periods = [];
+  let cursor = startPeriod;
+
+  while (cursor <= endPeriod) {
+    periods.push(cursor);
+    cursor = addMonth(cursor);
+  }
+
+  return periods;
+}
+
 function isDepositPaid(deposit, normalize) {
   return (
     normalize(deposit.status).toLowerCase() === "paid" &&
@@ -19,6 +38,7 @@ export default function PaymentTab({
   payment,
   setPayment,
   personal,
+  payments,
   selected,
   toggleHouse,
   normalize,
@@ -54,6 +74,36 @@ export default function PaymentTab({
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
   const disableRecordPayment = loadingPayment || hasPendingCurrentDeposit;
 
+  function isPaidForPeriod(person, period) {
+    return payments.some((pay) => {
+      const samePeriod = normalize(pay.period).slice(0, 7) === period;
+      const samePerson = normalize(pay.person_id) === normalize(person.id);
+      const sameHouse = normalize(pay.person_house) === normalize(person.house);
+
+      return samePeriod && (samePerson || sameHouse);
+    });
+  }
+
+  const availablePaymentPeriods = useMemo(() => {
+    const periods = new Set();
+
+    personal
+      .filter((person) => person.active === "Y")
+      .forEach((person) => {
+        const joinPeriod = normalize(person.join_date).slice(0, 7);
+
+        if (!joinPeriod) return;
+
+        buildPeriodRange(joinPeriod, currentPeriod).forEach((period) => {
+          if (!isPaidForPeriod(person, period)) {
+            periods.add(period);
+          }
+        });
+      });
+
+    return [...periods].sort();
+  }, [personal, payments, currentPeriod]);
+
   return (
     <>
       {configError && <div className="admin-error-box">{configError}</div>}
@@ -65,12 +115,19 @@ export default function PaymentTab({
       <div className="admin-card">
         <h3>Bulk Payment</h3>
         <form onSubmit={recordPayment} className="admin-form">
-          <input
+          <select
             className="admin-input"
-            placeholder="Period (2026-02)"
             value={payment.period}
             onChange={(e) => setPayment({ ...payment, period: e.target.value })}
-          />
+          >
+            <option value="">Pilih periode tunggakan</option>
+
+            {availablePaymentPeriods.map((period) => (
+              <option key={period} value={period}>
+                {period}
+              </option>
+            ))}
+          </select>
           <input
             className="admin-input admin-readonly-input"
             type="number"
