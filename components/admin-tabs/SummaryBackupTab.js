@@ -27,11 +27,63 @@ function getDelta(current, previous) {
   };
 }
 
-function DetailRow({ label, value, valueStyle }) {
+function SummaryCard({
+  label,
+  value,
+  delta,
+  positive,
+}) {
+  return (
+    <div style={styles.summaryCard}>
+      <div style={styles.summaryLabel}>{label}</div>
+
+      <div
+        style={{
+          ...styles.summaryValue,
+          color:
+            positive === undefined
+              ? "var(--admin-text)"
+              : positive
+                ? "#16a34a"
+                : "#dc2626",
+        }}
+      >
+        {value}
+      </div>
+
+      {delta && (
+        <div
+          style={{
+            ...styles.summaryDelta,
+            color: delta.color,
+          }}
+        >
+          {delta.label === "Stable"
+            ? "Stable from previous backup"
+            : `${delta.label} ${delta.value}`}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  valueStyle,
+}) {
   return (
     <div style={styles.modalRow}>
       <span style={styles.modalLabel}>{label}</span>
-      <b style={{ ...styles.modalValue, ...valueStyle }}>{value || "-"}</b>
+
+      <b
+        style={{
+          ...styles.modalValue,
+          ...valueStyle,
+        }}
+      >
+        {value || "-"}
+      </b>
     </div>
   );
 }
@@ -41,7 +93,8 @@ export default function SummaryBackupTab({
   summaryBackup,
 }) {
   const [page, setPage] = useState(1);
-  const [selectedBackup, setSelectedBackup] = useState(null);
+  const [selectedBackup, setSelectedBackup] =
+    useState(null);
 
   const totalPages = Math.max(
     1,
@@ -52,10 +105,43 @@ export default function SummaryBackupTab({
 
   const pagedSummary = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return (summaryBackup || []).slice(start, start + pageSize);
+
+    return (summaryBackup || []).slice(
+      start,
+      start + pageSize,
+    );
   }, [summaryBackup, currentPage]);
 
   const latest = summaryBackup?.[0];
+  const previous = summaryBackup?.[1];
+
+  const incomeDelta = previous
+    ? getDelta(
+        latest?.total_income,
+        previous?.total_income,
+      )
+    : null;
+
+  const expenseDelta = previous
+    ? getDelta(
+        latest?.total_expense,
+        previous?.total_expense,
+      )
+    : null;
+
+  const netDelta = previous
+    ? getDelta(
+        latest?.net_saldo,
+        previous?.net_saldo,
+      )
+    : null;
+
+  const activeDelta = previous
+    ? getDelta(
+        latest?.total_personal_active,
+        previous?.total_personal_active,
+      )
+    : null;
 
   return (
     <div className="admin-card">
@@ -74,46 +160,67 @@ export default function SummaryBackupTab({
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+              gridTemplateColumns:
+                "repeat(auto-fit,minmax(180px,1fr))",
               gap: 12,
               marginBottom: 18,
             }}
           >
-            <div style={styles.summaryCard}>
-              <div style={styles.summaryLabel}>Latest Income</div>
-              <div style={styles.summaryValue}>
-                {formatRupiah(latest?.total_income)}
-              </div>
-            </div>
+            <SummaryCard
+              label="Latest Income"
+              value={formatRupiah(
+                latest?.total_income,
+              )}
+              delta={
+                incomeDelta && {
+                  ...incomeDelta,
+                  value: formatRupiah(
+                    incomeDelta.value,
+                  ),
+                }
+              }
+            />
 
-            <div style={styles.summaryCard}>
-              <div style={styles.summaryLabel}>Latest Expense</div>
-              <div style={styles.summaryValue}>
-                {formatRupiah(latest?.total_expense)}
-              </div>
-            </div>
+            <SummaryCard
+              label="Latest Expense"
+              value={formatRupiah(
+                latest?.total_expense,
+              )}
+              delta={
+                expenseDelta && {
+                  ...expenseDelta,
+                  value: formatRupiah(
+                    expenseDelta.value,
+                  ),
+                }
+              }
+            />
 
-            <div style={styles.summaryCard}>
-              <div style={styles.summaryLabel}>Latest Net</div>
-              <div
-                style={{
-                  ...styles.summaryValue,
-                  color:
-                    Number(latest?.net_saldo || 0) >= 0
-                      ? "#16a34a"
-                      : "#dc2626",
-                }}
-              >
-                {formatRupiah(latest?.net_saldo)}
-              </div>
-            </div>
+            <SummaryCard
+              label="Latest Net"
+              value={formatRupiah(
+                latest?.net_saldo,
+              )}
+              positive={
+                Number(latest?.net_saldo || 0) >= 0
+              }
+              delta={
+                netDelta && {
+                  ...netDelta,
+                  value: formatRupiah(
+                    netDelta.value,
+                  ),
+                }
+              }
+            />
 
-            <div style={styles.summaryCard}>
-              <div style={styles.summaryLabel}>Active Personal</div>
-              <div style={styles.summaryValue}>
-                {latest?.total_personal_active || 0}
-              </div>
-            </div>
+            <SummaryCard
+              label="Active Personal"
+              value={
+                latest?.total_personal_active || 0
+              }
+              delta={activeDelta}
+            />
           </div>
 
           <div className="admin-table-wrapper">
@@ -121,34 +228,31 @@ export default function SummaryBackupTab({
               <thead>
                 <tr>
                   <th className="admin-th">Date</th>
-                  <th className="admin-th">Income</th>
-                  <th className="admin-th">Expense</th>
                   <th className="admin-th">Net</th>
-                  <th className="admin-th">Personal Active</th>
+                  <th className="admin-th">
+                    Personal Active
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
                 {pagedSummary.map((x, i) => {
                   const originalIndex =
-                    (currentPage - 1) * pageSize + i;
-                  const prev = summaryBackup[originalIndex + 1];
-
-                  const netDelta = getDelta(
-                    x.net_saldo,
-                    prev?.net_saldo,
-                  );
-
-                  const expenseDelta = getDelta(
-                    x.total_expense,
-                    prev?.total_expense,
-                  );
+                    (currentPage - 1) *
+                      pageSize +
+                    i;
 
                   return (
                     <tr
                       key={`${x.created_at || "summary"}-${originalIndex}`}
-                      className={i % 2 ? "admin-row-alt" : ""}
-                      onClick={() => setSelectedBackup(x)}
+                      className={
+                        i % 2
+                          ? "admin-row-alt"
+                          : ""
+                      }
+                      onClick={() =>
+                        setSelectedBackup(x)
+                      }
                       style={{
                         cursor: "pointer",
                         ...(originalIndex === 0
@@ -163,15 +267,22 @@ export default function SummaryBackupTab({
                         <div
                           style={{
                             display: "flex",
-                            alignItems: "center",
+                            alignItems:
+                              "center",
                             gap: 8,
                             flexWrap: "wrap",
                           }}
                         >
-                          <span>{x.created_at}</span>
+                          <span>
+                            {x.created_at}
+                          </span>
 
                           {originalIndex === 0 && (
-                            <span style={styles.latestBadge}>
+                            <span
+                              style={
+                                styles.latestBadge
+                              }
+                            >
                               Latest
                             </span>
                           )}
@@ -179,61 +290,27 @@ export default function SummaryBackupTab({
                       </td>
 
                       <td className="admin-td">
-                        {formatRupiah(x.total_income)}
-                      </td>
-
-                      <td className="admin-td">
-                        <div>
-                          <div>
-                            {formatRupiah(x.total_expense)}
-                          </div>
-
-                          {prev && (
-                            <div
-                              style={{
-                                fontSize: 11,
-                                marginTop: 4,
-                                color: expenseDelta.color,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {expenseDelta.label} {formatRupiah(expenseDelta.value)}
-                            </div>
+                        <span
+                          style={{
+                            color:
+                              Number(
+                                x.net_saldo || 0,
+                              ) >= 0
+                                ? "#16a34a"
+                                : "#dc2626",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {formatRupiah(
+                            x.net_saldo,
                           )}
-                        </div>
+                        </span>
                       </td>
 
                       <td className="admin-td">
-                        <div>
-                          <div
-                            style={{
-                              color:
-                                Number(x.net_saldo || 0) >= 0
-                                  ? "#16a34a"
-                                  : "#dc2626",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {formatRupiah(x.net_saldo)}
-                          </div>
-
-                          {prev && (
-                            <div
-                              style={{
-                                fontSize: 11,
-                                marginTop: 4,
-                                color: netDelta.color,
-                                fontWeight: 700,
-                              }}
-                            >
-                              {netDelta.label} {formatRupiah(netDelta.value)}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-
-                      <td className="admin-td">
-                        {x.total_personal_active}
+                        {
+                          x.total_personal_active
+                        }
                       </td>
                     </tr>
                   );
@@ -248,7 +325,11 @@ export default function SummaryBackupTab({
               className="admin-small-btn"
               disabled={currentPage <= 1}
               style={styles.pageButton}
-              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              onClick={() =>
+                setPage((prev) =>
+                  Math.max(prev - 1, 1),
+                )
+              }
             >
               Prev
             </button>
@@ -263,7 +344,9 @@ export default function SummaryBackupTab({
               disabled={currentPage >= totalPages}
               style={styles.pageButton}
               onClick={() =>
-                setPage((prev) => Math.min(prev + 1, totalPages))
+                setPage((prev) =>
+                  Math.min(prev + 1, totalPages),
+                )
               }
             >
               Next
@@ -277,7 +360,9 @@ export default function SummaryBackupTab({
           className={modalStyles.overlay}
           role="dialog"
           aria-modal="true"
-          onClick={() => setSelectedBackup(null)}
+          onClick={() =>
+            setSelectedBackup(null)
+          }
         >
           <div
             className={modalStyles.box}
@@ -285,14 +370,21 @@ export default function SummaryBackupTab({
           >
             <div style={styles.modalHeader}>
               <div>
-                <h3 style={styles.modalTitle}>Summary Backup Detail</h3>
-                <p style={styles.modalSubtitle}>{selectedBackup.created_at}</p>
+                <h3 style={styles.modalTitle}>
+                  Summary Backup Detail
+                </h3>
+
+                <p style={styles.modalSubtitle}>
+                  {selectedBackup.created_at}
+                </p>
               </div>
 
               <button
                 type="button"
                 style={styles.closeButton}
-                onClick={() => setSelectedBackup(null)}
+                onClick={() =>
+                  setSelectedBackup(null)
+                }
               >
                 ×
               </button>
@@ -301,20 +393,28 @@ export default function SummaryBackupTab({
             <div style={styles.modalBody}>
               <DetailRow
                 label="Income"
-                value={formatRupiah(selectedBackup.total_income)}
+                value={formatRupiah(
+                  selectedBackup.total_income,
+                )}
               />
 
               <DetailRow
                 label="Expense"
-                value={formatRupiah(selectedBackup.total_expense)}
+                value={formatRupiah(
+                  selectedBackup.total_expense,
+                )}
               />
 
               <DetailRow
                 label="Net"
-                value={formatRupiah(selectedBackup.net_saldo)}
+                value={formatRupiah(
+                  selectedBackup.net_saldo,
+                )}
                 valueStyle={{
                   color:
-                    Number(selectedBackup.net_saldo || 0) >= 0
+                    Number(
+                      selectedBackup.net_saldo || 0,
+                    ) >= 0
                       ? "#16a34a"
                       : "#dc2626",
                 }}
@@ -322,7 +422,9 @@ export default function SummaryBackupTab({
 
               <DetailRow
                 label="Member Active"
-                value={selectedBackup.total_personal_active}
+                value={
+                  selectedBackup.total_personal_active
+                }
               />
             </div>
           </div>
@@ -354,6 +456,12 @@ const styles = {
     lineHeight: 1.1,
   },
 
+  summaryDelta: {
+    marginTop: 8,
+    fontSize: 11,
+    fontWeight: 800,
+  },
+
   latestBadge: {
     padding: "3px 8px",
     borderRadius: 999,
@@ -365,7 +473,8 @@ const styles = {
 
   pagination: {
     display: "grid",
-    gridTemplateColumns: "minmax(72px,1fr) auto minmax(72px,1fr)",
+    gridTemplateColumns:
+      "minmax(72px,1fr) auto minmax(72px,1fr)",
     alignItems: "center",
     gap: 10,
     width: "100%",
