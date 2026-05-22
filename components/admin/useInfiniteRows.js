@@ -19,9 +19,38 @@ export default function useInfiniteRows({
 
   const loaderRef = useRef(null);
   const abortRef = useRef(null);
+  const buildUrlRef = useRef(buildUrl);
+  const getItemsRef = useRef(getItems);
+  const getPaginationRef = useRef(getPagination);
+  const loadingRef = useRef(false);
+  const loadingMoreRef = useRef(false);
+  const pageRef = useRef(1);
+  const totalPagesRef = useRef(1);
 
   const hasMore = page < totalPages;
   const depsKey = useMemo(() => JSON.stringify(deps), deps);
+
+  useEffect(() => {
+    buildUrlRef.current = buildUrl;
+    getItemsRef.current = getItems;
+    getPaginationRef.current = getPagination;
+  }, [buildUrl, getItems, getPagination]);
+
+  useEffect(() => {
+    loadingRef.current = loading;
+  }, [loading]);
+
+  useEffect(() => {
+    loadingMoreRef.current = loadingMore;
+  }, [loadingMore]);
+
+  useEffect(() => {
+    pageRef.current = page;
+  }, [page]);
+
+  useEffect(() => {
+    totalPagesRef.current = totalPages;
+  }, [totalPages]);
 
   const loadPage = useCallback(
     async (nextPage = 1, mode = "replace") => {
@@ -34,14 +63,19 @@ export default function useInfiniteRows({
       const controller = new AbortController();
       abortRef.current = controller;
 
-      if (isAppend) setLoadingMore(true);
-      else setLoading(true);
+      if (isAppend) {
+        loadingMoreRef.current = true;
+        setLoadingMore(true);
+      } else {
+        loadingRef.current = true;
+        setLoading(true);
+      }
 
       setError("");
 
       try {
         const res = await fetch(
-          buildUrl({ page: nextPage, limit: pageSize }),
+          buildUrlRef.current({ page: nextPage, limit: pageSize }),
           {
             cache: "no-store",
             signal: controller.signal,
@@ -54,8 +88,8 @@ export default function useInfiniteRows({
           throw new Error(data.error || "Failed to load data");
         }
 
-        const nextItems = getItems(data) || [];
-        const pagination = getPagination(data) || {};
+        const nextItems = getItemsRef.current(data) || [];
+        const pagination = getPaginationRef.current(data) || {};
         const resolvedTotal = Number(
           pagination.total || nextItems.length || 0,
         );
@@ -67,13 +101,17 @@ export default function useInfiniteRows({
           ),
           1,
         );
+        const resolvedPage = Number(pagination.page || nextPage);
 
         setItems((prev) =>
           isAppend ? [...prev, ...nextItems] : nextItems,
         );
-        setPage(Number(pagination.page || nextPage));
+        setPage(resolvedPage);
         setTotal(resolvedTotal);
         setTotalPages(resolvedTotalPages);
+
+        pageRef.current = resolvedPage;
+        totalPagesRef.current = resolvedTotalPages;
       } catch (err) {
         if (err.name !== "AbortError") {
           setError(err.message || "Failed to load data");
@@ -81,12 +119,14 @@ export default function useInfiniteRows({
         }
       } finally {
         if (!controller.signal.aborted) {
+          loadingRef.current = false;
+          loadingMoreRef.current = false;
           setLoading(false);
           setLoadingMore(false);
         }
       }
     },
-    [buildUrl, getItems, getPagination, pageSize],
+    [pageSize],
   );
 
   const refresh = useCallback(() => {
@@ -94,13 +134,23 @@ export default function useInfiniteRows({
     setPage(1);
     setTotal(0);
     setTotalPages(1);
+    pageRef.current = 1;
+    totalPagesRef.current = 1;
+
     return loadPage(1, "replace");
   }, [loadPage]);
 
   const loadMore = useCallback(() => {
-    if (loading || loadingMore || !hasMore) return;
-    return loadPage(page + 1, "append");
-  }, [hasMore, loadPage, loading, loadingMore, page]);
+    if (
+      loadingRef.current ||
+      loadingMoreRef.current ||
+      pageRef.current >= totalPagesRef.current
+    ) {
+      return;
+    }
+
+    return loadPage(pageRef.current + 1, "append");
+  }, [loadPage]);
 
   useEffect(() => {
     refresh();
