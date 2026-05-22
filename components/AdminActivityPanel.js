@@ -1,7 +1,8 @@
 "use client";
 
 import modalStyles from "@/components/admin/AdminModal.module.css";
-import { useEffect, useMemo, useState } from "react";
+import useInfiniteRows from "@/components/admin/useInfiniteRows";
+import { useMemo, useState } from "react";
 import "./AdminActivityPanel.css";
 
 const modules = [
@@ -17,6 +18,7 @@ const modules = [
 ];
 
 const severities = ["", "info", "success", "warning", "error"];
+const pageSize = 10;
 
 function formatDate(value) {
   if (!value) return "-";
@@ -49,7 +51,6 @@ function DetailRow({ label, value }) {
 }
 
 export default function AdminActivityPanel() {
-  const [activities, setActivities] = useState([]);
   const [module, setModule] = useState("");
   const [severity, setSeverity] = useState("");
   const [search, setSearch] = useState("");
@@ -57,15 +58,9 @@ export default function AdminActivityPanel() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selectedActivity, setSelectedActivity] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
-  const [pagination, setPagination] = useState({ page: 1, total_pages: 1, total: 0 });
 
-  const query = useMemo(() => {
+  const queryBase = useMemo(() => {
     const params = new URLSearchParams();
-    params.set("limit", "20");
-    params.set("page", String(page));
     params.set("sort", sort);
 
     if (module) params.set("module", module);
@@ -75,7 +70,25 @@ export default function AdminActivityPanel() {
     if (dateTo) params.set("to", dateTo);
 
     return params.toString();
-  }, [module, severity, search, sort, dateFrom, dateTo, page]);
+  }, [module, severity, search, sort, dateFrom, dateTo]);
+
+  const {
+    items: activities,
+    total,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    loaderRef,
+    refresh,
+  } = useInfiniteRows({
+    pageSize,
+    buildUrl: ({ page, limit }) =>
+      `/api/admin/activities?${queryBase}&page=${page}&limit=${limit}`,
+    deps: [queryBase],
+    getItems: (data) => data.activities || [],
+    getPagination: (data) => data.pagination || {},
+  });
 
   const activeFilterLabel = useMemo(() => {
     const items = [];
@@ -86,26 +99,6 @@ export default function AdminActivityPanel() {
     return items.length ? items.join(" • ") : "All activity";
   }, [module, severity, dateFrom, dateTo, search]);
 
-  async function loadActivities() {
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await fetch(`/api/admin/activities?${query}`, { cache: "no-store" });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || "Failed load activities");
-
-      setActivities(data.activities || []);
-      setPagination(data.pagination || { page: 1, total_pages: 1, total: 0 });
-    } catch (err) {
-      setActivities([]);
-      setError(err.message || "Failed load activities");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   function resetFilters() {
     setSearch("");
     setModule("");
@@ -113,18 +106,8 @@ export default function AdminActivityPanel() {
     setSort("desc");
     setDateFrom("");
     setDateTo("");
-    setPage(1);
     setSelectedActivity(null);
   }
-
-  useEffect(() => {
-    loadActivities();
-  }, [query]);
-
-  useEffect(() => {
-    setPage(1);
-    setSelectedActivity(null);
-  }, [module, severity, search, sort, dateFrom, dateTo]);
 
   return (
     <div className="admin-card activity-panel">
@@ -134,13 +117,18 @@ export default function AdminActivityPanel() {
           <p className="activity-subtitle">Riwayat aktivitas admin dan perubahan data.</p>
         </div>
 
-        <button type="button" onClick={loadActivities} className="admin-small-btn activity-refresh-btn" disabled={loading}>
+        <button
+          type="button"
+          onClick={refresh}
+          className="admin-small-btn activity-refresh-btn"
+          disabled={loading || loadingMore}
+        >
           {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
 
       <div className="activity-summary-bar">
-        <div><b>{pagination.total || 0}</b> records</div>
+        <div><b>{activities.length}</b> / {total || 0} records</div>
         <span>{activeFilterLabel}</span>
         <span>{sort === "desc" ? "Newest first" : "Oldest first"}</span>
         <span className={error ? "activity-status-error" : "activity-status-ready"}>
@@ -149,14 +137,24 @@ export default function AdminActivityPanel() {
       </div>
 
       <div className="activity-toolbar">
-        <input type="search" value={search} onChange={(e) => setSearch(e.target.value)} className="admin-input activity-search" placeholder="Search actor, action, IP, device, location..." />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="admin-input activity-search"
+          placeholder="Search actor, action, IP, device, location..."
+        />
 
         <select value={module} onChange={(e) => setModule(e.target.value)} className="admin-input activity-input">
-          {modules.map((item) => <option key={item || "all-module"} value={item}>{item ? titleCase(item) : "All modules"}</option>)}
+          {modules.map((item) => (
+            <option key={item || "all-module"} value={item}>{item ? titleCase(item) : "All modules"}</option>
+          ))}
         </select>
 
         <select value={severity} onChange={(e) => setSeverity(e.target.value)} className="admin-input activity-input">
-          {severities.map((item) => <option key={item || "all-severity"} value={item}>{item ? titleCase(item) : "All severities"}</option>)}
+          {severities.map((item) => (
+            <option key={item || "all-severity"} value={item}>{item ? titleCase(item) : "All severities"}</option>
+          ))}
         </select>
 
         <select value={sort} onChange={(e) => setSort(e.target.value)} className="admin-input activity-input">
@@ -221,10 +219,14 @@ export default function AdminActivityPanel() {
         ))}
       </div>
 
-      <div className="activity-pagination">
-        <button type="button" className="admin-small-btn activity-page-btn" disabled={page <= 1 || loading} onClick={() => setPage((p) => Math.max(p - 1, 1))}>Prev</button>
-        <span className="activity-page-info">{pagination.page || 1} / {pagination.total_pages || 1}</span>
-        <button type="button" className="admin-small-btn activity-page-btn" disabled={page >= (pagination.total_pages || 1) || loading} onClick={() => setPage((p) => p + 1)}>Next</button>
+      <div ref={loaderRef} className="activity-pagination">
+        <span className="activity-page-info">
+          {loadingMore
+            ? "Loading more..."
+            : hasMore
+              ? "Scroll to load more"
+              : "All activity loaded"}
+        </span>
       </div>
 
       {selectedActivity && (
