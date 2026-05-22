@@ -1,5 +1,6 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import Toast from "@/components/Toast";
+import modalStyles from "@/components/admin/AdminModal.module.css";
 import { useMemo, useState } from "react";
 
 export default function DepositTab({
@@ -303,31 +304,12 @@ export default function DepositTab({
 
         {selectedBooking && (
           <div
+            className={modalStyles.overlay}
             onClick={closeBookingModal}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 9999,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 16,
-              background: "rgba(2,6,23,.6)",
-              backdropFilter: "blur(8px)",
-            }}
           >
             <div
+              className={modalStyles.box}
               onClick={(e) => e.stopPropagation()}
-              style={{
-                width: "100%",
-                maxWidth: 360,
-                padding: 20,
-                borderRadius: 18,
-                border: "1px solid var(--admin-border)",
-                background: "var(--admin-card)",
-                color: "var(--admin-text)",
-                boxShadow: "0 18px 40px rgba(0,0,0,.28)",
-              }}
             >
               <div style={{ marginBottom: 18 }}>
                 <div
