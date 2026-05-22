@@ -161,7 +161,7 @@ export async function PATCH(req) {
 
   const { id, action } = body;
 
-  if (action !== "PAY_NOW") {
+  if (!["PAY_NOW", "UPDATE_SNAPSHOT"].includes(action)) {
     return NextResponse.json(
       { error: "Invalid action" },
       { status: 400 },
@@ -188,6 +188,56 @@ export async function PATCH(req) {
 
   const depositRowNumber = depositIndex + 2;
   const deposit = depositRows[depositRowNumber - 1];
+
+  if (action === "UPDATE_SNAPSHOT") {
+    if (!["pending", "waiting"].includes(String(deposit[7] || ""))) {
+      return NextResponse.json(
+        { error: "Only active booking can be edited" },
+        { status: 400 },
+      );
+    }
+
+    const amount = Number(body.amount);
+    const trashAmount = Number(body.trash_amount || 0);
+
+    if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(trashAmount) || trashAmount < 0) {
+      return NextResponse.json(
+        { error: "Invalid booking amount" },
+        { status: 400 },
+      );
+    }
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `Deposit!F${depositRowNumber}:G${depositRowNumber}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[amount, trashAmount]],
+      },
+    });
+
+    await recordAdminActivity(req, {
+      type: "update",
+      module: "deposit",
+      severity: "success",
+      message: `Update booking snapshot ${deposit[2]} ${deposit[4]}`,
+      metadata: {
+        deposit_id: id,
+        house: deposit[2],
+        period: deposit[4],
+        before: {
+          amount: Number(deposit[5]) || 0,
+          trash_amount: Number(deposit[6]) || 0,
+        },
+        after: {
+          amount,
+          trash_amount: trashAmount,
+        },
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  }
 
   if (deposit[7] === "paid") {
     return NextResponse.json(
