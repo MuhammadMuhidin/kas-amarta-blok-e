@@ -14,7 +14,7 @@ export async function GET() {
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: "Deposit!A:J",
+    range: "Deposit!A:K",
   });
 
   const rows = res.data.values || [];
@@ -26,10 +26,11 @@ export async function GET() {
     name: r[3],
     period: r[4],
     amount: Number(r[5]) || 0,
-    status: r[6],
-    created_at: r[7],
-    paid_at: r[8],
-    payment_id: r[9],
+    trash_amount: Number(r[6]) || 0,
+    status: r[7],
+    created_at: r[8],
+    paid_at: r[9],
+    payment_id: r[10],
   }));
 
   return NextResponse.json(data);
@@ -59,9 +60,28 @@ export async function POST(req) {
     );
   }
 
+  const personalRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Personal!A:F",
+  });
+
+  const personalRows = personalRes.data.values || [];
+  const member = personalRows.slice(1).find((r) => r[0] === person_id);
+
+  if (!member) {
+    return NextResponse.json(
+      { error: "Member not found" },
+      { status: 404 },
+    );
+  }
+
+  const appConfig = await getAppConfig();
+  const isTrashUser = String(member[3] || "").toUpperCase() === "Y";
+  const trashAmount = isTrashUser ? Number(appConfig?.trash_fee) || 0 : 0;
+
   const existingRes = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: "Deposit!A:J",
+    range: "Deposit!A:K",
   });
 
   const existing = (existingRes.data.values || []).slice(1);
@@ -73,7 +93,7 @@ export async function POST(req) {
         (r) =>
           r[1] === person_id &&
           r[4] === period &&
-          r[6] !== "cancelled",
+          r[7] !== "cancelled",
       );
     })
     .map((period) => [
@@ -83,6 +103,7 @@ export async function POST(req) {
       name,
       period,
       amount,
+      trashAmount,
       "pending",
       now,
       "",
@@ -92,7 +113,7 @@ export async function POST(req) {
   if (values.length > 0) {
     await sheets.spreadsheets.values.append({
       spreadsheetId,
-      range: "Deposit!A:J",
+      range: "Deposit!A:K",
       valueInputOption: "USER_ENTERED",
       requestBody: {
         values,
@@ -111,6 +132,7 @@ export async function POST(req) {
       name,
       periods,
       amount,
+      trash_amount: trashAmount,
       inserted: values.length,
       deposit_ids: values.map((item) => item[0]),
     },
@@ -139,7 +161,7 @@ export async function PATCH(req) {
 
   const { id, action } = body;
 
-  if (action !== "PAY_NOW") {
+  if (!["PAY_NOW", "UPDATE_SNAPSHOT"].includes(action)) {
     return NextResponse.json(
       { error: "Invalid action" },
       { status: 400 },
@@ -150,14 +172,12 @@ export async function PATCH(req) {
 
   const depositRes = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: "Deposit!A:J",
+    range: "Deposit!A:K",
   });
 
   const depositRows = depositRes.data.values || [];
 
-  const depositIndex = depositRows
-    .slice(1)
-    .findIndex((r) => r[0] === id);
+  const depositIndex = depositRows.slice(1).findIndex((r) => r[0] === id);
 
   if (depositIndex === -1) {
     return NextResponse.json(
@@ -169,7 +189,57 @@ export async function PATCH(req) {
   const depositRowNumber = depositIndex + 2;
   const deposit = depositRows[depositRowNumber - 1];
 
-  if (deposit[6] === "paid") {
+  if (action === "UPDATE_SNAPSHOT") {
+    if (!["pending", "waiting"].includes(String(deposit[7] || ""))) {
+      return NextResponse.json(
+        { error: "Only active booking can be edited" },
+        { status: 400 },
+      );
+    }
+
+    const amount = Number(body.amount);
+    const trashAmount = Number(body.trash_amount || 0);
+
+    if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(trashAmount) || trashAmount < 0) {
+      return NextResponse.json(
+        { error: "Invalid booking amount" },
+        { status: 400 },
+      );
+    }
+
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `Deposit!F${depositRowNumber}:G${depositRowNumber}`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: [[amount, trashAmount]],
+      },
+    });
+
+    await recordAdminActivity(req, {
+      type: "update",
+      module: "deposit",
+      severity: "success",
+      message: `Update booking snapshot ${deposit[2]} ${deposit[4]}`,
+      metadata: {
+        deposit_id: id,
+        house: deposit[2],
+        period: deposit[4],
+        before: {
+          amount: Number(deposit[5]) || 0,
+          trash_amount: Number(deposit[6]) || 0,
+        },
+        after: {
+          amount,
+          trash_amount: trashAmount,
+        },
+      },
+    });
+
+    return NextResponse.json({ success: true });
+  }
+
+  if (deposit[7] === "paid") {
     return NextResponse.json(
       { error: "Deposit already paid" },
       { status: 400 },
@@ -181,6 +251,7 @@ export async function PATCH(req) {
   const person_name = deposit[3];
   const period = deposit[4];
   const amount = Number(deposit[5]) || 0;
+  const trashAmount = Number(deposit[6]) || 0;
 
   const paymentRes = await sheets.spreadsheets.values.get({
     spreadsheetId,
@@ -200,25 +271,19 @@ export async function PATCH(req) {
     );
   }
 
-  const personalRes = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: "Personal!A:F",
-  });
+  if (trashAmount > 0) {
+    const appConfig = await getAppConfig();
+    const currentTrashFee = Number(appConfig?.trash_fee) || 0;
 
-  const personalRows = personalRes.data.values || [];
-
-  const member = personalRows
-    .slice(1)
-    .find((r) => r[0] === person_id);
-
-  if (!member) {
-    return NextResponse.json(
-      { error: "Member not found" },
-      { status: 404 },
-    );
+    if (trashAmount !== currentTrashFee) {
+      return NextResponse.json(
+        {
+          error: `Trash booking Rp${trashAmount.toLocaleString("id-ID")} berbeda dengan tarif aktif Rp${currentTrashFee.toLocaleString("id-ID")}`,
+        },
+        { status: 400 },
+      );
+    }
   }
-
-  const isTrashUser = String(member[3] || "").toUpperCase() === "Y";
 
   const paymentId = generateId("PAY-");
 
@@ -261,10 +326,7 @@ export async function PATCH(req) {
     },
   });
 
-  if (isTrashUser) {
-    const appConfig = await getAppConfig();
-    const trashFee = Number(appConfig?.trash_fee) || 0;
-
+  if (trashAmount > 0) {
     await sheets.spreadsheets.values.append({
       spreadsheetId,
       range: "Trash!A:D",
@@ -274,7 +336,7 @@ export async function PATCH(req) {
           [
             generateId("TRASH-"),
             paymentId,
-            trashFee,
+            trashAmount,
             today,
           ],
         ],
@@ -284,17 +346,10 @@ export async function PATCH(req) {
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
-    range: `Deposit!G${depositRowNumber}:J${depositRowNumber}`,
+    range: `Deposit!H${depositRowNumber}:K${depositRowNumber}`,
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [
-        [
-          "paid",
-          deposit[7] || "",
-          today,
-          paymentId,
-        ],
-      ],
+      values: [["paid", deposit[8] || "", today, paymentId]],
     },
   });
 
@@ -311,8 +366,9 @@ export async function PATCH(req) {
       name: person_name,
       period,
       amount,
+      trash_amount: trashAmount,
       paid_at: today,
-      trash_recorded: isTrashUser,
+      trash_recorded: trashAmount > 0,
     },
   });
 
