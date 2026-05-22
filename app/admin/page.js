@@ -279,7 +279,7 @@ export default function AdminPage() {
       !member.trash.trim() ||
       !member.join_date.trim()
     ) {
-      showPopup("Lengkapi semua data warga terlebih dahulu", "error");
+      showPopup("Lengkapi semua data member terlebih dahulu", "error");
       return;
     }
 
@@ -297,12 +297,12 @@ export default function AdminPage() {
       });
 
       if (res.ok) {
-        showPopup("Warga berhasil ditambahkan", "success");
+        showPopup("Member berhasil ditambahkan", "success");
         setMember({ house: "", name: "", join_date: "", trash: "" });
         loadPersonal();
       } else {
         const data = await res.json();
-        showPopup(data.error || "Gagal menambahkan warga", "error");
+        showPopup(data.error || "Gagal menambahkan member", "error");
       }
     } finally {
       setLoadingAdd(false);
@@ -346,14 +346,14 @@ export default function AdminPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Gagal memperbarui data warga");
+        throw new Error(data.error || "Gagal memperbarui data member");
       }
 
-      showPopup("Data warga berhasil diperbarui", "success");
+      showPopup("Data member berhasil diperbarui", "success");
       await loadPersonal();
     } catch (err) {
       setPersonal(previousPersonal);
-      showPopup(err.message || "Gagal memperbarui data warga", "error");
+      showPopup(err.message || "Gagal memperbarui data member", "error");
       throw err;
     }
   }
@@ -438,7 +438,7 @@ export default function AdminPage() {
     e.preventDefault();
 
     if (!selectedDepositPerson || selectedDepositPeriods.length === 0) {
-      showPopup("Pilih rumah dan periode titipan terlebih dahulu", "error");
+      showPopup("Pilih rumah dan periode booking terlebih dahulu", "error");
       return;
     }
 
@@ -463,14 +463,14 @@ export default function AdminPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Gagal menyimpan titipan");
+        throw new Error(data.error || "Gagal menyimpan data booking");
       }
 
-      showPopup("Saldo titipan berhasil disimpan", "success");
+      showPopup("Booking payment berhasil disimpan", "success");
       setDepositForm({ person_id: "", end_period: "" });
       await loadDeposit();
     } catch (err) {
-      showPopup(err.message || "Gagal menyimpan titipan", "error");
+      showPopup(err.message || "Gagal menyimpan data booking", "error");
     } finally {
       setSavingDeposit(false);
     }
@@ -492,10 +492,10 @@ export default function AdminPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Gagal membayar titipan");
+        throw new Error(data.error || "Gagal membayarkan data booking");
       }
 
-      showPopup("Titipan berhasil dibayarkan", "success");
+      showPopup("Booking payment berhasil dibayarkan", "success");
 
       await Promise.all([
         loadDeposit(),
@@ -504,7 +504,7 @@ export default function AdminPage() {
         loadCashflow(),
       ]);
     } catch (err) {
-      showPopup(err.message || "Gagal membayar titipan", "error");
+      showPopup(err.message || "Gagal membayarkan data booking", "error");
     } finally {
       setPayingDepositId("");
     }
@@ -518,7 +518,7 @@ export default function AdminPage() {
       !String(cashflow.amount || "").trim() ||
       !cashflow.note.trim()
     ) {
-      showPopup("Lengkapi jenis, nominal, dan catatan transaksi", "error");
+      showPopup("Lengkapi jenis, nominal dan catatan transaksi", "error");
       return;
     }
 
@@ -664,6 +664,14 @@ useEffect(() => {
     });
   }, [personal, payments, cashflows, trashRecords]);
 
+  const monitoringIssueCount = useMemo(() => {
+    return (
+      trashMismatch.length +
+      paymentCashflowIntegrity.length +
+      suspiciousData.length
+    );
+  }, [trashMismatch, paymentCashflowIntegrity, suspiciousData]);
+
   const filteredPersonal = useMemo(() => {
     return filterPersonal(sortPersonal(personal), memberFilter);
   }, [personal, memberFilter]);
@@ -702,18 +710,18 @@ useEffect(() => {
         </div>
 
         <div className="admin-tabs">
-          <button className={tabClassName("personal")} onClick={() => setTab("personal")}>👤 Personal</button>
+          <button className={tabClassName("personal")} onClick={() => setTab("personal")}>👤 Member</button>
           <button className={tabClassName("payment")} onClick={() => setTab("payment")}>
             <div className="admin-tab-content">
               <span>💳 Payment</span>
               {pendingCurrentDeposits.length > 0 && (
                 <span className="admin-deposit-badge">
-                  {pendingCurrentDeposits.length} deposit pending
+                  {pendingCurrentDeposits.length} booking pending
                 </span>
               )}
             </div>
           </button>
-          <button className={tabClassName("deposit")} onClick={() => setTab("deposit")}>💰 Deposit Balance</button>
+          <button className={tabClassName("deposit")} onClick={() => setTab("deposit")}>💰 Booking Payment</button>
           <button className={tabClassName("cashflow")} onClick={() => setTab("cashflow")}>📝 Cashflow</button>
           <button className={tabClassName("summary")} onClick={() => setTab("summary")}>🛡️ Summary Backup</button>
           <button
@@ -723,7 +731,15 @@ useEffect(() => {
               if (tab === "monitoring") refreshMonitoring();
             }}
           >
-            🖥️ Monitoring
+            <div className="admin-tab-content">
+              <span>🖥️ Monitoring</span>
+          
+              {monitoringIssueCount > 0 && (
+                <span className="admin-monitoring-badge">
+                  {monitoringIssueCount}
+                </span>
+              )}
+            </div>
           </button>
           <button className={tabClassName("activity")} onClick={() => setTab("activity")}>📋 Activity</button>
           <button className={tabClassName("settings")} onClick={() => setTab("settings")}>⚙️ Settings</button>

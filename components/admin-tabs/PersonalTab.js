@@ -18,7 +18,7 @@ export default function PersonalTab({
 }) {
   return (
     <div className="admin-card">
-      <h3>Add Personal</h3>
+      <h3>Add Member</h3>
       <form onSubmit={addMember} className="admin-form">
         <input
           className="admin-input"
