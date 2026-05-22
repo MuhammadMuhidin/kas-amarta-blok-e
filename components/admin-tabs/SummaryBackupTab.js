@@ -1,7 +1,8 @@
 "use client";
 
 import modalStyles from "@/components/admin/AdminModal.module.css";
-import { useMemo, useState } from "react";
+import useInfiniteRows from "@/components/admin/useInfiniteRows";
+import { useState } from "react";
 
 const pageSize = 10;
 const incomeColor = "#2563eb";
@@ -34,23 +35,12 @@ function SummaryCard({ label, value, delta, valueColor }) {
   return (
     <div style={styles.summaryCard}>
       <div style={styles.summaryLabel}>{label}</div>
-
-      <div
-        style={{
-          ...styles.summaryValue,
-          color: valueColor || "var(--admin-text)",
-        }}
-      >
+      <div style={{ ...styles.summaryValue, color: valueColor || "var(--admin-text)" }}>
         {value}
       </div>
 
       {delta && (
-        <div
-          style={{
-            ...styles.summaryDelta,
-            color: delta.color,
-          }}
-        >
+        <div style={{ ...styles.summaryDelta, color: delta.color }}>
           {delta.label === "Stable"
             ? "Stable from previous backup"
             : `${delta.label} ${delta.value}`}
@@ -64,38 +54,31 @@ function DetailRow({ label, value, valueStyle }) {
   return (
     <div style={styles.modalRow}>
       <span style={styles.modalLabel}>{label}</span>
-
-      <b
-        style={{
-          ...styles.modalValue,
-          ...valueStyle,
-        }}
-      >
-        {value || "-"}
-      </b>
+      <b style={{ ...styles.modalValue, ...valueStyle }}>{value || "-"}</b>
     </div>
   );
 }
 
-export default function SummaryBackupTab({
-  loadingSummary,
-  summaryBackup,
-}) {
-  const [page, setPage] = useState(1);
+export default function SummaryBackupTab() {
   const [selectedBackup, setSelectedBackup] = useState(null);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil((summaryBackup?.length || 0) / pageSize),
-  );
-
-  const currentPage = Math.min(page, totalPages);
-
-  const pagedSummary = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-
-    return (summaryBackup || []).slice(start, start + pageSize);
-  }, [summaryBackup, currentPage]);
+  const {
+    items: summaryBackup,
+    total,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    loaderRef,
+    refresh,
+  } = useInfiniteRows({
+    pageSize,
+    buildUrl: ({ page, limit }) =>
+      `/api/summary-backup?page=${page}&limit=${limit}`,
+    deps: [],
+    getItems: (data) => data.summary || [],
+    getPagination: (data) => data.pagination || {},
+  });
 
   const latest = summaryBackup?.[0];
   const previous = summaryBackup?.[1];
@@ -123,9 +106,20 @@ export default function SummaryBackupTab({
     <div className="admin-card">
       <div className="admin-summary-header">
         <h3>Summary Backup</h3>
+
+        <button
+          type="button"
+          className="admin-small-btn"
+          disabled={loading || loadingMore}
+          onClick={refresh}
+        >
+          {loading ? "Refreshing..." : "Refresh"}
+        </button>
       </div>
 
-      {loadingSummary ? (
+      {error && <div className="admin-error-box">{error}</div>}
+
+      {loading ? (
         <p>Loading summary...</p>
       ) : !summaryBackup?.length ? (
         <div className="admin-empty-state">
@@ -133,15 +127,7 @@ export default function SummaryBackupTab({
         </div>
       ) : (
         <>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "repeat(auto-fit,minmax(180px,1fr))",
-              gap: 12,
-              marginBottom: 18,
-            }}
-          >
+          <div style={styles.summaryGrid}>
             <SummaryCard
               label="Latest Income"
               value={formatRupiah(latest?.total_income)}
@@ -189,6 +175,11 @@ export default function SummaryBackupTab({
             />
           </div>
 
+          <div style={styles.metaBar}>
+            <span>{summaryBackup.length} / {total} loaded</span>
+            <span>Scroll untuk memuat data berikutnya</span>
+          </div>
+
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
@@ -200,98 +191,59 @@ export default function SummaryBackupTab({
               </thead>
 
               <tbody>
-                {pagedSummary.map((x, i) => {
-                  const originalIndex =
-                    (currentPage - 1) * pageSize + i;
+                {summaryBackup.map((x, i) => (
+                  <tr
+                    key={`${x.created_at || "summary"}-${i}`}
+                    className={i % 2 ? "admin-row-alt" : ""}
+                    onClick={() => setSelectedBackup(x)}
+                    style={{
+                      cursor: "pointer",
+                      ...(i === 0
+                        ? {
+                            borderLeft: "4px solid var(--admin-primary)",
+                          }
+                        : {}),
+                    }}
+                  >
+                    <td className="admin-td">
+                      <div style={styles.dateCell}>
+                        <span>{x.created_at}</span>
 
-                  return (
-                    <tr
-                      key={`${x.created_at || "summary"}-${originalIndex}`}
-                      className={i % 2 ? "admin-row-alt" : ""}
-                      onClick={() => setSelectedBackup(x)}
-                      style={{
-                        cursor: "pointer",
-                        ...(originalIndex === 0
-                          ? {
-                              borderLeft:
-                                "4px solid var(--admin-primary)",
-                            }
-                          : {}),
-                      }}
-                    >
-                      <td className="admin-td">
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          <span>{x.created_at}</span>
+                        {i === 0 && (
+                          <span style={styles.latestBadge}>Latest</span>
+                        )}
+                      </div>
+                    </td>
 
-                          {originalIndex === 0 && (
-                            <span style={styles.latestBadge}>
-                              Latest
-                            </span>
-                          )}
-                        </div>
-                      </td>
+                    <td className="admin-td">
+                      <span
+                        style={{
+                          color:
+                            Number(x.net_saldo || 0) >= 0
+                              ? successColor
+                              : expenseColor,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {formatRupiah(x.net_saldo)}
+                      </span>
+                    </td>
 
-                      <td className="admin-td">
-                        <span
-                          style={{
-                            color:
-                              Number(x.net_saldo || 0) >= 0
-                                ? successColor
-                                : expenseColor,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {formatRupiah(x.net_saldo)}
-                        </span>
-                      </td>
-
-                      <td className="admin-td">
-                        {x.total_personal_active}
-                      </td>
-                    </tr>
-                  );
-                })}
+                    <td className="admin-td">
+                      {x.total_personal_active}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
 
-          <div style={styles.pagination}>
-            <button
-              type="button"
-              className="admin-small-btn"
-              disabled={currentPage <= 1}
-              style={styles.pageButton}
-              onClick={() =>
-                setPage((prev) => Math.max(prev - 1, 1))
-              }
-            >
-              Prev
-            </button>
-
-            <span style={styles.pageInfo}>
-              {currentPage} / {totalPages}
-            </span>
-
-            <button
-              type="button"
-              className="admin-small-btn"
-              disabled={currentPage >= totalPages}
-              style={styles.pageButton}
-              onClick={() =>
-                setPage((prev) =>
-                  Math.min(prev + 1, totalPages)
-                )
-              }
-            >
-              Next
-            </button>
+          <div ref={loaderRef} style={styles.loaderSentinel}>
+            {loadingMore
+              ? "Loading more..."
+              : hasMore
+                ? "Scroll to load more"
+                : "All summary loaded"}
           </div>
         </>
       )}
@@ -309,13 +261,8 @@ export default function SummaryBackupTab({
           >
             <div style={styles.modalHeader}>
               <div>
-                <h3 style={styles.modalTitle}>
-                  Summary Backup Detail
-                </h3>
-
-                <p style={styles.modalSubtitle}>
-                  {selectedBackup.created_at}
-                </p>
+                <h3 style={styles.modalTitle}>Summary Backup Detail</h3>
+                <p style={styles.modalSubtitle}>{selectedBackup.created_at}</p>
               </div>
 
               <button
@@ -364,6 +311,13 @@ export default function SummaryBackupTab({
 }
 
 const styles = {
+  summaryGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
+    gap: 12,
+    marginBottom: 18,
+  },
+
   summaryCard: {
     border: "1px solid var(--admin-border)",
     background: "var(--admin-row)",
@@ -391,6 +345,24 @@ const styles = {
     fontWeight: 800,
   },
 
+  metaBar: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    marginBottom: 10,
+    color: "var(--admin-muted)",
+    fontSize: 12,
+    fontWeight: 700,
+  },
+
+  dateCell: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+
   latestBadge: {
     padding: "3px 8px",
     borderRadius: 999,
@@ -400,30 +372,12 @@ const styles = {
     fontWeight: 800,
   },
 
-  pagination: {
-    display: "grid",
-    gridTemplateColumns:
-      "minmax(72px,1fr) auto minmax(72px,1fr)",
-    alignItems: "center",
-    gap: 10,
-    width: "100%",
-    marginTop: 12,
-  },
-
-  pageButton: {
-    width: "100%",
-    minWidth: 0,
-    height: 40,
-    padding: "8px 10px",
-    whiteSpace: "nowrap",
-  },
-
-  pageInfo: {
-    minWidth: 54,
+  loaderSentinel: {
+    padding: "14px 0 4px",
+    color: "var(--admin-muted)",
+    fontSize: 12,
+    fontWeight: 700,
     textAlign: "center",
-    whiteSpace: "nowrap",
-    fontWeight: 800,
-    color: "var(--admin-text)",
   },
 
   modalHeader: {
