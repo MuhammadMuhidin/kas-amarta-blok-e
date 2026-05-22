@@ -1,4 +1,5 @@
-import AdminThemeBoot from "@/components/admin/AdminThemeBoot";
+import './theme.css';
+import AdminThemeBoot from '@/components/admin/AdminThemeBoot';
 
 export default function AdminLayout({ children }) {
   return (
