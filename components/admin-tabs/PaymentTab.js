@@ -103,24 +103,28 @@ export default function PaymentTab({
   }
 
   const availablePaymentPeriods = useMemo(() => {
-    const periods = new Set();
+    const candidatePeriods = [
+      ...new Set([
+        ...payments
+          .map((pay) => normalize(pay.period).slice(0, 7))
+          .filter(isValidPeriod),
+        currentPeriod,
+      ]),
+    ].sort();
 
-    personal
-      .filter((person) => person.active === "Y")
-      .forEach((person) => {
-        const joinPeriod = normalize(person.join_date).slice(0, 7);
-        const effectiveStartPeriod = getEffectiveStartPeriod(joinPeriod);
+    return candidatePeriods.filter((period) =>
+      personal
+        .filter((person) => person.active === "Y")
+        .some((person) => {
+          const joinPeriod = normalize(person.join_date).slice(0, 7);
+          const effectiveStartPeriod = getEffectiveStartPeriod(joinPeriod);
 
-        if (!isValidPeriod(effectiveStartPeriod)) return;
+          if (!isValidPeriod(effectiveStartPeriod)) return false;
+          if (period < effectiveStartPeriod) return false;
 
-        buildPeriodRange(effectiveStartPeriod, currentPeriod).forEach((period) => {
-          if (!isPaidForPeriod(person, period)) {
-            periods.add(period);
-          }
-        });
-      });
-
-    return [...periods].sort();
+          return !isPaidForPeriod(person, period);
+        }),
+    );
   }, [personal, payments, currentPeriod, normalize]);
 
   return (
