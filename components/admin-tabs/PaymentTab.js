@@ -5,6 +5,10 @@ function getCurrentPeriod() {
   return new Date().toISOString().slice(0, 7);
 }
 
+function isValidPeriod(period) {
+  return /^\d{4}-\d{2}$/.test(period);
+}
+
 function addMonth(period) {
   const [year, month] = period.split("-").map(Number);
   const date = new Date(year, month, 1);
@@ -13,12 +17,16 @@ function addMonth(period) {
 }
 
 function buildPeriodRange(startPeriod, endPeriod) {
+  if (!isValidPeriod(startPeriod) || !isValidPeriod(endPeriod)) return [];
+
   const periods = [];
   let cursor = startPeriod;
+  let guard = 0;
 
-  while (cursor <= endPeriod) {
+  while (cursor <= endPeriod && guard < 240) {
     periods.push(cursor);
     cursor = addMonth(cursor);
+    guard += 1;
   }
 
   return periods;
@@ -38,7 +46,7 @@ export default function PaymentTab({
   payment,
   setPayment,
   personal,
-  payments,
+  payments = [],
   selected,
   toggleHouse,
   normalize,
@@ -92,7 +100,7 @@ export default function PaymentTab({
       .forEach((person) => {
         const joinPeriod = normalize(person.join_date).slice(0, 7);
 
-        if (!joinPeriod) return;
+        if (!isValidPeriod(joinPeriod)) return;
 
         buildPeriodRange(joinPeriod, currentPeriod).forEach((period) => {
           if (!isPaidForPeriod(person, period)) {
@@ -102,7 +110,7 @@ export default function PaymentTab({
       });
 
     return [...periods].sort();
-  }, [personal, payments, currentPeriod]);
+  }, [personal, payments, currentPeriod, normalize]);
 
   return (
     <>
