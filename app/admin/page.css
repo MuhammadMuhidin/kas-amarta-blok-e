@@ -123,6 +123,7 @@ button {
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 999px;
+  border: 2px solid #ffffff;
   line-height: 1.2;
 }
 
