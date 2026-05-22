@@ -5,6 +5,39 @@ import modalStyles from "@/components/admin/AdminModal.module.css";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { useEffect, useState } from "react";
 
+const themes = [
+  {
+    id: "default",
+    label: "Default",
+    colors: ["#f1f5f9", "#60a5fa", "#ffffff"],
+  },
+  {
+    id: "ios",
+    label: "iOS",
+    colors: ["#f2f2f7", "#007aff", "#ffffff"],
+  },
+  {
+    id: "midnight",
+    label: "Midnight",
+    colors: ["#020617", "#3b82f6", "#111827"],
+  },
+  {
+    id: "emerald",
+    label: "Emerald",
+    colors: ["#ecfdf5", "#10b981", "#d1fae5"],
+  },
+  {
+    id: "amoled",
+    label: "AMOLED",
+    colors: ["#000000", "#ffffff", "#111111"],
+  },
+  {
+    id: "hacker",
+    label: "Hacker",
+    colors: ["#020b02", "#22c55e", "#14532d"],
+  },
+];
+
 function getCookie(name) {
   return document.cookie
     .split("; ")
@@ -34,6 +67,7 @@ export default function AdminSettings() {
 
   const [popup, setPopup] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [theme, setTheme] = useState("default");
 
   const [pinModal, setPinModal] = useState(false);
   const [pinValue, setPinValue] = useState("");
@@ -175,9 +209,19 @@ export default function AdminSettings() {
     });
   }
 
+  function applyTheme(nextTheme) {
+    setTheme(nextTheme);
+    localStorage.setItem("admin-theme", nextTheme);
+    document.documentElement.dataset.adminTheme = nextTheme;
+  }
+
   useEffect(() => {
     loadConfig();
     loadAppConfig();
+
+    const savedTheme = localStorage.getItem("admin-theme") || "default";
+
+    setTheme(savedTheme);
   }, []);
 
   useEffect(() => {
@@ -214,250 +258,47 @@ export default function AdminSettings() {
 
   return (
     <div style={styles.card}>
-      {popup && (
-        <div
-          style={{
-            ...styles.popup,
-            background:
-              popup.type === "success"
-                ? "#166534"
-                : "#991b1b",
-          }}
-        >
-          {popup.text}
-        </div>
-      )}
-
-      <h2 style={styles.title}>Konfigurasi Kas</h2>
-
-      {loadingConfig ? (
-        <div style={styles.loadingBox}>Loading configuration...</div>
-      ) : (
-        <div style={styles.section}>
-          <ConfigItem
-            label="Nominal Kas Bulanan"
-            description="Default iuran kas bulanan saat pembayaran dan laporan tunggakan."
-            type="number"
-            value={appConfig?.monthly_fee}
-            resetKey={configResetKey}
-            disabled={savingConfig}
-            saving={savingConfig}
-            isMobile={isMobile}
-            onSave={(value) => updateConfig("monthly_fee", value)}
-          />
-
-          <ConfigItem
-            label="Iuran Sampah"
-            description="Default iuran sampah yang dibayar bersama iuran kas warga."
-            type="number"
-            value={appConfig?.trash_fee}
-            resetKey={configResetKey}
-            disabled={savingConfig}
-            saving={savingConfig}
-            isMobile={isMobile}
-            onSave={(value) => updateConfig("trash_fee", value)}
-          />
-
-          <ConfigItem
-            label="Mulai Monitoring"
-            description="Periode awal validasi monitoring sistem. Data sebelum periode ini akan diabaikan dari integrity check."
-            type="month"
-            value={appConfig?.start_monitoring_date}
-            resetKey={configResetKey}
-            disabled={savingConfig}
-            saving={savingConfig}
-            isMobile={isMobile}
-            onSave={(value) =>
-              updateConfig("start_monitoring_date", value)
-            }
-          />
-        </div>
-      )}
-
-      <h2 style={styles.title}>Settings Auth</h2>
-
-      <SettingRow
-        title="WebAuth Passkey"
-        description="Jika aktif, login wajib verifikasi passkey/fingerprint setelah password."
-        checked={config.webAuthEnabled}
-        disabled={saving}
-        onChange={(value) => updateSetting("WEB_AUTH_ENABLED", value)}
-      />
-
-      <SettingRow
-        title="PIN Login"
-        description="Jika aktif, login wajib memasukkan PIN setelah password. PIN diminta setelah password. Jika WebAuth juga aktif, passkey tetap diminta setelah PIN."
-        checked={config.pinEnabled}
-        disabled={saving}
-        onChange={(value) => updateSetting("PIN_ENABLED", value)}
-      />
-
-      <AdminSessionCard />
-
-      {pinModal && (
-        <div className={modalStyles.overlay}>
-          <div
-            className={modalStyles.box}
-            style={{ maxWidth: 360, padding: 22 }}
-          >
-            <div style={styles.pinTitle}>
-              Re-auth PIN
-            </div>
-
-            <div style={styles.pinDesc}>
-              Confirm administrator PIN to apply changes.
-            </div>
-
-            <input
-              type="password"
-              placeholder="Enter PIN"
-              value={pinValue}
-              onChange={(e) =>
-                setPinValue(e.target.value)
-              }
-              style={styles.pinInput}
-              disabled={applyingChange}
-              autoFocus
-            />
-
-            <div style={styles.pinActions}>
-              <button
-                type="button"
-                style={styles.pinCancel}
-                disabled={applyingChange}
-                onClick={() => {
-                  setPinModal(false);
-                  setPendingAction(null);
-                }}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                style={{
-                  ...styles.pinConfirm,
-                  opacity: applyingChange ? 0.7 : 1,
-                  cursor: applyingChange ? "not-allowed" : "pointer",
-                }}
-                disabled={applyingChange}
-                onClick={confirmPin}
-              >
-                <LoadingButtonContent loading={applyingChange} loadingText="Applying...">
-                  Apply Change
-                </LoadingButtonContent>
-              </button>
+      <div style={styles.themeSection}>
+        <div style={styles.themeHeader}>
+          <div>
+            <div style={styles.themeTitle}>Appearance Theme</div>
+            <div style={styles.themeDesc}>
+              Customize admin dashboard visual style.
             </div>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
 
-function SettingRow({ title, description, checked, disabled, onChange }) {
-  return (
-    <div style={styles.row}>
-      <div>
-        <h3 style={styles.rowTitle}>{title}</h3>
+        <div style={styles.themeGrid}>
+          {themes.map((item) => {
+            const active = theme === item.id;
 
-        <p style={styles.desc}>{description}</p>
-      </div>
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => applyTheme(item.id)}
+                style={{
+                  ...styles.themeCard,
+                  ...(active ? styles.themeCardActive : {}),
+                }}
+              >
+                <div style={styles.paletteRow}>
+                  {item.colors.map((color) => (
+                    <span
+                      key={color}
+                      style={{
+                        ...styles.paletteDot,
+                        background: color,
+                      }}
+                    />
+                  ))}
+                </div>
 
-      <label style={styles.switch}>
-        <input
-          type="checkbox"
-          checked={checked}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.checked)}
-          style={{
-            display: "none",
-          }}
-        />
-
-        <span
-          style={{
-            ...styles.slider,
-            background: checked ? "#4f46e5" : "#cbd5e1",
-          }}
-        >
-          <span
-            style={{
-              ...styles.knob,
-              transform: checked ? "translateX(22px)" : "translateX(0)",
-            }}
-          />
-        </span>
-      </label>
-    </div>
-  );
-}
-
-function ConfigItem({
-  label,
-  description,
-  type,
-  value,
-  resetKey,
-  onSave,
-  disabled,
-  saving,
-  isMobile,
-}) {
-  const [local, setLocal] = useState(value);
-
-  useEffect(() => {
-    setLocal(value);
-  }, [value, resetKey]);
-
-  const unchanged = String(local) === String(value);
-  const loading = saving && !unchanged;
-
-  return (
-    <div
-      style={{
-        ...styles.row,
-        ...(isMobile ? styles.rowMobile : {}),
-      }}
-    >
-      <div>
-        <h3 style={styles.rowTitle}>{label}</h3>
-
-        <p style={styles.desc}>{description}</p>
-      </div>
-
-      <div
-        style={{
-          ...styles.configAction,
-          ...(isMobile ? styles.configActionMobile : {}),
-        }}
-      >
-        <input
-          type={type}
-          value={local || ""}
-          disabled={disabled}
-          onChange={(e) => setLocal(e.target.value)}
-          style={{
-            ...styles.input,
-            ...(isMobile ? styles.inputMobile : {}),
-          }}
-        />
-
-        <button
-          type="button"
-          disabled={disabled || unchanged}
-          onClick={() => onSave(local)}
-          style={{
-            ...styles.saveButton,
-            ...(isMobile ? styles.saveButtonMobile : {}),
-            opacity: disabled || unchanged ? 0.55 : 1,
-            cursor: disabled || unchanged ? "not-allowed" : "pointer",
-          }}
-        >
-          <LoadingButtonContent loading={loading} loadingText="Saving...">
-            Save
-          </LoadingButtonContent>
-        </button>
+                <div style={styles.themeLabel}>{item.label}</div>
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -465,191 +306,70 @@ function ConfigItem({
 
 const styles = {
   card: {
-    position: "relative",
+    display: "grid",
+    gap: 20,
+  },
+
+  themeSection: {
     background: "var(--admin-card)",
-    color: "var(--admin-text)",
-    borderRadius: 18,
-    padding: 20,
-    boxShadow: "0 10px 30px rgba(0,0,0,.18)",
     border: "1px solid var(--admin-border)",
+    borderRadius: 18,
+    padding: 18,
   },
 
-  popup: {
-    position: "fixed",
-    top: 20,
-    left: "50%",
-    transform: "translateX(-50%)",
-    zIndex: 9999,
-    color: "#fff",
-    padding: "12px 16px",
-    borderRadius: 12,
-    fontSize: 14,
-    fontWeight: 600,
-    boxShadow: "0 10px 25px rgba(0,0,0,.25)",
+  themeHeader: {
+    marginBottom: 16,
   },
 
-  title: {
-    margin: "0 0 18px",
-    fontSize: 20,
-    color: "var(--admin-text)",
+  themeTitle: {
+    fontSize: 18,
+    fontWeight: 800,
+    marginBottom: 6,
   },
 
-  section: {
-    marginBottom: 24,
-  },
-
-  loadingBox: {
-    padding: "16px 0",
-    marginBottom: 24,
-    color: "var(--admin-muted)",
-    borderTop: "1px solid var(--admin-border)",
-  },
-
-  row: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 16,
-    padding: "16px 0",
-    borderTop: "1px solid var(--admin-border)",
-  },
-
-  rowMobile: {
-    flexDirection: "column",
-    alignItems: "stretch",
-  },
-
-  rowTitle: {
-    margin: 0,
-    fontSize: 15,
-    color: "var(--admin-text)",
-  },
-
-  desc: {
-    margin: "6px 0 0",
+  themeDesc: {
     fontSize: 13,
     color: "var(--admin-muted)",
-    lineHeight: 1.5,
+    lineHeight: 1.6,
   },
 
-  switch: {
-    cursor: "pointer",
-    flexShrink: 0,
+  themeGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))",
+    gap: 12,
   },
 
-  slider: {
-    width: 48,
-    height: 26,
-    borderRadius: 999,
-    display: "flex",
-    alignItems: "center",
-    padding: 2,
-    transition: ".2s",
-  },
-
-  knob: {
-    width: 22,
-    height: 22,
-    borderRadius: "50%",
-    background: "#fff",
-    transition: ".2s",
-    boxShadow: "0 2px 6px rgba(0,0,0,.25)",
-  },
-
-  configAction: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexShrink: 0,
-  },
-
-  configActionMobile: {
-    width: "100%",
-    flexDirection: "column",
-    alignItems: "stretch",
-  },
-
-  input: {
-    width: 160,
-    height: 38,
-    padding: "0 12px",
-    borderRadius: 10,
+  themeCard: {
     border: "1px solid var(--admin-border)",
-    background: "var(--admin-surface)",
-    color: "var(--admin-text)",
-    fontWeight: 600,
-    outline: "none",
-  },
-
-  saveButton: {
-    height: 38,
-    padding: "0 14px",
-    border: "none",
-    borderRadius: 10,
-    background: "#2563eb",
-    color: "#fff",
-    fontWeight: 700,
-  },
-
-  inputMobile: {
-    width: "100%",
-    boxSizing: "border-box",
-  },
-
-  saveButtonMobile: {
-    width: "100%",
-    boxSizing: "border-box",
-  },
-
-  pinTitle: {
-    fontSize: 18,
-    fontWeight: 700,
-    marginBottom: 8,
-    color: "var(--admin-text)",
-  },
-
-  pinDesc: {
-    fontSize: 14,
-    color: "var(--admin-muted)",
-    marginBottom: 16,
-    lineHeight: 1.5,
-  },
-
-  pinInput: {
-    width: "100%",
-    boxSizing: "border-box",
-    padding: "12px 14px",
-    borderRadius: 12,
-    border: "1px solid var(--admin-border)",
-    background: "var(--admin-input)",
-    color: "var(--admin-text)",
-    fontSize: 15,
-    outline: "none",
-    marginBottom: 16,
-  },
-
-  pinActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 10,
-  },
-
-  pinCancel: {
-    padding: "10px 14px",
-    borderRadius: 10,
-    border: "1px solid var(--admin-border)",
+    borderRadius: 16,
+    padding: 14,
     background: "var(--admin-row)",
     color: "var(--admin-text)",
     cursor: "pointer",
+    textAlign: "left",
+    transition: "0.15s ease",
   },
 
-  pinConfirm: {
-    padding: "10px 14px",
-    borderRadius: 10,
-    border: "none",
-    background: "var(--admin-primary)",
-    color: "#020617",
+  themeCardActive: {
+    border: "1px solid var(--admin-primary)",
+    boxShadow: "0 0 0 2px var(--admin-primary)",
+  },
+
+  paletteRow: {
+    display: "flex",
+    gap: 8,
+    marginBottom: 14,
+  },
+
+  paletteDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,.15)",
+  },
+
+  themeLabel: {
+    fontSize: 14,
     fontWeight: 700,
-    cursor: "pointer",
   },
 };
