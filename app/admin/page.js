@@ -550,9 +550,8 @@ export default function AdminPage() {
 
 useEffect(() => {
   async function bootstrap() {
-    
     const validSession = await checkSession();
-      
+
     if (!validSession) return;
 
     try {
