@@ -6,6 +6,14 @@ body {
 }
 
 :root[data-admin-theme="default"] {
+  --admin-font:
+    Inter,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
   --admin-bg: #f1f5f9;
   --admin-text: #0f172a;
   --admin-card: #ffffff;
@@ -30,6 +38,13 @@ body {
 }
 
 :root[data-admin-theme="ios"] {
+  --admin-font:
+    -apple-system,
+    BlinkMacSystemFont,
+    "SF Pro Display",
+    "Segoe UI",
+    sans-serif;
+
   --admin-bg: #f2f2f7;
   --admin-text: #111827;
   --admin-card: rgba(255,255,255,.78);
@@ -54,6 +69,12 @@ body {
 }
 
 :root[data-admin-theme="midnight"] {
+  --admin-font:
+    Inter,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
+
   --admin-bg: #020617;
   --admin-text: #e2e8f0;
   --admin-card: #0f172a;
@@ -78,6 +99,12 @@ body {
 }
 
 :root[data-admin-theme="emerald"] {
+  --admin-font:
+    Manrope,
+    Inter,
+    system-ui,
+    sans-serif;
+
   --admin-bg: #ecfdf5;
   --admin-text: #064e3b;
   --admin-card: #ffffff;
@@ -102,6 +129,12 @@ body {
 }
 
 :root[data-admin-theme="amoled"] {
+  --admin-font:
+    "SF Mono",
+    "Roboto Mono",
+    Consolas,
+    monospace;
+
   --admin-bg: #000000;
   --admin-text: #f8fafc;
   --admin-card: #050505;
@@ -126,6 +159,12 @@ body {
 }
 
 :root[data-admin-theme="hacker"] {
+  --admin-font:
+    Ubuntu Mono,
+    "Roboto Mono",
+    Consolas,
+    monospace;
+
   --admin-bg: #020b02;
   --admin-text: #4ade80;
   --admin-card: #031303;
@@ -149,97 +188,18 @@ body {
   --admin-danger-soft: rgba(251,113,133,.14);
 }
 
-:root[data-admin-theme] .admin-btn,
-:root[data-admin-theme] .admin-small-btn,
-:root[data-admin-theme] .admin-tab-active,
-:root[data-admin-theme] .admin-summary-card-active,
-:root[data-admin-theme] .admin-checkbox-chip-active,
-:root[data-admin-theme] .admin-deposit-chip-active {
-  background: var(--admin-primary);
-  border-color: var(--admin-primary);
-  color: var(--admin-on-primary);
-}
-
-:root[data-admin-theme] .admin-deposit-badge,
-:root[data-admin-theme] .admin-small-btn-paid,
-:root[data-admin-theme] .admin-deposit-status-paid,
-:root[data-admin-theme] .activity-badge-success {
-  background: var(--admin-success-soft);
-  border-color: var(--admin-success);
-  color: var(--admin-success);
-}
-
-:root[data-admin-theme] .admin-monitoring-badge,
-:root[data-admin-theme] .admin-error-box,
-:root[data-admin-theme] .activity-badge-error,
-:root[data-admin-theme] .admin-deposit-status-missed,
-:root[data-admin-theme] .admin-status-error,
-:root[data-admin-theme] .admin-issue-text {
-  background: var(--admin-danger-soft);
-  border-color: var(--admin-danger);
-  color: var(--admin-danger);
-}
-
-:root[data-admin-theme] .admin-deposit-status-pending,
-:root[data-admin-theme] .activity-badge-warning {
-  background: var(--admin-warning-soft);
-  border-color: var(--admin-warning);
-  color: var(--admin-warning);
-}
-
-:root[data-admin-theme] .admin-deposit-status-waiting,
-:root[data-admin-theme] .activity-badge-info {
-  background: var(--admin-primary-soft);
-  border-color: var(--admin-primary);
-  color: var(--admin-primary);
-}
-
-:root[data-admin-theme] .admin-row-inactive {
-  background: var(--admin-danger-soft);
-  color: var(--admin-danger);
-}
-
-:root[data-admin-theme] .admin-row-new-active {
-  background: var(--admin-primary-soft);
-  color: var(--admin-primary);
-}
-
-:root[data-admin-theme] .admin-input:focus,
-:root[data-admin-theme] .admin-search-input:focus {
-  border-color: var(--admin-primary);
-  box-shadow: 0 0 0 3px var(--admin-primary-soft);
-}
-
+:root[data-admin-theme] .admin-wrapper,
 :root[data-admin-theme] .admin-card,
-:root[data-admin-theme] .admin-table,
-:root[data-admin-theme] .admin-summary-card,
-:root[data-admin-theme] .admin-status-card,
-:root[data-admin-theme] .admin-input,
-:root[data-admin-theme] .admin-search-input,
-:root[data-admin-theme] .admin-deposit-chip,
-:root[data-admin-theme] .admin-checkbox-chip {
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-:root[data-admin-theme="ios"] .admin-card,
-:root[data-admin-theme="ios"] [class*="modal_box"],
-:root[data-admin-theme="ios"] [class*="box"] {
-  backdrop-filter: blur(18px);
-}
-
-:root[data-admin-theme="hacker"] .admin-title,
-:root[data-admin-theme="hacker"] h1,
-:root[data-admin-theme="hacker"] h2,
-:root[data-admin-theme="hacker"] h3,
-:root[data-admin-theme="hacker"] h4 {
-  text-shadow: 0 0 10px rgba(34,197,94,.25);
-}
-
-:root[data-admin-theme="amoled"] .admin-card,
-:root[data-admin-theme="amoled"] .admin-table {
-  box-shadow: none;
+:root[data-admin-theme] button,
+:root[data-admin-theme] input,
+:root[data-admin-theme] select,
+:root[data-admin-theme] textarea,
+:root[data-admin-theme] table,
+:root[data-admin-theme] h1,
+:root[data-admin-theme] h2,
+:root[data-admin-theme] h3,
+:root[data-admin-theme] h4,
+:root[data-admin-theme] h5,
+:root[data-admin-theme] h6 {
+  font-family: var(--admin-font);
 }
