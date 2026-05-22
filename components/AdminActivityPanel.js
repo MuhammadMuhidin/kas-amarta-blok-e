@@ -1,5 +1,6 @@
 "use client";
 
+import modalStyles from "@/components/admin/AdminModal.module.css";
 import { useEffect, useMemo, useState } from "react";
 import "./AdminActivityPanel.css";
 
@@ -227,8 +228,8 @@ export default function AdminActivityPanel() {
       </div>
 
       {selectedActivity && (
-        <div className="activity-modal-overlay" role="dialog" aria-modal="true" onClick={() => setSelectedActivity(null)}>
-          <div className="activity-modal" onClick={(e) => e.stopPropagation()}>
+        <div className={modalStyles.overlay} role="dialog" aria-modal="true" onClick={() => setSelectedActivity(null)}>
+          <div className={`${modalStyles.box} activity-modal`} onClick={(e) => e.stopPropagation()}>
             <div className="activity-modal-header">
               <div><h3>Activity Detail</h3><p>{formatDate(selectedActivity.created_at)}</p></div>
               <button type="button" className="activity-modal-close" onClick={() => setSelectedActivity(null)}>×</button>
