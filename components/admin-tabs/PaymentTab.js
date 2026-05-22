@@ -21,11 +21,9 @@ function addMonth(period) {
 function getEffectiveStartPeriod(joinPeriod) {
   if (!isValidPeriod(joinPeriod)) return "";
 
-  const firstPaymentPeriod = addMonth(joinPeriod);
-
-  return firstPaymentPeriod < START_PAYMENT_PERIOD
+  return joinPeriod < START_PAYMENT_PERIOD
     ? START_PAYMENT_PERIOD
-    : firstPaymentPeriod;
+    : joinPeriod;
 }
 
 function buildPeriodRange(startPeriod, endPeriod) {
