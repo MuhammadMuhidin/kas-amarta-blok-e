@@ -287,12 +287,26 @@ export default function CashflowTab({
 
               <div style={styles.modalRow}>
                 <span>Type</span>
-                <strong>{selectedItem.type}</strong>
+                <strong
+                  style={
+                    selectedItem.type === "income"
+                      ? styles.typeIncome
+                      : styles.typeExpense
+                  }
+                >
+                  {selectedItem.type}
+                </strong>
               </div>
 
               <div style={styles.modalRow}>
                 <span>Amount</span>
-                <strong>
+                <strong
+                  style={
+                    selectedItem.type === "income"
+                      ? styles.amountIncome
+                      : styles.amountExpense
+                  }
+                >
                   Rp{Number(selectedItem.amount || 0).toLocaleString("id-ID")}
                 </strong>
               </div>
@@ -339,25 +353,25 @@ const styles = {
   },
 
   incomeValue: {
-    color: "#2563eb",
+    color: "var(--admin-income)",
     fontWeight: 800,
     fontSize: 22,
   },
 
   expenseValue: {
-    color: "#dc2626",
+    color: "var(--admin-expense)",
     fontWeight: 800,
     fontSize: 22,
   },
 
   netPositive: {
-    color: "#16a34a",
+    color: "var(--admin-success)",
     fontWeight: 800,
     fontSize: 22,
   },
 
   netNegative: {
-    color: "#dc2626",
+    color: "var(--admin-expense)",
     fontWeight: 800,
     fontSize: 22,
   },
@@ -377,24 +391,24 @@ const styles = {
   },
 
   typeIncome: {
-    color: "#2563eb",
+    color: "var(--admin-income)",
     fontWeight: 700,
     textTransform: "capitalize",
   },
 
   typeExpense: {
-    color: "#dc2626",
+    color: "var(--admin-expense)",
     fontWeight: 700,
     textTransform: "capitalize",
   },
 
   amountIncome: {
-    color: "#2563eb",
+    color: "var(--admin-income)",
     fontWeight: 800,
   },
 
   amountExpense: {
-    color: "#dc2626",
+    color: "var(--admin-expense)",
     fontWeight: 800,
   },
 
@@ -418,6 +432,7 @@ const styles = {
     fontSize: 24,
     fontWeight: 800,
     marginBottom: 18,
+    color: "var(--admin-text)",
   },
 
   modalGrid: {
@@ -432,5 +447,6 @@ const styles = {
     gap: 14,
     paddingTop: 12,
     borderTop: "1px solid var(--admin-border)",
+    color: "var(--admin-text)",
   },
 };
