@@ -1,4 +1,5 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import { useState } from "react";
 
 export default function DepositTab({
   saveDeposit,
@@ -18,6 +19,7 @@ export default function DepositTab({
   normalize,
   payDeposit,
 }) {
+  const [selectedBooking, setSelectedBooking] = useState(null);
   const trashFee = Number(appConfig?.trash_fee || 0);
   const personById = new Map(activePersons.map((p) => [normalize(p.id), p]));
 
@@ -110,7 +112,6 @@ export default function DepositTab({
               <th className="admin-th">House</th>
               <th className="admin-th">Name</th>
               <th className="admin-th">Period</th>
-              <th className="admin-th">Amount</th>
               <th className="admin-th">Status</th>
               <th className="admin-th">Action</th>
             </tr>
@@ -144,17 +145,22 @@ export default function DepositTab({
                   : "admin-small-btn";
 
               return (
-                <tr key={d.id || i} className={i % 2 ? "admin-row-alt" : ""}>
+                <tr
+                  key={d.id || i}
+                  className={i % 2 ? "admin-row-alt" : ""}
+                  onClick={() => setSelectedBooking(d)}
+                  style={{ cursor: "pointer" }}
+                >
                   <td className="admin-td">{d.house}</td>
                   <td className="admin-td">{d.name}</td>
                   <td className="admin-td">{d.period}</td>
                   <td className="admin-td">
-                    Rp{Number(d.amount || 0).toLocaleString("id-ID")}
-                  </td>
-                  <td className="admin-td">
                     <span className={statusClass}>{depositStatus}</span>
                   </td>
-                  <td className="admin-td">
+                  <td
+                    className="admin-td"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       type="button"
                       className={buttonClass}
@@ -173,6 +179,110 @@ export default function DepositTab({
           </tbody>
         </table>
       </div>
+
+      {selectedBooking && (
+        <div
+          onClick={() => setSelectedBooking(null)}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+            background: "rgba(2,6,23,.6)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: "100%",
+              maxWidth: 360,
+              padding: 20,
+              borderRadius: 18,
+              border: "1px solid var(--admin-border)",
+              background: "var(--admin-card)",
+              color: "var(--admin-text)",
+              boxShadow: "0 18px 40px rgba(0,0,0,.28)",
+            }}
+          >
+            <div style={{ marginBottom: 18 }}>
+              <div
+                style={{
+                  color: "var(--admin-muted)",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: ".08em",
+                  textTransform: "uppercase",
+                  marginBottom: 6,
+                }}
+              >
+                Booking Payment
+              </div>
+
+              <div
+                style={{
+                  fontSize: 26,
+                  fontWeight: 800,
+                  lineHeight: 1.1,
+                }}
+              >
+                {selectedBooking.house}
+              </div>
+
+              <div
+                style={{
+                  marginTop: 6,
+                  color: "var(--admin-muted)",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+              >
+                {selectedBooking.name} • {selectedBooking.period}
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 12 }}>
+              <div style={modalInfoStyle}>
+                <span>Status</span>
+                <strong>{getDepositStatus(selectedBooking)}</strong>
+              </div>
+
+              <div style={modalInfoStyle}>
+                <span>Amount</span>
+                <strong>
+                  Rp{Number(selectedBooking.amount || 0).toLocaleString("id-ID")}
+                </strong>
+              </div>
+
+              <div style={modalInfoStyle}>
+                <span>Created</span>
+                <strong>{selectedBooking.created_at || "-"}</strong>
+              </div>
+
+              {selectedBooking.payment_id && (
+                <div style={modalInfoStyle}>
+                  <span>Payment ID</span>
+                  <strong>{selectedBooking.payment_id}</strong>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+const modalInfoStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 14,
+  paddingTop: 12,
+  borderTop: "1px solid var(--admin-border)",
+  color: "var(--admin-muted)",
+  fontSize: 13,
+};
