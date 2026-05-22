@@ -683,6 +683,10 @@ useEffect(() => {
     return tab === name ? "admin-tab admin-tab-active" : "admin-tab";
   }
 
+  if (bootLoading) {
+    return <AdminLoading />;
+  }
+
   return (
     <>
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
