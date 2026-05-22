@@ -8,6 +8,10 @@ export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
 
+function normalize(value) {
+  return String(value || "").trim();
+}
+
 function toTitleCase(str = "") {
   return str
     .toLowerCase()
@@ -17,7 +21,62 @@ function toTitleCase(str = "") {
     .join(" ");
 }
 
-export async function GET() {
+function numberParam(value, fallback) {
+  const parsed = Number(value || fallback);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function isDirectCashflow(item) {
+  return String(item.ref_id || "").startsWith("DIRECT-");
+}
+
+function sortCashflow(rows) {
+  return [...rows].sort((a, b) => {
+    const dateCompare = String(b.date || "").localeCompare(String(a.date || ""));
+    if (dateCompare !== 0) return dateCompare;
+
+    return String(b.id || "").localeCompare(String(a.id || ""));
+  });
+}
+
+function filterCashflow(rows, type, search) {
+  let result = rows;
+
+  if (["income", "expense"].includes(type)) {
+    result = result.filter((item) => item.type === type);
+  }
+
+  if (search) {
+    const keyword = search.toLowerCase();
+
+    result = result.filter((item) =>
+      [item.id, item.ref_id, item.type, item.note, item.date]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword),
+    );
+  }
+
+  return result;
+}
+
+function buildSummary(rows) {
+  const income = rows
+    .filter((item) => item.type === "income")
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
+
+  const expense = rows
+    .filter((item) => item.type === "expense")
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
+
+  return {
+    income,
+    expense,
+    net: income - expense,
+  };
+}
+
+export async function GET(req) {
   const sheets = await getSheets();
 
   const res = await sheets.spreadsheets.values.get({
@@ -36,7 +95,36 @@ export async function GET() {
     date: r[5],
   }));
 
-  return NextResponse.json(data);
+  const { searchParams } = new URL(req.url);
+  const paginated = searchParams.has("page") || searchParams.has("limit");
+
+  if (!paginated) {
+    return NextResponse.json(data);
+  }
+
+  const page = Math.max(numberParam(searchParams.get("page"), 1), 1);
+  const limitRaw = numberParam(searchParams.get("limit"), 10);
+  const limit = Math.min(Math.max(limitRaw, 5), 50);
+  const type = normalize(searchParams.get("type")).toLowerCase();
+  const search = normalize(searchParams.get("search"));
+  const directOnly = searchParams.get("source") === "direct";
+  const from = (page - 1) * limit;
+  const to = from + limit;
+
+  const scoped = directOnly ? data.filter(isDirectCashflow) : data;
+  const filtered = filterCashflow(sortCashflow(scoped), type, search);
+
+  return NextResponse.json({
+    ok: true,
+    cashflows: filtered.slice(from, to),
+    summary: buildSummary(filtered),
+    pagination: {
+      page,
+      limit,
+      total: filtered.length,
+      total_pages: Math.max(Math.ceil(filtered.length / limit), 1),
+    },
+  });
 }
 
 export async function POST(req) {
@@ -54,10 +142,21 @@ export async function POST(req) {
   const amount = Number(body.amount || 0);
   const rawNote = String(body.note || "").trim();
 
-  if (!type || !amount || !rawNote) {
+  if (!["income", "expense"].includes(type)) {
     return NextResponse.json(
       {
-        error: "Type, amount, and note are required",
+        error: "Type must be income or expense",
+      },
+      {
+        status: 400,
+      },
+    );
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0 || !rawNote) {
+    return NextResponse.json(
+      {
+        error: "Amount and note are required",
       },
       {
         status: 400,
@@ -86,7 +185,7 @@ export async function POST(req) {
     type: "create",
     module: "cashflow",
     severity: type === "expense" ? "warning" : "success",
-    message: `Record ${type} cashflow ${note}`,
+    message: `Record ${type} direct cashflow ${note}`,
     metadata: {
       cashflow_id: cashflowId,
       ref_id: refId,
@@ -94,6 +193,7 @@ export async function POST(req) {
       amount,
       note,
       date: today,
+      source: "direct",
     },
   });
 
