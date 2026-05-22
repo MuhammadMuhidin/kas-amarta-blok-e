@@ -39,25 +39,12 @@ function sortCashflow(rows) {
   });
 }
 
-function filterCashflow(rows, type, search) {
-  let result = rows;
-
+function filterCashflow(rows, type) {
   if (["income", "expense"].includes(type)) {
-    result = result.filter((item) => item.type === type);
+    return rows.filter((item) => item.type === type);
   }
 
-  if (search) {
-    const keyword = search.toLowerCase();
-
-    result = result.filter((item) =>
-      [item.id, item.ref_id, item.type, item.note, item.date]
-        .join(" ")
-        .toLowerCase()
-        .includes(keyword),
-    );
-  }
-
-  return result;
+  return rows;
 }
 
 function buildSummary(rows) {
@@ -106,18 +93,17 @@ export async function GET(req) {
   const limitRaw = numberParam(searchParams.get("limit"), 10);
   const limit = Math.min(Math.max(limitRaw, 5), 50);
   const type = normalize(searchParams.get("type")).toLowerCase();
-  const search = normalize(searchParams.get("search"));
   const directOnly = searchParams.get("source") === "direct";
   const from = (page - 1) * limit;
   const to = from + limit;
 
   const scoped = directOnly ? data.filter(isDirectCashflow) : data;
-  const filtered = filterCashflow(sortCashflow(scoped), type, search);
+  const filtered = filterCashflow(sortCashflow(scoped), type);
 
   return NextResponse.json({
     ok: true,
     cashflows: filtered.slice(from, to),
-    summary: buildSummary(filtered),
+    summary: buildSummary(scoped),
     pagination: {
       page,
       limit,
