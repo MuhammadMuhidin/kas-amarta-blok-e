@@ -20,29 +20,18 @@ export default function DepositTab({
   payDeposit,
 }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
-  const trashFee = Number(appConfig?.trash_fee || 0);
-  const personById = new Map(activePersons.map((p) => [normalize(p.id), p]));
 
   const activeDepositTotal = sortedDeposits.reduce((total, d) => {
     const status = getDepositStatus(d);
 
     if (!["pending", "waiting"].includes(status)) return total;
 
-    const person = personById.get(normalize(d.person_id));
-    const includeTrash = normalize(person?.trash).toUpperCase() === "Y";
-
-    return total + Number(d.amount || 0) + (includeTrash ? trashFee : 0);
+    return total + Number(d.amount || 0) + Number(d.trash_amount || 0);
   }, 0);
 
-  const selectedBookingPerson = selectedBooking
-    ? personById.get(normalize(selectedBooking.person_id))
-    : null;
-
-  const trashEnabled =
-    normalize(selectedBookingPerson?.trash).toUpperCase() === "Y";
-
   const bookingAmount = Number(selectedBooking?.amount || 0);
-  const totalAmount = bookingAmount + (trashEnabled ? trashFee : 0);
+  const trashAmount = Number(selectedBooking?.trash_amount || 0);
+  const totalAmount = bookingAmount + trashAmount;
 
   return (
     <div className="admin-card">
@@ -243,11 +232,6 @@ export default function DepositTab({
 
             <div style={{ display: "grid", gap: 12 }}>
               <div style={modalInfoStyle}>
-                <span>Status</span>
-                <strong>{getDepositStatus(selectedBooking)}</strong>
-              </div>
-
-              <div style={modalInfoStyle}>
                 <span>Kas Booking</span>
                 <strong>
                   Rp{bookingAmount.toLocaleString("id-ID")}
@@ -257,8 +241,8 @@ export default function DepositTab({
               <div style={modalInfoStyle}>
                 <span>Trash Booking</span>
                 <strong>
-                  {trashEnabled
-                    ? `Rp${trashFee.toLocaleString("id-ID")}`
+                  {trashAmount > 0
+                    ? `Rp${trashAmount.toLocaleString("id-ID")}`
                     : "Not Included"}
                 </strong>
               </div>
