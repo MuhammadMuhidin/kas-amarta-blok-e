@@ -32,6 +32,12 @@ export default function DepositTab({
     trash_amount: "",
   });
 
+  const trashEnabled =
+    (selectedDepositPerson?.trash || "").toUpperCase() === "Y";
+
+  const currentTrashFee = Number(appConfig?.trash_fee || 0);
+  const currentMonthlyFee = Number(appConfig?.monthly_fee || 0);
+
   const effectiveDeposits = useMemo(() => {
     return sortedDeposits.map((deposit) => ({
       ...deposit,
@@ -49,9 +55,13 @@ export default function DepositTab({
 
   const bookingAmount = Number(selectedBooking?.amount || 0);
   const trashAmount = Number(selectedBooking?.trash_amount || 0);
-  const totalAmount = bookingAmount + trashAmount;
-  const selectedBookingStatus = selectedBooking ? getDepositStatus(selectedBooking) : "";
-  const canEditSnapshot = ["pending", "waiting"].includes(selectedBookingStatus);
+  const selectedBookingStatus = selectedBooking
+    ? getDepositStatus(selectedBooking)
+    : "";
+
+  const canEditSnapshot = ["pending", "waiting"].includes(
+    selectedBookingStatus,
+  );
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -72,10 +82,12 @@ export default function DepositTab({
     };
 
     setSelectedBooking(latest);
+
     setSnapshotDraft({
       amount: String(Number(latest.amount || 0)),
       trash_amount: String(Number(latest.trash_amount || 0)),
     });
+
     setEditingSnapshot(false);
     setSnapshotError("");
   }
@@ -94,7 +106,12 @@ export default function DepositTab({
     const amount = Number(snapshotDraft.amount || 0);
     const trashAmount = Number(snapshotDraft.trash_amount || 0);
 
-    if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(trashAmount) || trashAmount < 0) {
+    if (
+      !Number.isFinite(amount) ||
+      amount < 0 ||
+      !Number.isFinite(trashAmount) ||
+      trashAmount < 0
+    ) {
       setSnapshotError("Nominal booking tidak valid");
       showToast("Nominal booking tidak valid", "error");
       return;
@@ -105,6 +122,7 @@ export default function DepositTab({
 
     try {
       const csrfToken = getCookie("csrf_token");
+
       const res = await fetch("/api/sheets/deposit", {
         method: "PATCH",
         headers: {
@@ -135,12 +153,14 @@ export default function DepositTab({
         ...prev,
         [selectedBooking.id]: updatedBooking,
       }));
+
       setSelectedBooking(updatedBooking);
       setEditingSnapshot(false);
 
       showToast("Booking snapshot berhasil diperbarui", "success");
     } catch (err) {
-      const message = err.message || "Gagal memperbarui booking snapshot";
+      const message =
+        err.message || "Gagal memperbarui booking snapshot";
 
       setSnapshotError(message);
       showToast(message, "error");
@@ -158,7 +178,11 @@ export default function DepositTab({
       />
 
       <div className="admin-card">
-        <h3>Deposit Balance</h3>
+        <h3>Booking Payment</h3>
+
+        <div className="admin-deposit-meta" style={{ marginBottom: 14 }}>
+          Snapshot tarif pembayaran akan disimpan saat booking dibuat.
+        </div>
 
         <form onSubmit={saveDeposit} className="admin-form">
           <select
@@ -173,6 +197,7 @@ export default function DepositTab({
             }
           >
             <option value="">Select active house</option>
+
             {activePersons.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.house} - {p.name}
@@ -180,25 +205,45 @@ export default function DepositTab({
             ))}
           </select>
 
-          <input
-            className="admin-input admin-readonly-input"
-            value={`Rp${depositAmount.toLocaleString("id-ID")}`}
-            readOnly
-          />
-
           {selectedDepositPerson && (
-            <div className="admin-deposit-meta">
-              {(selectedDepositPerson.trash || "").toUpperCase() === "Y"
-                ? `Layanan: Kas + Sampah. Sampah dicatat terpisah Rp${Number(
-                    appConfig?.trash_fee || 0,
-                  ).toLocaleString("id-ID")} saat Pay Now.`
-                : "Layanan: Kas"}
+            <div
+              style={{
+                padding: 14,
+                borderRadius: 14,
+                border: "1px solid var(--admin-border)",
+                background: "var(--admin-row)",
+                display: "grid",
+                gap: 10,
+              }}
+            >
+              <div style={infoRowStyle}>
+                <span>Tarif Kas Saat Ini</span>
+
+                <strong>
+                  Rp{currentMonthlyFee.toLocaleString("id-ID")}
+                </strong>
+              </div>
+
+              <div style={infoRowStyle}>
+                <span>Tarif Sampah Saat Ini</span>
+
+                <strong>
+                  {trashEnabled
+                    ? `Rp${currentTrashFee.toLocaleString("id-ID")}`
+                    : "Not include"}
+                </strong>
+              </div>
             </div>
           )}
 
+          <div className="admin-deposit-meta">
+            Snapshot dapat diubah jika terjadi penyesuaian tarif kas atau sampah sebelum pembayaran dilakukan.
+          </div>
+
           <div className="admin-deposit-chips">
             {nextSixPeriods.map((period) => {
-              const active = selectedDepositPeriods.includes(period);
+              const active =
+                selectedDepositPeriods.includes(period);
 
               return (
                 <button
@@ -209,7 +254,12 @@ export default function DepositTab({
                       ? "admin-deposit-chip admin-deposit-chip-active"
                       : "admin-deposit-chip"
                   }
-                  onClick={() => setDepositForm({ ...depositForm, end_period: period })}
+                  onClick={() =>
+                    setDepositForm({
+                      ...depositForm,
+                      end_period: period,
+                    })
+                  }
                   disabled={!depositForm.person_id}
                 >
                   {period}
@@ -218,14 +268,22 @@ export default function DepositTab({
             })}
           </div>
 
-          <button className="admin-btn" disabled={savingDeposit}>
-            <LoadingButtonContent loading={savingDeposit} loadingText="Saving...">
-              Save Deposit
+          <button
+            className="admin-btn"
+            disabled={savingDeposit}
+          >
+            <LoadingButtonContent
+              loading={savingDeposit}
+              loadingText="Saving..."
+            >
+              Create Booking
             </LoadingButtonContent>
           </button>
         </form>
 
-        <h4>Deposit List (Rp{activeDepositTotal.toLocaleString("id-ID")})</h4>
+        <h4>
+          Booking List (Rp{activeDepositTotal.toLocaleString("id-ID")})
+        </h4>
 
         <div className="admin-table-wrapper">
           <table className="admin-table">
@@ -242,14 +300,22 @@ export default function DepositTab({
             <tbody>
               {effectiveDeposits.map((d, i) => {
                 const depositStatus = getDepositStatus(d);
-                const isPayingThisDeposit = payingDepositId === d.id;
+
+                const isPayingThisDeposit =
+                  payingDepositId === d.id;
+
                 const paymentExists = payments.some(
                   (p) =>
-                    normalize(p.person_id) === normalize(d.person_id) &&
-                    normalize(p.person_house) === normalize(d.house) &&
-                    normalize(p.period) === normalize(d.period),
+                    normalize(p.person_id) ===
+                      normalize(d.person_id) &&
+                    normalize(p.person_house) ===
+                      normalize(d.house) &&
+                    normalize(p.period) ===
+                      normalize(d.period),
                 );
+
                 const canPay = depositStatus === "pending";
+
                 const buttonText =
                   depositStatus === "paid"
                     ? "Paid"
@@ -260,7 +326,10 @@ export default function DepositTab({
                           ? "Paid"
                           : "Unpaid"
                         : "Pay Now";
-                const statusClass = `admin-deposit-status admin-deposit-status-${depositStatus}`;
+
+                const statusClass =
+                  `admin-deposit-status admin-deposit-status-${depositStatus}`;
+
                 const buttonClass =
                   buttonText === "Paid"
                     ? "admin-small-btn admin-small-btn-paid"
@@ -277,8 +346,11 @@ export default function DepositTab({
                     <td className="admin-td">{d.name}</td>
                     <td className="admin-td">{d.period}</td>
                     <td className="admin-td">
-                      <span className={statusClass}>{depositStatus}</span>
+                      <span className={statusClass}>
+                        {depositStatus}
+                      </span>
                     </td>
+
                     <td
                       className="admin-td"
                       onClick={(e) => e.stopPropagation()}
@@ -287,10 +359,17 @@ export default function DepositTab({
                         type="button"
                         className={buttonClass}
                         style={{ minWidth: 96 }}
-                        disabled={!canPay || isPayingThisDeposit || savingDeposit}
+                        disabled={
+                          !canPay ||
+                          isPayingThisDeposit ||
+                          savingDeposit
+                        }
                         onClick={() => payDeposit(d.id)}
                       >
-                        <LoadingButtonContent loading={isPayingThisDeposit} loadingText="Paying...">
+                        <LoadingButtonContent
+                          loading={isPayingThisDeposit}
+                          loadingText="Paying..."
+                        >
                           {buttonText}
                         </LoadingButtonContent>
                       </button>
@@ -335,9 +414,13 @@ export default function DepositTab({
               </div>
 
               {editingSnapshot ? (
-                <form onSubmit={updateBookingSnapshot} style={{ display: "grid", gap: 12 }}>
+                <form
+                  onSubmit={updateBookingSnapshot}
+                  style={{ display: "grid", gap: 12 }}
+                >
                   <label style={snapshotLabelStyle}>
                     <span>Kas Booking</span>
+
                     <input
                       className="admin-input"
                       type="number"
@@ -354,6 +437,7 @@ export default function DepositTab({
 
                   <label style={snapshotLabelStyle}>
                     <span>Trash Booking</span>
+
                     <input
                       className="admin-input"
                       type="number"
@@ -369,12 +453,21 @@ export default function DepositTab({
                   </label>
 
                   {snapshotError && (
-                    <div className="admin-error-box" style={{ marginBottom: 0 }}>
+                    <div
+                      className="admin-error-box"
+                      style={{ marginBottom: 0 }}
+                    >
                       {snapshotError}
                     </div>
                   )}
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: 10,
+                    }}
+                  >
                     <button
                       type="button"
                       className="admin-small-btn"
@@ -382,6 +475,7 @@ export default function DepositTab({
                       onClick={() => {
                         setEditingSnapshot(false);
                         setSnapshotError("");
+
                         setSnapshotDraft({
                           amount: String(bookingAmount),
                           trash_amount: String(trashAmount),
@@ -391,8 +485,14 @@ export default function DepositTab({
                       Cancel
                     </button>
 
-                    <button className="admin-small-btn" disabled={savingSnapshot}>
-                      <LoadingButtonContent loading={savingSnapshot} loadingText="Saving...">
+                    <button
+                      className="admin-small-btn"
+                      disabled={savingSnapshot}
+                    >
+                      <LoadingButtonContent
+                        loading={savingSnapshot}
+                        loadingText="Saving..."
+                      >
                         Save
                       </LoadingButtonContent>
                     </button>
@@ -402,6 +502,7 @@ export default function DepositTab({
                 <div style={{ display: "grid", gap: 12 }}>
                   <div style={modalInfoStyle}>
                     <span>Kas Booking</span>
+
                     <strong>
                       Rp{bookingAmount.toLocaleString("id-ID")}
                     </strong>
@@ -409,28 +510,41 @@ export default function DepositTab({
 
                   <div style={modalInfoStyle}>
                     <span>Trash Booking</span>
+
                     <strong>
                       {trashAmount > 0
                         ? `Rp${trashAmount.toLocaleString("id-ID")}`
-                        : "Not Included"}
-                    </strong>
-                  </div>
-
-                  <div style={modalInfoStyle}>
-                    <span>Estimated Total</span>
-                    <strong>
-                      Rp{totalAmount.toLocaleString("id-ID")}
+                        : "Not include"}
                     </strong>
                   </div>
 
                   <div style={modalInfoStyle}>
                     <span>Created At</span>
-                    <strong>{selectedBooking.created_at || "-"}</strong>
+
+                    <strong>
+                      {selectedBooking.created_at || "-"}
+                    </strong>
                   </div>
 
                   <div style={modalInfoStyle}>
                     <span>Paid At</span>
-                    <strong>{selectedBooking.paid_at || "-"}</strong>
+
+                    <strong>
+                      {selectedBooking.paid_at || "-"}
+                    </strong>
+                  </div>
+
+                  <div
+                    style={{
+                      paddingTop: 12,
+                      borderTop:
+                        "1px solid var(--admin-border)",
+                      color: "var(--admin-muted)",
+                      fontSize: 12,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Snapshot mengikuti tarif saat booking dibuat.
                   </div>
 
                   {canEditSnapshot && (
@@ -451,6 +565,15 @@ export default function DepositTab({
     </>
   );
 }
+
+const infoRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 14,
+  color: "var(--admin-text)",
+  fontSize: 13,
+};
 
 const modalInfoStyle = {
   display: "flex",
