@@ -38,6 +38,12 @@ export default function DepositTab({
   const currentTrashFee = Number(appConfig?.trash_fee || 0);
   const currentMonthlyFee = Number(appConfig?.monthly_fee || 0);
 
+  const selectedPeriodsCount = selectedDepositPeriods.length;
+
+  const bookingPreviewTotal =
+    (currentMonthlyFee + (trashEnabled ? currentTrashFee : 0)) *
+    selectedPeriodsCount;
+
   const effectiveDeposits = useMemo(() => {
     return sortedDeposits.map((deposit) => ({
       ...deposit,
@@ -55,6 +61,9 @@ export default function DepositTab({
 
   const bookingAmount = Number(selectedBooking?.amount || 0);
   const trashAmount = Number(selectedBooking?.trash_amount || 0);
+
+  const totalBookingPayment = bookingAmount + trashAmount;
+
   const selectedBookingStatus = selectedBooking
     ? getDepositStatus(selectedBooking)
     : "";
@@ -231,6 +240,14 @@ export default function DepositTab({
                   {trashEnabled
                     ? `Rp${currentTrashFee.toLocaleString("id-ID")}`
                     : "Not include"}
+                </strong>
+              </div>
+
+              <div style={totalRowStyle}>
+                <span>Total Booking</span>
+
+                <strong>
+                  Rp{bookingPreviewTotal.toLocaleString("id-ID")}
                 </strong>
               </div>
             </div>
@@ -518,6 +535,14 @@ export default function DepositTab({
                     </strong>
                   </div>
 
+                  <div style={totalModalRowStyle}>
+                    <span>Total Payment</span>
+
+                    <strong>
+                      Rp{totalBookingPayment.toLocaleString("id-ID")}
+                    </strong>
+                  </div>
+
                   <div style={modalInfoStyle}>
                     <span>Created At</span>
 
@@ -575,6 +600,19 @@ const infoRowStyle = {
   fontSize: 13,
 };
 
+const totalRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 14,
+  marginTop: 2,
+  paddingTop: 12,
+  borderTop: "1px solid var(--admin-border)",
+  color: "var(--admin-text)",
+  fontSize: 14,
+  fontWeight: 700,
+};
+
 const modalInfoStyle = {
   display: "flex",
   alignItems: "center",
@@ -584,6 +622,18 @@ const modalInfoStyle = {
   borderTop: "1px solid var(--admin-border)",
   color: "var(--admin-muted)",
   fontSize: 13,
+};
+
+const totalModalRowStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 14,
+  paddingTop: 12,
+  borderTop: "1px solid var(--admin-border)",
+  color: "var(--admin-text)",
+  fontSize: 14,
+  fontWeight: 700,
 };
 
 const snapshotLabelStyle = {
