@@ -1,5 +1,5 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 export default function DepositTab({
   saveDeposit,
@@ -20,8 +20,23 @@ export default function DepositTab({
   payDeposit,
 }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [snapshotOverrides, setSnapshotOverrides] = useState({});
+  const [editingSnapshot, setEditingSnapshot] = useState(false);
+  const [savingSnapshot, setSavingSnapshot] = useState(false);
+  const [snapshotError, setSnapshotError] = useState("");
+  const [snapshotDraft, setSnapshotDraft] = useState({
+    amount: "",
+    trash_amount: "",
+  });
 
-  const activeDepositTotal = sortedDeposits.reduce((total, d) => {
+  const effectiveDeposits = useMemo(() => {
+    return sortedDeposits.map((deposit) => ({
+      ...deposit,
+      ...(snapshotOverrides[deposit.id] || {}),
+    }));
+  }, [sortedDeposits, snapshotOverrides]);
+
+  const activeDepositTotal = effectiveDeposits.reduce((total, d) => {
     const status = getDepositStatus(d);
 
     if (!["pending", "waiting"].includes(status)) return total;
@@ -32,6 +47,93 @@ export default function DepositTab({
   const bookingAmount = Number(selectedBooking?.amount || 0);
   const trashAmount = Number(selectedBooking?.trash_amount || 0);
   const totalAmount = bookingAmount + trashAmount;
+  const selectedBookingStatus = selectedBooking ? getDepositStatus(selectedBooking) : "";
+  const canEditSnapshot = ["pending", "waiting"].includes(selectedBookingStatus);
+
+  function getCookie(name) {
+    return document.cookie
+      .split("; ")
+      .find((row) => row.startsWith(`${name}=`))
+      ?.split("=")[1];
+  }
+
+  function openBookingModal(deposit) {
+    const latest = {
+      ...deposit,
+      ...(snapshotOverrides[deposit.id] || {}),
+    };
+
+    setSelectedBooking(latest);
+    setSnapshotDraft({
+      amount: String(Number(latest.amount || 0)),
+      trash_amount: String(Number(latest.trash_amount || 0)),
+    });
+    setEditingSnapshot(false);
+    setSnapshotError("");
+  }
+
+  function closeBookingModal() {
+    setSelectedBooking(null);
+    setEditingSnapshot(false);
+    setSnapshotError("");
+  }
+
+  async function updateBookingSnapshot(e) {
+    e.preventDefault();
+
+    if (!selectedBooking) return;
+
+    const amount = Number(snapshotDraft.amount || 0);
+    const trashAmount = Number(snapshotDraft.trash_amount || 0);
+
+    if (!Number.isFinite(amount) || amount < 0 || !Number.isFinite(trashAmount) || trashAmount < 0) {
+      setSnapshotError("Nominal booking tidak valid");
+      return;
+    }
+
+    setSavingSnapshot(true);
+    setSnapshotError("");
+
+    try {
+      const csrfToken = getCookie("csrf_token");
+      const res = await fetch("/api/sheets/deposit", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": csrfToken,
+        },
+        body: JSON.stringify({
+          id: selectedBooking.id,
+          action: "UPDATE_SNAPSHOT",
+          amount,
+          trash_amount: trashAmount,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal memperbarui booking snapshot");
+      }
+
+      const updatedBooking = {
+        ...selectedBooking,
+        amount,
+        trash_amount: trashAmount,
+      };
+
+      setSnapshotOverrides((prev) => ({
+        ...prev,
+        [selectedBooking.id]: updatedBooking,
+      }));
+      setSelectedBooking(updatedBooking);
+      setEditingSnapshot(false);
+    } catch (err) {
+      setSnapshotError(err.message || "Gagal memperbarui booking snapshot");
+    } finally {
+      setSavingSnapshot(false);
+    }
+  }
 
   return (
     <div className="admin-card">
@@ -117,7 +219,7 @@ export default function DepositTab({
           </thead>
 
           <tbody>
-            {sortedDeposits.map((d, i) => {
+            {effectiveDeposits.map((d, i) => {
               const depositStatus = getDepositStatus(d);
               const isPayingThisDeposit = payingDepositId === d.id;
               const paymentExists = payments.some(
@@ -147,7 +249,7 @@ export default function DepositTab({
                 <tr
                   key={d.id || i}
                   className={i % 2 ? "admin-row-alt" : ""}
-                  onClick={() => setSelectedBooking(d)}
+                  onClick={() => openBookingModal(d)}
                   style={{ cursor: "pointer" }}
                 >
                   <td className="admin-td">{d.house}</td>
@@ -181,7 +283,7 @@ export default function DepositTab({
 
       {selectedBooking && (
         <div
-          onClick={() => setSelectedBooking(null)}
+          onClick={closeBookingModal}
           style={{
             position: "fixed",
             inset: 0,
@@ -230,40 +332,116 @@ export default function DepositTab({
               </div>
             </div>
 
-            <div style={{ display: "grid", gap: 12 }}>
-              <div style={modalInfoStyle}>
-                <span>Kas Booking</span>
-                <strong>
-                  Rp{bookingAmount.toLocaleString("id-ID")}
-                </strong>
-              </div>
+            {editingSnapshot ? (
+              <form onSubmit={updateBookingSnapshot} style={{ display: "grid", gap: 12 }}>
+                <label style={snapshotLabelStyle}>
+                  <span>Kas Booking</span>
+                  <input
+                    className="admin-input"
+                    type="number"
+                    min="0"
+                    value={snapshotDraft.amount}
+                    onChange={(e) =>
+                      setSnapshotDraft((prev) => ({
+                        ...prev,
+                        amount: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
 
-              <div style={modalInfoStyle}>
-                <span>Trash Booking</span>
-                <strong>
-                  {trashAmount > 0
-                    ? `Rp${trashAmount.toLocaleString("id-ID")}`
-                    : "Not Included"}
-                </strong>
-              </div>
+                <label style={snapshotLabelStyle}>
+                  <span>Trash Booking</span>
+                  <input
+                    className="admin-input"
+                    type="number"
+                    min="0"
+                    value={snapshotDraft.trash_amount}
+                    onChange={(e) =>
+                      setSnapshotDraft((prev) => ({
+                        ...prev,
+                        trash_amount: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
 
-              <div style={modalInfoStyle}>
-                <span>Estimated Total</span>
-                <strong>
-                  Rp{totalAmount.toLocaleString("id-ID")}
-                </strong>
-              </div>
+                {snapshotError && (
+                  <div className="admin-error-box" style={{ marginBottom: 0 }}>
+                    {snapshotError}
+                  </div>
+                )}
 
-              <div style={modalInfoStyle}>
-                <span>Created At</span>
-                <strong>{selectedBooking.created_at || "-"}</strong>
-              </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <button
+                    type="button"
+                    className="admin-small-btn"
+                    disabled={savingSnapshot}
+                    onClick={() => {
+                      setEditingSnapshot(false);
+                      setSnapshotError("");
+                      setSnapshotDraft({
+                        amount: String(bookingAmount),
+                        trash_amount: String(trashAmount),
+                      });
+                    }}
+                  >
+                    Cancel
+                  </button>
 
-              <div style={modalInfoStyle}>
-                <span>Paid At</span>
-                <strong>{selectedBooking.paid_at || "-"}</strong>
+                  <button className="admin-small-btn" disabled={savingSnapshot}>
+                    <LoadingButtonContent loading={savingSnapshot} loadingText="Saving...">
+                      Save
+                    </LoadingButtonContent>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                <div style={modalInfoStyle}>
+                  <span>Kas Booking</span>
+                  <strong>
+                    Rp{bookingAmount.toLocaleString("id-ID")}
+                  </strong>
+                </div>
+
+                <div style={modalInfoStyle}>
+                  <span>Trash Booking</span>
+                  <strong>
+                    {trashAmount > 0
+                      ? `Rp${trashAmount.toLocaleString("id-ID")}`
+                      : "Not Included"}
+                  </strong>
+                </div>
+
+                <div style={modalInfoStyle}>
+                  <span>Estimated Total</span>
+                  <strong>
+                    Rp{totalAmount.toLocaleString("id-ID")}
+                  </strong>
+                </div>
+
+                <div style={modalInfoStyle}>
+                  <span>Created At</span>
+                  <strong>{selectedBooking.created_at || "-"}</strong>
+                </div>
+
+                <div style={modalInfoStyle}>
+                  <span>Paid At</span>
+                  <strong>{selectedBooking.paid_at || "-"}</strong>
+                </div>
+
+                {canEditSnapshot && (
+                  <button
+                    type="button"
+                    className="admin-small-btn"
+                    onClick={() => setEditingSnapshot(true)}
+                  >
+                    Edit Snapshot
+                  </button>
+                )}
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -280,4 +458,12 @@ const modalInfoStyle = {
   borderTop: "1px solid var(--admin-border)",
   color: "var(--admin-muted)",
   fontSize: 13,
+};
+
+const snapshotLabelStyle = {
+  display: "grid",
+  gap: 6,
+  color: "var(--admin-muted)",
+  fontSize: 13,
+  fontWeight: 700,
 };
