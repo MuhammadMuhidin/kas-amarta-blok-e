@@ -346,7 +346,7 @@ export default function AdminPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Gagal memperbarui data warga");
+        throw new Error(data.error || "Gagal memperbarui data member");
       }
 
       showPopup("Data member berhasil diperbarui", "success");
@@ -492,7 +492,7 @@ export default function AdminPage() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Gagal membayar Booking Payment");
+        throw new Error(data.error || "Gagal membayarkan data booking");
       }
 
       showPopup("Booking payment berhasil dibayarkan", "success");
@@ -504,7 +504,7 @@ export default function AdminPage() {
         loadCashflow(),
       ]);
     } catch (err) {
-      showPopup(err.message || "Gagal membayar Booking Payment", "error");
+      showPopup(err.message || "Gagal membayarkan data booking", "error");
     } finally {
       setPayingDepositId("");
     }
@@ -518,7 +518,7 @@ export default function AdminPage() {
       !String(cashflow.amount || "").trim() ||
       !cashflow.note.trim()
     ) {
-      showPopup("Lengkapi jenis, nominal, dan catatan transaksi", "error");
+      showPopup("Lengkapi jenis, nominal dan catatan transaksi", "error");
       return;
     }
 
@@ -741,6 +741,7 @@ useEffect(() => {
                     height: 18,
                     padding: "0 6px",
                     borderRadius: 999,
+                    border: 2px solid #ffffff,
                     background: "#dc2626",
                     color: "#fff",
                     fontSize: 11,
