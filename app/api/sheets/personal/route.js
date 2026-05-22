@@ -12,7 +12,57 @@ function normalize(value) {
   return String(value || "").trim();
 }
 
-export async function GET() {
+function clean(value) {
+  return normalize(value).toUpperCase();
+}
+
+function numberParam(value, fallback) {
+  const parsed = Number(value || fallback);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function sortByHouse(rows) {
+  return [...rows].sort((a, b) =>
+    String(a.house || "").localeCompare(String(b.house || ""), undefined, {
+      numeric: true,
+    }),
+  );
+}
+
+function filterRows(rows, filter, search) {
+  let result = rows;
+
+  if (filter === "ACTIVE") {
+    result = result.filter((item) => item.active === "Y");
+  }
+
+  if (filter === "INACTIVE") {
+    result = result.filter((item) => item.active === "N");
+  }
+
+  if (filter === "TRASH_ACTIVE") {
+    result = result.filter((item) => item.trash === "Y");
+  }
+
+  if (filter === "TRASH_INACTIVE") {
+    result = result.filter((item) => item.trash === "N");
+  }
+
+  if (search) {
+    const keyword = String(search || "").toLowerCase();
+
+    result = result.filter((item) => {
+      return [item.house, item.name, item.id]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword);
+    });
+  }
+
+  return result;
+}
+
+export async function GET(req) {
   const sheets = await getSheets();
 
   const res = await sheets.spreadsheets.values.get({
@@ -22,16 +72,43 @@ export async function GET() {
 
   const rows = res.data.values || [];
 
-  const data = rows.slice(1).map((r) => ({
-    id: r[0],
-    house: r[1],
-    name: r[2],
-    trash: r[3],
-    active: r[4],
-    join_date: r[5],
-  }));
+  const data = sortByHouse(
+    rows.slice(1).map((r) => ({
+      id: r[0],
+      house: r[1],
+      name: r[2],
+      trash: r[3],
+      active: r[4],
+      join_date: r[5],
+    })),
+  );
 
-  return NextResponse.json(data);
+  const { searchParams } = new URL(req.url);
+  const paginated = searchParams.has("page") || searchParams.has("limit");
+
+  if (!paginated) {
+    return NextResponse.json(data);
+  }
+
+  const page = Math.max(numberParam(searchParams.get("page"), 1), 1);
+  const limitRaw = numberParam(searchParams.get("limit"), 10);
+  const limit = Math.min(Math.max(limitRaw, 5), 50);
+  const filter = clean(searchParams.get("filter"));
+  const search = normalize(searchParams.get("search"));
+  const from = (page - 1) * limit;
+  const to = from + limit;
+  const filtered = filterRows(data, filter, search);
+
+  return NextResponse.json({
+    ok: true,
+    personal: filtered.slice(from, to),
+    pagination: {
+      page,
+      limit,
+      total: filtered.length,
+      total_pages: Math.max(Math.ceil(filtered.length / limit), 1),
+    },
+  });
 }
 
 export async function POST(req) {
