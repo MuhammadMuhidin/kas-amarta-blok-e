@@ -29,6 +29,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import "./page.css";
+import AdminLoading from "./loading";
 
 function normalize(value) {
   return String(value || "").trim();
@@ -69,6 +70,7 @@ export default function AdminPage() {
     note: "",
   });
 
+  const [bootLoading, setBootLoading] = useState(true);
   const [dailyBackup, setDailyBackup] = useState(null);
   const [loadingDailyBackup, setLoadingDailyBackup] = useState(false);
   const [summaryBackup, setSummaryBackup] = useState([]);
@@ -544,17 +546,28 @@ export default function AdminPage() {
     }
   }
 
-  useEffect(() => {
-    checkSession();
-    loadAppConfig();
-    loadPersonal();
-    loadDailyBackupStatus();
-    loadSummaryBackup();
-    loadPayment();
-    loadCashflow();
-    loadTrash();
-    loadDeposit();
-  }, []);
+useEffect(() => {
+  async function bootstrap() {
+    try {
+      await checkSession();
+
+      await Promise.all([
+        loadAppConfig(),
+        loadPersonal(),
+        loadDailyBackupStatus(),
+        loadSummaryBackup(),
+        loadPayment(),
+        loadCashflow(),
+        loadTrash(),
+        loadDeposit(),
+      ]);
+    } finally {
+      setBootLoading(false);
+    }
+  }
+
+  bootstrap();
+}, []);
 
   useEffect(() => {
     if (tab === "payment") {
