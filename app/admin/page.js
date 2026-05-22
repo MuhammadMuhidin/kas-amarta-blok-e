@@ -107,7 +107,9 @@ export default function AdminPage() {
 
     if (res.status === 401) {
       router.replace("/login");
+      return false;
     }
+    return true;
   }
 
   function getDepositStatus(deposit) {
@@ -549,7 +551,9 @@ export default function AdminPage() {
 useEffect(() => {
   async function bootstrap() {
     try {
-      await checkSession();
+      const validSession = await checkSession();
+      
+      if (!validSession) return;
 
       await Promise.all([
         loadAppConfig(),
