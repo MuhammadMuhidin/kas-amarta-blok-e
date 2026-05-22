@@ -735,21 +735,7 @@ useEffect(() => {
               <span>🖥️ Monitoring</span>
           
               {monitoringIssueCount > 0 && (
-                <span
-                  style={{
-                    minWidth: 18,
-                    height: 18,
-                    padding: "0 6px",
-                    borderRadius: 999,
-                    border: 2px solid #ffffff,
-                    background: "#dc2626",
-                    color: "#fff",
-                    fontSize: 11,
-                    fontWeight: 900,
-                    lineHeight: "18px",
-                    textAlign: "center",
-                  }}
-                >
+                <span className="admin-monitoring-badge">
                   {monitoringIssueCount}
                 </span>
               )}
