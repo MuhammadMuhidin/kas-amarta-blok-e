@@ -51,8 +51,22 @@ export default function DepositTab({
     }));
   }, [sortedDeposits, snapshotOverrides]);
 
+  function hasPaymentForDeposit(deposit) {
+    return payments.some(
+      (payment) =>
+        normalize(payment.person_id) === normalize(deposit.person_id) &&
+        normalize(payment.person_house) === normalize(deposit.house) &&
+        normalize(payment.period) === normalize(deposit.period),
+    );
+  }
+
+  function resolveDepositStatus(deposit) {
+    if (hasPaymentForDeposit(deposit)) return "paid";
+    return getDepositStatus(deposit);
+  }
+
   const activeDepositTotal = effectiveDeposits.reduce((total, d) => {
-    const status = getDepositStatus(d);
+    const status = resolveDepositStatus(d);
 
     if (!["pending", "waiting"].includes(status)) return total;
 
@@ -65,7 +79,7 @@ export default function DepositTab({
   const totalBookingPayment = bookingAmount + trashAmount;
 
   const selectedBookingStatus = selectedBooking
-    ? getDepositStatus(selectedBooking)
+    ? resolveDepositStatus(selectedBooking)
     : "";
 
   const canEditSnapshot = ["pending", "waiting"].includes(
@@ -316,20 +330,10 @@ export default function DepositTab({
 
             <tbody>
               {effectiveDeposits.map((d, i) => {
-                const depositStatus = getDepositStatus(d);
+                const depositStatus = resolveDepositStatus(d);
 
                 const isPayingThisDeposit =
                   payingDepositId === d.id;
-
-                const paymentExists = payments.some(
-                  (p) =>
-                    normalize(p.person_id) ===
-                      normalize(d.person_id) &&
-                    normalize(p.person_house) ===
-                      normalize(d.house) &&
-                    normalize(p.period) ===
-                      normalize(d.period),
-                );
 
                 const canPay = depositStatus === "pending";
 
@@ -339,9 +343,7 @@ export default function DepositTab({
                     : depositStatus === "waiting"
                       ? "Waiting"
                       : depositStatus === "missed"
-                        ? paymentExists
-                          ? "Paid"
-                          : "Unpaid"
+                        ? "Unpaid"
                         : "Pay Now";
 
                 const statusClass =
