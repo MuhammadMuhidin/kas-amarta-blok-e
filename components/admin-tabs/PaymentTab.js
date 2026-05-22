@@ -5,6 +5,43 @@ function getCurrentPeriod() {
   return new Date().toISOString().slice(0, 7);
 }
 
+const START_PAYMENT_PERIOD = "2026-02";
+
+function isValidPeriod(period) {
+  return /^\d{4}-\d{2}$/.test(period);
+}
+
+function addMonth(period) {
+  const [year, month] = period.split("-").map(Number);
+  const date = new Date(year, month, 1);
+
+  return date.toISOString().slice(0, 7);
+}
+
+function getEffectiveStartPeriod(joinPeriod) {
+  if (!isValidPeriod(joinPeriod)) return "";
+
+  return joinPeriod < START_PAYMENT_PERIOD
+    ? START_PAYMENT_PERIOD
+    : joinPeriod;
+}
+
+function buildPeriodRange(startPeriod, endPeriod) {
+  if (!isValidPeriod(startPeriod) || !isValidPeriod(endPeriod)) return [];
+
+  const periods = [];
+  let cursor = startPeriod;
+  let guard = 0;
+
+  while (cursor <= endPeriod && guard < 24) {
+    periods.push(cursor);
+    cursor = addMonth(cursor);
+    guard += 1;
+  }
+
+  return periods;
+}
+
 function isDepositPaid(deposit, normalize) {
   return (
     normalize(deposit.status).toLowerCase() === "paid" &&
@@ -19,6 +56,7 @@ export default function PaymentTab({
   payment,
   setPayment,
   personal,
+  payments = [],
   selected,
   toggleHouse,
   normalize,
@@ -54,6 +92,41 @@ export default function PaymentTab({
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
   const disableRecordPayment = loadingPayment || hasPendingCurrentDeposit;
 
+  function isPaidForPeriod(person, period) {
+    return payments.some((pay) => {
+      const samePeriod = normalize(pay.period).slice(0, 7) === period;
+      const samePerson = normalize(pay.person_id) === normalize(person.id);
+      const sameHouse = normalize(pay.person_house) === normalize(person.house);
+
+      return samePeriod && (samePerson || sameHouse);
+    });
+  }
+
+  const availablePaymentPeriods = useMemo(() => {
+    const candidatePeriods = [
+      ...new Set([
+        ...payments
+          .map((pay) => normalize(pay.period).slice(0, 7))
+          .filter(isValidPeriod),
+        currentPeriod,
+      ]),
+    ].sort();
+
+    return candidatePeriods.filter((period) =>
+      personal
+        .filter((person) => person.active === "Y")
+        .some((person) => {
+          const joinPeriod = normalize(person.join_date).slice(0, 7);
+          const effectiveStartPeriod = getEffectiveStartPeriod(joinPeriod);
+
+          if (!isValidPeriod(effectiveStartPeriod)) return false;
+          if (period < effectiveStartPeriod) return false;
+
+          return !isPaidForPeriod(person, period);
+        }),
+    );
+  }, [personal, payments, currentPeriod, normalize]);
+
   return (
     <>
       {configError && <div className="admin-error-box">{configError}</div>}
@@ -65,12 +138,19 @@ export default function PaymentTab({
       <div className="admin-card">
         <h3>Bulk Payment</h3>
         <form onSubmit={recordPayment} className="admin-form">
-          <input
+          <select
             className="admin-input"
-            placeholder="Period (2026-02)"
             value={payment.period}
             onChange={(e) => setPayment({ ...payment, period: e.target.value })}
-          />
+          >
+            <option value="">Pilih periode tunggakan</option>
+
+            {availablePaymentPeriods.map((period) => (
+              <option key={period} value={period}>
+                {period}
+              </option>
+            ))}
+          </select>
           <input
             className="admin-input admin-readonly-input"
             type="number"
@@ -85,8 +165,9 @@ export default function PaymentTab({
               .map((p) => {
                 const period = normalize(payment.period);
                 const joinPeriod = normalize(p.join_date).slice(0, 7);
+                const effectiveStartPeriod = getEffectiveStartPeriod(joinPeriod);
                 const alreadyPaid = isHousePaidForPeriod(p);
-                const notJoined = period && joinPeriod && period < joinPeriod;
+                const notJoined = period && effectiveStartPeriod && period < effectiveStartPeriod;
                 const disabledChip = alreadyPaid || notJoined;
                 const chipClass = [
                   "admin-checkbox-chip",

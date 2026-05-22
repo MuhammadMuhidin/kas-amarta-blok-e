@@ -753,6 +753,7 @@ useEffect(() => {
             payment={payment}
             setPayment={setPayment}
             personal={personal}
+            payments={payments}
             selected={selected}
             toggleHouse={toggleHouse}
             normalize={normalize}
