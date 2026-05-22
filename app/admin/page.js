@@ -550,11 +550,12 @@ export default function AdminPage() {
 
 useEffect(() => {
   async function bootstrap() {
-    try {
-      const validSession = await checkSession();
+    
+    const validSession = await checkSession();
       
-      if (!validSession) return;
+    if (!validSession) return;
 
+    try {
       await Promise.all([
         loadAppConfig(),
         loadPersonal(),
