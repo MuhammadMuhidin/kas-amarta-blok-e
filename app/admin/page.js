@@ -73,8 +73,6 @@ export default function AdminPage() {
   const [bootLoading, setBootLoading] = useState(true);
   const [dailyBackup, setDailyBackup] = useState(null);
   const [loadingDailyBackup, setLoadingDailyBackup] = useState(false);
-  const [summaryBackup, setSummaryBackup] = useState([]);
-  const [loadingSummary, setLoadingSummary] = useState(false);
   const [payments, setPayments] = useState([]);
   const [trashRecords, setTrashRecords] = useState([]);
   const [memberFilter, setMemberFilter] = useState("");
@@ -240,21 +238,6 @@ export default function AdminPage() {
       setDailyBackup(data);
     } finally {
       setLoadingDailyBackup(false);
-    }
-  }
-
-  async function loadSummaryBackup() {
-    setLoadingSummary(true);
-
-    try {
-      const res = await fetch("/api/summary-backup", {
-        cache: "no-store",
-      });
-
-      const data = await res.json();
-      setSummaryBackup(data || []);
-    } finally {
-      setLoadingSummary(false);
     }
   }
 
@@ -559,7 +542,6 @@ useEffect(() => {
         loadAppConfig(),
         loadPersonal(),
         loadDailyBackupStatus(),
-        loadSummaryBackup(),
         loadPayment(),
         loadCashflow(),
         loadTrash(),
@@ -808,12 +790,7 @@ useEffect(() => {
           />
         )}
 
-        {tab === "summary" && (
-          <SummaryBackupTab
-            loadingSummary={loadingSummary}
-            summaryBackup={summaryBackup}
-          />
-        )}
+        {tab === "summary" && <SummaryBackupTab />}
 
         {tab === "monitoring" && (
           <MonitoringTab
