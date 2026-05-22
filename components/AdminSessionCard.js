@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import modalStyles from "@/components/admin/AdminModal.module.css";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 function getCookie(name) {
   return document.cookie
@@ -199,8 +200,12 @@ export default function AdminSessionCard() {
       )}
 
       {pendingSession && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalCard}>
+        <div className={modalStyles.overlay} onClick={() => setPendingSession(null)}>
+          <div
+            className={modalStyles.box}
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 390, padding: 22 }}
+          >
             <div style={styles.modalBadge}>Session Access</div>
 
             <h3 style={styles.modalTitle}>Revoke this session?</h3>
@@ -370,28 +375,6 @@ const styles = {
     color: "#991b1b",
     fontSize: 13,
     fontWeight: 700,
-  },
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 9999,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 18,
-    background: "rgba(2,6,23,.62)",
-    backdropFilter: "blur(5px)",
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 390,
-    padding: 22,
-    boxSizing: "border-box",
-    borderRadius: 20,
-    border: "1px solid var(--admin-border)",
-    background: "var(--admin-card)",
-    color: "var(--admin-text)",
-    boxShadow: "0 24px 70px rgba(0,0,0,.36)",
   },
   modalBadge: {
     display: "inline-flex",
