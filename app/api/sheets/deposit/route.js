@@ -4,6 +4,10 @@ import { generateId } from "@/lib/id";
 import { getAppConfig } from "@/lib/appConfig";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import {
+  getCurrentPeriod,
+  sortDeposits,
+} from "@/lib/depositUtils";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +17,12 @@ function normalize(value) {
   return String(value || "").trim();
 }
 
-export async function GET() {
+function numberParam(value, fallback) {
+  const parsed = Number(value || fallback);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export async function GET(req) {
   const sheets = await getSheets();
 
   const res = await sheets.spreadsheets.values.get({
@@ -37,7 +46,30 @@ export async function GET() {
     payment_id: r[10],
   }));
 
-  return NextResponse.json(data);
+  const { searchParams } = new URL(req.url);
+  const paginated = searchParams.has("page") || searchParams.has("limit");
+
+  if (!paginated) {
+    return NextResponse.json(data);
+  }
+
+  const page = Math.max(numberParam(searchParams.get("page"), 1), 1);
+  const limitRaw = numberParam(searchParams.get("limit"), 10);
+  const limit = Math.min(Math.max(limitRaw, 5), 50);
+  const from = (page - 1) * limit;
+  const to = from + limit;
+  const sorted = sortDeposits(data, getCurrentPeriod(), normalize);
+
+  return NextResponse.json({
+    ok: true,
+    deposits: sorted.slice(from, to),
+    pagination: {
+      page,
+      limit,
+      total: sorted.length,
+      total_pages: Math.max(Math.ceil(sorted.length / limit), 1),
+    },
+  });
 }
 
 export async function POST(req) {
