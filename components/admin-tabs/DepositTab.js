@@ -34,6 +34,16 @@ export default function DepositTab({
     return total + Number(d.amount || 0) + (includeTrash ? trashFee : 0);
   }, 0);
 
+  const selectedBookingPerson = selectedBooking
+    ? personById.get(normalize(selectedBooking.person_id))
+    : null;
+
+  const trashEnabled =
+    normalize(selectedBookingPerson?.trash).toUpperCase() === "Y";
+
+  const bookingAmount = Number(selectedBooking?.amount || 0);
+  const totalAmount = bookingAmount + (trashEnabled ? trashFee : 0);
+
   return (
     <div className="admin-card">
       <h3>Deposit Balance</h3>
@@ -211,25 +221,12 @@ export default function DepositTab({
             <div style={{ marginBottom: 18 }}>
               <div
                 style={{
-                  color: "var(--admin-muted)",
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: ".08em",
-                  textTransform: "uppercase",
-                  marginBottom: 6,
-                }}
-              >
-                Booking Payment
-              </div>
-
-              <div
-                style={{
                   fontSize: 26,
                   fontWeight: 800,
                   lineHeight: 1.1,
                 }}
               >
-                {selectedBooking.house}
+                {selectedBooking.house} • {selectedBooking.period}
               </div>
 
               <div
@@ -240,7 +237,7 @@ export default function DepositTab({
                   fontWeight: 600,
                 }}
               >
-                {selectedBooking.name} • {selectedBooking.period}
+                {selectedBooking.name}
               </div>
             </div>
 
@@ -251,23 +248,37 @@ export default function DepositTab({
               </div>
 
               <div style={modalInfoStyle}>
-                <span>Amount</span>
+                <span>Kas Booking</span>
                 <strong>
-                  Rp{Number(selectedBooking.amount || 0).toLocaleString("id-ID")}
+                  Rp{bookingAmount.toLocaleString("id-ID")}
                 </strong>
               </div>
 
               <div style={modalInfoStyle}>
-                <span>Created</span>
+                <span>Trash Booking</span>
+                <strong>
+                  {trashEnabled
+                    ? `Rp${trashFee.toLocaleString("id-ID")}`
+                    : "Not Included"}
+                </strong>
+              </div>
+
+              <div style={modalInfoStyle}>
+                <span>Estimated Total</span>
+                <strong>
+                  Rp{totalAmount.toLocaleString("id-ID")}
+                </strong>
+              </div>
+
+              <div style={modalInfoStyle}>
+                <span>Created At</span>
                 <strong>{selectedBooking.created_at || "-"}</strong>
               </div>
 
-              {selectedBooking.payment_id && (
-                <div style={modalInfoStyle}>
-                  <span>Payment ID</span>
-                  <strong>{selectedBooking.payment_id}</strong>
-                </div>
-              )}
+              <div style={modalInfoStyle}>
+                <span>Paid At</span>
+                <strong>{selectedBooking.paid_at || "-"}</strong>
+              </div>
             </div>
           </div>
         </div>
