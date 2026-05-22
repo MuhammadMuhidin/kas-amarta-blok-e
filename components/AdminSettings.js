@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import AdminSessionCard from "@/components/AdminSessionCard";
+import modalStyles from "@/components/admin/AdminModal.module.css";
+import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import { useEffect, useState } from "react";
 
 function getCookie(name) {
   return document.cookie
@@ -294,8 +295,11 @@ export default function AdminSettings() {
       <AdminSessionCard />
 
       {pinModal && (
-        <div style={styles.pinOverlay}>
-          <div style={styles.pinModal}>
+        <div className={modalStyles.overlay}>
+          <div
+            className={modalStyles.box}
+            style={{ maxWidth: 360, padding: 22 }}
+          >
             <div style={styles.pinTitle}>
               Re-auth PIN
             </div>
@@ -595,28 +599,6 @@ const styles = {
   saveButtonMobile: {
     width: "100%",
     boxSizing: "border-box",
-  },
-
-  pinOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(2,6,23,.6)",
-    backdropFilter: "blur(4px)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 9999,
-  },
-
-  pinModal: {
-    width: "100%",
-    maxWidth: 360,
-    background: "var(--admin-card)",
-    border: "1px solid var(--admin-border)",
-    borderRadius: 18,
-    padding: 22,
-    boxSizing: "border-box",
-    boxShadow: "0 20px 50px rgba(0,0,0,.35)",
   },
 
   pinTitle: {
