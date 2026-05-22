@@ -5,6 +5,8 @@ function getCurrentPeriod() {
   return new Date().toISOString().slice(0, 7);
 }
 
+const START_PAYMENT_PERIOD = "2026-02";
+
 function isValidPeriod(period) {
   return /^\d{4}-\d{2}$/.test(period);
 }
@@ -14,6 +16,16 @@ function addMonth(period) {
   const date = new Date(year, month, 1);
 
   return date.toISOString().slice(0, 7);
+}
+
+function getEffectiveStartPeriod(joinPeriod) {
+  if (!isValidPeriod(joinPeriod)) return "";
+
+  const firstPaymentPeriod = addMonth(joinPeriod);
+
+  return firstPaymentPeriod < START_PAYMENT_PERIOD
+    ? START_PAYMENT_PERIOD
+    : firstPaymentPeriod;
 }
 
 function buildPeriodRange(startPeriod, endPeriod) {
@@ -99,12 +111,11 @@ export default function PaymentTab({
       .filter((person) => person.active === "Y")
       .forEach((person) => {
         const joinPeriod = normalize(person.join_date).slice(0, 7);
+        const effectiveStartPeriod = getEffectiveStartPeriod(joinPeriod);
 
-        if (!isValidPeriod(joinPeriod)) return;
+        if (!isValidPeriod(effectiveStartPeriod)) return;
 
-        const firstPaymentPeriod = addMonth(joinPeriod);
-
-        buildPeriodRange(firstPaymentPeriod, currentPeriod).forEach((period) => {
+        buildPeriodRange(effectiveStartPeriod, currentPeriod).forEach((period) => {
           if (!isPaidForPeriod(person, period)) {
             periods.add(period);
           }
@@ -152,11 +163,9 @@ export default function PaymentTab({
               .map((p) => {
                 const period = normalize(payment.period);
                 const joinPeriod = normalize(p.join_date).slice(0, 7);
-                const firstPaymentPeriod = isValidPeriod(joinPeriod)
-                  ? addMonth(joinPeriod)
-                  : "";
+                const effectiveStartPeriod = getEffectiveStartPeriod(joinPeriod);
                 const alreadyPaid = isHousePaidForPeriod(p);
-                const notJoined = period && firstPaymentPeriod && period < firstPaymentPeriod;
+                const notJoined = period && effectiveStartPeriod && period < effectiveStartPeriod;
                 const disabledChip = alreadyPaid || notJoined;
                 const chipClass = [
                   "admin-checkbox-chip",
