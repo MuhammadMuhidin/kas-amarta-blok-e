@@ -195,7 +195,9 @@ export default function CashflowTab({
                     <th className="admin-th">Date</th>
                     <th className="admin-th">Type</th>
                     <th className="admin-th">Amount</th>
-                    <th className="admin-th">Description</th>
+                    <th className="admin-th" style={styles.descriptionHeader}>
+                      Description
+                    </th>
                   </tr>
                 </thead>
 
@@ -235,7 +237,12 @@ export default function CashflowTab({
                           Rp{Number(item.amount || 0).toLocaleString("id-ID")}
                         </td>
 
-                        <td className="admin-td">{item.note}</td>
+                        <td
+                          className="admin-td"
+                          style={styles.descriptionCell}
+                        >
+                          {item.note}
+                        </td>
                       </tr>
                     );
                   })}
@@ -389,6 +396,14 @@ const styles = {
   amountExpense: {
     color: "#dc2626",
     fontWeight: 800,
+  },
+
+  descriptionHeader: {
+    textAlign: "left",
+  },
+
+  descriptionCell: {
+    textAlign: "left",
   },
 
   loaderSentinel: {
