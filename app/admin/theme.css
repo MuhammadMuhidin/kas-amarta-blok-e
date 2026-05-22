@@ -149,6 +149,82 @@ body {
   --admin-danger-soft: rgba(251,113,133,.14);
 }
 
+:root[data-admin-theme] .admin-btn,
+:root[data-admin-theme] .admin-small-btn,
+:root[data-admin-theme] .admin-tab-active,
+:root[data-admin-theme] .admin-summary-card-active,
+:root[data-admin-theme] .admin-checkbox-chip-active,
+:root[data-admin-theme] .admin-deposit-chip-active {
+  background: var(--admin-primary);
+  border-color: var(--admin-primary);
+  color: var(--admin-on-primary);
+}
+
+:root[data-admin-theme] .admin-deposit-badge,
+:root[data-admin-theme] .admin-small-btn-paid,
+:root[data-admin-theme] .admin-deposit-status-paid,
+:root[data-admin-theme] .activity-badge-success {
+  background: var(--admin-success-soft);
+  border-color: var(--admin-success);
+  color: var(--admin-success);
+}
+
+:root[data-admin-theme] .admin-monitoring-badge,
+:root[data-admin-theme] .admin-error-box,
+:root[data-admin-theme] .activity-badge-error,
+:root[data-admin-theme] .admin-deposit-status-missed,
+:root[data-admin-theme] .admin-status-error,
+:root[data-admin-theme] .admin-issue-text {
+  background: var(--admin-danger-soft);
+  border-color: var(--admin-danger);
+  color: var(--admin-danger);
+}
+
+:root[data-admin-theme] .admin-deposit-status-pending,
+:root[data-admin-theme] .activity-badge-warning {
+  background: var(--admin-warning-soft);
+  border-color: var(--admin-warning);
+  color: var(--admin-warning);
+}
+
+:root[data-admin-theme] .admin-deposit-status-waiting,
+:root[data-admin-theme] .activity-badge-info {
+  background: var(--admin-primary-soft);
+  border-color: var(--admin-primary);
+  color: var(--admin-primary);
+}
+
+:root[data-admin-theme] .admin-row-inactive {
+  background: var(--admin-danger-soft);
+  color: var(--admin-danger);
+}
+
+:root[data-admin-theme] .admin-row-new-active {
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary);
+}
+
+:root[data-admin-theme] .admin-input:focus,
+:root[data-admin-theme] .admin-search-input:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px var(--admin-primary-soft);
+}
+
+:root[data-admin-theme] .admin-card,
+:root[data-admin-theme] .admin-table,
+:root[data-admin-theme] .admin-summary-card,
+:root[data-admin-theme] .admin-status-card,
+:root[data-admin-theme] .admin-input,
+:root[data-admin-theme] .admin-search-input,
+:root[data-admin-theme] .admin-deposit-chip,
+:root[data-admin-theme] .admin-checkbox-chip {
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
 :root[data-admin-theme="ios"] .admin-card,
 :root[data-admin-theme="ios"] [class*="modal_box"],
 :root[data-admin-theme="ios"] [class*="box"] {
