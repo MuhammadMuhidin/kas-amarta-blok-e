@@ -3,7 +3,7 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import modalStyles from "@/components/admin/AdminModal.module.css";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const pageSize = 10;
 
@@ -14,8 +14,12 @@ export default function CashflowTab({
   loadingCashflow,
 }) {
   const [typeFilter, setTypeFilter] = useState("");
-  const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState(null);
+  const [summary, setSummary] = useState({
+    income: 0,
+    expense: 0,
+    net: 0,
+  });
 
   const {
     items,
@@ -36,30 +40,23 @@ export default function CashflowTab({
       params.set("source", "direct");
 
       if (typeFilter) params.set("type", typeFilter);
-      if (search.trim()) params.set("search", search.trim());
 
       return `/api/sheets/cashflow?${params.toString()}`;
     },
-    deps: [typeFilter, search],
-    getItems: (data) => data.cashflows || [],
+    deps: [typeFilter],
+    getItems: (data) => {
+      if (data.summary) {
+        setSummary(data.summary);
+      }
+
+      return data.cashflows || [];
+    },
     getPagination: (data) => data.pagination || {},
   });
 
-  const summary = useMemo(() => {
-    const income = items
-      .filter((item) => item.type === "income")
-      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-
-    const expense = items
-      .filter((item) => item.type === "expense")
-      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-
-    return {
-      income,
-      expense,
-      net: income - expense,
-    };
-  }, [items]);
+  useEffect(() => {
+    refresh();
+  }, [typeFilter]);
 
   async function handleAddCashflow(e) {
     await addCashflow(e);
@@ -131,14 +128,14 @@ export default function CashflowTab({
           <div style={styles.card}>
             <div style={styles.label}>Income</div>
             <div style={styles.incomeValue}>
-              Rp{summary.income.toLocaleString("id-ID")}
+              Rp{Number(summary.income || 0).toLocaleString("id-ID")}
             </div>
           </div>
 
           <div style={styles.card}>
             <div style={styles.label}>Expense</div>
             <div style={styles.expenseValue}>
-              Rp{summary.expense.toLocaleString("id-ID")}
+              Rp{Number(summary.expense || 0).toLocaleString("id-ID")}
             </div>
           </div>
 
@@ -146,24 +143,17 @@ export default function CashflowTab({
             <div style={styles.label}>Net</div>
             <div
               style={
-                summary.net >= 0
+                Number(summary.net || 0) >= 0
                   ? styles.netPositive
                   : styles.netNegative
               }
             >
-              Rp{summary.net.toLocaleString("id-ID")}
+              Rp{Number(summary.net || 0).toLocaleString("id-ID")}
             </div>
           </div>
         </div>
 
         <div style={styles.toolbar}>
-          <input
-            className="admin-input"
-            placeholder="Search transaction..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-
           <select
             className="admin-input"
             value={typeFilter}
@@ -366,8 +356,8 @@ const styles = {
   },
 
   toolbar: {
-    display: "grid",
-    gridTemplateColumns: "1fr 180px auto",
+    display: "flex",
+    justifyContent: "space-between",
     gap: 10,
     marginBottom: 12,
   },
