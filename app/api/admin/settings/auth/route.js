@@ -5,6 +5,34 @@ import { recordAdminActivity } from "@/lib/adminActivity";
 
 export const runtime = "nodejs";
 
+const allowedDurations = new Set([
+  "3600",
+  "21600",
+  "43200",
+  "86400",
+  "259200",
+  "604800",
+  "2592000",
+]);
+
+function normalizeAuthValue(key, value) {
+  if (key === "SESSION_DURATION") {
+    const normalized = String(value || "");
+
+    if (!allowedDurations.has(normalized)) {
+      throw new Error("Session duration tidak valid");
+    }
+
+    return normalized;
+  }
+
+  if (!["WEB_AUTH_ENABLED", "PIN_ENABLED"].includes(key)) {
+    throw new Error("Config key tidak diizinkan");
+  }
+
+  return value ? "true" : "false";
+}
+
 export async function GET(req) {
   try {
     if (!(await isAdmin(req))) {
@@ -59,7 +87,9 @@ export async function PATCH(req) {
       );
     }
 
-    await updateAuthConfig(key, value ? "true" : "false");
+    const normalizedValue = normalizeAuthValue(key, value);
+
+    await updateAuthConfig(key, normalizedValue);
 
     await recordAdminActivity(req, {
       type: "update",
@@ -68,7 +98,7 @@ export async function PATCH(req) {
       message: `Update auth setting ${key}`,
       metadata: {
         key,
-        value: Boolean(value),
+        value: normalizedValue,
       },
     });
 
