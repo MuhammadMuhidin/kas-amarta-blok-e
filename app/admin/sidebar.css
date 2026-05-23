@@ -10,18 +10,23 @@
     z-index: 100;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
     margin-bottom: 12px;
-    padding: 12px 14px;
+    padding: 14px 16px;
     border: 1px solid var(--admin-border);
     border-top: 0;
     border-radius: 0 0 14px 14px;
     background: var(--admin-card);
     color: var(--admin-text);
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 900;
     box-sizing: border-box;
+  }
+
+  .admin-mobile-menu-btn span {
+    font-size: 20px;
+    line-height: 1;
   }
 
   .admin-mobile-drawer-backdrop {
@@ -30,7 +35,7 @@
     z-index: 105;
     display: block;
     border: 0;
-    background: rgba(2, 6, 23, 0.46);
+    background: rgba(2, 6, 23, 0.52);
   }
 
   .admin-header,
@@ -43,6 +48,19 @@
     transform: translateX(-110%);
     transition: transform 0.22s ease;
     box-sizing: border-box;
+  }
+
+  :root[data-admin-theme="ios"] .admin-header,
+  :root[data-admin-theme="ios"] .admin-tabs,
+  :root[data-admin-theme="ios"] .admin-mobile-menu-btn {
+    background: #ffffff;
+    border-color: #e5e7eb;
+  }
+
+  :root[data-admin-theme="default"] .admin-header,
+  :root[data-admin-theme="default"] .admin-tabs,
+  :root[data-admin-theme="default"] .admin-mobile-menu-btn {
+    background: #ffffff;
   }
 
   html[data-admin-drawer="open"] .admin-header,
