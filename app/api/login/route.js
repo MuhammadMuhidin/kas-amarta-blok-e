@@ -11,14 +11,13 @@ import {
 
 async function createAuthResponse(req) {
   const csrfToken = createCSRFToken();
-
   const sessionDuration = await getAdminSessionDuration();
 
   const res = NextResponse.json({
     ok: true,
   });
 
-  const token = await createAdminSession(req);
+  const token = await createAdminSession(req, sessionDuration);
 
   res.cookies.set(getSessionCookieName(), token, {
     httpOnly: true,
