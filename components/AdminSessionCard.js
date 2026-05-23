@@ -153,20 +153,6 @@ export default function AdminSessionCard() {
               List of devices currently holding administrator access.
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={loadSessions}
-            disabled={loading}
-            style={{
-              ...styles.refreshButton,
-              opacity: loading ? 0.6 : 1,
-            }}
-          >
-            <LoadingButtonContent loading={loading} loadingText="Refreshing...">
-              Refresh
-            </LoadingButtonContent>
-          </button>
         </div>
 
         {error && <div style={styles.errorBox}>{error}</div>}
@@ -328,15 +314,6 @@ const styles = {
     fontSize: 13,
     color: "var(--admin-muted)",
     lineHeight: 1.5,
-  },
-  refreshButton: {
-    border: "1px solid var(--admin-border)",
-    borderRadius: 10,
-    padding: "8px 10px",
-    background: "var(--admin-row)",
-    color: "var(--admin-text)",
-    fontWeight: 700,
-    cursor: "pointer",
   },
   sessionList: {
     display: "grid",
