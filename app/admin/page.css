@@ -435,6 +435,13 @@ button {
   margin-bottom: 16px;
 }
 
+.admin-summary-header .admin-small-btn,
+.activity-refresh-btn,
+.admin-card > h4 + div .admin-small-btn,
+.admin-card > h4 + .admin-error-box + div .admin-small-btn {
+  display: none !important;
+}
+
 .admin-monitor-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
