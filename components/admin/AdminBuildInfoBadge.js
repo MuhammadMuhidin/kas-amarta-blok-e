@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import styles from "./AdminBuildInfoBadge.module.css";
 
 function formatBuildTime(value) {
@@ -22,33 +22,40 @@ function formatBuildTime(value) {
 export default function AdminBuildInfoBadge() {
   const [buildInfo, setBuildInfo] = useState(null);
 
+  const loadBuildInfo = useCallback(async () => {
+    try {
+      const res = await fetch("/api/build-info", {
+        cache: "no-store",
+      });
+
+      const data = await res.json();
+      setBuildInfo(data?.build || null);
+    } catch {
+      setBuildInfo(null);
+    }
+  }, []);
+
   useEffect(() => {
-    let active = true;
+    function handleFocus() {
+      loadBuildInfo();
+    }
 
-    async function loadBuildInfo() {
-      try {
-        const res = await fetch("/api/build-info", {
-          cache: "no-store",
-        });
-
-        const data = await res.json();
-
-        if (active) {
-          setBuildInfo(data?.build || null);
-        }
-      } catch {
-        if (active) {
-          setBuildInfo(null);
-        }
+    function handleVisibilityChange() {
+      if (!document.hidden) {
+        loadBuildInfo();
       }
     }
 
     loadBuildInfo();
 
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     return () => {
-      active = false;
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, []);
+  }, [loadBuildInfo]);
 
   if (!buildInfo) return null;
 
