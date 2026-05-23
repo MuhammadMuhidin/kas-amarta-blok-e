@@ -38,6 +38,16 @@ const themes = [
   },
 ];
 
+const sessionDurationOptions = [
+  { label: "1 Hour", value: "3600" },
+  { label: "6 Hours", value: "21600" },
+  { label: "12 Hours", value: "43200" },
+  { label: "1 Day", value: "86400" },
+  { label: "3 Days", value: "259200" },
+  { label: "7 Days", value: "604800" },
+  { label: "30 Days", value: "2592000" },
+];
+
 function getCookie(name) {
   return document.cookie
     .split("; ")
@@ -384,6 +394,16 @@ export default function AdminSettings() {
         onChange={(value) => updateSetting("PIN_ENABLED", value)}
       />
 
+      <SelectSettingRow
+        title="Session Duration"
+        description="Lama sesi login admin sebelum otomatis logout. Perubahan berlaku mulai login berikutnya."
+        value={String(config.sessionDuration || 86400)}
+        options={sessionDurationOptions}
+        disabled={saving}
+        isMobile={isMobile}
+        onChange={(value) => updateSetting("SESSION_DURATION", value)}
+      />
+
       <AdminSessionCard />
 
       {pinModal && (
@@ -470,7 +490,7 @@ function SettingRow({ title, description, checked, disabled, onChange }) {
         <span
           style={{
             ...styles.slider,
-            background: checked ? "#4f46e5" : "#cbd5e1",
+            background: checked ? "var(--admin-primary)" : "#cbd5e1",
           }}
         >
           <span
@@ -481,6 +501,48 @@ function SettingRow({ title, description, checked, disabled, onChange }) {
           />
         </span>
       </label>
+    </div>
+  );
+}
+
+function SelectSettingRow({
+  title,
+  description,
+  value,
+  options,
+  disabled,
+  isMobile,
+  onChange,
+}) {
+  return (
+    <div
+      style={{
+        ...styles.row,
+        ...(isMobile ? styles.rowMobile : {}),
+      }}
+    >
+      <div>
+        <h3 style={styles.rowTitle}>{title}</h3>
+
+        <p style={styles.desc}>{description}</p>
+      </div>
+
+      <select
+        className="admin-input"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          ...styles.selectInput,
+          ...(isMobile ? styles.inputMobile : {}),
+        }}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -725,13 +787,25 @@ const styles = {
     outline: "none",
   },
 
+  selectInput: {
+    width: 180,
+    height: 38,
+    padding: "0 12px",
+    borderRadius: 10,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-input)",
+    color: "var(--admin-text)",
+    fontWeight: 700,
+    outline: "none",
+  },
+
   saveButton: {
     height: 38,
     padding: "0 14px",
     border: "none",
     borderRadius: 10,
     background: "var(--admin-primary)",
-    color: "#020617",
+    color: "var(--admin-on-primary)",
     fontWeight: 700,
   },
 
@@ -792,7 +866,7 @@ const styles = {
     borderRadius: 10,
     border: "none",
     background: "var(--admin-primary)",
-    color: "#020617",
+    color: "var(--admin-on-primary)",
     fontWeight: 700,
     cursor: "pointer",
   },
