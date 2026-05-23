@@ -18,7 +18,6 @@ export default function CashflowTab({
   const [summary, setSummary] = useState({
     income: 0,
     expense: 0,
-    net: 0,
   });
 
   const {
@@ -126,29 +125,16 @@ export default function CashflowTab({
 
         <div style={styles.summaryGrid}>
           <div style={styles.card}>
-            <div style={styles.label}>Income</div>
+            <div style={styles.label}>Direct Income</div>
             <div style={styles.incomeValue}>
               Rp{Number(summary.income || 0).toLocaleString("id-ID")}
             </div>
           </div>
 
           <div style={styles.card}>
-            <div style={styles.label}>Expense</div>
+            <div style={styles.label}>Direct Expense</div>
             <div style={styles.expenseValue}>
               Rp{Number(summary.expense || 0).toLocaleString("id-ID")}
-            </div>
-          </div>
-
-          <div style={styles.card}>
-            <div style={styles.label}>Net</div>
-            <div
-              style={
-                Number(summary.net || 0) >= 0
-                  ? styles.netPositive
-                  : styles.netNegative
-              }
-            >
-              Rp{Number(summary.net || 0).toLocaleString("id-ID")}
             </div>
           </div>
         </div>
@@ -359,18 +345,6 @@ const styles = {
   },
 
   expenseValue: {
-    color: "var(--admin-expense)",
-    fontWeight: 800,
-    fontSize: 22,
-  },
-
-  netPositive: {
-    color: "var(--admin-success)",
-    fontWeight: 800,
-    fontSize: 22,
-  },
-
-  netNegative: {
     color: "var(--admin-expense)",
     fontWeight: 800,
     fontSize: 22,
