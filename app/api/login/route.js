@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { createCSRFToken, getAuthConfigs } from "@/lib/webauth";
+import {
+  createCSRFToken,
+  getAdminSessionDuration,
+  getAuthConfigs,
+} from "@/lib/webauth";
 import {
   createAdminSession,
   getSessionCookieName,
@@ -7,6 +11,8 @@ import {
 
 async function createAuthResponse(req) {
   const csrfToken = createCSRFToken();
+
+  const sessionDuration = await getAdminSessionDuration();
 
   const res = NextResponse.json({
     ok: true,
@@ -19,7 +25,7 @@ async function createAuthResponse(req) {
     secure: true,
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 24,
+    maxAge: sessionDuration,
   });
 
   res.cookies.set("csrf_token", csrfToken, {
@@ -27,7 +33,7 @@ async function createAuthResponse(req) {
     secure: true,
     sameSite: "strict",
     path: "/",
-    maxAge: 60 * 60 * 24,
+    maxAge: sessionDuration,
   });
 
   return res;
@@ -50,11 +56,6 @@ export async function POST(req) {
 
     const { webAuthEnabled, pinEnabled } = await getAuthConfigs();
 
-    /*
-      STEP 1
-      PIN
-    */
-
     if (pinEnabled) {
       if (!pin) {
         return NextResponse.json({
@@ -75,21 +76,11 @@ export async function POST(req) {
       }
     }
 
-    /*
-      STEP 2
-      WEBAUTH
-    */
-
     if (webAuthEnabled) {
       return NextResponse.json({
         need_webauth: true,
       });
     }
-
-    /*
-      STEP 3
-      LOGIN
-    */
 
     return createAuthResponse(req);
   } catch (err) {
