@@ -5,6 +5,8 @@ import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+const DEFAULT_SESSION_DURATION = 86400;
+
 function getCookie(name) {
   return document.cookie
     .split("; ")
@@ -28,6 +30,31 @@ function getTimeAgo(date) {
   return `${Math.floor(diff / 86400)} days ago`;
 }
 
+function getRemainingTime(createdAt, durationSeconds) {
+  if (!createdAt || !durationSeconds) return "-";
+
+  const expiresAt =
+    new Date(createdAt).getTime() + Number(durationSeconds) * 1000;
+
+  const diff = Math.max(0, Math.floor((expiresAt - Date.now()) / 1000));
+
+  if (diff <= 0) return "Expired";
+
+  const days = Math.floor(diff / 86400);
+  const hours = Math.floor((diff % 86400) / 3600);
+  const minutes = Math.floor((diff % 3600) / 60);
+
+  if (days > 0) {
+    return `${days}d ${hours}h remaining`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m remaining`;
+  }
+
+  return `${minutes}m remaining`;
+}
+
 export default function AdminSessionCard() {
   const router = useRouter();
   const [sessions, setSessions] = useState([]);
@@ -35,6 +62,7 @@ export default function AdminSessionCard() {
   const [revokingId, setRevokingId] = useState("");
   const [pendingSession, setPendingSession] = useState(null);
   const [error, setError] = useState("");
+  const [sessionDuration, setSessionDuration] = useState(DEFAULT_SESSION_DURATION);
 
   async function redirectToLogin() {
     await fetch("/api/logout", {
@@ -50,22 +78,34 @@ export default function AdminSessionCard() {
     setError("");
 
     try {
-      const res = await fetch("/api/admin/sessions", {
-        cache: "no-store",
-      });
+      const [sessionRes, authRes] = await Promise.all([
+        fetch("/api/admin/sessions", {
+          cache: "no-store",
+        }),
+        fetch("/api/admin/settings/auth", {
+          cache: "no-store",
+        }),
+      ]);
 
-      if (res.status === 401) {
+      if (sessionRes.status === 401 || authRes.status === 401) {
         await redirectToLogin();
         return;
       }
 
-      const data = await res.json();
+      const sessionData = await sessionRes.json();
+      const authData = await authRes.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to load sessions");
+      if (!sessionRes.ok) {
+        throw new Error(sessionData.error || "Failed to load sessions");
       }
 
-      setSessions(data.sessions || []);
+      if (authRes.ok) {
+        setSessionDuration(
+          Number(authData.config?.sessionDuration || DEFAULT_SESSION_DURATION),
+        );
+      }
+
+      setSessions(sessionData.sessions || []);
     } catch (err) {
       setError(err.message || "Failed to load sessions");
     } finally {
@@ -174,6 +214,10 @@ export default function AdminSessionCard() {
                 <div style={styles.sessionMeta}>
                   Last active: {getTimeAgo(session.last_active)}
                 </div>
+
+                <div style={styles.remainingMeta}>
+                  Session expires in {getRemainingTime(session.created_at, sessionDuration)}
+                </div>
               </div>
 
               {!session.current && (
@@ -196,68 +240,6 @@ export default function AdminSessionCard() {
               )}
             </div>
           ))}
-        </div>
-      )}
-
-      {pendingSession && (
-        <div className={modalStyles.overlay} onClick={() => setPendingSession(null)}>
-          <div
-            className={modalStyles.box}
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 390, padding: 22 }}
-          >
-            <div style={styles.modalBadge}>Session Access</div>
-
-            <h3 style={styles.modalTitle}>Revoke this session?</h3>
-
-            <p style={styles.modalDesc}>
-              This device will lose administrator access and must sign in again.
-            </p>
-
-            <div style={styles.modalSessionBox}>
-              <div style={styles.sessionDevice}>
-                {getDeviceName(pendingSession)}
-              </div>
-
-              {pendingSession.location && (
-                <div style={styles.locationText}>
-                  {pendingSession.location}
-                </div>
-              )}
-
-              <div style={styles.sessionMeta}>
-                Last active: {getTimeAgo(pendingSession.last_active)}
-              </div>
-            </div>
-
-            <div style={styles.modalActions}>
-              <button
-                type="button"
-                onClick={() => setPendingSession(null)}
-                disabled={!!revokingId}
-                style={styles.cancelButton}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={() => revokeSession(pendingSession)}
-                disabled={!!revokingId}
-                style={{
-                  ...styles.confirmDangerButton,
-                  opacity: revokingId ? 0.65 : 1,
-                }}
-              >
-                <LoadingButtonContent
-                  loading={!!revokingId}
-                  loadingText="Revoking..."
-                >
-                  Revoke Session
-                </LoadingButtonContent>
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>
@@ -331,8 +313,8 @@ const styles = {
     alignItems: "center",
     padding: "4px 8px",
     borderRadius: 999,
-    background: "rgba(37,99,235,.12)",
-    color: "#2563eb",
+    background: "var(--admin-primary-soft)",
+    color: "var(--admin-primary)",
     fontSize: 11,
     fontWeight: 900,
     letterSpacing: ".03em",
@@ -350,11 +332,17 @@ const styles = {
     color: "var(--admin-muted)",
     wordBreak: "break-word",
   },
+  remainingMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "var(--admin-primary)",
+    fontWeight: 700,
+  },
   dangerButton: {
     border: "none",
     borderRadius: 10,
     padding: "9px 12px",
-    background: "#dc2626",
+    background: "var(--admin-danger)",
     color: "#fff",
     fontWeight: 800,
     cursor: "pointer",
@@ -371,62 +359,9 @@ const styles = {
     marginBottom: 12,
     padding: 12,
     borderRadius: 12,
-    background: "#fef2f2",
-    color: "#991b1b",
+    background: "var(--admin-danger-soft)",
+    color: "var(--admin-danger)",
     fontSize: 13,
     fontWeight: 700,
-  },
-  modalBadge: {
-    display: "inline-flex",
-    marginBottom: 12,
-    padding: "6px 10px",
-    borderRadius: 999,
-    background: "#fee2e2",
-    color: "#991b1b",
-    fontSize: 11,
-    fontWeight: 900,
-    letterSpacing: ".08em",
-    textTransform: "uppercase",
-  },
-  modalTitle: {
-    margin: "0 0 8px",
-    fontSize: 20,
-    color: "var(--admin-text)",
-  },
-  modalDesc: {
-    margin: "0 0 16px",
-    color: "var(--admin-muted)",
-    fontSize: 14,
-    lineHeight: 1.5,
-  },
-  modalSessionBox: {
-    marginBottom: 18,
-    padding: 14,
-    borderRadius: 14,
-    border: "1px solid var(--admin-border)",
-    background: "var(--admin-row)",
-  },
-  modalActions: {
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 10,
-  },
-  cancelButton: {
-    padding: "10px 14px",
-    borderRadius: 10,
-    border: "1px solid var(--admin-border)",
-    background: "var(--admin-row)",
-    color: "var(--admin-text)",
-    fontWeight: 800,
-    cursor: "pointer",
-  },
-  confirmDangerButton: {
-    padding: "10px 14px",
-    borderRadius: 10,
-    border: "none",
-    background: "#dc2626",
-    color: "#fff",
-    fontWeight: 900,
-    cursor: "pointer",
   },
 };
