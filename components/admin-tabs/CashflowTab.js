@@ -149,15 +149,6 @@ export default function CashflowTab({
             <option value="income">Income</option>
             <option value="expense">Expense</option>
           </select>
-
-          <button
-            type="button"
-            className="admin-small-btn"
-            disabled={loading || loadingMore}
-            onClick={refresh}
-          >
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
         </div>
 
         {error && <div className="admin-error-box">{error}</div>}
@@ -351,9 +342,6 @@ const styles = {
   },
 
   toolbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 10,
     marginBottom: 12,
   },
 
