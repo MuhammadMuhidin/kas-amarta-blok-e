@@ -1,0 +1,112 @@
+.admin-shell-nav-note {
+  display: none;
+}
+
+@media (min-width: 901px) {
+  .admin-wrapper {
+    max-width: none !important;
+    display: grid !important;
+    grid-template-columns: 240px minmax(0, 1040px);
+    align-items: start;
+    justify-content: center;
+    column-gap: 22px;
+    padding: 20px 24px !important;
+    overflow-x: visible !important;
+  }
+
+  .admin-header {
+    grid-column: 1;
+    position: sticky;
+    top: 20px;
+    z-index: 20;
+    gap: 14px !important;
+    margin-bottom: 0 !important;
+    padding: 18px;
+    border: 1px solid var(--admin-border);
+    border-radius: 18px 18px 8px 8px;
+    background: var(--admin-card);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+  }
+
+  .admin-title {
+    font-size: 18px !important;
+    line-height: 1.25 !important;
+  }
+
+  .admin-home-btn {
+    width: 100%;
+    text-align: left;
+    border-radius: 12px !important;
+    font-weight: 800;
+  }
+
+  .admin-tabs {
+    grid-column: 1;
+    position: sticky;
+    top: 132px;
+    z-index: 19;
+    display: flex !important;
+    flex-direction: column;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    margin-bottom: 0 !important;
+    padding: 12px;
+    border: 1px solid var(--admin-border);
+    border-top: none;
+    border-radius: 8px 8px 18px 18px;
+    background: var(--admin-card);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
+  }
+
+  .admin-tabs ~ * {
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  .admin-tab {
+    width: 100%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    text-align: left;
+    padding: 11px 12px !important;
+    border-radius: 12px !important;
+    font-size: 14px;
+    font-weight: 750;
+  }
+
+  .admin-tab-active {
+    box-shadow: inset 3px 0 0 var(--admin-on-primary, #020617);
+  }
+
+  .admin-tab-content {
+    width: 100%;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .admin-deposit-badge {
+    max-width: 92px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .admin-monitoring-badge {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 900px) {
+  .admin-tabs {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-tab {
+    white-space: nowrap;
+  }
+}
