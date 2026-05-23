@@ -2,60 +2,64 @@
   display: none;
 }
 
-@media (min-width: 901px) {
+@media (max-width: 720px) {
   .admin-wrapper {
     max-width: none !important;
     display: grid !important;
-    grid-template-columns: 240px minmax(0, 1040px);
+    grid-template-columns: 84px minmax(0, 1fr);
     align-items: start;
-    justify-content: center;
-    column-gap: 22px;
-    padding: 20px 24px !important;
+    column-gap: 10px;
+    padding: 10px !important;
     overflow-x: visible !important;
   }
 
   .admin-header {
     grid-column: 1;
     position: sticky;
-    top: 20px;
+    top: 10px;
     z-index: 20;
-    gap: 14px !important;
+    gap: 8px !important;
     margin-bottom: 0 !important;
-    padding: 18px;
+    padding: 10px 8px;
     border: 1px solid var(--admin-border);
-    border-radius: 18px 18px 8px 8px;
+    border-radius: 14px 14px 8px 8px;
     background: var(--admin-card);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
   }
 
   .admin-title {
-    font-size: 18px !important;
-    line-height: 1.25 !important;
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+    text-align: center;
+    word-break: break-word;
   }
 
   .admin-home-btn {
     width: 100%;
-    text-align: left;
-    border-radius: 12px !important;
+    padding: 8px 6px !important;
+    border-radius: 10px !important;
+    text-align: center;
+    font-size: 11px !important;
     font-weight: 800;
   }
 
   .admin-tabs {
     grid-column: 1;
     position: sticky;
-    top: 132px;
+    top: 94px;
     z-index: 19;
     display: flex !important;
     flex-direction: column;
     flex-wrap: nowrap !important;
-    gap: 8px !important;
+    gap: 6px !important;
     margin-bottom: 0 !important;
-    padding: 12px;
+    padding: 8px;
     border: 1px solid var(--admin-border);
     border-top: none;
-    border-radius: 8px 8px 18px 18px;
+    border-radius: 8px 8px 14px 14px;
     background: var(--admin-card);
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.14);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12);
+    overflow: visible !important;
   }
 
   .admin-tabs ~ * {
@@ -65,14 +69,19 @@
 
   .admin-tab {
     width: 100%;
+    min-height: 42px;
     display: flex;
-    justify-content: flex-start;
     align-items: center;
-    text-align: left;
-    padding: 11px 12px !important;
-    border-radius: 12px !important;
-    font-size: 14px;
-    font-weight: 750;
+    justify-content: center;
+    padding: 8px 6px !important;
+    border-radius: 11px !important;
+    font-size: 0 !important;
+    line-height: 1;
+    white-space: normal !important;
+  }
+
+  .admin-tab::first-letter {
+    font-size: 18px;
   }
 
   .admin-tab-active {
@@ -81,32 +90,34 @@
 
   .admin-tab-content {
     width: 100%;
-    justify-content: space-between !important;
-    gap: 8px !important;
+    justify-content: center !important;
+    gap: 4px !important;
     flex-wrap: nowrap !important;
+  }
+
+  .admin-tab-content span:first-child {
+    font-size: 0;
+  }
+
+  .admin-tab-content span:first-child::first-letter {
+    font-size: 18px;
   }
 
   .admin-deposit-badge {
-    max-width: 92px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none;
   }
 
   .admin-monitoring-badge {
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 16px;
     flex-shrink: 0;
   }
-}
 
-@media (max-width: 900px) {
-  .admin-tabs {
-    flex-wrap: nowrap !important;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .admin-tab {
-    white-space: nowrap;
+  .admin-card {
+    padding: 14px !important;
+    border-radius: 14px !important;
   }
 }
