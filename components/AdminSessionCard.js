@@ -1,5 +1,6 @@
 "use client";
 
+import SettingsHistoryCard from "@/components/SettingsHistoryCard";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { useRouter } from "next/navigation";
@@ -143,160 +144,164 @@ export default function AdminSessionCard() {
   }, []);
 
   return (
-    <div style={styles.card}>
-      <div style={styles.header}>
-        <div>
-          <h2 style={styles.title}>Active Sessions</h2>
-          <p style={styles.description}>
-            List of devices currently holding administrator access.
-          </p>
+    <>
+      <div style={styles.card}>
+        <div style={styles.header}>
+          <div>
+            <h2 style={styles.title}>Active Sessions</h2>
+            <p style={styles.description}>
+              List of devices currently holding administrator access.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={loadSessions}
+            disabled={loading}
+            style={{
+              ...styles.refreshButton,
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            <LoadingButtonContent loading={loading} loadingText="Refreshing...">
+              Refresh
+            </LoadingButtonContent>
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={loadSessions}
-          disabled={loading}
-          style={{
-            ...styles.refreshButton,
-            opacity: loading ? 0.6 : 1,
-          }}
-        >
-          <LoadingButtonContent loading={loading} loadingText="Refreshing...">
-            Refresh
-          </LoadingButtonContent>
-        </button>
-      </div>
+        {error && <div style={styles.errorBox}>{error}</div>}
 
-      {error && <div style={styles.errorBox}>{error}</div>}
+        {loading ? (
+          <div style={styles.emptyBox}>Loading sessions...</div>
+        ) : sessions.length === 0 ? (
+          <div style={styles.emptyBox}>No active sessions.</div>
+        ) : (
+          <div style={styles.sessionList}>
+            {sessions.map((session) => (
+              <div key={session.id} style={styles.sessionItem}>
+                <div style={styles.sessionInfo}>
+                  <div style={styles.sessionTop}>
+                    <div style={styles.sessionDevice}>
+                      {getDeviceName(session)}
+                    </div>
 
-      {loading ? (
-        <div style={styles.emptyBox}>Loading sessions...</div>
-      ) : sessions.length === 0 ? (
-        <div style={styles.emptyBox}>No active sessions.</div>
-      ) : (
-        <div style={styles.sessionList}>
-          {sessions.map((session) => (
-            <div key={session.id} style={styles.sessionItem}>
-              <div style={styles.sessionInfo}>
-                <div style={styles.sessionTop}>
-                  <div style={styles.sessionDevice}>
-                    {getDeviceName(session)}
+                    {session.current && (
+                      <div style={styles.currentBadge}>
+                        Current Session
+                      </div>
+                    )}
                   </div>
 
-                  {session.current && (
-                    <div style={styles.currentBadge}>
-                      Current Session
+                  {session.location && (
+                    <div style={styles.locationText}>
+                      {session.location}
                     </div>
                   )}
+
+                  <div style={styles.sessionMeta}>
+                    Last active: {getTimeAgo(session.last_active)}
+                  </div>
+
+                  <div style={styles.remainingMeta}>
+                    Session expires in {getRemainingTime(session.expires_at)}
+                  </div>
                 </div>
 
-                {session.location && (
+                {!session.current && (
+                  <button
+                    type="button"
+                    onClick={() => setPendingSession(session)}
+                    disabled={revokingId === session.id}
+                    style={{
+                      ...styles.dangerButton,
+                      opacity: revokingId === session.id ? 0.6 : 1,
+                    }}
+                  >
+                    <LoadingButtonContent
+                      loading={revokingId === session.id}
+                      loadingText="Revoking..."
+                    >
+                      Revoke
+                    </LoadingButtonContent>
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {pendingSession && (
+          <div
+            className={modalStyles.overlay}
+            onClick={() => setPendingSession(null)}
+          >
+            <div
+              className={modalStyles.box}
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: 390, padding: 22 }}
+            >
+              <div style={styles.modalBadge}>Session Access</div>
+
+              <h3 style={styles.modalTitle}>Revoke this session?</h3>
+
+              <p style={styles.modalDesc}>
+                This device will lose administrator access and must sign in again.
+              </p>
+
+              <div style={styles.modalSessionBox}>
+                <div style={styles.sessionDevice}>
+                  {getDeviceName(pendingSession)}
+                </div>
+
+                {pendingSession.location && (
                   <div style={styles.locationText}>
-                    {session.location}
+                    {pendingSession.location}
                   </div>
                 )}
 
                 <div style={styles.sessionMeta}>
-                  Last active: {getTimeAgo(session.last_active)}
+                  Last active: {getTimeAgo(pendingSession.last_active)}
                 </div>
 
                 <div style={styles.remainingMeta}>
-                  Session expires in {getRemainingTime(session.expires_at)}
+                  Session expires in {getRemainingTime(pendingSession.expires_at)}
                 </div>
               </div>
 
-              {!session.current && (
+              <div style={styles.modalActions}>
                 <button
                   type="button"
-                  onClick={() => setPendingSession(session)}
-                  disabled={revokingId === session.id}
+                  onClick={() => setPendingSession(null)}
+                  disabled={!!revokingId}
+                  style={styles.cancelButton}
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => revokeSession(pendingSession)}
+                  disabled={!!revokingId}
                   style={{
-                    ...styles.dangerButton,
-                    opacity: revokingId === session.id ? 0.6 : 1,
+                    ...styles.confirmDangerButton,
+                    opacity: revokingId ? 0.65 : 1,
                   }}
                 >
                   <LoadingButtonContent
-                    loading={revokingId === session.id}
+                    loading={!!revokingId}
                     loadingText="Revoking..."
                   >
-                    Revoke
+                    Revoke Session
                   </LoadingButtonContent>
                 </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {pendingSession && (
-        <div
-          className={modalStyles.overlay}
-          onClick={() => setPendingSession(null)}
-        >
-          <div
-            className={modalStyles.box}
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 390, padding: 22 }}
-          >
-            <div style={styles.modalBadge}>Session Access</div>
-
-            <h3 style={styles.modalTitle}>Revoke this session?</h3>
-
-            <p style={styles.modalDesc}>
-              This device will lose administrator access and must sign in again.
-            </p>
-
-            <div style={styles.modalSessionBox}>
-              <div style={styles.sessionDevice}>
-                {getDeviceName(pendingSession)}
               </div>
-
-              {pendingSession.location && (
-                <div style={styles.locationText}>
-                  {pendingSession.location}
-                </div>
-              )}
-
-              <div style={styles.sessionMeta}>
-                Last active: {getTimeAgo(pendingSession.last_active)}
-              </div>
-
-              <div style={styles.remainingMeta}>
-                Session expires in {getRemainingTime(pendingSession.expires_at)}
-              </div>
-            </div>
-
-            <div style={styles.modalActions}>
-              <button
-                type="button"
-                onClick={() => setPendingSession(null)}
-                disabled={!!revokingId}
-                style={styles.cancelButton}
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={() => revokeSession(pendingSession)}
-                disabled={!!revokingId}
-                style={{
-                  ...styles.confirmDangerButton,
-                  opacity: revokingId ? 0.65 : 1,
-                }}
-              >
-                <LoadingButtonContent
-                  loading={!!revokingId}
-                  loadingText="Revoking..."
-                >
-                  Revoke Session
-                </LoadingButtonContent>
-              </button>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+
+      <SettingsHistoryCard />
+    </>
   );
 }
 
