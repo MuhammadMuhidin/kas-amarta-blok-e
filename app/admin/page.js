@@ -38,6 +38,7 @@ function normalize(value) {
 export default function AdminPage() {
   const router = useRouter();
   const [tab, setTab] = useState("personal");
+  const [tabRefreshKey, setTabRefreshKey] = useState(0);
   const [personal, setPersonal] = useState([]);
 
   const [member, setMember] = useState({
@@ -251,6 +252,54 @@ export default function AdminPage() {
       loadCashflow(),
       loadDeposit(),
     ]);
+  }
+
+  async function refreshTabData(nextTab) {
+    if (nextTab === "personal") {
+      await loadPersonal();
+      return;
+    }
+
+    if (nextTab === "payment") {
+      await Promise.all([loadAppConfig(), loadPayment(), loadDeposit()]);
+      return;
+    }
+
+    if (nextTab === "deposit") {
+      await Promise.all([
+        loadAppConfig(),
+        loadPersonal(),
+        loadDeposit(),
+        loadPayment(),
+        loadTrash(),
+        loadCashflow(),
+      ]);
+      return;
+    }
+
+    if (nextTab === "cashflow") {
+      await loadCashflow();
+      return;
+    }
+
+    if (nextTab === "monitoring") {
+      await refreshMonitoring();
+      return;
+    }
+
+    if (nextTab === "settings") {
+      await loadAppConfig();
+    }
+  }
+
+  function handleTabClick(nextTab) {
+    if (tab === nextTab) {
+      setTabRefreshKey((prev) => prev + 1);
+      refreshTabData(nextTab);
+      return;
+    }
+
+    setTab(nextTab);
   }
 
   async function addMember(e) {
@@ -556,14 +605,7 @@ useEffect(() => {
 }, []);
 
   useEffect(() => {
-    if (tab === "payment") {
-      loadAppConfig();
-      loadPayment();
-    }
-
-    if (tab === "monitoring") {
-      refreshMonitoring();
-    }
+    refreshTabData(tab);
   }, [tab]);
 
   useEffect(() => {
@@ -692,8 +734,8 @@ useEffect(() => {
         </div>
 
         <div className="admin-tabs">
-          <button className={tabClassName("personal")} onClick={() => setTab("personal")}>👤 Member</button>
-          <button className={tabClassName("payment")} onClick={() => setTab("payment")}>
+          <button className={tabClassName("personal")} onClick={() => handleTabClick("personal")}>👤 Member</button>
+          <button className={tabClassName("payment")} onClick={() => handleTabClick("payment")}>
             <div className="admin-tab-content">
               <span>💳 Payment</span>
               {pendingCurrentDeposits.length > 0 && (
@@ -703,15 +745,12 @@ useEffect(() => {
               )}
             </div>
           </button>
-          <button className={tabClassName("deposit")} onClick={() => setTab("deposit")}>💰 Booking Payment</button>
-          <button className={tabClassName("cashflow")} onClick={() => setTab("cashflow")}>📝 Cashflow</button>
-          <button className={tabClassName("summary")} onClick={() => setTab("summary")}>🛡️ Summary Backup</button>
+          <button className={tabClassName("deposit")} onClick={() => handleTabClick("deposit")}>💰 Booking Payment</button>
+          <button className={tabClassName("cashflow")} onClick={() => handleTabClick("cashflow")}>📝 Cashflow</button>
+          <button className={tabClassName("summary")} onClick={() => handleTabClick("summary")}>🛡️ Summary Backup</button>
           <button
             className={tabClassName("monitoring")}
-            onClick={() => {
-              setTab("monitoring");
-              if (tab === "monitoring") refreshMonitoring();
-            }}
+            onClick={() => handleTabClick("monitoring")}
           >
             <div className="admin-tab-content">
               <span>🖥️ Monitoring</span>
@@ -723,12 +762,13 @@ useEffect(() => {
               )}
             </div>
           </button>
-          <button className={tabClassName("activity")} onClick={() => setTab("activity")}>📋 Activity</button>
-          <button className={tabClassName("settings")} onClick={() => setTab("settings")}>⚙️ Settings</button>
+          <button className={tabClassName("activity")} onClick={() => handleTabClick("activity")}>📋 Activity</button>
+          <button className={tabClassName("settings")} onClick={() => handleTabClick("settings")}>⚙️ Settings</button>
         </div>
 
         {tab === "personal" && (
           <PersonalTab
+            key={`personal-${tabRefreshKey}`}
             member={member}
             setMember={setMember}
             addMember={addMember}
@@ -746,6 +786,7 @@ useEffect(() => {
 
         {tab === "payment" && (
           <PaymentTab
+            key={`payment-${tabRefreshKey}`}
             configError={configError}
             recordPayment={recordPayment}
             payment={payment}
@@ -762,6 +803,7 @@ useEffect(() => {
 
         {tab === "deposit" && (
           <DepositTab
+            key={`deposit-${tabRefreshKey}`}
             saveDeposit={saveDeposit}
             depositForm={depositForm}
             setDepositForm={setDepositForm}
@@ -783,6 +825,7 @@ useEffect(() => {
 
         {tab === "cashflow" && (
           <CashflowTab
+            key={`cashflow-${tabRefreshKey}`}
             addCashflow={addCashflow}
             cashflow={cashflow}
             setCashflow={setCashflow}
@@ -790,10 +833,11 @@ useEffect(() => {
           />
         )}
 
-        {tab === "summary" && <SummaryBackupTab />}
+        {tab === "summary" && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
 
         {tab === "monitoring" && (
           <MonitoringTab
+            key={`monitoring-${tabRefreshKey}`}
             loadingDailyBackup={loadingDailyBackup}
             dailyBackup={dailyBackup}
             paymentCashflowIntegrity={paymentCashflowIntegrity}
@@ -802,8 +846,8 @@ useEffect(() => {
           />
         )}
 
-        {tab === "activity" && <AdminActivityPanel />}
-        {tab === "settings" && <AdminSettings />}
+        {tab === "activity" && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
+        {tab === "settings" && <AdminSettings key={`settings-${tabRefreshKey}`} />}
       </div>
     </>
   );
