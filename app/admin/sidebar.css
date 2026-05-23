@@ -7,7 +7,7 @@
   .admin-mobile-menu-btn {
     position: sticky;
     top: 0;
-    z-index: 120;
+    z-index: 100;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -15,7 +15,8 @@
     margin-bottom: 12px;
     padding: 12px 14px;
     border: 1px solid var(--admin-border);
-    border-radius: 14px;
+    border-top: 0;
+    border-radius: 0 0 14px 14px;
     background: var(--admin-card);
     color: var(--admin-text);
     font-size: 14px;
@@ -37,7 +38,7 @@
     position: fixed;
     left: 0;
     width: 286px;
-    z-index: 110;
+    z-index: 130;
     background: var(--admin-card);
     transform: translateX(-110%);
     transition: transform 0.22s ease;
@@ -75,7 +76,7 @@
   .admin-tabs {
     top: 116px;
     bottom: 0;
-    z-index: 111;
+    z-index: 131;
     display: flex !important;
     flex-direction: column;
     gap: 8px !important;
