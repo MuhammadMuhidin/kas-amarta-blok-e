@@ -68,7 +68,13 @@ export async function PATCH(req) {
       );
     }
 
+    const currentConfig = await getAppConfig();
+    const oldValue = currentConfig?.[key];
+
     await updateAppConfig(key, value);
+
+    const updatedConfig = await getAppConfig();
+    const newValue = updatedConfig?.[key];
 
     await recordAdminActivity(req, {
       type: "update",
@@ -77,7 +83,8 @@ export async function PATCH(req) {
       message: `Update app config ${key}`,
       metadata: {
         key,
-        value,
+        old_value: oldValue,
+        new_value: newValue,
       },
     });
 
