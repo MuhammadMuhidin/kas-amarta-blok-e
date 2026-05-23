@@ -5,6 +5,49 @@ import modalStyles from "@/components/admin/AdminModal.module.css";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { useEffect, useState } from "react";
 
+const themes = [
+  {
+    id: "default",
+    label: "Default",
+    colors: ["#f1f5f9", "#60a5fa", "#ffffff"],
+  },
+  {
+    id: "ios",
+    label: "iOS",
+    colors: ["#f2f2f7", "#007aff", "#ffffff"],
+  },
+  {
+    id: "midnight",
+    label: "Midnight",
+    colors: ["#020617", "#3b82f6", "#111827"],
+  },
+  {
+    id: "emerald",
+    label: "Emerald",
+    colors: ["#ecfdf5", "#10b981", "#d1fae5"],
+  },
+  {
+    id: "amoled",
+    label: "AMOLED",
+    colors: ["#000000", "#ffffff", "#111111"],
+  },
+  {
+    id: "hacker",
+    label: "Hacker",
+    colors: ["#020b02", "#22c55e", "#14532d"],
+  },
+];
+
+const sessionDurationOptions = [
+  { label: "1 Hour", value: "3600" },
+  { label: "6 Hours", value: "21600" },
+  { label: "12 Hours", value: "43200" },
+  { label: "1 Day", value: "86400" },
+  { label: "3 Days", value: "259200" },
+  { label: "7 Days", value: "604800" },
+  { label: "30 Days", value: "2592000" },
+];
+
 function getCookie(name) {
   return document.cookie
     .split("; ")
@@ -23,6 +66,11 @@ function showPopup(setPopup, text, type = "success") {
   }, 2500);
 }
 
+function getSavedTheme() {
+  if (typeof window === "undefined") return "default";
+  return localStorage.getItem("admin-theme") || "default";
+}
+
 export default function AdminSettings() {
   const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,6 +82,7 @@ export default function AdminSettings() {
 
   const [popup, setPopup] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [theme, setTheme] = useState("default");
 
   const [pinModal, setPinModal] = useState(false);
   const [pinValue, setPinValue] = useState("");
@@ -175,9 +224,22 @@ export default function AdminSettings() {
     });
   }
 
+  function applyTheme(nextTheme) {
+    setTheme(nextTheme);
+    localStorage.setItem("admin-theme", nextTheme);
+    document.documentElement.dataset.adminTheme = nextTheme;
+
+    showPopup(
+      setPopup,
+      `Theme changed to ${themes.find((item) => item.id === nextTheme)?.label || "Default"}`,
+      "success",
+    );
+  }
+
   useEffect(() => {
     loadConfig();
     loadAppConfig();
+    setTheme(getSavedTheme());
   }, []);
 
   useEffect(() => {
@@ -274,6 +336,46 @@ export default function AdminSettings() {
         </div>
       )}
 
+      <h2 style={styles.title}>Appearance Theme</h2>
+
+      <div style={styles.themeSection}>
+        <div style={styles.themeIntro}>
+          Customize admin dashboard colors and visual style.
+        </div>
+
+        <div style={styles.themeGrid}>
+          {themes.map((item) => {
+            const active = theme === item.id;
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => applyTheme(item.id)}
+                style={{
+                  ...styles.themeCard,
+                  ...(active ? styles.themeCardActive : {}),
+                }}
+              >
+                <div style={styles.paletteRow}>
+                  {item.colors.map((color) => (
+                    <span
+                      key={color}
+                      style={{
+                        ...styles.paletteDot,
+                        background: color,
+                      }}
+                    />
+                  ))}
+                </div>
+
+                <div style={styles.themeLabel}>{item.label}</div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <h2 style={styles.title}>Settings Auth</h2>
 
       <SettingRow
@@ -290,6 +392,16 @@ export default function AdminSettings() {
         checked={config.pinEnabled}
         disabled={saving}
         onChange={(value) => updateSetting("PIN_ENABLED", value)}
+      />
+
+      <SelectSettingRow
+        title="Session Duration"
+        description="Lama sesi login admin sebelum otomatis logout. Perubahan berlaku mulai login berikutnya."
+        value={String(config.sessionDuration || 86400)}
+        options={sessionDurationOptions}
+        disabled={saving}
+        isMobile={isMobile}
+        onChange={(value) => updateSetting("SESSION_DURATION", value)}
       />
 
       <AdminSessionCard />
@@ -378,7 +490,7 @@ function SettingRow({ title, description, checked, disabled, onChange }) {
         <span
           style={{
             ...styles.slider,
-            background: checked ? "#4f46e5" : "#cbd5e1",
+            background: checked ? "var(--admin-primary)" : "#cbd5e1",
           }}
         >
           <span
@@ -389,6 +501,48 @@ function SettingRow({ title, description, checked, disabled, onChange }) {
           />
         </span>
       </label>
+    </div>
+  );
+}
+
+function SelectSettingRow({
+  title,
+  description,
+  value,
+  options,
+  disabled,
+  isMobile,
+  onChange,
+}) {
+  return (
+    <div
+      style={{
+        ...styles.row,
+        ...(isMobile ? styles.rowMobile : {}),
+      }}
+    >
+      <div>
+        <h3 style={styles.rowTitle}>{title}</h3>
+
+        <p style={styles.desc}>{description}</p>
+      </div>
+
+      <select
+        className="admin-input"
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          ...styles.selectInput,
+          ...(isMobile ? styles.inputMobile : {}),
+        }}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -498,6 +652,58 @@ const styles = {
     marginBottom: 24,
   },
 
+  themeSection: {
+    marginBottom: 24,
+    borderTop: "1px solid var(--admin-border)",
+    paddingTop: 16,
+  },
+
+  themeIntro: {
+    marginBottom: 14,
+    color: "var(--admin-muted)",
+    fontSize: 13,
+    lineHeight: 1.5,
+  },
+
+  themeGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))",
+    gap: 10,
+  },
+
+  themeCard: {
+    border: "1px solid var(--admin-border)",
+    borderRadius: 14,
+    padding: 12,
+    background: "var(--admin-row)",
+    color: "var(--admin-text)",
+    cursor: "pointer",
+    textAlign: "left",
+  },
+
+  themeCardActive: {
+    borderColor: "var(--admin-primary)",
+    boxShadow: "0 0 0 2px var(--admin-primary)",
+  },
+
+  paletteRow: {
+    display: "flex",
+    gap: 8,
+    marginBottom: 12,
+  },
+
+  paletteDot: {
+    width: 18,
+    height: 18,
+    borderRadius: 999,
+    border: "1px solid rgba(255,255,255,.2)",
+  },
+
+  themeLabel: {
+    fontSize: 14,
+    fontWeight: 800,
+  },
+
   loadingBox: {
     padding: "16px 0",
     marginBottom: 24,
@@ -575,9 +781,21 @@ const styles = {
     padding: "0 12px",
     borderRadius: 10,
     border: "1px solid var(--admin-border)",
-    background: "var(--admin-surface)",
+    background: "var(--admin-input)",
     color: "var(--admin-text)",
     fontWeight: 600,
+    outline: "none",
+  },
+
+  selectInput: {
+    width: 180,
+    height: 38,
+    padding: "0 12px",
+    borderRadius: 10,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-input)",
+    color: "var(--admin-text)",
+    fontWeight: 700,
     outline: "none",
   },
 
@@ -586,8 +804,8 @@ const styles = {
     padding: "0 14px",
     border: "none",
     borderRadius: 10,
-    background: "#2563eb",
-    color: "#fff",
+    background: "var(--admin-primary)",
+    color: "var(--admin-on-primary)",
     fontWeight: 700,
   },
 
@@ -648,7 +866,7 @@ const styles = {
     borderRadius: 10,
     border: "none",
     background: "var(--admin-primary)",
-    color: "#020617",
+    color: "var(--admin-on-primary)",
     fontWeight: 700,
     cursor: "pointer",
   },

@@ -28,6 +28,31 @@ function getTimeAgo(date) {
   return `${Math.floor(diff / 86400)} days ago`;
 }
 
+function getRemainingTime(expiresAt) {
+  if (!expiresAt) return "-";
+
+  const diff = Math.max(
+    0,
+    Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000),
+  );
+
+  if (diff <= 0) return "Expired";
+
+  const days = Math.floor(diff / 86400);
+  const hours = Math.floor((diff % 86400) / 3600);
+  const minutes = Math.floor((diff % 3600) / 60);
+
+  if (days > 0) {
+    return `${days}d ${hours}h remaining`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m remaining`;
+  }
+
+  return `${minutes}m remaining`;
+}
+
 export default function AdminSessionCard() {
   const router = useRouter();
   const [sessions, setSessions] = useState([]);
@@ -174,6 +199,10 @@ export default function AdminSessionCard() {
                 <div style={styles.sessionMeta}>
                   Last active: {getTimeAgo(session.last_active)}
                 </div>
+
+                <div style={styles.remainingMeta}>
+                  Session expires in {getRemainingTime(session.expires_at)}
+                </div>
               </div>
 
               {!session.current && (
@@ -200,7 +229,10 @@ export default function AdminSessionCard() {
       )}
 
       {pendingSession && (
-        <div className={modalStyles.overlay} onClick={() => setPendingSession(null)}>
+        <div
+          className={modalStyles.overlay}
+          onClick={() => setPendingSession(null)}
+        >
           <div
             className={modalStyles.box}
             onClick={(e) => e.stopPropagation()}
@@ -227,6 +259,10 @@ export default function AdminSessionCard() {
 
               <div style={styles.sessionMeta}>
                 Last active: {getTimeAgo(pendingSession.last_active)}
+              </div>
+
+              <div style={styles.remainingMeta}>
+                Session expires in {getRemainingTime(pendingSession.expires_at)}
               </div>
             </div>
 
@@ -331,8 +367,8 @@ const styles = {
     alignItems: "center",
     padding: "4px 8px",
     borderRadius: 999,
-    background: "rgba(37,99,235,.12)",
-    color: "#2563eb",
+    background: "var(--admin-primary-soft)",
+    color: "var(--admin-primary)",
     fontSize: 11,
     fontWeight: 900,
     letterSpacing: ".03em",
@@ -350,11 +386,17 @@ const styles = {
     color: "var(--admin-muted)",
     wordBreak: "break-word",
   },
+  remainingMeta: {
+    marginTop: 4,
+    fontSize: 12,
+    color: "var(--admin-primary)",
+    fontWeight: 700,
+  },
   dangerButton: {
     border: "none",
     borderRadius: 10,
     padding: "9px 12px",
-    background: "#dc2626",
+    background: "var(--admin-danger)",
     color: "#fff",
     fontWeight: 800,
     cursor: "pointer",
@@ -371,8 +413,8 @@ const styles = {
     marginBottom: 12,
     padding: 12,
     borderRadius: 12,
-    background: "#fef2f2",
-    color: "#991b1b",
+    background: "var(--admin-danger-soft)",
+    color: "var(--admin-danger)",
     fontSize: 13,
     fontWeight: 700,
   },
@@ -381,8 +423,8 @@ const styles = {
     marginBottom: 12,
     padding: "6px 10px",
     borderRadius: 999,
-    background: "#fee2e2",
-    color: "#991b1b",
+    background: "var(--admin-danger-soft)",
+    color: "var(--admin-danger)",
     fontSize: 11,
     fontWeight: 900,
     letterSpacing: ".08em",
@@ -424,7 +466,7 @@ const styles = {
     padding: "10px 14px",
     borderRadius: 10,
     border: "none",
-    background: "#dc2626",
+    background: "var(--admin-danger)",
     color: "#fff",
     fontWeight: 900,
     cursor: "pointer",
