@@ -687,7 +687,7 @@ useEffect(() => {
 
       <div className="admin-wrapper">
         <div className="admin-header">
-          <button className="admin-home-btn" onClick={() => router.push("/")}>« Home</button>
+          <button className="admin-home-btn" onClick={() => router.push("/")}>🏠 Home</button>
           <h1 className="admin-title">Cash Flow Management</h1>
         </div>
 
