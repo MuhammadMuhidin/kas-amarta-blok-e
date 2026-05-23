@@ -113,14 +113,6 @@ export default function PersonalTab({
 
       <div style={styles.metaBar}>
         <span>{personalRows.length} / {total} loaded</span>
-        <button
-          type="button"
-          className="admin-small-btn"
-          disabled={loading || loadingMore}
-          onClick={refresh}
-        >
-          {loading ? "Refreshing..." : "Refresh"}
-        </button>
       </div>
 
       {loading ? (
@@ -150,10 +142,6 @@ export default function PersonalTab({
 
 const styles = {
   metaBar: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 10,
     margin: "12px 0 10px",
     color: "var(--admin-muted)",
     fontSize: 12,
