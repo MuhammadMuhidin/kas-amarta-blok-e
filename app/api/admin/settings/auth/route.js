@@ -33,6 +33,13 @@ function normalizeAuthValue(key, value) {
   return value ? "true" : "false";
 }
 
+function getPreviousValue(config, key) {
+  if (key === "WEB_AUTH_ENABLED") return config.webAuthEnabled;
+  if (key === "PIN_ENABLED") return config.pinEnabled;
+  if (key === "SESSION_DURATION") return config.sessionDuration;
+  return null;
+}
+
 export async function GET(req) {
   try {
     if (!(await isAdmin(req))) {
@@ -87,6 +94,8 @@ export async function PATCH(req) {
       );
     }
 
+    const currentConfig = await getAuthConfigs();
+    const oldValue = getPreviousValue(currentConfig, key);
     const normalizedValue = normalizeAuthValue(key, value);
 
     await updateAuthConfig(key, normalizedValue);
@@ -98,7 +107,8 @@ export async function PATCH(req) {
       message: `Update auth setting ${key}`,
       metadata: {
         key,
-        value: normalizedValue,
+        old_value: oldValue,
+        new_value: normalizedValue,
       },
     });
 
