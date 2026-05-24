@@ -275,17 +275,27 @@ const getRegisteredServices = (resident) => {
     );
 
 const expenseDelta = useMemo(() => {
-  return (
-    (insight?.currentMonth?.expenseTotal || 0) -
-    (insight?.lastMonth?.expenseTotal || 0)
-  );
+  const current =
+    insight?.currentMonth?.expenseTotal || 0;
+
+  const last =
+    insight?.lastMonth?.expenseTotal || 0;
+
+  if (!last) return 0;
+
+  return ((current - last) / last) * 100;
 }, [insight]);
 
 const balanceDelta = useMemo(() => {
-  return (
-    (insight?.summary?.currentBalance || 0) -
-    (insight?.lastMonth?.remaining || 0)
-  );
+  const current =
+    insight?.summary?.currentBalance || 0;
+
+  const last =
+    insight?.lastMonth?.remaining || 0;
+
+  if (!last) return 0;
+
+  return ((current - last) / last) * 100;
 }, [insight]);
 
   const animatedModalExpense =
@@ -701,7 +711,7 @@ const balanceDelta = useMemo(() => {
     }`}
   >
     {expenseDelta > 0 ? "↑naik " : expenseDelta < 0 ? "↓turun" : "•tetap"}{" "}
-    {format(Math.abs(expenseDelta))}
+    {Math.abs(expenseDelta).toFixed(0)}%
   </span>
 </div>
 
@@ -733,7 +743,7 @@ const balanceDelta = useMemo(() => {
       }`}
     >
       {balanceDelta > 0 ? "↑naik" : balanceDelta < 0 ? "↓turun" : "•tetap"}{" "}
-      {format(Math.abs(balanceDelta))}
+      {Math.abs(balanceDelta).toFixed(0)}%
     </span>
   </div>
 </div>
