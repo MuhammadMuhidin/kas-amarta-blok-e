@@ -700,7 +700,7 @@ const balanceDelta = useMemo(() => {
           : "neutral"
     }`}
   >
-    {expenseDelta > 0 ? "↑" : expenseDelta < 0 ? "↓" : "•"}{" "}
+    {expenseDelta > 0 ? "↑naik " : expenseDelta < 0 ? "↓turun" : "•tetap"}{" "}
     {format(Math.abs(expenseDelta))}
   </span>
 </div>
@@ -732,7 +732,7 @@ const balanceDelta = useMemo(() => {
             : "neutral"
       }`}
     >
-      {balanceDelta > 0 ? "↑" : balanceDelta < 0 ? "↓" : "•"}{" "}
+      {balanceDelta > 0 ? "↑naik" : balanceDelta < 0 ? "↓turun" : "•tetap"}{" "}
       {format(Math.abs(balanceDelta))}
     </span>
   </div>
