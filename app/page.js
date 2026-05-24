@@ -382,7 +382,9 @@ const getRegisteredServices = (resident) => {
         <header className="hero-header">
           <div className="hero-eyebrow">Amarta Residence • Blok E</div>
           <p className="hero-desc">
-            Pusat transparansi pembayaran <br> dan pengelolaan kas warga
+            Pusat transparansi pembayaran
+            <br />
+            dan pengelolaan kas warga
           </p>
         </header>
 
