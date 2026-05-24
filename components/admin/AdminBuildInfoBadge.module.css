@@ -1,8 +1,8 @@
 .badge {
-  position: absolute;
+  position: fixed;
   top: 20px;
-  right: 20px;
-  z-index: 20;
+  right: max(20px, calc((100vw - 900px) / 2 + 20px));
+  z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
