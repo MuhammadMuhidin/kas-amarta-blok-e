@@ -13,6 +13,7 @@
   font-size: 15px;
   font-weight: 900;
   cursor: pointer;
+  font-family: var(--public-font-family, inherit);
 }
 
 .public-theme-overlay {
@@ -26,6 +27,7 @@
   background: rgba(2, 6, 23, 0.55);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  font-family: var(--public-font-family, inherit);
 }
 
 .public-theme-modal {
@@ -37,6 +39,7 @@
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow);
+  font-family: var(--public-font-family, inherit);
 }
 
 .public-theme-header {
@@ -71,6 +74,7 @@
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
+  font-family: var(--public-font-family, inherit);
 }
 
 .public-theme-desc {
@@ -98,6 +102,7 @@
   color: var(--text);
   cursor: pointer;
   text-align: left;
+  font-family: var(--public-font-family, inherit);
 }
 
 .public-theme-card.active {
