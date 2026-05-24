@@ -711,7 +711,7 @@ const balanceDelta = useMemo(() => {
     }`}
   >
     {expenseDelta > 0 ? "↑naik " : expenseDelta < 0 ? "↓turun" : "•tetap"}{" "}
-    {Math.abs(expenseDelta).toFixed(0)}%
+    {Math.abs(expenseDelta).toFixed(0)}% dari bulan lalu
   </span>
 </div>
 
