@@ -14,7 +14,7 @@ const themes = [
   {
     id: "ledger",
     label: "Ledger",
-    colors: ["#f2f2f7", "#007aff", "#ffffff"],
+    colors: ["#fdf6e3", "#2f6f4e", "#fffaf0"],
   },
   {
     id: "midnight",
