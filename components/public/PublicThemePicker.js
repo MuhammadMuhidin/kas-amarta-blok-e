@@ -1,5 +1,7 @@
 "use client";
 
+import "./PublicThemePicker.css";
+
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
@@ -113,8 +115,9 @@ export default function PublicThemePicker() {
         className="public-theme-button"
         onClick={() => setOpen(true)}
         aria-label="Pilih tema"
+        title="Appearance Theme"
       >
-        T
+        ◐
       </button>
 
       {open && (
@@ -131,7 +134,7 @@ export default function PublicThemePicker() {
                 className="public-theme-close"
                 onClick={() => setOpen(false)}
               >
-                x
+                ×
               </button>
             </div>
 
