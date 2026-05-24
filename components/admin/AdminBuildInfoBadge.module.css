@@ -8,7 +8,7 @@
   align-items: flex-end;
   gap: 2px;
   color: var(--admin-text);
-  font-family: inherit;
+  font-family: var(--admin-font), system-ui, sans-serif;
   pointer-events: none;
   text-align: right;
 }
