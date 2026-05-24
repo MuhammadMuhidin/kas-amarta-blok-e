@@ -146,6 +146,16 @@ const themes = [
   }
 ];
 
+const publicThemeKeys = Object.keys(themes[0].vars);
+
+function clearPublicTheme() {
+  publicThemeKeys.forEach((key) => {
+    document.documentElement.style.removeProperty(key);
+  });
+
+  delete document.documentElement.dataset.publicTheme;
+}
+
 function applyTheme(themeId) {
   const selected = themes.find((item) => item.id === themeId) || themes[0];
 
@@ -164,12 +174,18 @@ export default function PublicThemePicker() {
   const isPublicHome = pathname === "/";
 
   useEffect(() => {
-    if (!isPublicHome) return;
+    if (!isPublicHome) {
+      clearPublicTheme();
+      setOpen(false);
+      return undefined;
+    }
 
     const saved = localStorage.getItem("public-theme") || "default";
 
     setTheme(saved);
     applyTheme(saved);
+
+    return clearPublicTheme;
   }, [isPublicHome]);
 
   function chooseTheme(nextTheme) {
