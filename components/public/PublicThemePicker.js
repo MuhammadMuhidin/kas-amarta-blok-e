@@ -147,6 +147,7 @@ const themes = [
 ];
 
 const publicThemeKeys = Object.keys(themes[0].vars);
+const reloadFlag = "public-theme-hard-reload";
 
 function clearPublicTheme() {
   publicThemeKeys.forEach((key) => {
@@ -154,6 +155,18 @@ function clearPublicTheme() {
   });
 
   delete document.documentElement.dataset.publicTheme;
+}
+
+function forceReloadOnce(pathname) {
+  const target = `${pathname}${window.location.search}${window.location.hash}`;
+
+  if (sessionStorage.getItem(reloadFlag) === target) {
+    sessionStorage.removeItem(reloadFlag);
+    return;
+  }
+
+  sessionStorage.setItem(reloadFlag, target);
+  window.location.replace(target);
 }
 
 function applyTheme(themeId) {
@@ -177,8 +190,11 @@ export default function PublicThemePicker() {
     if (!isPublicHome) {
       clearPublicTheme();
       setOpen(false);
+      forceReloadOnce(pathname);
       return undefined;
     }
+
+    sessionStorage.removeItem(reloadFlag);
 
     const saved = localStorage.getItem("public-theme") || "default";
 
@@ -186,7 +202,7 @@ export default function PublicThemePicker() {
     applyTheme(saved);
 
     return clearPublicTheme;
-  }, [isPublicHome]);
+  }, [isPublicHome, pathname]);
 
   function chooseTheme(nextTheme) {
     setTheme(nextTheme);
