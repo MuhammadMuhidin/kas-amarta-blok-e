@@ -10,6 +10,11 @@ td {
   font-family: var(--public-font-family, Inter, system-ui, sans-serif) !important;
 }
 
+.tab button {
+  white-space: nowrap;
+  font-size: clamp(11.5px, 3.15vw, var(--font-base)) !important;
+}
+
 .public-theme-button {
   position: fixed;
   top: 12px;
