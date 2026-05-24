@@ -491,12 +491,23 @@ function SettingRow({ title, description, checked, disabled, onChange }) {
           style={{
             ...styles.slider,
             background: checked ? "var(--admin-primary)" : "#cbd5e1",
+            opacity: disabled ? 0.65 : 1,
           }}
         >
           <span
             style={{
+              ...styles.switchText,
+              ...(checked ? styles.switchTextOn : styles.switchTextOff),
+              color: checked ? "var(--admin-on-primary)" : "#475569",
+            }}
+          >
+            {checked ? "ON" : "OFF"}
+          </span>
+
+          <span
+            style={{
               ...styles.knob,
-              transform: checked ? "translateX(22px)" : "translateX(0)",
+              transform: checked ? "translateX(34px)" : "translateX(0)",
             }}
           />
         </span>
@@ -744,16 +755,41 @@ const styles = {
   },
 
   slider: {
-    width: 48,
-    height: 26,
+    position: "relative",
+    width: 62,
+    height: 28,
     borderRadius: 999,
     display: "flex",
     alignItems: "center",
-    padding: 2,
+    padding: 3,
     transition: ".2s",
+    boxSizing: "border-box",
+    overflow: "hidden",
+  },
+
+  switchText: {
+    position: "absolute",
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 1,
+    fontSize: 10,
+    fontWeight: 900,
+    letterSpacing: ".04em",
+    lineHeight: 1,
+    pointerEvents: "none",
+  },
+
+  switchTextOn: {
+    left: 9,
+  },
+
+  switchTextOff: {
+    right: 8,
   },
 
   knob: {
+    position: "relative",
+    zIndex: 2,
     width: 22,
     height: 22,
     borderRadius: "50%",
