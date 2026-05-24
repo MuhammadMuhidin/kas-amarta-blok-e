@@ -286,6 +286,16 @@ const expenseDelta = useMemo(() => {
   return ((current - last) / last) * 100;
 }, [insight]);
 
+const expenseDeltaAmount = useMemo(() => {
+  const current =
+    insight?.currentMonth?.expenseTotal || 0;
+
+  const last =
+    insight?.lastMonth?.expenseTotal || 0;
+
+  return Math.abs(current - last);
+}, [insight]);
+
 const balanceDelta = useMemo(() => {
   const current =
     insight?.summary?.currentBalance || 0;
@@ -296,6 +306,16 @@ const balanceDelta = useMemo(() => {
   if (!last) return 0;
 
   return ((current - last) / last) * 100;
+}, [insight]);
+
+const balanceDeltaAmount = useMemo(() => {
+  const current =
+    insight?.summary?.currentBalance || 0;
+
+  const last =
+    insight?.lastMonth?.remaining || 0;
+
+  return Math.abs(current - last);
 }, [insight]);
 
   const animatedModalExpense =
@@ -711,7 +731,9 @@ const balanceDelta = useMemo(() => {
     }`}
   >
     {expenseDelta > 0 ? "↑naik " : expenseDelta < 0 ? "↓turun" : "•tetap"}{" "}
-    {Math.abs(expenseDelta).toFixed(0)}%
+    {Math.abs(expenseDelta) > 100
+      ? format(expenseDeltaAmount)
+      : `${Math.abs(expenseDelta).toFixed(0)}%`}
   </span>
 </div>
 
@@ -743,7 +765,9 @@ const balanceDelta = useMemo(() => {
       }`}
     >
       {balanceDelta > 0 ? "↑naik" : balanceDelta < 0 ? "↓turun" : "•tetap"}{" "}
-      {Math.abs(balanceDelta).toFixed(0)}% dari bulan lalu
+      {Math.abs(balanceDelta) > 100
+        ? `${format(balanceDeltaAmount)} dari bulan lalu`
+        : `${Math.abs(balanceDelta).toFixed(0)}% dari bulan lalu`}
     </span>
   </div>
 </div>
