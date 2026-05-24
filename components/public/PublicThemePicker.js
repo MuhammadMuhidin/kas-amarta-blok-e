@@ -11,6 +11,7 @@ const themes = [
     label: "Default",
     colors: ["#f8fafc", "#2563eb", "#ffffff"],
     vars: {
+      "--public-font-family": "Inter, system-ui, sans-serif",
       "--bg": "#f8fafc",
       "--text": "#0f172a",
       "--muted": "#64748b",
@@ -25,14 +26,15 @@ const themes = [
       "--btn-text": "#000000",
       "--tab-active-text": "#ffffff",
       "--shadow": "0 10px 24px rgba(15,23,42,.07)",
-      "--shadow-soft": "0 3px 10px rgba(15,23,42,.05)",
-    },
+      "--shadow-soft": "0 3px 10px rgba(15,23,42,.05)"
+    }
   },
   {
     id: "ios",
     label: "iOS",
     colors: ["#f2f2f7", "#007aff", "#ffffff"],
     vars: {
+      "--public-font-family": "Inter, system-ui, sans-serif",
       "--bg": "#f2f2f7",
       "--text": "#111827",
       "--muted": "#6b7280",
@@ -47,14 +49,15 @@ const themes = [
       "--btn-text": "#007aff",
       "--tab-active-text": "#ffffff",
       "--shadow": "0 18px 38px rgba(0,0,0,.12)",
-      "--shadow-soft": "0 8px 24px rgba(0,0,0,.08)",
-    },
+      "--shadow-soft": "0 8px 24px rgba(0,0,0,.08)"
+    }
   },
   {
     id: "midnight",
     label: "Midnight",
     colors: ["#020617", "#60a5fa", "#111827"],
     vars: {
+      "--public-font-family": "Inter, system-ui, sans-serif",
       "--bg": "#020617",
       "--text": "#e5e7eb",
       "--muted": "#94a3b8",
@@ -69,14 +72,15 @@ const themes = [
       "--btn-text": "#ffffff",
       "--tab-active-text": "#000000",
       "--shadow": "0 14px 32px rgba(0,0,0,.32)",
-      "--shadow-soft": "0 6px 16px rgba(0,0,0,.22)",
-    },
+      "--shadow-soft": "0 6px 16px rgba(0,0,0,.22)"
+    }
   },
   {
     id: "emerald",
     label: "Emerald",
     colors: ["#ecfdf5", "#10b981", "#ffffff"],
     vars: {
+      "--public-font-family": "Nunito, Inter, sans-serif",
       "--bg": "#ecfdf5",
       "--text": "#064e3b",
       "--muted": "#047857",
@@ -91,14 +95,15 @@ const themes = [
       "--btn-text": "#047857",
       "--tab-active-text": "#022c22",
       "--shadow": "0 10px 24px rgba(6,78,59,.10)",
-      "--shadow-soft": "0 3px 10px rgba(6,78,59,.08)",
-    },
+      "--shadow-soft": "0 3px 10px rgba(6,78,59,.08)"
+    }
   },
   {
     id: "amoled",
     label: "AMOLED",
     colors: ["#000000", "#ffffff", "#111111"],
     vars: {
+      "--public-font-family": "Inter, system-ui, sans-serif",
       "--bg": "#000000",
       "--text": "#f8fafc",
       "--muted": "#94a3b8",
@@ -113,14 +118,15 @@ const themes = [
       "--btn-text": "#ffffff",
       "--tab-active-text": "#000000",
       "--shadow": "none",
-      "--shadow-soft": "none",
-    },
+      "--shadow-soft": "none"
+    }
   },
   {
     id: "hacker",
     label: "Hacker",
     colors: ["#020b02", "#22c55e", "#14532d"],
     vars: {
+      "--public-font-family": "JetBrains Mono, Consolas, monospace",
       "--bg": "#020b02",
       "--text": "#4ade80",
       "--muted": "#22c55e",
@@ -135,9 +141,9 @@ const themes = [
       "--btn-text": "#4ade80",
       "--tab-active-text": "#021302",
       "--shadow": "0 0 28px rgba(34,197,94,.12)",
-      "--shadow-soft": "0 0 14px rgba(34,197,94,.10)",
-    },
-  },
+      "--shadow-soft": "0 0 14px rgba(34,197,94,.10)"
+    }
+  }
 ];
 
 function applyTheme(themeId) {
