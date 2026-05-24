@@ -181,7 +181,7 @@ export default function PublicThemePicker() {
         className="public-theme-button"
         onClick={() => setOpen(true)}
         aria-label="Pilih tema"
-        title="Appearance Theme"
+        title="Tema Tampilan"
       >
         ◐
       </button>
@@ -191,8 +191,8 @@ export default function PublicThemePicker() {
           <div className="public-theme-modal" onClick={(e) => e.stopPropagation()}>
             <div className="public-theme-header">
               <div>
-                <div className="public-theme-kicker">Appearance</div>
-                <h2>Theme</h2>
+                <div className="public-theme-kicker">Tampilan</div>
+                <h2>Tema</h2>
               </div>
 
               <button
@@ -205,7 +205,7 @@ export default function PublicThemePicker() {
             </div>
 
             <p className="public-theme-desc">
-              Tema halaman publik terpisah dari tema admin.
+              Atur tampilan halaman.
             </p>
 
             <div className="public-theme-grid">
