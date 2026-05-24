@@ -16,7 +16,11 @@ td {
 }
 
 .hero-desc {
-  white-space: nowrap;
+  max-width: min(520px, calc(100vw - 72px));
+  margin-inline: auto;
+  white-space: normal;
+  overflow-wrap: normal;
+  text-wrap: balance;
 }
 
 .public-theme-button {
@@ -188,6 +192,7 @@ html[data-public-theme="hacker"] .public-theme-button {
   }
 
   .hero-desc {
-    font-size: clamp(11px, 3vw, 13px);
+    font-size: clamp(11px, 2.75vw, 13px);
+    line-height: 1.45;
   }
 }
