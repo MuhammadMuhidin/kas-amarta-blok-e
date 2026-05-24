@@ -15,6 +15,10 @@ td {
   font-size: clamp(11.5px, 3.15vw, var(--font-base)) !important;
 }
 
+.hero-desc {
+  white-space: nowrap;
+}
+
 .public-theme-button {
   position: fixed;
   top: 14px;
@@ -36,6 +40,24 @@ td {
   cursor: pointer;
   opacity: .96;
   transition: .18s ease;
+}
+
+html[data-public-theme="midnight"] .public-theme-button,
+html[data-public-theme="amoled"] .public-theme-button,
+html[data-public-theme="hacker"] .public-theme-button {
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(15,23,42,.72);
+  color: #f8fafc;
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.28),
+    0 4px 12px rgba(255,255,255,.04);
+}
+
+html[data-public-theme="hacker"] .public-theme-button {
+  color: #4ade80;
+  border-color: rgba(34,197,94,.16);
+  box-shadow:
+    0 0 18px rgba(34,197,94,.10);
 }
 
 .public-theme-button:hover {
@@ -163,5 +185,9 @@ td {
 
   .public-theme-modal {
     padding: 16px;
+  }
+
+  .hero-desc {
+    font-size: clamp(11px, 3vw, 13px);
   }
 }
