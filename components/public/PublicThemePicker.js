@@ -38,9 +38,9 @@ const themes = [
       "--bg": "#f2f2f7",
       "--text": "#111827",
       "--muted": "#6b7280",
-      "--surface": "rgba(255,255,255,.86)",
-      "--surface-soft": "rgba(255,255,255,.58)",
-      "--border": "rgba(148,163,184,.35)",
+      "--surface": "rgba(255,255,255,.94)",
+      "--surface-soft": "rgba(255,255,255,.78)",
+      "--border": "rgba(148,163,184,.28)",
       "--primary": "#007aff",
       "--success": "#34c759",
       "--danger": "#ff3b30",
@@ -48,8 +48,8 @@ const themes = [
       "--btn-primary": "#ffffff",
       "--btn-text": "#007aff",
       "--tab-active-text": "#ffffff",
-      "--shadow": "0 18px 38px rgba(0,0,0,.12)",
-      "--shadow-soft": "0 8px 24px rgba(0,0,0,.08)"
+      "--shadow": "0 20px 44px rgba(15,23,42,.10)",
+      "--shadow-soft": "0 10px 24px rgba(15,23,42,.07)"
     }
   },
   {
@@ -189,7 +189,7 @@ export default function PublicThemePicker() {
         aria-label="Pilih tema"
         title="Tema Tampilan"
       >
-        ◐
+        🎨
       </button>
 
       {open && (
