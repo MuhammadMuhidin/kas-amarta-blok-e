@@ -274,6 +274,50 @@ const getRegisteredServices = (resident) => {
         : 0,
     );
 
+const expenseDelta = useMemo(() => {
+  const current =
+    insight?.currentMonth?.expenseTotal || 0;
+
+  const last =
+    insight?.lastMonth?.expenseTotal || 0;
+
+  if (!last) return 0;
+
+  return ((current - last) / last) * 100;
+}, [insight]);
+
+const expenseDeltaAmount = useMemo(() => {
+  const current =
+    insight?.currentMonth?.expenseTotal || 0;
+
+  const last =
+    insight?.lastMonth?.expenseTotal || 0;
+
+  return Math.abs(current - last);
+}, [insight]);
+
+const balanceDelta = useMemo(() => {
+  const current =
+    insight?.summary?.currentBalance || 0;
+
+  const last =
+    insight?.lastMonth?.remaining || 0;
+
+  if (!last) return 0;
+
+  return ((current - last) / last) * 100;
+}, [insight]);
+
+const balanceDeltaAmount = useMemo(() => {
+  const current =
+    insight?.summary?.currentBalance || 0;
+
+  const last =
+    insight?.lastMonth?.remaining || 0;
+
+  return Math.abs(current - last);
+}, [insight]);
+
   const animatedModalExpense =
     useAnimatedNumber(
       showInsightModal
@@ -671,9 +715,27 @@ const getRegisteredServices = (resident) => {
                   alignItems: "center",
                 }}
               >
-                <strong style={{ color: "#dc3545" }}>
-                  {format(animatedCurrentMonthExpense)}
-                </strong>
+                
+<div className="insight-value-stack">
+  <strong style={{ color: "#dc3545" }}>
+    {format(animatedCurrentMonthExpense)}
+  </strong>
+
+  <span
+    className={`insight-delta ${
+      expenseDelta > 0
+        ? "bad"
+        : expenseDelta < 0
+          ? "good"
+          : "neutral"
+    }`}
+  >
+    {expenseDelta > 0 ? "↑naik " : expenseDelta < 0 ? "↓turun" : "•tetap"}{" "}
+    {Math.abs(expenseDelta) > 100
+      ? format(expenseDeltaAmount)
+      : `${Math.abs(expenseDelta).toFixed(0)}%`}
+  </span>
+</div>
 
                 <button
                   className="insight-link"
@@ -687,10 +749,28 @@ const getRegisteredServices = (resident) => {
               </div>
             </div>
 
-            <div className="insight-row final-balance">
-              <span>Total saldo saat ini</span>
-              <strong>{format(animatedCurrentBalance)}</strong>
-            </div>
+<div className="insight-row final-balance">
+  <span>Total saldo saat ini</span>
+
+  <div className="insight-value-stack">
+    <strong>{format(animatedCurrentBalance)}</strong>
+
+    <span
+      className={`insight-delta ${
+        balanceDelta > 0
+          ? "good"
+          : balanceDelta < 0
+            ? "bad"
+            : "neutral"
+      }`}
+    >
+      {balanceDelta > 0 ? "↑naik" : balanceDelta < 0 ? "↓turun" : "•tetap"}{" "}
+      {Math.abs(balanceDelta) > 100
+        ? `${format(balanceDeltaAmount)} dari bulan lalu`
+        : `${Math.abs(balanceDelta).toFixed(0)}% dari bulan lalu`}
+    </span>
+  </div>
+</div>
           </div>
 
           <h2>Laporan Tunggakan Saat ini</h2>

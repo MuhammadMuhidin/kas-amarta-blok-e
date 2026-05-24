@@ -416,6 +416,74 @@ th {
   border-top: 2px solid var(--border);
 }
 
+.insight-value-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.insight-delta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 2px 7px;
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.insight-delta.good {
+  color: var(--success);
+  background: rgba(22, 163, 74, 0.1);
+}
+
+.insight-delta.bad {
+  color: var(--danger);
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.insight-delta.neutral {
+  color: var(--muted);
+  background: var(--surface-soft);
+}
+
+.insight-delta {
+  animation: deltaPop 0.45s ease-out;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+@keyframes deltaPop {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.96);
+  }
+
+  70% {
+    opacity: 1;
+    transform: translateY(-1px) scale(1.03);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insight-delta {
+    animation: none;
+    transition: none;
+  }
+}
+
 /* ===== PAGINATION ===== */
 
 .pagination {
