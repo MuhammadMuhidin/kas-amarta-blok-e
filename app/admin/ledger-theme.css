@@ -1,0 +1,29 @@
+:root[data-admin-theme="ledger"] {
+  --admin-font:
+    "Merriweather Sans",
+    Inter,
+    system-ui,
+    sans-serif;
+
+  --admin-bg: #fdf6e3;
+  --admin-text: #2f281f;
+  --admin-card: #fffaf0;
+  --admin-muted: #7c6f57;
+  --admin-border: #e7d7b8;
+  --admin-input: #fffdf7;
+  --admin-row: #f6edd8;
+  --admin-button: #efe2c2;
+  --admin-primary: #2f6f4e;
+  --admin-primary-soft: rgba(47, 111, 78, 0.14);
+  --admin-on-primary: #fffaf0;
+  --admin-income: #2f855a;
+  --admin-income-soft: rgba(47, 133, 90, 0.12);
+  --admin-expense: #b91c1c;
+  --admin-expense-soft: rgba(185, 28, 28, 0.12);
+  --admin-success: #2f855a;
+  --admin-success-soft: rgba(47, 133, 90, 0.14);
+  --admin-warning: #a16207;
+  --admin-warning-soft: rgba(161, 98, 7, 0.14);
+  --admin-danger: #b91c1c;
+  --admin-danger-soft: rgba(185, 28, 28, 0.12);
+}
