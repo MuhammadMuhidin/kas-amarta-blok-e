@@ -274,6 +274,20 @@ const getRegisteredServices = (resident) => {
         : 0,
     );
 
+const expenseDelta = useMemo(() => {
+  return (
+    (insight?.currentMonth?.expenseTotal || 0) -
+    (insight?.lastMonth?.expenseTotal || 0)
+  );
+}, [insight]);
+
+const balanceDelta = useMemo(() => {
+  return (
+    (insight?.summary?.currentBalance || 0) -
+    (insight?.lastMonth?.remaining || 0)
+  );
+}, [insight]);
+
   const animatedModalExpense =
     useAnimatedNumber(
       showInsightModal
@@ -671,9 +685,25 @@ const getRegisteredServices = (resident) => {
                   alignItems: "center",
                 }}
               >
-                <strong style={{ color: "#dc3545" }}>
-                  {format(animatedCurrentMonthExpense)}
-                </strong>
+                
+<div className="insight-value-stack">
+  <strong style={{ color: "#dc3545" }}>
+    {format(animatedCurrentMonthExpense)}
+  </strong>
+
+  <span
+    className={`insight-delta ${
+      expenseDelta > 0
+        ? "bad"
+        : expenseDelta < 0
+          ? "good"
+          : "neutral"
+    }`}
+  >
+    {expenseDelta > 0 ? "↑" : expenseDelta < 0 ? "↓" : "•"}{" "}
+    {format(Math.abs(expenseDelta))}
+  </span>
+</div>
 
                 <button
                   className="insight-link"
@@ -687,10 +717,26 @@ const getRegisteredServices = (resident) => {
               </div>
             </div>
 
-            <div className="insight-row final-balance">
-              <span>Total saldo saat ini</span>
-              <strong>{format(animatedCurrentBalance)}</strong>
-            </div>
+<div className="insight-row final-balance">
+  <span>Total saldo saat ini</span>
+
+  <div className="insight-value-stack">
+    <strong>{format(animatedCurrentBalance)}</strong>
+
+    <span
+      className={`insight-delta ${
+        balanceDelta > 0
+          ? "good"
+          : balanceDelta < 0
+            ? "bad"
+            : "neutral"
+      }`}
+    >
+      {balanceDelta > 0 ? "↑" : balanceDelta < 0 ? "↓" : "•"}{" "}
+      {format(Math.abs(balanceDelta))}
+    </span>
+  </div>
+</div>
           </div>
 
           <h2>Laporan Tunggakan Saat ini</h2>
