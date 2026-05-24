@@ -30,26 +30,26 @@ const themes = [
     }
   },
   {
-    id: "ios",
-    label: "iOS",
-    colors: ["#f2f2f7", "#007aff", "#ffffff"],
+    id: "ledger",
+    label: "Ledger",
+    colors: ["#fdf6e3", "#2f6f4e", "#fffaf0"],
     vars: {
-      "--public-font-family": '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
-      "--bg": "#f2f2f7",
-      "--text": "#111827",
-      "--muted": "#6b7280",
-      "--surface": "rgba(255,255,255,.94)",
-      "--surface-soft": "rgba(255,255,255,.78)",
-      "--border": "rgba(148,163,184,.28)",
-      "--primary": "#007aff",
-      "--success": "#34c759",
-      "--danger": "#ff3b30",
-      "--btn-download-border": "#007aff",
-      "--btn-primary": "#ffffff",
-      "--btn-text": "#007aff",
-      "--tab-active-text": "#ffffff",
-      "--shadow": "0 20px 44px rgba(15,23,42,.10)",
-      "--shadow-soft": "0 10px 24px rgba(15,23,42,.07)"
+      "--public-font-family": 'Merriweather Sans, Inter, system-ui, sans-serif',
+      "--bg": "#fdf6e3",
+      "--text": "#2f281f",
+      "--muted": "#7c6f57",
+      "--surface": "#fffaf0",
+      "--surface-soft": "#f6edd8",
+      "--border": "#e7d7b8",
+      "--primary": "#2f6f4e",
+      "--success": "#2f855a",
+      "--danger": "#b91c1c",
+      "--btn-download-border": "#2f6f4e",
+      "--btn-primary": "#fffaf0",
+      "--btn-text": "#2f6f4e",
+      "--tab-active-text": "#fffaf0",
+      "--shadow": "0 14px 30px rgba(92,64,36,.12)",
+      "--shadow-soft": "0 5px 14px rgba(92,64,36,.09)"
     }
   },
   {
@@ -149,6 +149,10 @@ const themes = [
 const publicThemeKeys = Object.keys(themes[0].vars);
 const reloadFlag = "public-theme-hard-reload";
 
+function normalizeTheme(themeId) {
+  return themeId === "ios" ? "ledger" : themeId;
+}
+
 function clearPublicTheme() {
   publicThemeKeys.forEach((key) => {
     document.documentElement.style.removeProperty(key);
@@ -170,7 +174,8 @@ function forceReloadOnce(pathname) {
 }
 
 function applyTheme(themeId) {
-  const selected = themes.find((item) => item.id === themeId) || themes[0];
+  const normalizedTheme = normalizeTheme(themeId);
+  const selected = themes.find((item) => item.id === normalizedTheme) || themes[0];
 
   Object.entries(selected.vars).forEach(([key, value]) => {
     document.documentElement.style.setProperty(key, value);
@@ -196,7 +201,11 @@ export default function PublicThemePicker() {
 
     sessionStorage.removeItem(reloadFlag);
 
-    const saved = localStorage.getItem("public-theme") || "default";
+    const saved = normalizeTheme(localStorage.getItem("public-theme") || "default");
+
+    if (localStorage.getItem("public-theme") === "ios") {
+      localStorage.setItem("public-theme", saved);
+    }
 
     setTheme(saved);
     applyTheme(saved);
@@ -205,9 +214,11 @@ export default function PublicThemePicker() {
   }, [isPublicHome, pathname]);
 
   function chooseTheme(nextTheme) {
-    setTheme(nextTheme);
-    localStorage.setItem("public-theme", nextTheme);
-    applyTheme(nextTheme);
+    const normalizedTheme = normalizeTheme(nextTheme);
+
+    setTheme(normalizedTheme);
+    localStorage.setItem("public-theme", normalizedTheme);
+    applyTheme(normalizedTheme);
   }
 
   if (!isPublicHome) return null;

@@ -12,9 +12,9 @@ const themes = [
     colors: ["#f1f5f9", "#60a5fa", "#ffffff"],
   },
   {
-    id: "ios",
-    label: "iOS",
-    colors: ["#f2f2f7", "#007aff", "#ffffff"],
+    id: "ledger",
+    label: "Ledger",
+    colors: ["#fdf6e3", "#2f6f4e", "#fffaf0"],
   },
   {
     id: "midnight",
@@ -68,7 +68,16 @@ function showPopup(setPopup, text, type = "success") {
 
 function getSavedTheme() {
   if (typeof window === "undefined") return "default";
-  return localStorage.getItem("admin-theme") || "default";
+
+  const savedTheme =
+    localStorage.getItem("admin-theme") || "default";
+
+  if (savedTheme === "ios") {
+    localStorage.setItem("admin-theme", "ledger");
+    return "ledger";
+  }
+
+  return savedTheme;
 }
 
 export default function AdminSettings() {
