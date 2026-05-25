@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MonitoringCard from "@/components/admin/MonitoringCard";
 
 function IssueTable({ title, rows, columns }) {
@@ -56,15 +56,93 @@ function formatPlatform(value) {
   return value.toUpperCase();
 }
 
+function formatCurrency(value) {
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+function toNumber(value) {
+  const number = Number(value || 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function isActiveDeposit(deposit) {
+  return !["paid", "cancelled"].includes(String(deposit?.status || "").toLowerCase());
+}
+
+function buildSettlementSummary({
+  cashflows,
+  deposits,
+  payments,
+  trashRecords,
+  currentPeriod,
+}) {
+  const paymentPeriodById = new Map(
+    payments.map((payment) => [String(payment.id || "").trim(), payment.period]),
+  );
+
+  const mainCashBalance = cashflows.reduce((total, item) => {
+    const amount = toNumber(item.amount);
+    const type = String(item.type || "").toLowerCase();
+
+    if (type === "income") return total + amount;
+    if (type === "expense") return total - amount;
+
+    return total;
+  }, 0);
+
+  const reconciliationBalance = deposits
+    .filter(isActiveDeposit)
+    .reduce(
+      (total, item) => total + toNumber(item.amount) + toNumber(item.trash_amount),
+      0,
+    );
+
+  const pendingTrashPaymentMonthly = trashRecords.reduce((total, item) => {
+    const paymentId = String(item.payment_id || "").trim();
+    const paymentPeriod = paymentPeriodById.get(paymentId);
+    const fallbackPeriod = String(item.date || "").slice(0, 7);
+    const period = paymentPeriod || fallbackPeriod;
+
+    if (period !== currentPeriod) return total;
+
+    return total + toNumber(item.amount);
+  }, 0);
+
+  return {
+    mainCashBalance,
+    reconciliationBalance,
+    pendingTrashPaymentMonthly,
+  };
+}
+
 export default function MonitoringTab({
   loadingDailyBackup,
   dailyBackup,
   paymentCashflowIntegrity,
   trashMismatch,
   suspiciousData,
+  cashflows = [],
+  deposits = [],
+  payments = [],
+  trashRecords = [],
+  currentPeriod,
 }) {
   const [buildInfo, setBuildInfo] = useState(null);
   const [loadingBuildInfo, setLoadingBuildInfo] = useState(false);
+
+  const settlement = useMemo(() => {
+    return buildSettlementSummary({
+      cashflows,
+      deposits,
+      payments,
+      trashRecords,
+      currentPeriod,
+    });
+  }, [cashflows, deposits, payments, trashRecords, currentPeriod]);
 
   useEffect(() => {
     let active = true;
@@ -104,6 +182,29 @@ export default function MonitoringTab({
 
   return (
     <div className="admin-card">
+      <div className="admin-monitor-section">
+        <h2>Settlement</h2>
+        <div className="admin-monitor-grid">
+          <MonitoringCard
+            label="Saldo Kas Terkini"
+            value={formatCurrency(settlement.mainCashBalance)}
+            meta={["Rekening utama penyimpanan kas."]}
+          />
+
+          <MonitoringCard
+            label="Saldo Rekonsiliasi"
+            value={formatCurrency(settlement.reconciliationBalance)}
+            meta={["Rekening penampung booking payment kas dan sampah."]}
+          />
+
+          <MonitoringCard
+            label="Trash Payment Monthly"
+            value={formatCurrency(settlement.pendingTrashPaymentMonthly)}
+            meta={["Pembayaran sampah bulanan ke tukang sampah nanti."]}
+          />
+        </div>
+      </div>
+
       <div className="admin-monitor-grid">
         <MonitoringCard
           label="Current Build"
