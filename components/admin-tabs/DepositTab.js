@@ -1,12 +1,13 @@
 "use client";
 
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import Toast from "@/components/Toast";
-import modalStyles from "@/components/admin/AdminModal.module.css";
 import { useMemo, useState } from "react";
 
 const pageSize = 10;
+const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 
 function formatDate(date) {
   if (!date) return "-";
@@ -36,7 +37,6 @@ export default function DepositTab({
   depositForm,
   setDepositForm,
   activePersons,
-  depositAmount,
   selectedDepositPerson,
   appConfig,
   nextSixPeriods,
@@ -55,10 +55,8 @@ export default function DepositTab({
   const [savingSnapshot, setSavingSnapshot] = useState(false);
   const [snapshotError, setSnapshotError] = useState("");
   const [toast, setToast] = useState(null);
-  const [snapshotDraft, setSnapshotDraft] = useState({
-    amount: "",
-    trash_amount: "",
-  });
+  const [showCreateBooking, setShowCreateBooking] = useState(false);
+  const [snapshotDraft, setSnapshotDraft] = useState({ amount: "", trash_amount: "" });
 
   const {
     items: bookingRows,
@@ -71,38 +69,27 @@ export default function DepositTab({
     refresh,
   } = useInfiniteRows({
     pageSize,
-    buildUrl: ({ page, limit }) =>
-      `/api/sheets/deposit?page=${page}&limit=${limit}`,
+    buildUrl: ({ page, limit }) => `/api/sheets/deposit?page=${page}&limit=${limit}`,
     deps: [],
     getItems: (data) => data.deposits || [],
     getPagination: (data) => data.pagination || {},
   });
 
-  const trashEnabled =
-    (selectedDepositPerson?.trash || "").toUpperCase() === "Y";
-
+  const trashEnabled = (selectedDepositPerson?.trash || "").toUpperCase() === "Y";
   const currentTrashFee = Number(appConfig?.trash_fee || 0);
   const currentMonthlyFee = Number(appConfig?.monthly_fee || 0);
-
-  const selectedPeriodsCount = selectedDepositPeriods.length;
-
   const bookingPreviewTotal =
-    (currentMonthlyFee + (trashEnabled ? currentTrashFee : 0)) *
-    selectedPeriodsCount;
+    (currentMonthlyFee + (trashEnabled ? currentTrashFee : 0)) * selectedDepositPeriods.length;
 
-  const effectiveDeposits = useMemo(() => {
-    return bookingRows.map((deposit) => ({
-      ...deposit,
-      ...(snapshotOverrides[deposit.id] || {}),
-    }));
-  }, [bookingRows, snapshotOverrides]);
+  const effectiveDeposits = useMemo(
+    () => bookingRows.map((deposit) => ({ ...deposit, ...(snapshotOverrides[deposit.id] || {}) })),
+    [bookingRows, snapshotOverrides],
+  );
 
-  const totalDeposits = useMemo(() => {
-    return sortedDeposits.map((deposit) => ({
-      ...deposit,
-      ...(snapshotOverrides[deposit.id] || {}),
-    }));
-  }, [sortedDeposits, snapshotOverrides]);
+  const totalDeposits = useMemo(
+    () => sortedDeposits.map((deposit) => ({ ...deposit, ...(snapshotOverrides[deposit.id] || {}) })),
+    [sortedDeposits, snapshotOverrides],
+  );
 
   function hasPaymentForDeposit(deposit) {
     return payments.some(
@@ -118,26 +105,17 @@ export default function DepositTab({
     return getDepositStatus(deposit);
   }
 
-  const activeDepositTotal = totalDeposits.reduce((sum, d) => {
-    const status = resolveDepositStatus(d);
-
+  const activeDepositTotal = totalDeposits.reduce((sum, item) => {
+    const status = resolveDepositStatus(item);
     if (!["pending", "waiting"].includes(status)) return sum;
-
-    return sum + Number(d.amount || 0) + Number(d.trash_amount || 0);
+    return sum + Number(item.amount || 0) + Number(item.trash_amount || 0);
   }, 0);
 
   const bookingAmount = Number(selectedBooking?.amount || 0);
   const trashAmount = Number(selectedBooking?.trash_amount || 0);
-
   const totalBookingPayment = bookingAmount + trashAmount;
-
-  const selectedBookingStatus = selectedBooking
-    ? resolveDepositStatus(selectedBooking)
-    : "";
-
-  const canEditSnapshot = ["pending", "waiting"].includes(
-    selectedBookingStatus,
-  );
+  const selectedBookingStatus = selectedBooking ? resolveDepositStatus(selectedBooking) : "";
+  const canEditSnapshot = ["pending", "waiting"].includes(selectedBookingStatus);
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -152,18 +130,13 @@ export default function DepositTab({
   }
 
   function openBookingModal(deposit) {
-    const latest = {
-      ...deposit,
-      ...(snapshotOverrides[deposit.id] || {}),
-    };
+    const latest = { ...deposit, ...(snapshotOverrides[deposit.id] || {}) };
 
     setSelectedBooking(latest);
-
     setSnapshotDraft({
       amount: String(Number(latest.amount || 0)),
       trash_amount: String(Number(latest.trash_amount || 0)),
     });
-
     setEditingSnapshot(false);
     setSnapshotError("");
   }
@@ -177,6 +150,7 @@ export default function DepositTab({
   async function handleSaveDeposit(e) {
     await saveDeposit(e);
     await refresh();
+    setShowCreateBooking(false);
   }
 
   async function handlePayDeposit(id) {
@@ -186,17 +160,16 @@ export default function DepositTab({
 
   async function updateBookingSnapshot(e) {
     e.preventDefault();
-
     if (!selectedBooking) return;
 
     const amount = Number(snapshotDraft.amount || 0);
-    const trashAmount = Number(snapshotDraft.trash_amount || 0);
+    const nextTrashAmount = Number(snapshotDraft.trash_amount || 0);
 
     if (
       !Number.isFinite(amount) ||
       amount < 0 ||
-      !Number.isFinite(trashAmount) ||
-      trashAmount < 0
+      !Number.isFinite(nextTrashAmount) ||
+      nextTrashAmount < 0
     ) {
       setSnapshotError("Nominal booking tidak valid");
       showToast("Nominal booking tidak valid", "error");
@@ -208,7 +181,6 @@ export default function DepositTab({
 
     try {
       const csrfToken = getCookie("csrf_token");
-
       const res = await fetch("/api/sheets/deposit", {
         method: "PATCH",
         headers: {
@@ -219,36 +191,21 @@ export default function DepositTab({
           id: selectedBooking.id,
           action: "UPDATE_SNAPSHOT",
           amount,
-          trash_amount: trashAmount,
+          trash_amount: nextTrashAmount,
         }),
       });
-
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal memperbarui booking snapshot");
-      }
+      if (!res.ok) throw new Error(data.error || "Gagal memperbarui booking snapshot");
 
-      const updatedBooking = {
-        ...selectedBooking,
-        amount,
-        trash_amount: trashAmount,
-      };
-
-      setSnapshotOverrides((prev) => ({
-        ...prev,
-        [selectedBooking.id]: updatedBooking,
-      }));
-
+      const updatedBooking = { ...selectedBooking, amount, trash_amount: nextTrashAmount };
+      setSnapshotOverrides((prev) => ({ ...prev, [selectedBooking.id]: updatedBooking }));
       setSelectedBooking(updatedBooking);
       setEditingSnapshot(false);
-
       await refresh();
       showToast("Booking snapshot berhasil diperbarui", "success");
     } catch (err) {
-      const message =
-        err.message || "Gagal memperbarui booking snapshot";
-
+      const message = err.message || "Gagal memperbarui booking snapshot";
       setSnapshotError(message);
       showToast(message, "error");
     } finally {
@@ -258,124 +215,85 @@ export default function DepositTab({
 
   return (
     <>
-      <Toast
-        show={!!toast}
-        type={toast?.type}
-        message={toast?.message}
-      />
+      <Toast show={!!toast} type={toast?.type} message={toast?.message} />
 
       <div className="admin-card">
-        <h3>Booking Payment</h3>
+        <div style={sectionHeaderStyle}>
+          <div>
+            <h3 style={{ margin: 0 }}>Booking Payment</h3>
+            <div className="admin-deposit-meta" style={{ marginTop: 8 }}>
+              Snapshot tarif pembayaran akan disimpan saat booking dibuat.
+            </div>
+          </div>
 
-        <div className="admin-deposit-meta" style={{ marginBottom: 14 }}>
-          Snapshot tarif pembayaran akan disimpan saat booking dibuat.
+          <button
+            type="button"
+            className="admin-small-btn"
+            onClick={() => setShowCreateBooking((prev) => !prev)}
+          >
+            {showCreateBooking ? "▴ Hide Booking" : "▾ Create Booking"}
+          </button>
         </div>
 
-        <form onSubmit={handleSaveDeposit} className="admin-form">
-          <select
-            className="admin-input"
-            value={depositForm.person_id}
-            onChange={(e) =>
-              setDepositForm({
-                ...depositForm,
-                person_id: e.target.value,
-                end_period: "",
-              })
-            }
-          >
-            <option value="">Select active house</option>
-
-            {activePersons.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.house} - {p.name}
-              </option>
-            ))}
-          </select>
-
-          {selectedDepositPerson && (
-            <div
-              style={{
-                padding: 14,
-                borderRadius: 14,
-                border: "1px solid var(--admin-border)",
-                background: "var(--admin-row)",
-                display: "grid",
-                gap: 10,
-              }}
+        {showCreateBooking && (
+          <form onSubmit={handleSaveDeposit} className="admin-form">
+            <select
+              className="admin-input"
+              value={depositForm.person_id}
+              onChange={(e) =>
+                setDepositForm({ ...depositForm, person_id: e.target.value, end_period: "" })
+              }
             >
-              <div style={infoRowStyle}>
-                <span>Tarif Kas Saat Ini</span>
+              <option value="">Select active house</option>
+              {activePersons.map((person) => (
+                <option key={person.id} value={person.id}>
+                  {person.house} - {person.name}
+                </option>
+              ))}
+            </select>
 
-                <strong>
-                  Rp{currentMonthlyFee.toLocaleString("id-ID")}
-                </strong>
+            {selectedDepositPerson && (
+              <div style={previewBoxStyle}>
+                <InfoRow label="Tarif Kas Saat Ini" value={money(currentMonthlyFee)} />
+                <InfoRow
+                  label="Tarif Sampah Saat Ini"
+                  value={trashEnabled ? money(currentTrashFee) : "Not include"}
+                />
+                <InfoRow label="Total Booking" value={money(bookingPreviewTotal)} strong />
               </div>
+            )}
 
-              <div style={infoRowStyle}>
-                <span>Tarif Sampah Saat Ini</span>
-
-                <strong>
-                  {trashEnabled
-                    ? `Rp${currentTrashFee.toLocaleString("id-ID")}`
-                    : "Not include"}
-                </strong>
-              </div>
-
-              <div style={totalRowStyle}>
-                <span>Total Booking</span>
-
-                <strong>
-                  Rp{bookingPreviewTotal.toLocaleString("id-ID")}
-                </strong>
-              </div>
+            <div className="admin-deposit-meta">
+              Snapshot dapat diubah jika terjadi penyesuaian tarif kas atau sampah sebelum pembayaran dilakukan.
             </div>
-          )}
 
-          <div className="admin-deposit-meta">
-            Snapshot dapat diubah jika terjadi penyesuaian tarif kas atau sampah sebelum pembayaran dilakukan.
-          </div>
+            <div className="admin-deposit-chips">
+              {nextSixPeriods.map((period) => {
+                const active = selectedDepositPeriods.includes(period);
 
-          <div className="admin-deposit-chips">
-            {nextSixPeriods.map((period) => {
-              const active = selectedDepositPeriods.includes(period);
+                return (
+                  <button
+                    key={period}
+                    type="button"
+                    className={active ? "admin-deposit-chip admin-deposit-chip-active" : "admin-deposit-chip"}
+                    onClick={() => setDepositForm({ ...depositForm, end_period: period })}
+                    disabled={!depositForm.person_id}
+                  >
+                    {formatPeriod(period)}
+                  </button>
+                );
+              })}
+            </div>
 
-              return (
-                <button
-                  key={period}
-                  type="button"
-                  className={
-                    active
-                      ? "admin-deposit-chip admin-deposit-chip-active"
-                      : "admin-deposit-chip"
-                  }
-                  onClick={() =>
-                    setDepositForm({
-                      ...depositForm,
-                      end_period: period,
-                    })
-                  }
-                  disabled={!depositForm.person_id}
-                >
-                  {formatPeriod(period)}
-                </button>
-              );
-            })}
-          </div>
+            <button className="admin-btn" disabled={savingDeposit}>
+              <LoadingButtonContent loading={savingDeposit} loadingText="Saving...">
+                Create Booking
+              </LoadingButtonContent>
+            </button>
+          </form>
+        )}
 
-          <button className="admin-btn" disabled={savingDeposit}>
-            <LoadingButtonContent
-              loading={savingDeposit}
-              loadingText="Saving..."
-            >
-              Create Booking
-            </LoadingButtonContent>
-          </button>
-        </form>
-
-        <h4>
-          Booking List (Rp{activeDepositTotal.toLocaleString("id-ID")})
-        </h4>
-
+        <h4>Booking List ({money(activeDepositTotal)})</h4>
         {error && <div className="admin-error-box">{error}</div>}
 
         <div style={listMetaStyle}>
@@ -390,295 +308,222 @@ export default function DepositTab({
           </button>
         </div>
 
-        {loading ? (
-          <p>Loading booking...</p>
-        ) : effectiveDeposits.length === 0 ? (
-          <div className="admin-empty-state">Booking payment belum tersedia.</div>
-        ) : (
-          <>
-            <div className="admin-table-wrapper">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th className="admin-th">House</th>
-                    <th className="admin-th">Name</th>
-                    <th className="admin-th">Period</th>
-                    <th className="admin-th">Status</th>
-                    <th className="admin-th">Action</th>
-                  </tr>
-                </thead>
+        <BookingList
+          deposits={effectiveDeposits}
+          loading={loading}
+          payingDepositId={payingDepositId}
+          savingDeposit={savingDeposit}
+          resolveDepositStatus={resolveDepositStatus}
+          handlePayDeposit={handlePayDeposit}
+          openBookingModal={openBookingModal}
+        />
 
-                <tbody>
-                  {effectiveDeposits.map((d, i) => {
-                    const depositStatus = resolveDepositStatus(d);
-                    const isPayingThisDeposit = payingDepositId === d.id;
-                    const canPay = depositStatus === "pending";
-
-                    const buttonText =
-                      depositStatus === "paid"
-                        ? "Paid"
-                        : depositStatus === "waiting"
-                          ? "Waiting"
-                          : depositStatus === "missed"
-                            ? "Unpaid"
-                            : "Pay Now";
-
-                    const statusClass =
-                      `admin-deposit-status admin-deposit-status-${depositStatus}`;
-
-                    const buttonClass =
-                      buttonText === "Paid"
-                        ? "admin-small-btn admin-small-btn-paid"
-                        : "admin-small-btn";
-
-                    return (
-                      <tr
-                        key={d.id || i}
-                        className={i % 2 ? "admin-row-alt" : ""}
-                        onClick={() => openBookingModal(d)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        <td className="admin-td">{d.house}</td>
-                        <td className="admin-td">{d.name}</td>
-                        <td className="admin-td">{formatPeriod(d.period)}</td>
-                        <td className="admin-td">
-                          <span className={statusClass}>
-                            {depositStatus}
-                          </span>
-                        </td>
-
-                        <td
-                          className="admin-td"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <button
-                            type="button"
-                            className={buttonClass}
-                            style={{ minWidth: 96 }}
-                            disabled={
-                              !canPay ||
-                              isPayingThisDeposit ||
-                              savingDeposit
-                            }
-                            onClick={() => handlePayDeposit(d.id)}
-                          >
-                            <LoadingButtonContent
-                              loading={isPayingThisDeposit}
-                              loadingText="Paying..."
-                            >
-                              {buttonText}
-                            </LoadingButtonContent>
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div ref={loaderRef} style={loaderSentinelStyle}>
-              {loadingMore
-                ? "Loading more..."
-                : hasMore
-                  ? "Scroll to load more"
-                  : "All bookings loaded"}
-            </div>
-          </>
+        {effectiveDeposits.length > 0 && (
+          <div ref={loaderRef} style={loaderSentinelStyle}>
+            {loadingMore ? "Loading more..." : hasMore ? "Scroll to load more" : "All bookings loaded"}
+          </div>
         )}
 
         {selectedBooking && (
-          <div
-            className={modalStyles.overlay}
-            onClick={closeBookingModal}
-          >
-            <div
-              className={modalStyles.box}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ marginBottom: 18 }}>
-                <div
-                  style={{
-                    fontSize: 26,
-                    fontWeight: 800,
-                    lineHeight: 1.1,
-                  }}
-                >
-                  {selectedBooking.house} • {formatPeriod(selectedBooking.period)}
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 6,
-                    color: "var(--admin-muted)",
-                    fontSize: 14,
-                    fontWeight: 600,
-                  }}
-                >
-                  {selectedBooking.name}
-                </div>
-              </div>
-
-              {editingSnapshot ? (
-                <form
-                  onSubmit={updateBookingSnapshot}
-                  style={{ display: "grid", gap: 12 }}
-                >
-                  <label style={snapshotLabelStyle}>
-                    <span>Kas Booking</span>
-
-                    <input
-                      className="admin-input"
-                      type="number"
-                      min="0"
-                      value={snapshotDraft.amount}
-                      onChange={(e) =>
-                        setSnapshotDraft((prev) => ({
-                          ...prev,
-                          amount: e.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label style={snapshotLabelStyle}>
-                    <span>Trash Booking</span>
-
-                    <input
-                      className="admin-input"
-                      type="number"
-                      min="0"
-                      value={snapshotDraft.trash_amount}
-                      onChange={(e) =>
-                        setSnapshotDraft((prev) => ({
-                          ...prev,
-                          trash_amount: e.target.value,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  {snapshotError && (
-                    <div
-                      className="admin-error-box"
-                      style={{ marginBottom: 0 }}
-                    >
-                      {snapshotError}
-                    </div>
-                  )}
-
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: 10,
-                    }}
-                  >
-                    <button
-                      type="button"
-                      className="admin-small-btn"
-                      disabled={savingSnapshot}
-                      onClick={() => {
-                        setEditingSnapshot(false);
-                        setSnapshotError("");
-
-                        setSnapshotDraft({
-                          amount: String(bookingAmount),
-                          trash_amount: String(trashAmount),
-                        });
-                      }}
-                    >
-                      Cancel
-                    </button>
-
-                    <button
-                      className="admin-small-btn"
-                      disabled={savingSnapshot}
-                    >
-                      <LoadingButtonContent
-                        loading={savingSnapshot}
-                        loadingText="Saving..."
-                      >
-                        Save
-                      </LoadingButtonContent>
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div style={{ display: "grid", gap: 12 }}>
-                  <div style={modalInfoStyle}>
-                    <span>Kas Booking</span>
-
-                    <strong>
-                      Rp{bookingAmount.toLocaleString("id-ID")}
-                    </strong>
-                  </div>
-
-                  <div style={modalInfoStyle}>
-                    <span>Trash Booking</span>
-
-                    <strong>
-                      {trashAmount > 0
-                        ? `Rp${trashAmount.toLocaleString("id-ID")}`
-                        : "Not include"}
-                    </strong>
-                  </div>
-
-                  <div style={totalModalRowStyle}>
-                    <span>Total Payment</span>
-
-                    <strong>
-                      Rp{totalBookingPayment.toLocaleString("id-ID")}
-                    </strong>
-                  </div>
-
-                  <div style={modalInfoStyle}>
-                    <span>Created At</span>
-
-                    <strong>
-                    {formatDate(selectedBooking.created_at)}
-                    </strong>
-                  </div>
-
-                  <div style={modalInfoStyle}>
-                    <span>Paid At</span>
-
-                    <strong>
-                    {formatDate(selectedBooking.paid_at)}
-                    </strong>
-                  </div>
-
-                  <div
-                    style={{
-                      paddingTop: 12,
-                      borderTop:
-                        "1px solid var(--admin-border)",
-                      color: "var(--admin-muted)",
-                      fontSize: 12,
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    Snapshot mengikuti tarif saat booking dibuat.
-                  </div>
-
-                  {canEditSnapshot && (
-                    <button
-                      type="button"
-                      className="admin-small-btn"
-                      onClick={() => setEditingSnapshot(true)}
-                    >
-                      Edit Snapshot
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+          <BookingModal
+            booking={selectedBooking}
+            bookingAmount={bookingAmount}
+            trashAmount={trashAmount}
+            totalBookingPayment={totalBookingPayment}
+            editingSnapshot={editingSnapshot}
+            setEditingSnapshot={setEditingSnapshot}
+            snapshotDraft={snapshotDraft}
+            setSnapshotDraft={setSnapshotDraft}
+            snapshotError={snapshotError}
+            setSnapshotError={setSnapshotError}
+            savingSnapshot={savingSnapshot}
+            updateBookingSnapshot={updateBookingSnapshot}
+            closeBookingModal={closeBookingModal}
+            canEditSnapshot={canEditSnapshot}
+          />
         )}
       </div>
     </>
   );
 }
+
+function InfoRow({ label, value, strong = false }) {
+  return (
+    <div style={strong ? totalRowStyle : infoRowStyle}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function BookingList({
+  deposits,
+  loading,
+  payingDepositId,
+  savingDeposit,
+  resolveDepositStatus,
+  handlePayDeposit,
+  openBookingModal,
+}) {
+  if (loading) return <p>Loading booking...</p>;
+  if (deposits.length === 0) return <div className="admin-empty-state">Booking payment belum tersedia.</div>;
+
+  return (
+    <div className="admin-table-wrapper">
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th className="admin-th">House</th>
+            <th className="admin-th">Name</th>
+            <th className="admin-th">Period</th>
+            <th className="admin-th">Status</th>
+            <th className="admin-th">Action</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {deposits.map((deposit, index) => {
+            const status = resolveDepositStatus(deposit);
+            const isPaying = payingDepositId === deposit.id;
+            const canPay = status === "pending";
+            const buttonText =
+              status === "paid" ? "Paid" : status === "waiting" ? "Waiting" : status === "missed" ? "Unpaid" : "Pay Now";
+
+            return (
+              <tr
+                key={deposit.id || index}
+                className={index % 2 ? "admin-row-alt" : ""}
+                onClick={() => openBookingModal(deposit)}
+                style={{ cursor: "pointer" }}
+              >
+                <td className="admin-td">{deposit.house}</td>
+                <td className="admin-td">{deposit.name}</td>
+                <td className="admin-td">{formatPeriod(deposit.period)}</td>
+                <td className="admin-td"><span className={`admin-deposit-status admin-deposit-status-${status}`}>{status}</span></td>
+                <td className="admin-td" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    type="button"
+                    className={buttonText === "Paid" ? "admin-small-btn admin-small-btn-paid" : "admin-small-btn"}
+                    style={{ minWidth: 96 }}
+                    disabled={!canPay || isPaying || savingDeposit}
+                    onClick={() => handlePayDeposit(deposit.id)}
+                  >
+                    <LoadingButtonContent loading={isPaying} loadingText="Paying...">
+                      {buttonText}
+                    </LoadingButtonContent>
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function BookingModal({
+  booking,
+  bookingAmount,
+  trashAmount,
+  totalBookingPayment,
+  editingSnapshot,
+  setEditingSnapshot,
+  snapshotDraft,
+  setSnapshotDraft,
+  snapshotError,
+  setSnapshotError,
+  savingSnapshot,
+  updateBookingSnapshot,
+  closeBookingModal,
+  canEditSnapshot,
+}) {
+  return (
+    <div className={modalStyles.overlay} onClick={closeBookingModal}>
+      <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
+        <div style={{ marginBottom: 18 }}>
+          <div style={modalTitleStyle}>{booking.house} • {formatPeriod(booking.period)}</div>
+          <div style={modalSubtitleStyle}>{booking.name}</div>
+        </div>
+
+        {editingSnapshot ? (
+          <form onSubmit={updateBookingSnapshot} style={{ display: "grid", gap: 12 }}>
+            <SnapshotInput
+              label="Kas Booking"
+              value={snapshotDraft.amount}
+              onChange={(value) => setSnapshotDraft((prev) => ({ ...prev, amount: value }))}
+            />
+            <SnapshotInput
+              label="Trash Booking"
+              value={snapshotDraft.trash_amount}
+              onChange={(value) => setSnapshotDraft((prev) => ({ ...prev, trash_amount: value }))}
+            />
+
+            {snapshotError && <div className="admin-error-box" style={{ marginBottom: 0 }}>{snapshotError}</div>}
+
+            <div style={modalButtonGridStyle}>
+              <button
+                type="button"
+                className="admin-small-btn"
+                disabled={savingSnapshot}
+                onClick={() => {
+                  setEditingSnapshot(false);
+                  setSnapshotError("");
+                  setSnapshotDraft({ amount: String(bookingAmount), trash_amount: String(trashAmount) });
+                }}
+              >
+                Cancel
+              </button>
+              <button className="admin-small-btn" disabled={savingSnapshot}>
+                <LoadingButtonContent loading={savingSnapshot} loadingText="Saving...">Save</LoadingButtonContent>
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div style={{ display: "grid", gap: 12 }}>
+            <InfoRow label="Kas Booking" value={money(bookingAmount)} />
+            <InfoRow label="Trash Booking" value={trashAmount > 0 ? money(trashAmount) : "Not include"} />
+            <InfoRow label="Total Payment" value={money(totalBookingPayment)} strong />
+            <InfoRow label="Created At" value={formatDate(booking.created_at)} />
+            <InfoRow label="Paid At" value={formatDate(booking.paid_at)} />
+            <div style={modalNoteStyle}>Snapshot mengikuti tarif saat booking dibuat.</div>
+            {canEditSnapshot && (
+              <button type="button" className="admin-small-btn" onClick={() => setEditingSnapshot(true)}>
+                Edit Snapshot
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SnapshotInput({ label, value, onChange }) {
+  return (
+    <label style={snapshotLabelStyle}>
+      <span>{label}</span>
+      <input className="admin-input" type="number" min="0" value={value} onChange={(e) => onChange(e.target.value)} />
+    </label>
+  );
+}
+
+const sectionHeaderStyle = {
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 12,
+  marginBottom: 14,
+};
+
+const previewBoxStyle = {
+  padding: 14,
+  borderRadius: 14,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  display: "grid",
+  gap: 10,
+};
 
 const infoRowStyle = {
   display: "flex",
@@ -690,14 +535,10 @@ const infoRowStyle = {
 };
 
 const totalRowStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 14,
+  ...infoRowStyle,
   marginTop: 2,
   paddingTop: 12,
   borderTop: "1px solid var(--admin-border)",
-  color: "var(--admin-text)",
   fontSize: 14,
   fontWeight: 700,
 };
@@ -721,27 +562,31 @@ const loaderSentinelStyle = {
   textAlign: "center",
 };
 
-const modalInfoStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 14,
+const modalTitleStyle = {
+  fontSize: 26,
+  fontWeight: 800,
+  lineHeight: 1.1,
+};
+
+const modalSubtitleStyle = {
+  marginTop: 6,
+  color: "var(--admin-muted)",
+  fontSize: 14,
+  fontWeight: 600,
+};
+
+const modalButtonGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr",
+  gap: 10,
+};
+
+const modalNoteStyle = {
   paddingTop: 12,
   borderTop: "1px solid var(--admin-border)",
   color: "var(--admin-muted)",
-  fontSize: 13,
-};
-
-const totalModalRowStyle = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  gap: 14,
-  paddingTop: 12,
-  borderTop: "1px solid var(--admin-border)",
-  color: "var(--admin-text)",
-  fontSize: 14,
-  fontWeight: 700,
+  fontSize: 12,
+  lineHeight: 1.6,
 };
 
 const snapshotLabelStyle = {
