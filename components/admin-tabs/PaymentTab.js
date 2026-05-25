@@ -11,6 +11,19 @@ function isValidPeriod(period) {
   return /^\d{4}-\d{2}$/.test(period);
 }
 
+function formatPeriod(period) {
+  if (!period || period === "-") return "-";
+
+  const normalized = String(period).slice(0, 7);
+
+  if (!isValidPeriod(normalized)) return period;
+
+  return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function addMonth(period) {
   const [year, month] = period.split("-").map(Number);
   const date = new Date(year, month, 1);
@@ -147,7 +160,7 @@ export default function PaymentTab({
 
             {availablePaymentPeriods.map((period) => (
               <option key={period} value={period}>
-                {period}
+                {formatPeriod(period)}
               </option>
             ))}
           </select>

@@ -8,6 +8,29 @@ import { useMemo, useState } from "react";
 
 const pageSize = 10;
 
+function formatDate(date) {
+  if (!date) return "-";
+
+  return new Date(date).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatPeriod(period) {
+  if (!period || period === "-") return "-";
+
+  const normalized = String(period).slice(0, 7);
+
+  if (!/^\d{4}-\d{2}$/.test(normalized)) return period;
+
+  return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function DepositTab({
   saveDeposit,
   depositForm,
@@ -333,7 +356,7 @@ export default function DepositTab({
                   }
                   disabled={!depositForm.person_id}
                 >
-                  {period}
+                  {formatPeriod(period)}
                 </button>
               );
             })}
@@ -417,7 +440,7 @@ export default function DepositTab({
                       >
                         <td className="admin-td">{d.house}</td>
                         <td className="admin-td">{d.name}</td>
-                        <td className="admin-td">{d.period}</td>
+                        <td className="admin-td">{formatPeriod(d.period)}</td>
                         <td className="admin-td">
                           <span className={statusClass}>
                             {depositStatus}
@@ -481,7 +504,7 @@ export default function DepositTab({
                     lineHeight: 1.1,
                   }}
                 >
-                  {selectedBooking.house} • {selectedBooking.period}
+                  {selectedBooking.house} • {formatPeriod(selectedBooking.period)}
                 </div>
 
                 <div
@@ -613,7 +636,7 @@ export default function DepositTab({
                     <span>Created At</span>
 
                     <strong>
-                      {selectedBooking.created_at || "-"}
+                    {formatDate(selectedBooking.created_at)}
                     </strong>
                   </div>
 
@@ -621,7 +644,7 @@ export default function DepositTab({
                     <span>Paid At</span>
 
                     <strong>
-                      {selectedBooking.paid_at || "-"}
+                    {formatDate(selectedBooking.paid_at)}
                     </strong>
                   </div>
 
