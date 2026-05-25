@@ -57,6 +57,7 @@ export default function AdminActivityPanel() {
   const [sort, setSort] = useState("desc");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
 
   const queryBase = useMemo(() => {
@@ -117,14 +118,24 @@ export default function AdminActivityPanel() {
           <p className="activity-subtitle">Riwayat aktivitas admin dan perubahan data.</p>
         </div>
 
-        <button
-          type="button"
-          onClick={refresh}
-          className="admin-small-btn activity-refresh-btn"
-          disabled={loading || loadingMore}
-        >
-          {loading ? "Refreshing..." : "Refresh"}
-        </button>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <button
+            type="button"
+            onClick={() => setShowFilters((prev) => !prev)}
+            className="admin-small-btn"
+          >
+            {showFilters ? "▴ Hide Filters" : "▾ Filters"}
+          </button>
+
+          <button
+            type="button"
+            onClick={refresh}
+            className="admin-small-btn activity-refresh-btn"
+            disabled={loading || loadingMore}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
+          </button>
+        </div>
       </div>
 
       <div className="activity-summary-bar">
@@ -136,36 +147,38 @@ export default function AdminActivityPanel() {
         </span>
       </div>
 
-      <div className="activity-toolbar">
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="admin-input activity-search"
-          placeholder="Search actor, action, IP, device, location..."
-        />
+      {showFilters && (
+        <div className="activity-toolbar">
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="admin-input activity-search"
+            placeholder="Search actor, action, IP, device, location..."
+          />
 
-        <select value={module} onChange={(e) => setModule(e.target.value)} className="admin-input activity-input">
-          {modules.map((item) => (
-            <option key={item || "all-module"} value={item}>{item ? titleCase(item) : "All modules"}</option>
-          ))}
-        </select>
+          <select value={module} onChange={(e) => setModule(e.target.value)} className="admin-input activity-input">
+            {modules.map((item) => (
+              <option key={item || "all-module"} value={item}>{item ? titleCase(item) : "All modules"}</option>
+            ))}
+          </select>
 
-        <select value={severity} onChange={(e) => setSeverity(e.target.value)} className="admin-input activity-input">
-          {severities.map((item) => (
-            <option key={item || "all-severity"} value={item}>{item ? titleCase(item) : "All severities"}</option>
-          ))}
-        </select>
+          <select value={severity} onChange={(e) => setSeverity(e.target.value)} className="admin-input activity-input">
+            {severities.map((item) => (
+              <option key={item || "all-severity"} value={item}>{item ? titleCase(item) : "All severities"}</option>
+            ))}
+          </select>
 
-        <select value={sort} onChange={(e) => setSort(e.target.value)} className="admin-input activity-input">
-          <option value="desc">Newest first</option>
-          <option value="asc">Oldest first</option>
-        </select>
+          <select value={sort} onChange={(e) => setSort(e.target.value)} className="admin-input activity-input">
+            <option value="desc">Newest first</option>
+            <option value="asc">Oldest first</option>
+          </select>
 
-        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="admin-input activity-input" aria-label="From date" />
-        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="admin-input activity-input" aria-label="To date" />
-        <button type="button" className="admin-small-btn activity-reset-btn" onClick={resetFilters}>Reset</button>
-      </div>
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="admin-input activity-input" aria-label="From date" />
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="admin-input activity-input" aria-label="To date" />
+          <button type="button" className="admin-small-btn activity-reset-btn" onClick={resetFilters}>Reset</button>
+        </div>
+      )}
 
       {error && <div className="admin-error-box">{error}</div>}
 
