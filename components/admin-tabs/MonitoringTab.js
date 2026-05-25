@@ -7,6 +7,10 @@ function IssueTable({title,rows,columns}) {
   return <div className="admin-monitor-detail"><h3>{title}</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr>{columns.map((c)=><th key={c} className="admin-th">{c==="detail"?"Issue":c}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i} className={i%2?"admin-row-alt":""}>{columns.map((c)=><td key={c} className="admin-td admin-issue-text">{r[c]}</td>)}</tr>)}</tbody></table></div></div>;
 }
 
+function Section({title,children}) {
+  return <div className="admin-monitor-section" style={{marginBottom:20}}><h2 style={{margin:"0 0 12px"}}>{title}</h2>{children}</div>;
+}
+
 const rupiah = (v) => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v||0));
 const n = (v) => Number.isFinite(Number(v||0)) ? Number(v||0) : 0;
 
@@ -18,7 +22,9 @@ function getSettlement({cashflows,deposits,trashRecords}) {
     if (type==="expense") return t-n(c.amount);
     return t;
   },0);
-  const recon = deposits.reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
+  const recon = deposits
+    .filter((d)=>String(d.status||"").toLowerCase()!=="paid")
+    .reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
   const trashMonthly = trashRecords.reduce((t,r)=>{
     const period = String(r.date||"").slice(0,7);
     return period===periodNow ? t+n(r.amount) : t;
@@ -94,27 +100,33 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:18,flexWrap:"wrap",position:"static"}}>
       <div>
         <h2 style={{margin:"0 0 4px"}}>Monitoring</h2>
-        <div style={{fontSize:13,color:"var(--admin-muted)",fontWeight:600}}>Status sistem, settlement, dan integritas data.</div>
+        <div style={{fontSize:13,color:"var(--admin-muted)",fontWeight:600}}>Settlement, status sistem, dan kualitas data.</div>
       </div>
       <BuildBadge loading={loadingBuildInfo} buildInfo={buildInfo} />
     </div>
 
-    <div className="admin-monitor-section">
-      <h2>Settlement</h2>
+    <Section title="Settlement">
       <div className="admin-monitor-grid">
         <MonitoringCard label="Saldo Kas Terkini" value={loadingSettlement?"Checking...":rupiah(settlement.mainCash)} meta={["Income dikurangi expense dari semua cashflow."]} />
-        <MonitoringCard label="Saldo Rekonsiliasi" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total amount dan trash_amount dari semua booking payment."]} />
+        <MonitoringCard label="Saldo Rekonsiliasi" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total booking payment yang belum paid."]} />
         <MonitoringCard label="Trash Payment Monthly" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total trash.amount yang trash.date-nya masuk bulan berjalan."]} />
       </div>
-    </div>
+    </Section>
 
-    <div className="admin-monitor-grid">
-      <MonitoringCard label="Current Build" value={loadingBuildInfo?"Checking...":buildInfo?`${String(buildInfo.platform||"UNKNOWN").toUpperCase()} - ${buildInfo.branch}`:"Build info not found"} meta={buildInfo?[`Commit: ${buildInfo.commitShort}`,`Message: ${buildInfo.commitMessage||"unknown"}`,`Env: ${buildInfo.environment}`,`Built: ${fmtTime(buildInfo.buildTime)}`]:[]} error={!loadingBuildInfo&&!buildInfo} />
-      <MonitoringCard label="Daily Backup Status" value={loadingDailyBackup?"Checking...":dailyBackup?.ok?dailyBackup.name:"Backup file not found"} meta={dailyBackup?.ok?[`Last created: ${dailyBackup.created_at}`,`Retention: ${dailyBackup?.count} backup files`]:[]} error={!loadingDailyBackup&&!dailyBackup?.ok} />
-      <MonitoringCard label="Payment Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length===0?"No issue detected":"Need review"]} />
-      <MonitoringCard label="Trash Payment Integrity" value={`${trashMismatch.length} issue`} meta={[trashMismatch.length===0?"No issue detected":"Need review"]} />
-      <MonitoringCard label="Data Quality Check" value={`${suspiciousData.length} issue`} meta={[suspiciousData.length===0?"No suspicious data":"Need review"]} />
-    </div>
+    <Section title="Status Sistem">
+      <div className="admin-monitor-grid">
+        <MonitoringCard label="Current Build" value={loadingBuildInfo?"Checking...":buildInfo?`${String(buildInfo.platform||"UNKNOWN").toUpperCase()} - ${buildInfo.branch}`:"Build info not found"} meta={buildInfo?[`Commit: ${buildInfo.commitShort}`,`Message: ${buildInfo.commitMessage||"unknown"}`,`Env: ${buildInfo.environment}`,`Built: ${fmtTime(buildInfo.buildTime)}`]:[]} error={!loadingBuildInfo&&!buildInfo} />
+        <MonitoringCard label="Daily Backup Status" value={loadingDailyBackup?"Checking...":dailyBackup?.ok?dailyBackup.name:"Backup file not found"} meta={dailyBackup?.ok?[`Last created: ${dailyBackup.created_at}`,`Retention: ${dailyBackup?.count} backup files`]:[]} error={!loadingDailyBackup&&!dailyBackup?.ok} />
+      </div>
+    </Section>
+
+    <Section title="Integrity & Data Quality">
+      <div className="admin-monitor-grid">
+        <MonitoringCard label="Payment Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length===0?"No issue detected":"Need review"]} />
+        <MonitoringCard label="Trash Payment Integrity" value={`${trashMismatch.length} issue`} meta={[trashMismatch.length===0?"No issue detected":"Need review"]} />
+        <MonitoringCard label="Data Quality Check" value={`${suspiciousData.length} issue`} meta={[suspiciousData.length===0?"No suspicious data":"Need review"]} />
+      </div>
+    </Section>
 
     <IssueTable title="Payment Cashflow Integrity" rows={paymentCashflowIntegrity} columns={["house","name","period","type","detail"]} />
     <IssueTable title="Trash Payment Integrity" rows={trashMismatch} columns={["house","name","period","detail"]} />
