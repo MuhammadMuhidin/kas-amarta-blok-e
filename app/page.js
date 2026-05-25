@@ -130,6 +130,14 @@ export default function CashflowPage() {
     });
   };
 
+  const formatCashflowNote = (note) => {
+    if (!note) return "-";
+
+    return String(note).replace(/\b(\d{4}-\d{2})(?:-\d{2})?\b/g, (_, period) =>
+      formatPeriod(period),
+    );
+  };
+
   const getLastPaymentPeriod = (resident) => {
     if (!resident) return "-";
 
@@ -467,7 +475,7 @@ const balanceDeltaAmount = useMemo(() => {
           >
             {data.periods.map((p) => (
               <option key={p} value={p}>
-                {p}
+                {formatPeriod(p)}
               </option>
             ))}
           </select>
@@ -616,7 +624,7 @@ const balanceDeltaAmount = useMemo(() => {
               <tbody>
                 {filteredCashflow.slice(0, loadedCashflow).map((c, i) => (
                   <tr key={i}>
-                    <td>{c.date || "-"}</td>
+                    <td>{formatDate(c.date)}</td>
 
                     <td>
                       <span className={`badge ${c.type}`}>
@@ -628,7 +636,7 @@ const balanceDeltaAmount = useMemo(() => {
                     </td>
 
                     <td>{format(c.amount)}</td>
-                    <td>{c.note || "-"}</td>
+                    <td>{formatCashflowNote(c.note)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -804,7 +812,9 @@ const balanceDeltaAmount = useMemo(() => {
 
                             <div>• Nunggak: {r.jumlah} periode</div>
 
-                            <div>• Periode: {r.unpaid.join(", ")}</div>
+                            <div>
+                              • Periode: {r.unpaid.map(formatPeriod).join(", ")}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -936,8 +946,8 @@ const balanceDeltaAmount = useMemo(() => {
                       : insight?.currentMonth?.expenses || []
                     ).map((e, i) => (
                       <tr key={i}>
-                        <td>{e.date}</td>
-                        <td>{e.note}</td>
+                        <td>{formatDate(e.date)}</td>
+                        <td>{formatCashflowNote(e.note)}</td>
                         <td>{format(e.amount)}</td>
                       </tr>
                     ))}
