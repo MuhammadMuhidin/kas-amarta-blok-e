@@ -54,17 +54,42 @@ export async function GET(req) {
        HELPER QUICKCHART
     ========================================= */
 
-    const makeQuickChartURL = (config) => {
-      return `https://quickchart.io/chart?width=250&height=250&format=png&c=${encodeURIComponent(
-        JSON.stringify(config),
-      )}`;
-    };
+const wait = (ms) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
-    const toBase64 = async (url) => {
-      const res = await fetch(url);
-      const buffer = await res.arrayBuffer();
-      return Buffer.from(buffer).toString("base64");
-    };
+const makeQuickChartURL = (config) => {
+  return `https://quickchart.io/chart?width=250&height=250&format=jpg&backgroundColor=white&c=${encodeURIComponent(
+    JSON.stringify(config),
+  )}`;
+};
+
+const toBase64 = async (url, retries = 3) => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await fetch(url, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) {
+        throw new Error(`Chart HTTP ${res.status}`);
+      }
+
+      const buffer = Buffer.from(await res.arrayBuffer());
+
+      if (buffer.length < 1000) {
+        throw new Error("Invalid chart image");
+      }
+
+      return buffer.toString("base64");
+    } catch (err) {
+      if (attempt === retries) {
+        throw err;
+      }
+
+      await wait(700);
+    }
+  }
+};
 
     /* =========================================
        SAFE PAGE SYSTEM
@@ -233,7 +258,7 @@ export async function GET(req) {
       },
       options: {
         aspectRatio: 1,
-        cutout: "60%", // bikin ring proporsional
+        cutout: "60%",
         animation: false,
         responsive: true,
         maintainAspectRatio: true,

@@ -157,7 +157,7 @@ export default function Page() {
         {pdfReady && (
           <Worker workerUrl="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.worker.min.js">
             <Viewer
-              fileUrl="/api/report/pdf"
+              fileUrl={`/api/report/pdf?preview=1&t=${Date.now()}`}
               defaultScale={SpecialZoomLevel.PageFit}
               onDocumentLoad={() => {
                 setProgress(100);
