@@ -19,6 +19,16 @@ const inlineSelectStyle = {
   textAlignLast: "center",
 };
 
+function formatDate(date) {
+  if (!date) return "-";
+
+  return new Date(date).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export default function PersonalTable({
   rows,
   rowClassName,
@@ -129,7 +139,7 @@ export default function PersonalTable({
                 <td className="admin-td">{person.name}</td>
                 <td className="admin-td">{renderEditableSelect(person, "trash")}</td>
                 <td className="admin-td">{renderEditableSelect(person, "active")}</td>
-                <td className="admin-td">{person.join_date}</td>
+                <td className="admin-td">{formatDate(person.join_date)}</td>
               </tr>
             ))}
           </tbody>
