@@ -7,6 +7,37 @@ import { useEffect, useState } from "react";
 
 const pageSize = 10;
 
+function formatDate(date) {
+  if (!date) return "-";
+
+  return new Date(date).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatPeriod(period) {
+  if (!period || period === "-") return "-";
+
+  const normalized = String(period).slice(0, 7);
+
+  if (!/^\d{4}-\d{2}$/.test(normalized)) return period;
+
+  return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function formatCashflowNote(note) {
+  if (!note) return "-";
+
+  return String(note).replace(/\b(\d{4}-\d{2})(?:-\d{2})?\b/g, (_, period) =>
+    formatPeriod(period),
+  );
+}
+
 export default function CashflowTab({
   addCashflow,
   cashflow,
@@ -189,7 +220,7 @@ export default function CashflowTab({
                         onClick={() => setSelectedItem(item)}
                         style={{ cursor: "pointer" }}
                       >
-                        <td className="admin-td">{item.date}</td>
+                        <td className="admin-td">{formatDate(item.date)}</td>
 
                         <td className="admin-td">
                           <span
@@ -218,7 +249,7 @@ export default function CashflowTab({
                           className="admin-td"
                           style={styles.descriptionCell}
                         >
-                          {item.note}
+                          {formatCashflowNote(item.note)}
                         </td>
                       </tr>
                     );
@@ -254,7 +285,7 @@ export default function CashflowTab({
             <div style={styles.modalGrid}>
               <div style={styles.modalRow}>
                 <span>Date</span>
-                <strong>{selectedItem.date}</strong>
+                <strong>{formatDate(selectedItem.date)}</strong>
               </div>
 
               <div style={styles.modalRow}>
@@ -290,7 +321,7 @@ export default function CashflowTab({
 
               <div style={styles.modalRow}>
                 <span>Description</span>
-                <strong>{selectedItem.note}</strong>
+                <strong>{formatCashflowNote(selectedItem.note)}</strong>
               </div>
             </div>
           </div>
