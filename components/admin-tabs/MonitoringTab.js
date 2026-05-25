@@ -32,6 +32,15 @@ function fmtTime(value) {
   return d.toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"});
 }
 
+function BuildBadge({loading,buildInfo}) {
+  const text = loading ? "Checking build..." : buildInfo ? `${String(buildInfo.platform||"UNKNOWN").toUpperCase()} - ${buildInfo.branch}` : "Build info not found";
+  const title = buildInfo ? `Commit: ${buildInfo.commitShort}\nMessage: ${buildInfo.commitMessage||"unknown"}\nEnv: ${buildInfo.environment}\nBuilt: ${fmtTime(buildInfo.buildTime)}` : "";
+  return <div title={title} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:999,border:"1px solid var(--admin-border)",background:"var(--admin-row)",color:"var(--admin-muted)",fontSize:12,fontWeight:700,lineHeight:1.2,whiteSpace:"nowrap"}}>
+    <span style={{width:7,height:7,borderRadius:999,background:buildInfo?"#16a34a":"#dc2626",display:"inline-block",flexShrink:0}} />
+    <span>{text}</span>
+  </div>;
+}
+
 export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData}) {
   const [buildInfo,setBuildInfo] = useState(null);
   const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
@@ -82,15 +91,17 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
 
   return <div className="admin-card">
     <div className="admin-monitor-section">
-      <h2>Settlement</h2>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:10,marginBottom:12,flexWrap:"wrap"}}>
+        <h2 style={{margin:0}}>Settlement</h2>
+        <BuildBadge loading={loadingBuildInfo} buildInfo={buildInfo} />
+      </div>
       <div className="admin-monitor-grid">
         <MonitoringCard label="Saldo Kas Terkini" value={loadingSettlement?"Checking...":rupiah(settlement.mainCash)} meta={["Income dikurangi expense dari semua cashflow."]} />
         <MonitoringCard label="Saldo Rekonsiliasi" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total amount dan trash_amount dari semua booking payment."]} />
-        <MonitoringCard label="Trash Payment Monthly" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total trash payment pada bulan berjalan."]} />
+        <MonitoringCard label="Trash Payment Monthly" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total trash.amount yang trash.date-nya masuk bulan berjalan."]} />
       </div>
     </div>
     <div className="admin-monitor-grid">
-      <MonitoringCard label="Current Build" value={loadingBuildInfo?"Checking...":buildInfo?`${String(buildInfo.platform||"UNKNOWN").toUpperCase()} - ${buildInfo.branch}`:"Build info not found"} meta={buildInfo?[`Commit: ${buildInfo.commitShort}`,`Message: ${buildInfo.commitMessage||"unknown"}`,`Env: ${buildInfo.environment}`,`Built: ${fmtTime(buildInfo.buildTime)}`]:[]} error={!loadingBuildInfo&&!buildInfo} />
       <MonitoringCard label="Daily Backup Status" value={loadingDailyBackup?"Checking...":dailyBackup?.ok?dailyBackup.name:"Backup file not found"} meta={dailyBackup?.ok?[`Last created: ${dailyBackup.created_at}`,`Retention: ${dailyBackup?.count} backup files`]:[]} error={!loadingDailyBackup&&!dailyBackup?.ok} />
       <MonitoringCard label="Payment Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length===0?"No issue detected":"Need review"]} />
       <MonitoringCard label="Trash Payment Integrity" value={`${trashMismatch.length} issue`} meta={[trashMismatch.length===0?"No issue detected":"Need review"]} />
