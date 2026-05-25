@@ -10,21 +10,17 @@ function IssueTable({title,rows,columns}) {
 const rupiah = (v) => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v||0));
 const n = (v) => Number.isFinite(Number(v||0)) ? Number(v||0) : 0;
 
-function getSettlement({cashflows,deposits,payments,trashRecords}) {
+function getSettlement({cashflows,deposits,trashRecords}) {
   const periodNow = getCurrentPeriod();
-  const paymentPeriod = new Map(payments.map((p)=>[String(p.id||"").trim(),p.period]));
   const mainCash = cashflows.reduce((t,c)=>{
     const type = String(c.type||"").toLowerCase();
     if (type==="income") return t+n(c.amount);
     if (type==="expense") return t-n(c.amount);
     return t;
   },0);
-  const recon = deposits
-    .filter((d)=>!["paid","cancelled"].includes(String(d.status||"").toLowerCase()))
-    .reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
+  const recon = deposits.reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
   const trashMonthly = trashRecords.reduce((t,r)=>{
-    const pid = String(r.payment_id||"").trim();
-    const period = paymentPeriod.get(pid) || String(r.date||"").slice(0,7);
+    const period = String(r.date||"").slice(0,7);
     return period===periodNow ? t+n(r.amount) : t;
   },0);
   return {mainCash,recon,trashMonthly};
@@ -40,7 +36,7 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
   const [buildInfo,setBuildInfo] = useState(null);
   const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
   const [loadingSettlement,setLoadingSettlement] = useState(false);
-  const [rows,setRows] = useState({cashflows:[],deposits:[],payments:[],trashRecords:[]});
+  const [rows,setRows] = useState({cashflows:[],deposits:[],trashRecords:[]});
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
 
   useEffect(()=>{
@@ -48,17 +44,16 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     async function loadSettlement() {
       setLoadingSettlement(true);
       try {
-        const endpoints = ["cashflow","deposit","payment","trash"];
+        const endpoints = ["cashflow","deposit","trash"];
         const res = await Promise.all(endpoints.map((x)=>fetch(`/api/sheets/${x}`,{cache:"no-store"})));
         const data = await Promise.all(res.map((r)=>r.json()));
         if (active) setRows({
           cashflows:Array.isArray(data[0])?data[0]:[],
           deposits:Array.isArray(data[1])?data[1]:[],
-          payments:Array.isArray(data[2])?data[2]:[],
-          trashRecords:Array.isArray(data[3])?data[3]:[],
+          trashRecords:Array.isArray(data[2])?data[2]:[],
         });
       } catch {
-        if (active) setRows({cashflows:[],deposits:[],payments:[],trashRecords:[]});
+        if (active) setRows({cashflows:[],deposits:[],trashRecords:[]});
       } finally {
         if (active) setLoadingSettlement(false);
       }
@@ -89,9 +84,9 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     <div className="admin-monitor-section">
       <h2>Settlement</h2>
       <div className="admin-monitor-grid">
-        <MonitoringCard label="Saldo Kas Terkini" value={loadingSettlement?"Checking...":rupiah(settlement.mainCash)} meta={["Rekening utama penyimpanan kas."]} />
-        <MonitoringCard label="Saldo Rekonsiliasi" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Rekening penampung booking payment kas dan sampah."]} />
-        <MonitoringCard label="Trash Payment Monthly" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Pembayaran sampah bulanan ke tukang sampah nanti."]} />
+        <MonitoringCard label="Saldo Kas Terkini" value={loadingSettlement?"Checking...":rupiah(settlement.mainCash)} meta={["Income dikurangi expense dari semua cashflow."]} />
+        <MonitoringCard label="Saldo Rekonsiliasi" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total amount dan trash_amount dari semua booking payment."]} />
+        <MonitoringCard label="Trash Payment Monthly" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total trash payment pada bulan berjalan."]} />
       </div>
     </div>
     <div className="admin-monitor-grid">
