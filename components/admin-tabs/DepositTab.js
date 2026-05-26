@@ -330,16 +330,14 @@ export default function DepositTab({
             Ready to pay: <strong>{readyPayBookings.length} rumah</strong>
           </span>
 
-          {readyPayBookings.length > 0 && (
-            <button
-              type="button"
-              className="admin-small-btn"
-              disabled={loading || loadingMore || multiPayLoading}
-              onClick={() => setShowMultiPayModal(true)}
-            >
-              Multi Pay
-            </button>
-          )}
+          <button
+            type="button"
+            style={multiPayButtonStyle}
+            disabled={readyPayBookings.length === 0 || loading || loadingMore || multiPayLoading}
+            onClick={() => setShowMultiPayModal(true)}
+          >
+            Multi Pay
+          </button>
         </div>
         {error && <div className="admin-error-box">{error}</div>}
 
@@ -645,11 +643,10 @@ const totalRowStyle = {
 };
 
 const readyPaySummaryStyle = {
-  display: "flex",
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto",
   alignItems: "center",
-  justifyContent: "space-between",
   gap: 10,
-  flexWrap: "wrap",
   margin: "-4px 0 12px",
   padding: 12,
   borderRadius: 14,
@@ -661,6 +658,18 @@ const readyPaySummaryTextStyle = {
   color: "var(--admin-muted)",
   fontSize: 13,
   fontWeight: 700,
+};
+
+const multiPayButtonStyle = {
+  border: 0,
+  borderRadius: 12,
+  padding: "10px 14px",
+  background: "#10b981",
+  color: "#052e16",
+  fontSize: 13,
+  fontWeight: 800,
+  cursor: "pointer",
+  whiteSpace: "nowrap",
 };
 
 const listMetaStyle = {
