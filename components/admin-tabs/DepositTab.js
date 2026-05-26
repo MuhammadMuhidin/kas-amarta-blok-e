@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import PersonSearchBox from "@/components/admin/PersonSearchBox";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import Toast from "@/components/Toast";
@@ -237,20 +238,14 @@ export default function DepositTab({
 
         {showCreateBooking && (
           <form onSubmit={handleSaveDeposit} className="admin-form">
-            <select
-              className="admin-input"
+            <PersonSearchBox
+              persons={activePersons}
               value={depositForm.person_id}
-              onChange={(e) =>
-                setDepositForm({ ...depositForm, person_id: e.target.value, end_period: "" })
+              selectedPerson={selectedDepositPerson}
+              onChange={(personId) =>
+                setDepositForm({ ...depositForm, person_id: personId, end_period: "" })
               }
-            >
-              <option value="">Select active house</option>
-              {activePersons.map((person) => (
-                <option key={person.id} value={person.id}>
-                  {person.house} - {person.name}
-                </option>
-              ))}
-            </select>
+            />
 
             {selectedDepositPerson && (
               <div style={previewBoxStyle}>
