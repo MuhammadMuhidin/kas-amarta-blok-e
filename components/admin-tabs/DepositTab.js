@@ -57,6 +57,8 @@ export default function DepositTab({
   const [snapshotError, setSnapshotError] = useState("");
   const [toast, setToast] = useState(null);
   const [showCreateBooking, setShowCreateBooking] = useState(false);
+  const [showMultiPayModal, setShowMultiPayModal] = useState(false);
+  const [multiPayLoading, setMultiPayLoading] = useState(false);
   const [snapshotDraft, setSnapshotDraft] = useState({ amount: "", trash_amount: "" });
 
   const {
@@ -112,6 +114,15 @@ export default function DepositTab({
     return sum + Number(item.amount || 0) + Number(item.trash_amount || 0);
   }, 0);
 
+  const readyPayBookings = useMemo(
+    () => effectiveDeposits.filter((deposit) => resolveDepositStatus(deposit) === "pending"),
+    [effectiveDeposits, payments],
+  );
+
+  const readyPayTotal = readyPayBookings.reduce((sum, booking) => {
+    return sum + Number(booking.amount || 0) + Number(booking.trash_amount || 0);
+  }, 0);
+
   const bookingAmount = Number(selectedBooking?.amount || 0);
   const trashAmount = Number(selectedBooking?.trash_amount || 0);
   const totalBookingPayment = bookingAmount + trashAmount;
@@ -157,6 +168,26 @@ export default function DepositTab({
   async function handlePayDeposit(id) {
     await payDeposit(id);
     await refresh();
+  }
+
+  async function handleMultiPayBookings() {
+    if (readyPayBookings.length === 0 || multiPayLoading) return;
+
+    setMultiPayLoading(true);
+
+    try {
+      for (const booking of readyPayBookings) {
+        await payDeposit(booking.id);
+      }
+
+      await refresh();
+      setShowMultiPayModal(false);
+      showToast(`Booking berhasil dibayarkan untuk ${readyPayBookings.length} rumah`, "success");
+    } catch (err) {
+      showToast(err.message || "Gagal membayarkan booking", "error");
+    } finally {
+      setMultiPayLoading(false);
+    }
   }
 
   async function updateBookingSnapshot(e) {
@@ -294,6 +325,22 @@ export default function DepositTab({
         )}
 
         <h4>Booking List ({money(activeDepositTotal)})</h4>
+        <div style={readyPaySummaryStyle}>
+          <span style={readyPaySummaryTextStyle}>
+            Ready pay bulan ini: <strong>{readyPayBookings.length} rumah</strong> • {money(readyPayTotal)}
+          </span>
+
+          {readyPayBookings.length > 0 && (
+            <button
+              type="button"
+              className="admin-small-btn"
+              disabled={loading || loadingMore || multiPayLoading}
+              onClick={() => setShowMultiPayModal(true)}
+            >
+              Pay {readyPayBookings.length} Ready Booking
+            </button>
+          )}
+        </div>
         {error && <div className="admin-error-box">{error}</div>}
 
         <div style={listMetaStyle}>
@@ -301,7 +348,7 @@ export default function DepositTab({
           <button
             type="button"
             className="admin-small-btn"
-            disabled={loading || loadingMore}
+            disabled={loading || loadingMore || multiPayLoading}
             onClick={refresh}
           >
             {loading ? "Refreshing..." : "Refresh"}
@@ -313,6 +360,7 @@ export default function DepositTab({
           loading={loading}
           payingDepositId={payingDepositId}
           savingDeposit={savingDeposit}
+          multiPayLoading={multiPayLoading}
           resolveDepositStatus={resolveDepositStatus}
           handlePayDeposit={handlePayDeposit}
           openBookingModal={openBookingModal}
@@ -342,6 +390,16 @@ export default function DepositTab({
             canEditSnapshot={canEditSnapshot}
           />
         )}
+
+        {showMultiPayModal && (
+          <MultiPayModal
+            bookings={readyPayBookings}
+            total={readyPayTotal}
+            loading={multiPayLoading}
+            onClose={() => setShowMultiPayModal(false)}
+            onConfirm={handleMultiPayBookings}
+          />
+        )}
       </div>
     </>
   );
@@ -361,6 +419,7 @@ function BookingList({
   loading,
   payingDepositId,
   savingDeposit,
+  multiPayLoading,
   resolveDepositStatus,
   handlePayDeposit,
   openBookingModal,
@@ -405,7 +464,7 @@ function BookingList({
                     type="button"
                     className={buttonText === "Paid" ? "admin-small-btn admin-small-btn-paid" : "admin-small-btn"}
                     style={{ minWidth: 96 }}
-                    disabled={!canPay || isPaying || savingDeposit}
+                    disabled={!canPay || isPaying || savingDeposit || multiPayLoading}
                     onClick={() => handlePayDeposit(deposit.id)}
                   >
                     <LoadingButtonContent loading={isPaying} loadingText="Paying...">
@@ -418,6 +477,44 @@ function BookingList({
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function MultiPayModal({ bookings, total, loading, onClose, onConfirm }) {
+  return (
+    <div className={modalStyles.overlay} onClick={loading ? undefined : onClose}>
+      <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
+        <div style={modalTitleStyle}>Konfirmasi Multi Pay Booking</div>
+        <div style={modalNoteStyle}>
+          Pastikan data booking sudah benar. Semua booking di bawah akan langsung ditandai paid.
+        </div>
+
+        <div style={multiPayListStyle}>
+          {bookings.map((booking) => (
+            <div key={booking.id} style={multiPayItemStyle}>
+              <span>{booking.house} - {booking.name}</span>
+              <strong>{money(Number(booking.amount || 0) + Number(booking.trash_amount || 0))}</strong>
+            </div>
+          ))}
+        </div>
+
+        <div style={multiPayTotalStyle}>
+          <span>Total rumah: {bookings.length}</span>
+          <strong>{money(total)}</strong>
+        </div>
+
+        <div style={modalButtonGridStyle}>
+          <button type="button" className="admin-small-btn" disabled={loading} onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="admin-small-btn" disabled={loading || bookings.length === 0} onClick={onConfirm}>
+            <LoadingButtonContent loading={loading} loadingText="Paying...">
+              Pay {bookings.length} Booking
+            </LoadingButtonContent>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -547,6 +644,25 @@ const totalRowStyle = {
   fontWeight: 700,
 };
 
+const readyPaySummaryStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  flexWrap: "wrap",
+  margin: "-4px 0 12px",
+  padding: 12,
+  borderRadius: 14,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+};
+
+const readyPaySummaryTextStyle = {
+  color: "var(--admin-muted)",
+  fontSize: 13,
+  fontWeight: 700,
+};
+
 const listMetaStyle = {
   display: "flex",
   alignItems: "center",
@@ -591,6 +707,31 @@ const modalNoteStyle = {
   color: "var(--admin-muted)",
   fontSize: 12,
   lineHeight: 1.6,
+};
+
+const multiPayListStyle = {
+  display: "grid",
+  gap: 8,
+  maxHeight: 260,
+  overflowY: "auto",
+  margin: "14px 0",
+};
+
+const multiPayItemStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: "1px solid var(--admin-border)",
+  color: "var(--admin-text)",
+  fontSize: 13,
+};
+
+const multiPayTotalStyle = {
+  ...totalRowStyle,
+  marginBottom: 14,
 };
 
 const snapshotLabelStyle = {
