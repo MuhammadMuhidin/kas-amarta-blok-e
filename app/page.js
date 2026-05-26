@@ -138,6 +138,26 @@ export default function CashflowPage() {
     );
   };
 
+  const renderCashflowNote = (note, receiptUrl) => {
+    const formattedNote = formatCashflowNote(note);
+
+    if (!receiptUrl) return formattedNote;
+
+    return (
+      <span>
+        {formattedNote}{" "}
+        <a
+          href={receiptUrl}
+          target="_blank"
+          rel="noreferrer"
+          style={{ fontWeight: 700, textDecoration: "underline" }}
+        >
+          Nota
+        </a>
+      </span>
+    );
+  };
+
   const getLastPaymentPeriod = (resident) => {
     if (!resident) return "-";
 
@@ -636,7 +656,7 @@ const balanceDeltaAmount = useMemo(() => {
                     </td>
 
                     <td>{format(c.amount)}</td>
-                    <td>{formatCashflowNote(c.note)}</td>
+                    <td>{renderCashflowNote(c.note, c.receipt_url)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -947,7 +967,7 @@ const balanceDeltaAmount = useMemo(() => {
                     ).map((e, i) => (
                       <tr key={i}>
                         <td>{formatDate(e.date)}</td>
-                        <td>{formatCashflowNote(e.note)}</td>
+                        <td>{renderCashflowNote(e.note, e.receipt_url)}</td>
                         <td>{format(e.amount)}</td>
                       </tr>
                     ))}
