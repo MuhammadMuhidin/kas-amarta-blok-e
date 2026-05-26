@@ -3,7 +3,7 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const pageSize = 10;
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
@@ -37,6 +37,13 @@ function formatCashflowNote(note) {
   return String(note).replace(/\b(\d{4}-\d{2})(?:-\d{2})?\b/g, (_, period) =>
     formatPeriod(period),
   );
+}
+
+function getCookie(name) {
+  return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`))
+    ?.split("=")[1];
 }
 
 function TypeLabel({ type }) {
@@ -73,6 +80,11 @@ export default function CashflowTab({
   const [selectedItem, setSelectedItem] = useState(null);
   const [showRecordForm, setShowRecordForm] = useState(false);
   const [summary, setSummary] = useState({ income: 0, expense: 0 });
+  const [receiptFile, setReceiptFile] = useState(null);
+  const [savingCashflow, setSavingCashflow] = useState(false);
+  const [formError, setFormError] = useState("");
+  const fileInputRef = useRef(null);
+  const isExpense = cashflow.type === "expense";
 
   const {
     items,
@@ -108,10 +120,66 @@ export default function CashflowTab({
     refresh();
   }, [typeFilter]);
 
+  function resetReceiptFile() {
+    setReceiptFile(null);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
   async function handleAddCashflow(e) {
-    await addCashflow(e);
-    await refresh();
-    setShowRecordForm(false);
+    e.preventDefault();
+    setFormError("");
+
+    if (!cashflow.type.trim() || !String(cashflow.amount || "").trim() || !cashflow.note.trim()) {
+      setFormError("Lengkapi jenis, nominal dan catatan transaksi");
+      return;
+    }
+
+    if (isExpense && !receiptFile) {
+      setFormError("Expense wajib melampirkan struk/nota/bukti pembelian");
+      return;
+    }
+
+    if (!isExpense) {
+      await addCashflow(e);
+      await refresh();
+      setShowRecordForm(false);
+      return;
+    }
+
+    setSavingCashflow(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("type", cashflow.type);
+      formData.append("amount", cashflow.amount);
+      formData.append("note", cashflow.note);
+      formData.append("receipt", receiptFile);
+
+      const res = await fetch("/api/sheets/cashflow", {
+        method: "POST",
+        headers: {
+          "x-csrf-token": getCookie("csrf_token"),
+        },
+        body: formData,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal mencatat transaksi");
+      }
+
+      setCashflow({ type: "", amount: "", note: "" });
+      resetReceiptFile();
+      await refresh();
+      setShowRecordForm(false);
+    } catch (err) {
+      setFormError(err.message || "Gagal mencatat transaksi");
+    } finally {
+      setSavingCashflow(false);
+    }
   }
 
   return (
@@ -139,7 +207,12 @@ export default function CashflowTab({
             <select
               className="admin-input"
               value={cashflow.type}
-              onChange={(e) => setCashflow({ ...cashflow, type: e.target.value })}
+              onChange={(e) => {
+                const nextType = e.target.value;
+                setCashflow({ ...cashflow, type: nextType });
+
+                if (nextType !== "expense") resetReceiptFile();
+              }}
             >
               <option value="">Transaction Type</option>
               <option value="income">Income</option>
@@ -162,8 +235,24 @@ export default function CashflowTab({
               onChange={(e) => setCashflow({ ...cashflow, note: e.target.value })}
             />
 
-            <button className="admin-btn" disabled={loadingCashflow}>
-              <LoadingButtonContent loading={loadingCashflow} loadingText="Recording...">
+            {isExpense && (
+              <label style={styles.fileLabel}>
+                <span>Struk / nota / bukti pembelian</span>
+                <input
+                  ref={fileInputRef}
+                  className="admin-input"
+                  type={"file"}
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                />
+                <small style={styles.helperText}>Wajib untuk expense. Format JPG, PNG, WEBP, atau PDF. Maksimal 5MB.</small>
+              </label>
+            )}
+
+            {formError && <div className="admin-error-box">{formError}</div>}
+
+            <button className="admin-btn" disabled={loadingCashflow || savingCashflow}>
+              <LoadingButtonContent loading={loadingCashflow || savingCashflow} loadingText="Recording...">
                 Record Transaction
               </LoadingButtonContent>
             </button>
@@ -274,6 +363,13 @@ const styles = {
     color: "var(--admin-muted)",
     fontSize: 13,
     lineHeight: 1.6,
+  },
+  fileLabel: {
+    display: "grid",
+    gap: 6,
+    color: "var(--admin-muted)",
+    fontSize: 13,
+    fontWeight: 700,
   },
   summaryGrid: {
     display: "grid",
