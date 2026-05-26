@@ -44,7 +44,6 @@ export async function GET() {
     /* 1. PENENTUAN TANGGAL & BULAN */
     /* ========================= */
     const now = new Date();
-    // Akhir bulan lalu (Contoh: jika sekarang Mei, ini adalah 30 April)
     const endOfLastMonth = new Date(
       now.getFullYear(),
       now.getMonth(),
@@ -53,7 +52,6 @@ export async function GET() {
       59,
       59,
     );
-    // Awal bulan ini (1 Mei)
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonthName = endOfLastMonth.toLocaleString("id-ID", {
       month: "long",
@@ -69,7 +67,6 @@ export async function GET() {
     /* ========================= */
     /* 2. SALDO KUMULATIF SAMPAI BULAN LALU */
     /* ========================= */
-    // Menghitung semua uang masuk & keluar SEBELUM bulan ini dimulai
     const totalIncomeUntilLastMonth = cashflows
       .filter((c) => c.type === "income" && new Date(c.date) <= endOfLastMonth)
       .reduce((sum, c) => sum + Number(c.amount || 0), 0);
@@ -78,12 +75,11 @@ export async function GET() {
       .filter((c) => c.type === "expense" && new Date(c.date) <= endOfLastMonth)
       .reduce((sum, c) => sum + Number(c.amount || 0), 0);
 
-    // Inilah angka "Total Seluruh Saldo per April"
     const lastMonthRemaining =
       totalIncomeUntilLastMonth - totalExpenseUntilLastMonth;
 
     /* ========================= */
-    /* 3. TRANSAKSI KHUSUS BULAN LALU (Untuk Detail) */
+    /* 3. TRANSAKSI KHUSUS BULAN LALU */
     /* ========================= */
     const lastMonthCashflow = cashflows.filter(
       (c) => (c.date || "").slice(0, 7) === lastMonthKey,
@@ -99,6 +95,7 @@ export async function GET() {
         date: c.date || "-",
         note: c.note || "-",
         amount: Number(c.amount || 0),
+        receipt_url: c.receipt_url || "",
       }));
 
     const lastMonthExpenseTotal = lastMonthExpenses.reduce(
@@ -127,10 +124,11 @@ export async function GET() {
         date: c.date || "-",
         note: c.note || "-",
         amount: Number(c.amount || 0),
+        receipt_url: c.receipt_url || "",
       }));
 
     /* ========================= */
-    /* 5. TOTAL SALDO SAAT INI (ALL TIME) */
+    /* 5. TOTAL SALDO SAAT INI */
     /* ========================= */
     const totalIncomeAllTime = cashflows
       .filter((c) => c.type === "income")
@@ -142,16 +140,13 @@ export async function GET() {
 
     const currentBalance = totalIncomeAllTime - totalExpenseAllTime;
 
-    /* ========================= */
-    /* 6. MENGIRIM DATA KE FRONTEND */
-    /* ========================= */
     const insight = {
       lastMonth: {
         month: lastMonthName,
-        income: lastMonthIncomeOnly, // Hanya income di bulan April saja
+        income: lastMonthIncomeOnly,
         expenseTotal: lastMonthExpenseTotal,
         expenses: lastMonthExpenses,
-        remaining: lastMonthRemaining, // Kumulatif sisa saldo April
+        remaining: lastMonthRemaining,
       },
       currentMonth: {
         month: currentMonthName,
@@ -164,10 +159,6 @@ export async function GET() {
         currentBalance,
       },
     };
-
-    /* ========================= */
-    /* RETURN */
-    /* ========================= */
 
     return Response.json({
       payments,
