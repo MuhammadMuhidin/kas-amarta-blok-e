@@ -57,6 +57,8 @@ export default function CashflowPage() {
   const [paySlideIndex, setPaySlideIndex] = useState(0);
   const [insightSlideIndex, setInsightSlideIndex] = useState(0);
   const [selectedResident, setSelectedResident] = useState(null);
+  const [selectedReceipt, setSelectedReceipt] = useState(null);
+  const [receiptPreviewError, setReceiptPreviewError] = useState(false);
 
   const paySliderRef = useRef(null);
 
@@ -138,6 +140,20 @@ export default function CashflowPage() {
     );
   };
 
+  const openReceiptPreview = (receiptUrl, note = "") => {
+    setReceiptPreviewError(false);
+    setSelectedReceipt({ url: receiptUrl, note: formatCashflowNote(note) });
+  };
+
+  const closeReceiptPreview = () => {
+    setSelectedReceipt(null);
+    setReceiptPreviewError(false);
+  };
+
+  const isImageReceipt = (url) => {
+    return /\.(jpg|jpeg|png|webp)(?:\?.*)?$/i.test(String(url || ""));
+  };
+
   const renderCashflowNote = (note, receiptUrl) => {
     const formattedNote = formatCashflowNote(note);
 
@@ -146,14 +162,21 @@ export default function CashflowPage() {
     return (
       <span>
         {formattedNote}{" "}
-        <a
-          href={receiptUrl}
-          target="_blank"
-          rel="noreferrer"
-          style={{ fontWeight: 700, textDecoration: "underline" }}
+        <button
+          type="button"
+          onClick={() => openReceiptPreview(receiptUrl, note)}
+          style={{
+            border: 0,
+            background: "transparent",
+            padding: 0,
+            color: "inherit",
+            fontWeight: 700,
+            textDecoration: "underline",
+            cursor: "pointer",
+          }}
         >
           Nota
-        </a>
+        </button>
       </span>
     );
   };
@@ -184,17 +207,17 @@ export default function CashflowPage() {
     return resident.paid ? "Sudah bayar" : "Belum bayar";
   };
 
-const getRegisteredServices = (resident) => {
-  if (!resident) return "-";
+  const getRegisteredServices = (resident) => {
+    if (!resident) return "-";
 
-  const services = ["Kas"];
+    const services = ["Kas"];
 
-  if ((resident.trash || "").toUpperCase() === "Y") {
-    services.push("Sampah");
-  }
+    if ((resident.trash || "").toUpperCase() === "Y") {
+      services.push("Sampah");
+    }
 
-  return services.join(" dan ");
-};
+    return services.join(" dan ");
+  };
 
   /* ==== LOGIC: PAYMENT ==== */
   const paymentList = useMemo(() => {
@@ -302,49 +325,37 @@ const getRegisteredServices = (resident) => {
         : 0,
     );
 
-const expenseDelta = useMemo(() => {
-  const current =
-    insight?.currentMonth?.expenseTotal || 0;
+  const expenseDelta = useMemo(() => {
+    const current = insight?.currentMonth?.expenseTotal || 0;
+    const last = insight?.lastMonth?.expenseTotal || 0;
 
-  const last =
-    insight?.lastMonth?.expenseTotal || 0;
+    if (!last) return 0;
 
-  if (!last) return 0;
+    return ((current - last) / last) * 100;
+  }, [insight]);
 
-  return ((current - last) / last) * 100;
-}, [insight]);
+  const expenseDeltaAmount = useMemo(() => {
+    const current = insight?.currentMonth?.expenseTotal || 0;
+    const last = insight?.lastMonth?.expenseTotal || 0;
 
-const expenseDeltaAmount = useMemo(() => {
-  const current =
-    insight?.currentMonth?.expenseTotal || 0;
+    return Math.abs(current - last);
+  }, [insight]);
 
-  const last =
-    insight?.lastMonth?.expenseTotal || 0;
+  const balanceDelta = useMemo(() => {
+    const current = insight?.summary?.currentBalance || 0;
+    const last = insight?.lastMonth?.remaining || 0;
 
-  return Math.abs(current - last);
-}, [insight]);
+    if (!last) return 0;
 
-const balanceDelta = useMemo(() => {
-  const current =
-    insight?.summary?.currentBalance || 0;
+    return ((current - last) / last) * 100;
+  }, [insight]);
 
-  const last =
-    insight?.lastMonth?.remaining || 0;
+  const balanceDeltaAmount = useMemo(() => {
+    const current = insight?.summary?.currentBalance || 0;
+    const last = insight?.lastMonth?.remaining || 0;
 
-  if (!last) return 0;
-
-  return ((current - last) / last) * 100;
-}, [insight]);
-
-const balanceDeltaAmount = useMemo(() => {
-  const current =
-    insight?.summary?.currentBalance || 0;
-
-  const last =
-    insight?.lastMonth?.remaining || 0;
-
-  return Math.abs(current - last);
-}, [insight]);
+    return Math.abs(current - last);
+  }, [insight]);
 
   const animatedModalExpense =
     useAnimatedNumber(
@@ -743,27 +754,26 @@ const balanceDeltaAmount = useMemo(() => {
                   alignItems: "center",
                 }}
               >
-                
-<div className="insight-value-stack">
-  <strong style={{ color: "#dc3545" }}>
-    {format(animatedCurrentMonthExpense)}
-  </strong>
+                <div className="insight-value-stack">
+                  <strong style={{ color: "#dc3545" }}>
+                    {format(animatedCurrentMonthExpense)}
+                  </strong>
 
-  <span
-    className={`insight-delta ${
-      expenseDelta > 0
-        ? "bad"
-        : expenseDelta < 0
-          ? "good"
-          : "neutral"
-    }`}
-  >
-    {expenseDelta > 0 ? "↑naik " : expenseDelta < 0 ? "↓turun" : "•tetap"}{" "}
-    {Math.abs(expenseDelta) > 100
-      ? format(expenseDeltaAmount)
-      : `${Math.abs(expenseDelta).toFixed(0)}%`}
-  </span>
-</div>
+                  <span
+                    className={`insight-delta ${
+                      expenseDelta > 0
+                        ? "bad"
+                        : expenseDelta < 0
+                          ? "good"
+                          : "neutral"
+                    }`}
+                  >
+                    {expenseDelta > 0 ? "↑naik " : expenseDelta < 0 ? "↓turun" : "•tetap"}{" "}
+                    {Math.abs(expenseDelta) > 100
+                      ? format(expenseDeltaAmount)
+                      : `${Math.abs(expenseDelta).toFixed(0)}%`}
+                  </span>
+                </div>
 
                 <button
                   className="insight-link"
@@ -777,28 +787,28 @@ const balanceDeltaAmount = useMemo(() => {
               </div>
             </div>
 
-<div className="insight-row final-balance">
-  <span>Total saldo saat ini</span>
+            <div className="insight-row final-balance">
+              <span>Total saldo saat ini</span>
 
-  <div className="insight-value-stack">
-    <strong>{format(animatedCurrentBalance)}</strong>
+              <div className="insight-value-stack">
+                <strong>{format(animatedCurrentBalance)}</strong>
 
-    <span
-      className={`insight-delta ${
-        balanceDelta > 0
-          ? "good"
-          : balanceDelta < 0
-            ? "bad"
-            : "neutral"
-      }`}
-    >
-      {balanceDelta > 0 ? "↑naik" : balanceDelta < 0 ? "↓turun" : "•tetap"}{" "}
-      {Math.abs(balanceDelta) > 100
-        ? `${format(balanceDeltaAmount)} dari bulan lalu`
-        : `${Math.abs(balanceDelta).toFixed(0)}% dari bulan lalu`}
-    </span>
-  </div>
-</div>
+                <span
+                  className={`insight-delta ${
+                    balanceDelta > 0
+                      ? "good"
+                      : balanceDelta < 0
+                        ? "bad"
+                        : "neutral"
+                  }`}
+                >
+                  {balanceDelta > 0 ? "↑naik" : balanceDelta < 0 ? "↓turun" : "•tetap"}{" "}
+                  {Math.abs(balanceDelta) > 100
+                    ? `${format(balanceDeltaAmount)} dari bulan lalu`
+                    : `${Math.abs(balanceDelta).toFixed(0)}% dari bulan lalu`}
+                </span>
+              </div>
+            </div>
           </div>
 
           <h2>Laporan Tunggakan Saat ini</h2>
@@ -914,6 +924,101 @@ const balanceDeltaAmount = useMemo(() => {
                   {formatPeriod(
                     getLastPaymentPeriod(selectedResident),
                   )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL RECEIPT */}
+        {selectedReceipt && (
+          <div className="modal-overlay" onClick={closeReceiptPreview}>
+            <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div className="modal-title">Preview Nota</div>
+              </div>
+
+              <div style={{ marginBottom: 12, color: "var(--muted)", fontSize: 13, fontWeight: 600 }}>
+                {selectedReceipt.note}
+              </div>
+
+              <div style={{ display: "grid", gap: 12 }}>
+                {receiptPreviewError ? (
+                  <div
+                    style={{
+                      padding: 16,
+                      borderRadius: 14,
+                      border: "1px solid rgba(220, 53, 69, 0.35)",
+                      background: "rgba(220, 53, 69, 0.08)",
+                      color: "#dc3545",
+                      fontWeight: 700,
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    Sistem gambar sedang gangguan, mohon dicoba berkala.
+                  </div>
+                ) : isImageReceipt(selectedReceipt.url) ? (
+                  <img
+                    src={selectedReceipt.url}
+                    alt="Preview nota pengeluaran"
+                    onError={() => setReceiptPreviewError(true)}
+                    style={{
+                      width: "100%",
+                      maxHeight: "70vh",
+                      objectFit: "contain",
+                      borderRadius: 14,
+                      background: "#f8f9fa",
+                    }}
+                  />
+                ) : (
+                  <iframe
+                    src={selectedReceipt.url}
+                    title="Preview nota pengeluaran"
+                    style={{
+                      width: "100%",
+                      minHeight: "70vh",
+                      border: "1px solid rgba(0,0,0,0.12)",
+                      borderRadius: 14,
+                      background: "#fff",
+                    }}
+                  />
+                )}
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <a
+                    href={selectedReceipt.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(0,0,0,0.12)",
+                      color: "inherit",
+                      textDecoration: "none",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Buka asli
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={closeReceiptPreview}
+                    style={{
+                      padding: "10px 12px",
+                      borderRadius: 12,
+                      border: 0,
+                      background: "var(--btn-primary)",
+                      color: "var(--btn-text)",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Tutup
+                  </button>
                 </div>
               </div>
             </div>
