@@ -115,8 +115,8 @@ export default function DepositTab({
   }, 0);
 
   const readyPayBookings = useMemo(
-    () => effectiveDeposits.filter((deposit) => resolveDepositStatus(deposit) === "pending"),
-    [effectiveDeposits, payments],
+    () => totalDeposits.filter((deposit) => resolveDepositStatus(deposit) === "pending"),
+    [totalDeposits, payments],
   );
 
   const readyPayTotal = readyPayBookings.reduce((sum, booking) => {
@@ -327,7 +327,7 @@ export default function DepositTab({
         <h4>Booking List ({money(activeDepositTotal)})</h4>
         <div style={readyPaySummaryStyle}>
           <span style={readyPaySummaryTextStyle}>
-            Ready pay bulan ini: <strong>{readyPayBookings.length} rumah</strong> • {money(readyPayTotal)}
+            Ready to pay: <strong>{readyPayBookings.length} rumah</strong>
           </span>
 
           {readyPayBookings.length > 0 && (
@@ -337,7 +337,7 @@ export default function DepositTab({
               disabled={loading || loadingMore || multiPayLoading}
               onClick={() => setShowMultiPayModal(true)}
             >
-              Pay {readyPayBookings.length} Ready Booking
+              Multi Pay
             </button>
           )}
         </div>
