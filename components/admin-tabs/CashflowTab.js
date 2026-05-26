@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import Toast from "@/components/Toast";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import { useEffect, useRef, useState } from "react";
@@ -83,6 +84,7 @@ export default function CashflowTab({
   const [receiptFile, setReceiptFile] = useState(null);
   const [savingCashflow, setSavingCashflow] = useState(false);
   const [formError, setFormError] = useState("");
+  const [toast, setToast] = useState(null);
   const fileInputRef = useRef(null);
   const isExpense = cashflow.type === "expense";
 
@@ -126,6 +128,11 @@ export default function CashflowTab({
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  }
+
+  function showToast(message, type = "success") {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 2500);
   }
 
   async function handleAddCashflow(e) {
@@ -175,8 +182,11 @@ export default function CashflowTab({
       resetReceiptFile();
       await refresh();
       setShowRecordForm(false);
+      showToast("Transaksi berhasil dicatat", "success");
     } catch (err) {
-      setFormError(err.message || "Gagal mencatat transaksi");
+      const message = err.message || "Gagal mencatat transaksi";
+      setFormError(message);
+      showToast(message, "error");
     } finally {
       setSavingCashflow(false);
     }
@@ -184,6 +194,8 @@ export default function CashflowTab({
 
   return (
     <>
+      <Toast show={!!toast} type={toast?.type} message={toast?.message} />
+
       <div className="admin-card">
         <div style={styles.header}>
           <div>
