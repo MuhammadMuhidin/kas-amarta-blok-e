@@ -177,6 +177,11 @@ export default function DepositTab({
       return;
     }
 
+    if (amount === bookingAmount && nextTrashAmount === trashAmount) {
+      setSnapshotError("");
+      return;
+    }
+
     setSavingSnapshot(true);
     setSnapshotError("");
 
@@ -433,6 +438,10 @@ function BookingModal({
   closeBookingModal,
   canEditSnapshot,
 }) {
+  const hasSnapshotChanges =
+    Number(snapshotDraft.amount || 0) !== bookingAmount ||
+    Number(snapshotDraft.trash_amount || 0) !== trashAmount;
+
   return (
     <div className={modalStyles.overlay} onClick={closeBookingModal}>
       <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
@@ -469,7 +478,7 @@ function BookingModal({
               >
                 Cancel
               </button>
-              <button className="admin-small-btn" disabled={savingSnapshot}>
+              <button className="admin-small-btn" disabled={savingSnapshot || !hasSnapshotChanges}>
                 <LoadingButtonContent loading={savingSnapshot} loadingText="Saving...">Save</LoadingButtonContent>
               </button>
             </div>
