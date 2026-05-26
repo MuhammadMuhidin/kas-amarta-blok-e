@@ -12,48 +12,74 @@ function safeGit(command) {
   }
 }
 
-const platform = process.env.VERCEL
-  ? "vercel"
-  : process.env.NETLIFY
-    ? "netlify"
-    : "local";
+function firstValue(...values) {
+  return values.find((value) => String(value || "").trim()) || null;
+}
+
+function detectPlatform() {
+  if (process.env.RENDER) return "render";
+  if (process.env.VERCEL) return "vercel";
+  if (process.env.NETLIFY) return "netlify";
+
+  return firstValue(process.env.APP_ENV, process.env.NEXT_PUBLIC_APP_ENV) || "local";
+}
+
+const platform = detectPlatform();
 
 const commit =
-  process.env.VERCEL_GIT_COMMIT_SHA ||
-  process.env.COMMIT_REF ||
+  firstValue(
+    process.env.RENDER_GIT_COMMIT,
+    process.env.VERCEL_GIT_COMMIT_SHA,
+    process.env.COMMIT_REF,
+    process.env.GIT_COMMIT,
+  ) ||
   safeGit("git rev-parse HEAD") ||
   "unknown";
 
 const branch =
-  process.env.VERCEL_GIT_COMMIT_REF ||
-  process.env.BRANCH ||
-  process.env.HEAD ||
+  firstValue(
+    process.env.RENDER_GIT_BRANCH,
+    process.env.VERCEL_GIT_COMMIT_REF,
+    process.env.BRANCH,
+    process.env.HEAD,
+    process.env.GIT_BRANCH,
+  ) ||
   safeGit("git rev-parse --abbrev-ref HEAD") ||
   "unknown";
 
 const commitMessage =
-  process.env.VERCEL_GIT_COMMIT_MESSAGE ||
-  process.env.COMMIT_MESSAGE ||
+  firstValue(
+    process.env.VERCEL_GIT_COMMIT_MESSAGE,
+    process.env.COMMIT_MESSAGE,
+    process.env.RENDER_GIT_COMMIT_MESSAGE,
+  ) ||
   safeGit("git log -1 --pretty=%s") ||
   "unknown";
 
 const environment =
-  process.env.VERCEL_ENV ||
-  process.env.CONTEXT ||
-  process.env.NODE_ENV ||
-  "unknown";
+  firstValue(
+    process.env.APP_ENV,
+    process.env.NEXT_PUBLIC_APP_ENV,
+    process.env.VERCEL_ENV,
+    process.env.CONTEXT,
+    process.env.NODE_ENV,
+  ) || "unknown";
 
 const deployId =
-  process.env.VERCEL_DEPLOYMENT_ID ||
-  process.env.DEPLOY_ID ||
-  process.env.BUILD_ID ||
-  "local";
+  firstValue(
+    process.env.RENDER_SERVICE_ID,
+    process.env.VERCEL_DEPLOYMENT_ID,
+    process.env.DEPLOY_ID,
+    process.env.BUILD_ID,
+  ) || "local";
 
 const deployUrl =
-  process.env.VERCEL_URL ||
-  process.env.DEPLOY_URL ||
-  process.env.URL ||
-  "";
+  firstValue(
+    process.env.RENDER_EXTERNAL_URL,
+    process.env.VERCEL_URL,
+    process.env.DEPLOY_URL,
+    process.env.URL,
+  ) || "";
 
 const buildInfo = {
   platform,
