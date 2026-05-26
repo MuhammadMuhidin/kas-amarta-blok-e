@@ -3,8 +3,10 @@ import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import { uploadCashflowReceipt } from "@/lib/r2Upload";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
 
@@ -68,7 +70,7 @@ export async function GET(req) {
 
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: "Cashflow!A:F",
+    range: "Cashflow!A:G",
   });
 
   const rows = res.data.values || [];
@@ -80,6 +82,7 @@ export async function GET(req) {
     amount: Number(r[3]) || 0,
     note: r[4],
     date: r[5],
+    receipt_url: r[6] || "",
   }));
 
   const { searchParams } = new URL(req.url);
@@ -122,11 +125,14 @@ export async function POST(req) {
     return NextResponse.json({ error: "Invalid CSRF" }, { status: 403 });
   }
 
-  const body = await req.json();
+  const contentType = req.headers.get("content-type") || "";
+  const isMultipart = contentType.includes("multipart/form-data");
+  const body = isMultipart ? await req.formData() : await req.json();
 
-  const type = String(body.type || "").trim().toLowerCase();
-  const amount = Number(body.amount || 0);
-  const rawNote = String(body.note || "").trim();
+  const type = String(isMultipart ? body.get("type") : body.type || "").trim().toLowerCase();
+  const amount = Number(isMultipart ? body.get("amount") : body.amount || 0);
+  const rawNote = String(isMultipart ? body.get("note") : body.note || "").trim();
+  const receiptFile = isMultipart ? body.get("receipt") : null;
 
   if (!["income", "expense"].includes(type)) {
     return NextResponse.json(
@@ -157,13 +163,19 @@ export async function POST(req) {
   const cashflowId = generateId("CSFLOW-");
   const refId = generateId("DIRECT-");
   const note = toTitleCase(rawNote);
+  let receiptUrl = "";
+
+  if (type === "expense") {
+    const uploaded = await uploadCashflowReceipt(receiptFile, { cashflowId });
+    receiptUrl = uploaded.url;
+  }
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: "cashflow!A:F",
+    range: "Cashflow!A:G",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [[cashflowId, refId, type, amount, note, today]],
+      values: [[cashflowId, refId, type, amount, note, today, receiptUrl]],
     },
   });
 
@@ -180,8 +192,9 @@ export async function POST(req) {
       note,
       date: today,
       source: "direct",
+      receipt_url: receiptUrl,
     },
   });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, receipt_url: receiptUrl });
 }
