@@ -48,12 +48,41 @@ function BuildBadge({loading,buildInfo}) {
   </div>;
 }
 
+function getHealthStatus({loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData}) {
+  const sheetOk = !loadingSettlement && (rows.cashflows.length + rows.deposits.length + rows.trashRecords.length) > 0;
+  const buildOk = Boolean(buildInfo);
+  const backupOk = Boolean(dailyBackup?.ok);
+  const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + suspiciousData.length;
+  const integrityOk = integrityIssueCount === 0;
+  const reportReady = sheetOk && buildOk;
+  const storageReady = rows.cashflows.some((item)=>String(item.receipt_url||"").trim()) ? "With receipt data" : "No receipt sample";
+
+  return {
+    sheetOk,
+    buildOk,
+    backupOk,
+    integrityOk,
+    reportReady,
+    integrityIssueCount,
+    storageReady,
+  };
+}
+
 export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData}) {
   const [buildInfo,setBuildInfo] = useState(null);
   const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
   const [loadingSettlement,setLoadingSettlement] = useState(false);
   const [rows,setRows] = useState({cashflows:[],deposits:[],trashRecords:[]});
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
+  const health = useMemo(()=>getHealthStatus({
+    loadingSettlement,
+    rows,
+    buildInfo,
+    dailyBackup,
+    paymentCashflowIntegrity,
+    trashMismatch,
+    suspiciousData,
+  }),[loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData]);
 
   useEffect(()=>{
     let active = true;
@@ -104,6 +133,17 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
       </div>
       <BuildBadge loading={loadingBuildInfo} buildInfo={buildInfo} />
     </div>
+
+    <Section title="Operational Health Check">
+      <div className="admin-monitor-grid">
+        <MonitoringCard label="Sheets API" value={loadingSettlement?"Checking...":health.sheetOk?"Connected":"Need check"} meta={[health.sheetOk?`${rows.cashflows.length} cashflow, ${rows.deposits.length} booking, ${rows.trashRecords.length} trash rows loaded.`:"Data operasional belum terbaca."]} error={!loadingSettlement&&!health.sheetOk} />
+        <MonitoringCard label="Build Metadata" value={loadingBuildInfo?"Checking...":health.buildOk?"Ready":"Missing"} meta={buildInfo?[`${String(buildInfo.platform||"unknown").toUpperCase()} - ${buildInfo.branch}`,`Commit: ${buildInfo.commitShort}`]:["Build info tidak tersedia."]} error={!loadingBuildInfo&&!health.buildOk} />
+        <MonitoringCard label="Backup Health" value={loadingDailyBackup?"Checking...":health.backupOk?"Healthy":"Need check"} meta={health.backupOk?[`Last file: ${dailyBackup.name}`,`Retention: ${dailyBackup.count} backup files`]:["Backup harian belum valid."]} error={!loadingDailyBackup&&!health.backupOk} />
+        <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"Ada issue yang perlu direview."]} error={!health.integrityOk} />
+        <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data dan build metadata tersedia untuk report.":"Report bisa gagal jika data/build tidak sehat."]} error={!health.reportReady} />
+        <MonitoringCard label="Receipt Storage" value={health.storageReady} meta={[health.storageReady==="With receipt data"?"Ada data receipt_url di cashflow.":"Belum ada sample receipt_url untuk dicek otomatis."]} />
+      </div>
+    </Section>
 
     <Section title="Settlement">
       <div className="admin-monitor-grid">
