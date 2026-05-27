@@ -11,25 +11,10 @@ import PersonalTab from "@/components/admin-tabs/PersonalTab";
 import SummaryBackupTab from "@/components/admin-tabs/SummaryBackupTab";
 import Toast from "@/components/Toast";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
-import {
-  buildPaymentCashflowIntegrity,
-  buildSuspiciousData,
-  buildTrashMismatch,
-} from "@/lib/adminMonitoring";
-import {
-  addMonths,
-  getCurrentPeriod,
-  getDepositStatus as resolveDepositStatus,
-  sortDeposits,
-} from "@/lib/depositUtils";
-import {
-  calculatePersonalStats,
-  filterPersonal,
-  searchPersonal,
-  sortPersonal,
-} from "@/lib/personalUtils";
+import { getCurrentPeriod, getDepositStatus as resolveDepositStatus } from "@/lib/depositUtils";
+import useAdminDerivedState from "@/hooks/admin/useAdminDerivedState";
 import AdminLoading from "@/app/admin/loading";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 function normalize(value) {
@@ -64,6 +49,34 @@ export default function AdminPageClient() {
   const [loadingCashflow, setLoadingCashflow] = useState(false);
   const [savingDeposit, setSavingDeposit] = useState(false);
   const [payingDepositId, setPayingDepositId] = useState("");
+
+  const {
+    nextSixPeriods,
+    selectedDepositPeriods,
+    activePersons,
+    selectedDepositPerson,
+    depositAmount,
+    pendingCurrentDeposits,
+    stats,
+    trashMismatch,
+    paymentCashflowIntegrity,
+    suspiciousData,
+    monitoringIssueCount,
+    searchedPersonal,
+    sortedDeposits,
+  } = useAdminDerivedState({
+    personal,
+    payments,
+    trashRecords,
+    deposits,
+    cashflows,
+    appConfig,
+    depositForm,
+    memberFilter,
+    memberSearch,
+    currentPeriod,
+    normalize,
+  });
 
   function showPopup(text, type = "success") {
     setPopup({ text, type });
@@ -330,22 +343,6 @@ export default function AdminPageClient() {
       return person && !isHousePaidForPeriod(person);
     }));
   }, [payment.period, payments, personal]);
-
-  const nextSixPeriods = useMemo(() => Array.from({ length: 6 }).map((_, index) => addMonths(currentPeriod, index + 2)), [currentPeriod]);
-  const selectedDepositPeriods = useMemo(() => !depositForm.end_period ? [] : nextSixPeriods.filter((period) => period <= depositForm.end_period), [depositForm.end_period, nextSixPeriods]);
-  const activePersons = useMemo(() => sortPersonal(personal.filter((item) => item.active === "Y")), [personal]);
-  const selectedDepositPerson = useMemo(() => personal.find((item) => item.id === depositForm.person_id), [personal, depositForm.person_id]);
-  const depositAmount = useMemo(() => Number(appConfig?.monthly_fee || 0), [appConfig]);
-  const pendingCurrentDeposits = useMemo(() => deposits.filter((item) => item.period === currentPeriod && item.status !== "paid"), [deposits, currentPeriod]);
-  const stats = useMemo(() => calculatePersonalStats(personal), [personal]);
-  const monitoringStartPeriod = appConfig?.start_monitoring_date || "";
-  const trashMismatch = useMemo(() => buildTrashMismatch({ personal, payments, trashRecords, monitoringStartPeriod, normalize }), [personal, payments, trashRecords, monitoringStartPeriod]);
-  const paymentCashflowIntegrity = useMemo(() => buildPaymentCashflowIntegrity({ payments, cashflows, appConfig, monitoringStartPeriod, normalize }), [payments, cashflows, appConfig, monitoringStartPeriod]);
-  const suspiciousData = useMemo(() => buildSuspiciousData({ personal, payments, cashflows, trashRecords, normalize }), [personal, payments, cashflows, trashRecords]);
-  const monitoringIssueCount = useMemo(() => trashMismatch.length + paymentCashflowIntegrity.length + suspiciousData.length, [trashMismatch, paymentCashflowIntegrity, suspiciousData]);
-  const filteredPersonal = useMemo(() => filterPersonal(sortPersonal(personal), memberFilter), [personal, memberFilter]);
-  const searchedPersonal = useMemo(() => searchPersonal(filteredPersonal, memberSearch), [filteredPersonal, memberSearch]);
-  const sortedDeposits = useMemo(() => sortDeposits(deposits, currentPeriod, normalize), [deposits, currentPeriod]);
 
   function rowClassName(person, index) {
     if (person.active === "N") return "admin-row-inactive";
