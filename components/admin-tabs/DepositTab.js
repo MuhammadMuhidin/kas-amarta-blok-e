@@ -123,6 +123,7 @@ export default function DepositTab({
     return sum + Number(booking.amount || 0) + Number(booking.trash_amount || 0);
   }, 0);
 
+  const isMultiPayDisabled = readyPayBookings.length === 0 || loading || loadingMore || multiPayLoading;
   const bookingAmount = Number(selectedBooking?.amount || 0);
   const trashAmount = Number(selectedBooking?.trash_amount || 0);
   const totalBookingPayment = bookingAmount + trashAmount;
@@ -332,8 +333,8 @@ export default function DepositTab({
 
           <button
             type="button"
-            style={multiPayButtonStyle}
-            disabled={readyPayBookings.length === 0 || loading || loadingMore || multiPayLoading}
+            style={isMultiPayDisabled ? multiPayButtonMutedStyle : multiPayButtonStyle}
+            disabled={isMultiPayDisabled}
             onClick={() => setShowMultiPayModal(true)}
           >
             Multi Pay
@@ -670,6 +671,14 @@ const multiPayButtonStyle = {
   fontWeight: 800,
   cursor: "pointer",
   whiteSpace: "nowrap",
+};
+
+const multiPayButtonMutedStyle = {
+  ...multiPayButtonStyle,
+  background: "var(--admin-border)",
+  color: "var(--admin-muted)",
+  cursor: "not-allowed",
+  opacity: 0.72,
 };
 
 const listMetaStyle = {
