@@ -2,13 +2,13 @@
 
 import AdminActivityPanel from "@/components/AdminActivityPanel";
 import AdminSettings from "@/components/AdminSettings";
-import CashflowTab from "@/components/admin-tabs/CashflowTab";
-import DepositTab from "@/components/admin-tabs/DepositTab";
-import MonitoringTab from "@/components/admin-tabs/MonitoringTab";
-import OverviewTab from "@/components/admin-tabs/OverviewTab";
-import PaymentTab from "@/components/admin-tabs/PaymentTab";
-import PersonalTab from "@/components/admin-tabs/PersonalTab";
-import SummaryBackupTab from "@/components/admin-tabs/SummaryBackupTab";
+import CashflowTab from "@/components/admin/tabs/CashflowTab";
+import DepositTab from "@/components/admin/tabs/DepositTab";
+import MonitoringTab from "@/components/admin/tabs/MonitoringTab";
+import OverviewTab from "@/components/admin/tabs/OverviewTab";
+import PaymentTab from "@/components/admin/tabs/PaymentTab";
+import PersonalTab from "@/components/admin/tabs/PersonalTab";
+import SummaryBackupTab from "@/components/admin/tabs/SummaryBackupTab";
 import Toast from "@/components/Toast";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod } from "@/lib/depositUtils";
