@@ -1,13 +1,13 @@
 "use client";
 
 import AdminActivityPanel from "@/components/AdminActivityPanel";
-import AdminSettings from "@/components/AdminSettings";
 import CashflowTab from "@/components/admin/tabs/CashflowTab";
 import DepositTab from "@/components/admin/tabs/DepositTab";
 import MonitoringTab from "@/components/admin/tabs/MonitoringTab";
 import OverviewTab from "@/components/admin/tabs/OverviewTab";
 import PaymentTab from "@/components/admin/tabs/PaymentTab";
 import PersonalTab from "@/components/admin/tabs/PersonalTab";
+import SettingsTab from "@/components/admin/tabs/SettingsTab";
 import SummaryBackupTab from "@/components/admin/tabs/SummaryBackupTab";
 import Toast from "@/components/Toast";
 import { sendJson } from "@/components/admin/adminClientApi";
@@ -218,7 +218,7 @@ export default function AdminPageClient() {
         {tab === "summary" && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
         {tab === "monitoring" && <MonitoringTab key={`monitoring-${tabRefreshKey}`} loadingDailyBackup={loadingDailyBackup} dailyBackup={dailyBackup} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} suspiciousData={suspiciousData} />}
         {tab === "activity" && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
-        {tab === "settings" && <AdminSettings key={`settings-${tabRefreshKey}`} />}
+        {tab === "settings" && <SettingsTab key={`settings-${tabRefreshKey}`} />}
       </div>
     </>
   );
