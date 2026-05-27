@@ -147,6 +147,8 @@ export default function AdminPageClient() {
   } = useAdminDepositActions({
     currentPeriod,
     normalize,
+    depositForm,
+    setDepositForm,
     selectedDepositPerson,
     selectedDepositPeriods,
     depositAmount,
