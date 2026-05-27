@@ -11,10 +11,16 @@ import PersonalTab from "@/components/admin-tabs/PersonalTab";
 import SummaryBackupTab from "@/components/admin-tabs/SummaryBackupTab";
 import Toast from "@/components/Toast";
 import { sendJson } from "@/components/admin/adminClientApi";
-import { getCurrentPeriod, getDepositStatus as resolveDepositStatus } from "@/lib/depositUtils";
+import { getCurrentPeriod } from "@/lib/depositUtils";
+import useAdminCashflowActions from "@/hooks/admin/useAdminCashflowActions";
+import useAdminDepositActions from "@/hooks/admin/useAdminDepositActions";
 import useAdminDerivedState from "@/hooks/admin/useAdminDerivedState";
 import useAdminLoaders from "@/hooks/admin/useAdminLoaders";
+import useAdminMemberActions from "@/hooks/admin/useAdminMemberActions";
+import useAdminPaymentActions from "@/hooks/admin/useAdminPaymentActions";
+import useAdminSession from "@/hooks/admin/useAdminSession";
 import useAdminTabs from "@/hooks/admin/useAdminTabs";
+import useAdminToast from "@/hooks/admin/useAdminToast";
 import AdminLoading from "@/app/admin/loading";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -27,19 +33,30 @@ export default function AdminPageClient() {
   const router = useRouter();
   const currentPeriod = getCurrentPeriod();
   const [bootLoading, setBootLoading] = useState(true);
-  const [popup, setPopup] = useState(null);
-  const [member, setMember] = useState({ house: "", name: "", join_date: "", trash: "" });
-  const [memberFilter, setMemberFilter] = useState("");
-  const [memberSearch, setMemberSearch] = useState("");
-  const [selected, setSelected] = useState([]);
-  const [payment, setPayment] = useState({ period: "", amount: "" });
-  const [cashflow, setCashflow] = useState({ type: "", amount: "", note: "" });
-  const [depositForm, setDepositForm] = useState({ person_id: "", end_period: "" });
-  const [loadingAdd, setLoadingAdd] = useState(false);
-  const [loadingPayment, setLoadingPayment] = useState(false);
-  const [loadingCashflow, setLoadingCashflow] = useState(false);
-  const [savingDeposit, setSavingDeposit] = useState(false);
-  const [payingDepositId, setPayingDepositId] = useState("");
+
+  const { popup, showPopup } = useAdminToast();
+  const { checkSession } = useAdminSession();
+
+  const {
+    payment,
+    setPayment,
+    selected,
+    loadingPayment,
+    toggleHouse,
+    isHousePaidForPeriod,
+    recordPayment,
+  } = useAdminPaymentActions({
+    personal: [],
+    payments: [],
+    appConfig: null,
+    loadPayment: async () => {},
+    loadTrash: async () => {},
+    loadCashflow: async () => {},
+    showPopup,
+    createPayment: (payload) => sendJson("/api/sheets/payment", "POST", payload),
+    createTrashPayment: (payload) => sendJson("/api/sheets/trash", "POST", payload),
+    normalize,
+  });
 
   const {
     personal,
@@ -70,6 +87,62 @@ export default function AdminPageClient() {
   } = useAdminTabs(refreshTabData);
 
   const {
+    member,
+    setMember,
+    memberFilter,
+    memberSearch,
+    setMemberSearch,
+    loadingAdd,
+    toggleMemberFilter,
+    rowClassName,
+    addMember,
+    updateMemberInline,
+  } = useAdminMemberActions({
+    personal,
+    setPersonal,
+    loadPersonal,
+    showPopup,
+    submitMember: (payload) => sendJson("/api/sheets/personal", "POST", payload),
+    patchMember: (payload) => sendJson("/api/sheets/personal", "PATCH", payload),
+    normalize,
+    currentPeriod,
+  });
+
+  const {
+    depositForm,
+    setDepositForm,
+    savingDeposit,
+    payingDepositId,
+    getDepositStatus,
+    saveDeposit,
+    payDeposit,
+  } = useAdminDepositActions({
+    currentPeriod,
+    normalize,
+    selectedDepositPerson: null,
+    selectedDepositPeriods: [],
+    depositAmount: 0,
+    loadDeposit,
+    loadPayment,
+    loadTrash,
+    loadCashflow,
+    showPopup,
+    createDeposit: (payload) => sendJson("/api/sheets/deposit", "POST", payload),
+    payDepositBooking: (payload) => sendJson("/api/sheets/deposit", "PATCH", payload),
+  });
+
+  const {
+    cashflow,
+    setCashflow,
+    loadingCashflow,
+    addCashflow,
+  } = useAdminCashflowActions({
+    loadCashflow,
+    showPopup,
+    createCashflow: (payload) => sendJson("/api/sheets/cashflow", "POST", payload),
+  });
+
+  const {
     nextSixPeriods,
     selectedDepositPeriods,
     activePersons,
@@ -97,176 +170,6 @@ export default function AdminPageClient() {
     normalize,
   });
 
-  function showPopup(text, type = "success") {
-    setPopup({ text, type });
-    setTimeout(() => setPopup(null), 2500);
-  }
-
-  async function checkSession() {
-    const res = await fetch("/api/admin/sessions/check", { cache: "no-store" });
-    if (res.status !== 401) return true;
-    router.replace("/login");
-    return false;
-  }
-
-  function getDepositStatus(deposit) {
-    return resolveDepositStatus(deposit, currentPeriod, normalize);
-  }
-
-  function isHousePaidForPeriod(person) {
-    const period = normalize(payment.period);
-    if (!period) return false;
-    return payments.some((item) => {
-      const samePeriod = normalize(item.period) === period;
-      const samePerson = normalize(item.person_id) === normalize(person.id);
-      const sameHouse = normalize(item.person_house) === normalize(person.house);
-      return samePeriod && (samePerson || sameHouse);
-    });
-  }
-
-  function isNewActiveMember(person) {
-    if (person.active !== "Y" || !person.join_date) return false;
-    return String(person.join_date).slice(0, 7) > currentPeriod;
-  }
-
-  function toggleMemberFilter(type) {
-    setMemberFilter((prev) => (prev === type ? "" : type));
-  }
-
-  function toggleHouse(id) {
-    const person = personal.find((item) => item.id === id);
-    if (!person || isHousePaidForPeriod(person)) return;
-    setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
-  }
-
-  async function addMember(e) {
-    e.preventDefault();
-    if (!member.house.trim() || !member.name.trim() || !member.trash.trim() || !member.join_date.trim()) {
-      showPopup("Lengkapi semua data member terlebih dahulu", "error");
-      return;
-    }
-    setLoadingAdd(true);
-    try {
-      await sendJson("/api/sheets/personal", "POST", member);
-      showPopup("Member berhasil ditambahkan", "success");
-      setMember({ house: "", name: "", join_date: "", trash: "" });
-      await loadPersonal();
-    } catch (err) {
-      showPopup(err.message || "Gagal menambahkan member", "error");
-    } finally {
-      setLoadingAdd(false);
-    }
-  }
-
-  async function updateMemberInline(person, field, value) {
-    const currentValue = normalize(person?.[field]);
-    const nextValue = normalize(value).toUpperCase();
-    if (!person?.id || !["trash", "active"].includes(field)) return;
-    if (!nextValue || currentValue === nextValue) return;
-    const previousPersonal = personal;
-    setPersonal((prev) => prev.map((item) => (item.id === person.id ? { ...item, [field]: nextValue } : item)));
-    try {
-      await sendJson("/api/sheets/personal", "PATCH", { id: person.id, field, value: nextValue });
-      showPopup("Data member berhasil diperbarui", "success");
-      await loadPersonal();
-    } catch (err) {
-      setPersonal(previousPersonal);
-      showPopup(err.message || "Gagal memperbarui data member", "error");
-      throw err;
-    }
-  }
-
-  async function recordPayment(e) {
-    e.preventDefault();
-    if (!appConfig) return showPopup("Konfigurasi kas belum tersedia. Pembayaran tidak bisa dicatat.", "error");
-    if (!payment.period) return showPopup("Masukkan periode pembayaran terlebih dahulu", "error");
-    if (selected.length === 0) return showPopup("Pilih minimal 1 rumah yang belum dibayar", "error");
-    setLoadingPayment(true);
-    try {
-      let success = 0;
-      for (const id of selected) {
-        const person = personal.find((item) => item.id === id);
-        if (!person) continue;
-        const paymentData = await sendJson("/api/sheets/payment", "POST", { house: person.house, period: payment.period, amount: payment.amount });
-        success += 1;
-        if ((person.trash || "").toUpperCase() === "Y") {
-          await sendJson("/api/sheets/trash", "POST", {
-            payment_id: paymentData.payment_id,
-            person_id: person.id,
-            house: person.house,
-            name: person.name,
-            period: payment.period,
-            amount: appConfig.trash_fee,
-            source: "payment",
-          });
-        }
-      }
-      showPopup(`Pembayaran berhasil dicatat untuk ${success} rumah`, "success");
-      setSelected([]);
-      setPayment({ period: "", amount: appConfig.monthly_fee });
-      await Promise.all([loadPayment(), loadTrash(), loadCashflow()]);
-    } finally {
-      setLoadingPayment(false);
-    }
-  }
-
-  async function saveDeposit(e) {
-    e.preventDefault();
-    if (!selectedDepositPerson || selectedDepositPeriods.length === 0) {
-      showPopup("Pilih rumah dan periode booking terlebih dahulu", "error");
-      return;
-    }
-    setSavingDeposit(true);
-    try {
-      await sendJson("/api/sheets/deposit", "POST", {
-        person_id: selectedDepositPerson.id,
-        house: selectedDepositPerson.house,
-        name: selectedDepositPerson.name,
-        periods: selectedDepositPeriods,
-        amount: depositAmount,
-      });
-      showPopup("Booking payment berhasil disimpan", "success");
-      setDepositForm({ person_id: "", end_period: "" });
-      await loadDeposit();
-    } catch (err) {
-      showPopup(err.message || "Gagal menyimpan data booking", "error");
-    } finally {
-      setSavingDeposit(false);
-    }
-  }
-
-  async function payDeposit(id) {
-    setPayingDepositId(id);
-    try {
-      await sendJson("/api/sheets/deposit", "PATCH", { id, action: "PAY_NOW" });
-      showPopup("Booking payment berhasil dibayarkan", "success");
-      await Promise.all([loadDeposit(), loadPayment(), loadTrash(), loadCashflow()]);
-    } catch (err) {
-      showPopup(err.message || "Gagal membayarkan data booking", "error");
-    } finally {
-      setPayingDepositId("");
-    }
-  }
-
-  async function addCashflow(e) {
-    e.preventDefault();
-    if (!cashflow.type.trim() || !String(cashflow.amount || "").trim() || !cashflow.note.trim()) {
-      showPopup("Lengkapi jenis, nominal dan catatan transaksi", "error");
-      return;
-    }
-    setLoadingCashflow(true);
-    try {
-      await sendJson("/api/sheets/cashflow", "POST", cashflow);
-      showPopup("Transaksi berhasil dicatat", "success");
-      setCashflow({ type: "", amount: "", note: "" });
-      await loadCashflow();
-    } catch (err) {
-      showPopup(err.message || "Gagal mencatat transaksi", "error");
-    } finally {
-      setLoadingCashflow(false);
-    }
-  }
-
   useEffect(() => {
     async function bootstrap() {
       const validSession = await checkSession();
@@ -283,20 +186,6 @@ export default function AdminPageClient() {
   useEffect(() => {
     refreshTabData(tab);
   }, [tab]);
-
-  useEffect(() => {
-    setSelected((prev) => prev.filter((id) => {
-      const person = personal.find((item) => item.id === id);
-      return person && !isHousePaidForPeriod(person);
-    }));
-  }, [payment.period, payments, personal]);
-
-  function rowClassName(person, index) {
-    if (person.active === "N") return "admin-row-inactive";
-    if (isNewActiveMember(person)) return "admin-row-new-active";
-    if (index % 2) return "admin-row-alt";
-    return "";
-  }
 
   if (bootLoading) return <AdminLoading />;
 
