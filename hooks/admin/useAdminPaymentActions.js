@@ -6,6 +6,8 @@ export default function useAdminPaymentActions({
   personal,
   payments,
   appConfig,
+  payment,
+  setPayment,
   loadPayment,
   loadTrash,
   loadCashflow,
@@ -15,7 +17,6 @@ export default function useAdminPaymentActions({
   normalize,
 }) {
   const [selected, setSelected] = useState([]);
-  const [payment, setPayment] = useState({ period: "", amount: "" });
   const [loadingPayment, setLoadingPayment] = useState(false);
 
   function isHousePaidForPeriod(person) {
@@ -102,8 +103,6 @@ export default function useAdminPaymentActions({
   }, [payment.period, payments, personal]);
 
   return {
-    payment,
-    setPayment,
     selected,
     loadingPayment,
     toggleHouse,
