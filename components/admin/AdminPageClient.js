@@ -10,9 +10,10 @@ import PaymentTab from "@/components/admin-tabs/PaymentTab";
 import PersonalTab from "@/components/admin-tabs/PersonalTab";
 import SummaryBackupTab from "@/components/admin-tabs/SummaryBackupTab";
 import Toast from "@/components/Toast";
-import { readJson, sendJson } from "@/components/admin/adminClientApi";
+import { sendJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod, getDepositStatus as resolveDepositStatus } from "@/lib/depositUtils";
 import useAdminDerivedState from "@/hooks/admin/useAdminDerivedState";
+import useAdminLoaders from "@/hooks/admin/useAdminLoaders";
 import useAdminTabs from "@/hooks/admin/useAdminTabs";
 import AdminLoading from "@/app/admin/loading";
 import { useEffect, useState } from "react";
@@ -25,15 +26,6 @@ function normalize(value) {
 export default function AdminPageClient() {
   const router = useRouter();
   const currentPeriod = getCurrentPeriod();
-  const [personal, setPersonal] = useState([]);
-  const [payments, setPayments] = useState([]);
-  const [trashRecords, setTrashRecords] = useState([]);
-  const [deposits, setDeposits] = useState([]);
-  const [cashflows, setCashflows] = useState([]);
-  const [appConfig, setAppConfig] = useState(null);
-  const [configError, setConfigError] = useState("");
-  const [dailyBackup, setDailyBackup] = useState(null);
-  const [loadingDailyBackup, setLoadingDailyBackup] = useState(false);
   const [bootLoading, setBootLoading] = useState(true);
   const [popup, setPopup] = useState(null);
   const [member, setMember] = useState({ house: "", name: "", join_date: "", trash: "" });
@@ -48,6 +40,27 @@ export default function AdminPageClient() {
   const [loadingCashflow, setLoadingCashflow] = useState(false);
   const [savingDeposit, setSavingDeposit] = useState(false);
   const [payingDepositId, setPayingDepositId] = useState("");
+
+  const {
+    personal,
+    setPersonal,
+    payments,
+    trashRecords,
+    deposits,
+    cashflows,
+    appConfig,
+    configError,
+    dailyBackup,
+    loadingDailyBackup,
+    loadAppConfig,
+    loadPersonal,
+    loadPayment,
+    loadTrash,
+    loadDeposit,
+    loadCashflow,
+    loadDailyBackupStatus,
+    refreshTabData,
+  } = useAdminLoaders({ setPayment });
 
   const {
     tab,
@@ -94,69 +107,6 @@ export default function AdminPageClient() {
     if (res.status !== 401) return true;
     router.replace("/login");
     return false;
-  }
-
-  async function loadAppConfig() {
-    try {
-      setConfigError("");
-      const data = await readJson("/api/admin/settings/app");
-      setAppConfig(data.config);
-      setPayment((prev) => ({ ...prev, amount: data.config.monthly_fee }));
-    } catch (err) {
-      setAppConfig(null);
-      setConfigError(err.message || "Failed load a configuration");
-    }
-  }
-
-  async function loadPersonal() {
-    setPersonal(await readJson("/api/sheets/personal"));
-  }
-
-  async function loadPayment() {
-    setPayments(await readJson("/api/sheets/payment"));
-  }
-
-  async function loadTrash() {
-    setTrashRecords(await readJson("/api/sheets/trash"));
-  }
-
-  async function loadDeposit() {
-    setDeposits(await readJson("/api/sheets/deposit"));
-  }
-
-  async function loadCashflow() {
-    setCashflows(await readJson("/api/sheets/cashflow"));
-  }
-
-  async function loadDailyBackupStatus() {
-    setLoadingDailyBackup(true);
-    try {
-      setDailyBackup(await readJson("/api/daily-backup-status"));
-    } finally {
-      setLoadingDailyBackup(false);
-    }
-  }
-
-  async function refreshMonitoring() {
-    await Promise.all([
-      loadAppConfig(),
-      loadDailyBackupStatus(),
-      loadPayment(),
-      loadTrash(),
-      loadPersonal(),
-      loadCashflow(),
-      loadDeposit(),
-    ]);
-  }
-
-  async function refreshTabData(nextTab) {
-    if (nextTab === "overview") return refreshMonitoring();
-    if (nextTab === "personal") return loadPersonal();
-    if (nextTab === "payment") return Promise.all([loadAppConfig(), loadPayment(), loadDeposit()]);
-    if (nextTab === "deposit") return Promise.all([loadAppConfig(), loadPersonal(), loadDeposit(), loadPayment(), loadTrash(), loadCashflow()]);
-    if (nextTab === "cashflow") return loadCashflow();
-    if (nextTab === "monitoring") return refreshMonitoring();
-    if (nextTab === "settings") return loadAppConfig();
   }
 
   function getDepositStatus(deposit) {
