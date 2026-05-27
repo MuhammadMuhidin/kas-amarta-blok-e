@@ -1,10 +1,8 @@
-import { getSheetData } from "@/lib/google";
-import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
-
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const WAHA_SEND_TEXT_URL =
+const WAHA_SEND_TEXT_URI =
+  process.env.WAHA_SEND_TEXT_URI ||
   process.env.WAHA_SEND_TEXT_URL ||
   "https://geh929l.waha.bocindonesia.com/api/sendText";
 const WAHA_API_KEY = process.env.WAHA_API_KEY;
@@ -29,128 +27,106 @@ function formatDate(value) {
   });
 }
 
-function getJakartaMonthStart() {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    year: "numeric",
-    month: "2-digit",
-    timeZone: "Asia/Jakarta",
-  }).formatToParts(new Date());
-
-  const year = Number(parts.find((part) => part.type === "year")?.value);
-  const month = Number(parts.find((part) => part.type === "month")?.value);
-
-  return new Date(year, month - 1, 1);
-}
-
-function getMonthKey(date) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-
-  return `${year}-${month}`;
-}
-
-function getMonthLabel(date) {
-  return date.toLocaleDateString("id-ID", {
-    month: "long",
-    year: "numeric",
-    timeZone: "Asia/Jakarta",
-  });
-}
-
-function normalizeCashflow(row) {
-  return {
-    type: String(row.type || "").toLowerCase(),
-    date: row.date || "",
-    note: row.note || "-",
-    amount: Number(row.amount || 0),
-  };
-}
-
-function buildMonthlySummaryMessage(cashflows) {
-  const currentMonthStart = getJakartaMonthStart();
-  const lastMonthStart = new Date(
-    currentMonthStart.getFullYear(),
-    currentMonthStart.getMonth() - 1,
-    1,
-  );
-
-  const lastMonthKey = getMonthKey(lastMonthStart);
-  const currentMonthLabel = getMonthLabel(currentMonthStart);
-  const lastMonthLabel = getMonthLabel(lastMonthStart);
-
-  const lastMonthTransactions = cashflows
-    .filter((item) => String(item.date || "").slice(0, 7) === lastMonthKey)
-    .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")));
-
-  const lastMonthIncome = lastMonthTransactions
-    .filter((item) => item.type === "income")
-    .reduce((total, item) => total + item.amount, 0);
-
-  const lastMonthExpense = lastMonthTransactions
-    .filter((item) => item.type === "expense")
-    .reduce((total, item) => total + item.amount, 0);
-
-  const currentBalance = cashflows.reduce((total, item) => {
-    if (item.type === "income") return total + item.amount;
-    if (item.type === "expense") return total - item.amount;
-    return total;
-  }, 0);
-
-  const transactionLines = lastMonthTransactions.length
-    ? lastMonthTransactions.map((item, index) => {
-        const typeLabel = item.type === "income" ? "Pemasukan" : "Pengeluaran";
-        const sign = item.type === "income" ? "+" : "-";
-
-        return `${index + 1}. ${formatDate(item.date)} | ${typeLabel} | ${sign}${formatMoney(item.amount)} | ${item.note}`;
-      })
-    : [`Tidak ada transaksi pada bulan ${lastMonthLabel}.`];
-
-  return [
-    `*Laporan Kas Amarta Residence 2 Blok E*`,
-    ``,
-    `*Transaksi bulan ${lastMonthLabel}:*`,
-    ...transactionLines,
-    ``,
-    `Total pemasukan ${lastMonthLabel}: ${formatMoney(lastMonthIncome)}`,
-    `Total pengeluaran ${lastMonthLabel}: ${formatMoney(lastMonthExpense)}`,
-    ``,
-    `*Saldo terkini bulan ${currentMonthLabel}:*`,
-    `${formatMoney(currentBalance)}`,
-  ].join("\n");
-}
-
-function getDryRun(req, body) {
+function getDryRun(req) {
   const { searchParams } = new URL(req.url);
 
-  return body?.dryRun === true || searchParams.get("dryRun") === "1";
+  return searchParams.get("dryRun") === "1";
 }
 
 function validateWahaEnv({ dryRun }) {
+  if (!WAHA_SEND_TEXT_URI) return "WAHA_SEND_TEXT_URI belum diset di environment";
   if (!WAHA_CHAT_ID) return "WAHA_CHAT_ID belum diset di environment";
   if (!dryRun && !WAHA_API_KEY) return "WAHA_API_KEY belum diset di environment";
 
   return null;
 }
 
-export async function POST(req) {
+function getSummaryUrl(req) {
+  const url = new URL(req.url);
+
+  url.pathname = "/api/sheets/summary";
+  url.search = `?t=${Date.now()}`;
+
+  return url.toString();
+}
+
+async function loadSummaryFromApi(req) {
+  const res = await fetch(getSummaryUrl(req), {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Gagal mengambil data dari API summary");
+  }
+
+  return res.json();
+}
+
+function buildMonthlySummaryMessage(summaryData) {
+  const insight = summaryData?.insight || {};
+  const lastMonth = insight.lastMonth || {};
+  const currentMonth = insight.currentMonth || {};
+  const summary = insight.summary || {};
+  const expenses = Array.isArray(lastMonth.expenses) ? lastMonth.expenses : [];
+
+  const expenseLines = expenses.length
+    ? [...expenses]
+        .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
+        .map(
+          (item, index) =>
+            `${index + 1}. ${formatDate(item.date)} | ${formatMoney(item.amount)} | ${item.note || "-"}`,
+        )
+    : [`Tidak ada pengeluaran pada bulan ${lastMonth.month || "lalu"}.`];
+
+  return [
+    `*Laporan Kas Amarta Residence 2 Blok E*`,
+    ``,
+    `*Detail pengeluaran bulan ${lastMonth.month || "lalu"}:*`,
+    ...expenseLines,
+    ``,
+    `Total pengeluaran ${lastMonth.month || "bulan lalu"}: ${formatMoney(lastMonth.expenseTotal)}`,
+    `Sisa saldo kumulatif per ${lastMonth.month || "bulan lalu"}: ${formatMoney(lastMonth.remaining)}`,
+    `Kas bulan ${currentMonth.month || "berjalan"} + sisa bulan lalu: ${formatMoney(summary.currentIncomePlusLastRemaining)}`,
+    `Pengeluaran bulan ini: ${formatMoney(currentMonth.expenseTotal)}`,
+    ``,
+    `*Total saldo saat ini:*`,
+    `${formatMoney(summary.currentBalance)}`,
+  ].join("\n");
+}
+
+async function sendToWaha(text) {
+  const res = await fetch(WAHA_SEND_TEXT_URI, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Api-Key": WAHA_API_KEY,
+    },
+    body: JSON.stringify({
+      chatId: WAHA_CHAT_ID,
+      text,
+      session: WAHA_SESSION,
+    }),
+  });
+
+  const responseText = await res.text();
+  let responseBody = responseText;
+
   try {
-    if (!(await isAdmin(req))) {
-      return unauthorized();
-    }
+    responseBody = JSON.parse(responseText);
+  } catch {
+    // Keep plain text response.
+  }
 
-    if (!validateCSRF(req)) {
-      return Response.json(
-        {
-          error: "CSRF tidak valid",
-        },
-        {
-          status: 403,
-        },
-      );
-    }
+  return {
+    ok: res.ok,
+    status: res.status,
+    detail: responseBody,
+  };
+}
 
-    const body = await req.json().catch(() => ({}));
-    const dryRun = getDryRun(req, body);
+export async function GET(req) {
+  try {
+    const dryRun = getDryRun(req);
     const envError = validateWahaEnv({ dryRun });
 
     if (envError) {
@@ -164,55 +140,28 @@ export async function POST(req) {
       );
     }
 
-    const rows = await getSheetData();
-    const cashflows = rows
-      .filter(
-        (row) =>
-          row.__type === "cashflow" &&
-          ["income", "expense"].includes(String(row.type || "").toLowerCase()),
-      )
-      .map(normalizeCashflow);
-
-    const text = buildMonthlySummaryMessage(cashflows);
+    const summaryData = await loadSummaryFromApi(req);
+    const text = buildMonthlySummaryMessage(summaryData);
 
     if (dryRun) {
       return Response.json({
         ok: true,
         dryRun: true,
+        source: "/api/sheets/summary",
         chatId: WAHA_CHAT_ID,
         session: WAHA_SESSION,
         text,
       });
     }
 
-    const wahaRes = await fetch(WAHA_SEND_TEXT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Api-Key": WAHA_API_KEY,
-      },
-      body: JSON.stringify({
-        chatId: WAHA_CHAT_ID,
-        text,
-        session: WAHA_SESSION,
-      }),
-    });
+    const waha = await sendToWaha(text);
 
-    const responseText = await wahaRes.text();
-    let responseBody = responseText;
-
-    try {
-      responseBody = JSON.parse(responseText);
-    } catch {
-      // Keep plain text response.
-    }
-
-    if (!wahaRes.ok) {
+    if (!waha.ok) {
       return Response.json(
         {
           error: "Gagal mengirim pesan ke WAHA",
-          status: wahaRes.status,
-          detail: responseBody,
+          status: waha.status,
+          detail: waha.detail,
         },
         {
           status: 502,
@@ -222,10 +171,11 @@ export async function POST(req) {
 
     return Response.json({
       ok: true,
+      source: "/api/sheets/summary",
       chatId: WAHA_CHAT_ID,
       session: WAHA_SESSION,
       text,
-      waha: responseBody,
+      waha: waha.detail,
     });
   } catch (err) {
     return Response.json(
