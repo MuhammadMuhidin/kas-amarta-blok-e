@@ -33,30 +33,11 @@ export default function AdminPageClient() {
   const router = useRouter();
   const currentPeriod = getCurrentPeriod();
   const [bootLoading, setBootLoading] = useState(true);
+  const [payment, setPayment] = useState({ period: "", amount: "" });
+  const [depositForm, setDepositForm] = useState({ person_id: "", end_period: "" });
 
   const { popup, showPopup } = useAdminToast();
   const { checkSession } = useAdminSession();
-
-  const {
-    payment,
-    setPayment,
-    selected,
-    loadingPayment,
-    toggleHouse,
-    isHousePaidForPeriod,
-    recordPayment,
-  } = useAdminPaymentActions({
-    personal: [],
-    payments: [],
-    appConfig: null,
-    loadPayment: async () => {},
-    loadTrash: async () => {},
-    loadCashflow: async () => {},
-    showPopup,
-    createPayment: (payload) => sendJson("/api/sheets/payment", "POST", payload),
-    createTrashPayment: (payload) => sendJson("/api/sheets/trash", "POST", payload),
-    normalize,
-  });
 
   const {
     personal,
@@ -109,40 +90,6 @@ export default function AdminPageClient() {
   });
 
   const {
-    depositForm,
-    setDepositForm,
-    savingDeposit,
-    payingDepositId,
-    getDepositStatus,
-    saveDeposit,
-    payDeposit,
-  } = useAdminDepositActions({
-    currentPeriod,
-    normalize,
-    selectedDepositPerson: null,
-    selectedDepositPeriods: [],
-    depositAmount: 0,
-    loadDeposit,
-    loadPayment,
-    loadTrash,
-    loadCashflow,
-    showPopup,
-    createDeposit: (payload) => sendJson("/api/sheets/deposit", "POST", payload),
-    payDepositBooking: (payload) => sendJson("/api/sheets/deposit", "PATCH", payload),
-  });
-
-  const {
-    cashflow,
-    setCashflow,
-    loadingCashflow,
-    addCashflow,
-  } = useAdminCashflowActions({
-    loadCashflow,
-    showPopup,
-    createCashflow: (payload) => sendJson("/api/sheets/cashflow", "POST", payload),
-  });
-
-  const {
     nextSixPeriods,
     selectedDepositPeriods,
     activePersons,
@@ -168,6 +115,59 @@ export default function AdminPageClient() {
     memberSearch,
     currentPeriod,
     normalize,
+  });
+
+  const {
+    selected,
+    loadingPayment,
+    toggleHouse,
+    isHousePaidForPeriod,
+    recordPayment,
+  } = useAdminPaymentActions({
+    personal,
+    payments,
+    appConfig,
+    loadPayment,
+    loadTrash,
+    loadCashflow,
+    showPopup,
+    createPayment: (payload) => sendJson("/api/sheets/payment", "POST", payload),
+    createTrashPayment: (payload) => sendJson("/api/sheets/trash", "POST", payload),
+    normalize,
+    payment,
+    setPayment,
+  });
+
+  const {
+    savingDeposit,
+    payingDepositId,
+    getDepositStatus,
+    saveDeposit,
+    payDeposit,
+  } = useAdminDepositActions({
+    currentPeriod,
+    normalize,
+    selectedDepositPerson,
+    selectedDepositPeriods,
+    depositAmount,
+    loadDeposit,
+    loadPayment,
+    loadTrash,
+    loadCashflow,
+    showPopup,
+    createDeposit: (payload) => sendJson("/api/sheets/deposit", "POST", payload),
+    payDepositBooking: (payload) => sendJson("/api/sheets/deposit", "PATCH", payload),
+  });
+
+  const {
+    cashflow,
+    setCashflow,
+    loadingCashflow,
+    addCashflow,
+  } = useAdminCashflowActions({
+    loadCashflow,
+    showPopup,
+    createCashflow: (payload) => sendJson("/api/sheets/cashflow", "POST", payload),
   });
 
   useEffect(() => {
