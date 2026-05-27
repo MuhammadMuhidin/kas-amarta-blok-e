@@ -6,6 +6,8 @@ import { getDepositStatus as resolveDepositStatus } from "@/lib/depositUtils";
 export default function useAdminDepositActions({
   currentPeriod,
   normalize,
+  depositForm,
+  setDepositForm,
   selectedDepositPerson,
   selectedDepositPeriods,
   depositAmount,
@@ -17,7 +19,6 @@ export default function useAdminDepositActions({
   createDeposit,
   payDepositBooking,
 }) {
-  const [depositForm, setDepositForm] = useState({ person_id: "", end_period: "" });
   const [savingDeposit, setSavingDeposit] = useState(false);
   const [payingDepositId, setPayingDepositId] = useState("");
 
@@ -68,8 +69,6 @@ export default function useAdminDepositActions({
   }
 
   return {
-    depositForm,
-    setDepositForm,
     savingDeposit,
     payingDepositId,
     getDepositStatus,
