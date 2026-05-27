@@ -2,9 +2,9 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import CashflowSection from "@/components/public/CashflowSection";
-import InsightSection from "@/components/public/InsightSection";
-import PaymentStatusSection from "@/components/public/PaymentStatusSection";
+import CashflowTab from "@/components/public/tabs/CashflowTab";
+import InsightTab from "@/components/public/tabs/InsightTab";
+import PaymentStatusTab from "@/components/public/tabs/PaymentStatusTab";
 import PublicTabs from "@/components/public/PublicTabs";
 import ReceiptPreviewModal from "@/components/public/ReceiptPreviewModal";
 import ResidentDetailModal from "@/components/public/ResidentDetailModal";
@@ -141,7 +141,7 @@ export default function PublicPageClient() {
 
         <PublicTabs activeTab={activeTab} setActiveTab={setActiveTab} onLogin={goToLogin} />
 
-        <PaymentStatusSection
+        <PaymentStatusTab
           active={activeTab === "payment"}
           periods={data.periods}
           selectedPeriod={selectedPeriod}
@@ -155,7 +155,7 @@ export default function PublicPageClient() {
           paySliderRef={paySliderRef}
         />
 
-        <CashflowSection
+        <CashflowTab
           active={activeTab === "cashflow"}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
@@ -169,7 +169,7 @@ export default function PublicPageClient() {
           onOpenReceipt={openReceiptPreview}
         />
 
-        <InsightSection
+        <InsightTab
           active={activeTab === "insight"}
           insight={insight}
           paidInLastPeriodCount={paidInLastPeriodCount}
