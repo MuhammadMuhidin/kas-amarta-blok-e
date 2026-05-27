@@ -55,7 +55,6 @@ function getHealthStatus({loadingSettlement,rows,buildInfo,dailyBackup,paymentCa
   const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + suspiciousData.length;
   const integrityOk = integrityIssueCount === 0;
   const reportReady = sheetOk && buildOk;
-  const storageReady = rows.cashflows.some((item)=>String(item.receipt_url||"").trim()) ? "With receipt data" : "No receipt sample";
 
   return {
     sheetOk,
@@ -64,7 +63,52 @@ function getHealthStatus({loadingSettlement,rows,buildInfo,dailyBackup,paymentCa
     integrityOk,
     reportReady,
     integrityIssueCount,
-    storageReady,
+  };
+}
+
+function getReceiptStorageView(loading, data) {
+  if (loading) {
+    return {
+      value: "Checking...",
+      meta: ["Mengecek akses publik R2 receipt."],
+      error: false,
+    };
+  }
+
+  if (!data) {
+    return {
+      value: "Need check",
+      meta: ["Health check receipt belum tersedia."],
+      error: true,
+    };
+  }
+
+  if (data.status === "no_sample") {
+    return {
+      value: "No receipt sample",
+      meta: [data.message || "Belum ada sample receipt_url untuk dicek otomatis."],
+      error: false,
+    };
+  }
+
+  if (data.ok) {
+    return {
+      value: "Reachable",
+      meta: [
+        data.host ? `Host: ${data.host}` : "R2 public receipt bisa diakses.",
+        data.status_code ? `HTTP ${data.status_code}` : data.message,
+      ].filter(Boolean),
+      error: false,
+    };
+  }
+
+  return {
+    value: "Unreachable",
+    meta: [
+      data.message || "R2 public receipt tidak bisa diakses.",
+      data.status_code ? `HTTP ${data.status_code}` : "Warga kemungkinan tidak bisa membuka nota.",
+    ],
+    error: true,
   };
 }
 
@@ -72,6 +116,8 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
   const [buildInfo,setBuildInfo] = useState(null);
   const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
   const [loadingSettlement,setLoadingSettlement] = useState(false);
+  const [loadingReceiptStorage,setLoadingReceiptStorage] = useState(false);
+  const [receiptStorage,setReceiptStorage] = useState(null);
   const [rows,setRows] = useState({cashflows:[],deposits:[],trashRecords:[]});
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
   const health = useMemo(()=>getHealthStatus({
@@ -83,6 +129,10 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     trashMismatch,
     suspiciousData,
   }),[loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData]);
+  const receiptStorageView = useMemo(
+    ()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),
+    [loadingReceiptStorage,receiptStorage],
+  );
 
   useEffect(()=>{
     let active = true;
@@ -125,6 +175,24 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     return ()=>{active=false};
   },[loadingDailyBackup]);
 
+  useEffect(()=>{
+    let active = true;
+    async function loadReceiptStorage() {
+      setLoadingReceiptStorage(true);
+      try {
+        const res = await fetch("/api/health/receipt-storage",{cache:"no-store"});
+        const data = await res.json();
+        if (active) setReceiptStorage(data);
+      } catch (error) {
+        if (active) setReceiptStorage({ok:false,status:"error",message:error.message || "Gagal mengecek R2 public receipt."});
+      } finally {
+        if (active) setLoadingReceiptStorage(false);
+      }
+    }
+    loadReceiptStorage();
+    return ()=>{active=false};
+  },[]);
+
   return <div className="admin-card">
     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:18,flexWrap:"wrap",position:"static"}}>
       <div>
@@ -141,7 +209,7 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
         <MonitoringCard label="Backup Health" value={loadingDailyBackup?"Checking...":health.backupOk?"Healthy":"Need check"} meta={health.backupOk?[`Last file: ${dailyBackup.name}`,`Retention: ${dailyBackup.count} backup files`]:["Backup harian belum valid."]} error={!loadingDailyBackup&&!health.backupOk} />
         <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"Ada issue yang perlu direview."]} error={!health.integrityOk} />
         <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data dan build metadata tersedia untuk report.":"Report bisa gagal jika data/build tidak sehat."]} error={!health.reportReady} />
-        <MonitoringCard label="Receipt Storage" value={health.storageReady} meta={[health.storageReady==="With receipt data"?"Ada data receipt_url di cashflow.":"Belum ada sample receipt_url untuk dicek otomatis."]} />
+        <MonitoringCard label="Receipt Storage" value={receiptStorageView.value} meta={receiptStorageView.meta} error={receiptStorageView.error} />
       </div>
     </Section>
 
