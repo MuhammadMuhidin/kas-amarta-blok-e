@@ -13,6 +13,7 @@ import Toast from "@/components/Toast";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod, getDepositStatus as resolveDepositStatus } from "@/lib/depositUtils";
 import useAdminDerivedState from "@/hooks/admin/useAdminDerivedState";
+import useAdminTabs from "@/hooks/admin/useAdminTabs";
 import AdminLoading from "@/app/admin/loading";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -24,8 +25,6 @@ function normalize(value) {
 export default function AdminPageClient() {
   const router = useRouter();
   const currentPeriod = getCurrentPeriod();
-  const [tab, setTab] = useState("overview");
-  const [tabRefreshKey, setTabRefreshKey] = useState(0);
   const [personal, setPersonal] = useState([]);
   const [payments, setPayments] = useState([]);
   const [trashRecords, setTrashRecords] = useState([]);
@@ -49,6 +48,13 @@ export default function AdminPageClient() {
   const [loadingCashflow, setLoadingCashflow] = useState(false);
   const [savingDeposit, setSavingDeposit] = useState(false);
   const [payingDepositId, setPayingDepositId] = useState("");
+
+  const {
+    tab,
+    tabRefreshKey,
+    handleTabClick,
+    tabClassName,
+  } = useAdminTabs(refreshTabData);
 
   const {
     nextSixPeriods,
@@ -151,15 +157,6 @@ export default function AdminPageClient() {
     if (nextTab === "cashflow") return loadCashflow();
     if (nextTab === "monitoring") return refreshMonitoring();
     if (nextTab === "settings") return loadAppConfig();
-  }
-
-  function handleTabClick(nextTab) {
-    if (tab === nextTab) {
-      setTabRefreshKey((prev) => prev + 1);
-      refreshTabData(nextTab);
-      return;
-    }
-    setTab(nextTab);
   }
 
   function getDepositStatus(deposit) {
@@ -349,10 +346,6 @@ export default function AdminPageClient() {
     if (isNewActiveMember(person)) return "admin-row-new-active";
     if (index % 2) return "admin-row-alt";
     return "";
-  }
-
-  function tabClassName(name) {
-    return tab === name ? "admin-tab admin-tab-active" : "admin-tab";
   }
 
   if (bootLoading) return <AdminLoading />;
