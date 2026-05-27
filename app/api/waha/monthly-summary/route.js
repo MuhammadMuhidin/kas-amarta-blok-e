@@ -1,3 +1,5 @@
+import { GET as getSheetsSummary } from "@/app/api/sheets/summary/route";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -41,25 +43,14 @@ function validateWahaEnv({ dryRun }) {
   return null;
 }
 
-function getSummaryUrl(req) {
-  const url = new URL(req.url);
+async function loadSummaryFromApi() {
+  const response = await getSheetsSummary();
 
-  url.pathname = "/api/sheets/summary";
-  url.search = `?t=${Date.now()}`;
-
-  return url.toString();
-}
-
-async function loadSummaryFromApi(req) {
-  const res = await fetch(getSummaryUrl(req), {
-    cache: "no-store",
-  });
-
-  if (!res.ok) {
+  if (!response.ok) {
     throw new Error("Gagal mengambil data dari API summary");
   }
 
-  return res.json();
+  return response.json();
 }
 
 function buildMonthlySummaryMessage(summaryData) {
@@ -140,7 +131,7 @@ export async function GET(req) {
       );
     }
 
-    const summaryData = await loadSummaryFromApi(req);
+    const summaryData = await loadSummaryFromApi();
     const text = buildMonthlySummaryMessage(summaryData);
 
     if (dryRun) {
