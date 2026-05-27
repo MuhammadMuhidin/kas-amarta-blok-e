@@ -7,6 +7,9 @@ export const dynamic = "force-dynamic";
 const WAHA_SEND_TEXT_URL =
   process.env.WAHA_SEND_TEXT_URL ||
   "https://geh929l.waha.bocindonesia.com/api/sendText";
+const WAHA_API_KEY = process.env.WAHA_API_KEY;
+const WAHA_CHAT_ID = process.env.WAHA_CHAT_ID;
+const WAHA_SESSION = process.env.WAHA_SESSION || "default";
 
 function formatMoney(value) {
   return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
@@ -71,7 +74,6 @@ function buildMonthlySummaryMessage(cashflows) {
     1,
   );
 
-  const currentMonthKey = getMonthKey(currentMonthStart);
   const lastMonthKey = getMonthKey(lastMonthStart);
   const currentMonthLabel = getMonthLabel(currentMonthStart);
   const lastMonthLabel = getMonthLabel(lastMonthStart);
@@ -117,6 +119,19 @@ function buildMonthlySummaryMessage(cashflows) {
   ].join("\n");
 }
 
+function getDryRun(req, body) {
+  const { searchParams } = new URL(req.url);
+
+  return body?.dryRun === true || searchParams.get("dryRun") === "1";
+}
+
+function validateWahaEnv({ dryRun }) {
+  if (!WAHA_CHAT_ID) return "WAHA_CHAT_ID belum diset di environment";
+  if (!dryRun && !WAHA_API_KEY) return "WAHA_API_KEY belum diset di environment";
+
+  return null;
+}
+
 export async function POST(req) {
   try {
     if (!(await isAdmin(req))) {
@@ -135,26 +150,13 @@ export async function POST(req) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const chatId = String(body.chatId || "").trim();
-    const session = String(body.session || "default").trim() || "default";
-    const dryRun = body.dryRun === true;
-    const wahaApiKey = process.env.WAHA_API_KEY;
+    const dryRun = getDryRun(req, body);
+    const envError = validateWahaEnv({ dryRun });
 
-    if (!chatId) {
+    if (envError) {
       return Response.json(
         {
-          error: "chatId wajib diisi",
-        },
-        {
-          status: 400,
-        },
-      );
-    }
-
-    if (!dryRun && !wahaApiKey) {
-      return Response.json(
-        {
-          error: "WAHA_API_KEY belum diset di environment",
+          error: envError,
         },
         {
           status: 500,
@@ -177,8 +179,8 @@ export async function POST(req) {
       return Response.json({
         ok: true,
         dryRun: true,
-        chatId,
-        session,
+        chatId: WAHA_CHAT_ID,
+        session: WAHA_SESSION,
         text,
       });
     }
@@ -187,12 +189,12 @@ export async function POST(req) {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Api-Key": wahaApiKey,
+        "X-Api-Key": WAHA_API_KEY,
       },
       body: JSON.stringify({
-        chatId,
+        chatId: WAHA_CHAT_ID,
         text,
-        session,
+        session: WAHA_SESSION,
       }),
     });
 
@@ -220,8 +222,8 @@ export async function POST(req) {
 
     return Response.json({
       ok: true,
-      chatId,
-      session,
+      chatId: WAHA_CHAT_ID,
+      session: WAHA_SESSION,
       text,
       waha: responseBody,
     });
