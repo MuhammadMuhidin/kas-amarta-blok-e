@@ -10,19 +10,6 @@ const WAHA_SESSION = process.env.WAHA_SESSION;
 
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 
-function date(value) {
-  const parsed = new Date(value);
-
-  if (!value || Number.isNaN(parsed.getTime())) return value || "-";
-
-  return parsed.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    timeZone: "Asia/Jakarta",
-  });
-}
-
 async function getSummary() {
   const response = await getSheetsSummary();
 
@@ -33,15 +20,31 @@ async function getSummary() {
   return response.json();
 }
 
+function countPaidHouses(data) {
+  const payments = Array.isArray(data?.payments) ? data.payments : [];
+  const periods = Array.isArray(data?.periods) ? data.periods : [];
+  const currentPeriod = [...periods].sort((a, b) => a.localeCompare(b)).pop();
+
+  if (!currentPeriod) return 0;
+
+  return new Set(
+    payments
+      .filter((payment) => String(payment.period || "").slice(0, 7) === currentPeriod)
+      .map((payment) => String(payment.person_house || payment.house || payment.person_id || ""))
+      .filter(Boolean),
+  ).size;
+}
+
 function buildText(data) {
   const lastMonth = data?.insight?.lastMonth || {};
   const currentMonth = data?.insight?.currentMonth || {};
   const summary = data?.insight?.summary || {};
   const expenses = Array.isArray(lastMonth.expenses) ? lastMonth.expenses : [];
+  const paidHouseCount = countPaidHouses(data);
   const expenseLines = expenses.length
     ? [...expenses]
         .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
-        .map((item, index) => `${index + 1}. ${date(item.date)} | ${money(item.amount)} | ${item.note || "-"}`)
+        .map((item, index) => `${index + 1}. ${item.note || "-"} | ${money(item.amount)}`)
     : [`Tidak ada pengeluaran pada bulan ${lastMonth.month || "lalu"}.`];
 
   return [
@@ -52,11 +55,14 @@ function buildText(data) {
     "",
     `Total pengeluaran ${lastMonth.month || "bulan lalu"}: ${money(lastMonth.expenseTotal)}`,
     `Sisa saldo kumulatif per ${lastMonth.month || "bulan lalu"}: ${money(lastMonth.remaining)}`,
-    `Kas bulan ${currentMonth.month || "berjalan"} + sisa bulan lalu: ${money(summary.currentIncomePlusLastRemaining)}`,
+    "",
+    `Kas bulan ${currentMonth.month || "berjalan"} dari ${paidHouseCount} rumah + sisa bulan lalu: ${money(summary.currentIncomePlusLastRemaining)}`,
     `Pengeluaran bulan ini: ${money(currentMonth.expenseTotal)}`,
     "",
     "*Total saldo saat ini:*",
     money(summary.currentBalance),
+    "",
+    "```ini adalah pesan otomatis, tidak perlu dibalas.```",
   ].join("\n");
 }
 
