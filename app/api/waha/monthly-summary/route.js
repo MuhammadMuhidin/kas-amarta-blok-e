@@ -61,7 +61,7 @@ function buildText(data) {
     `Pengeluaran bulan ini: ${money(currentMonth.expenseTotal)}`,
     `Saldo kas saat ini: ${money(summary.currentBalance)}`,
     "",
-    "Dan untuk ingin mengecek keluar masuknya dana kas bpk-bpk bisa lihat di link ini ya.",
+    "Dan yang ingin mengecek keluar masuknya dana kas bpk-bpk bisa lihat di link ini.",
     "",
     "https://amarta-residence.vercel.app",
     "",
