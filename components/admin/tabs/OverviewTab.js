@@ -1,5 +1,7 @@
 "use client";
 
+import AdminActionButton from "@/components/admin/AdminActionButton";
+import AdminConfirmModal from "@/components/admin/AdminConfirmModal";
 import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { useState } from "react";
@@ -45,11 +47,7 @@ function Section({ title, children }) {
 }
 
 function QuickAction({ children, onClick }) {
-  return (
-    <button type="button" className="admin-small-btn" onClick={onClick}>
-      {children}
-    </button>
-  );
+  return <AdminActionButton onClick={onClick}>{children}</AdminActionButton>;
 }
 
 function AlertItem({ tone = "info", title, detail, action, onClick }) {
@@ -61,11 +59,7 @@ function AlertItem({ tone = "info", title, detail, action, onClick }) {
         <div style={{ ...styles.alertTitle, color }}>{title}</div>
         <div style={styles.alertDetail}>{detail}</div>
       </div>
-      {action && (
-        <button type="button" className="admin-small-btn" onClick={onClick}>
-          {action}
-        </button>
-      )}
+      {action && <AdminActionButton onClick={onClick}>{action}</AdminActionButton>}
     </div>
   );
 }
@@ -83,7 +77,27 @@ export default function OverviewTab({
   onNavigate,
 }) {
   const [sendingReport, setSendingReport] = useState(false);
+  const [loadingReportPreview, setLoadingReportPreview] = useState(false);
+  const [reportPreview, setReportPreview] = useState("");
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [reportStatus, setReportStatus] = useState(null);
+
+  async function openResidentReportConfirm() {
+    if (loadingReportPreview || sendingReport) return;
+
+    setLoadingReportPreview(true);
+    setReportStatus(null);
+
+    try {
+      const data = await sendJson("/api/waha/monthly-summary", "POST", { preview: true });
+      setReportPreview(data.text || "");
+      setShowReportConfirm(true);
+    } catch (err) {
+      setReportStatus({ type: "error", text: err.message || "Gagal memuat preview rekap." });
+    } finally {
+      setLoadingReportPreview(false);
+    }
+  }
 
   async function sendResidentReport() {
     if (sendingReport) return;
@@ -93,12 +107,20 @@ export default function OverviewTab({
 
     try {
       await sendJson("/api/waha/monthly-summary", "POST", {});
+      setShowReportConfirm(false);
+      setReportPreview("");
       setReportStatus({ type: "success", text: "Rekap berhasil dikirim ke grup WhatsApp." });
     } catch (err) {
       setReportStatus({ type: "error", text: err.message || "Gagal mengirim rekap ke grup." });
     } finally {
       setSendingReport(false);
     }
+  }
+
+  function closeReportConfirm() {
+    if (sendingReport) return;
+
+    setShowReportConfirm(false);
   }
 
   const activeMembers = personal.filter((person) => person.active === "Y");
@@ -148,7 +170,7 @@ export default function OverviewTab({
     unpaidCurrentCount > 0 && {
       tone: "warning",
       title: `${unpaidCurrentCount} rumah belum bayar bulan ini`,
-      detail: `Periode ${formatPeriod(currentPeriod)} masih perlu ditagih atau dicek.` ,
+      detail: `Periode ${formatPeriod(currentPeriod)} masih perlu ditagih atau dicek.`,
       action: "Buka Payment",
       tab: "payment",
     },
@@ -176,109 +198,129 @@ export default function OverviewTab({
   ].filter(Boolean);
 
   return (
-    <div className="admin-card" style={{ display: "grid", gap: 22 }}>
-      <div style={styles.header}>
-        <div>
-          <h2 style={{ margin: "0 0 4px" }}>Overview</h2>
-          <div style={styles.muted}>Ringkasan operasional kas, pembayaran, booking, dan kesehatan sistem.</div>
+    <>
+      <div className="admin-card" style={{ display: "grid", gap: 22 }}>
+        <div style={styles.header}>
+          <div>
+            <h2 style={{ margin: "0 0 4px" }}>Overview</h2>
+            <div style={styles.muted}>Ringkasan operasional kas, pembayaran, booking, dan kesehatan sistem.</div>
+          </div>
+          <div style={styles.periodBadge}>{formatPeriod(currentPeriod)}</div>
         </div>
-        <div style={styles.periodBadge}>{formatPeriod(currentPeriod)}</div>
+
+        <Section title="Quick Summary">
+          <div className="admin-monitor-grid">
+            <MonitoringCard label="Saldo Kas" value={money(currentBalance)} meta={["Income dikurangi expense semua periode."]} error={currentBalance < 0} />
+            <MonitoringCard label="Pemasukan Bulan Ini" value={money(currentIncome)} meta={[`Periode ${formatPeriod(currentPeriod)}`]} />
+            <MonitoringCard label="Pengeluaran Bulan Ini" value={money(currentExpense)} meta={[`Periode ${formatPeriod(currentPeriod)}`]} />
+            <MonitoringCard label="Pembayaran Bulan Ini" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} error={unpaidCurrentCount > 0} />
+            <MonitoringCard label="Ready Booking" value={`${readyBookings.length} rumah`} meta={[`${waitingBookings.length} booking menunggu periode bayar.`]} error={readyBookings.length > 0} />
+            <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
+          </div>
+        </Section>
+
+        <Section title="Laporan Warga">
+          <div style={styles.reportCard}>
+            <div>
+              <div style={styles.reportTitle}>Kirim rekap kas ke grup WhatsApp</div>
+              <div style={styles.reportDetail}>Review isi pesan terlebih dulu sebelum dikirim ke grup warga.</div>
+              {reportStatus && (
+                <div style={{ ...styles.reportStatus, color: reportStatus.type === "success" ? "#16a34a" : "#dc2626" }}>
+                  {reportStatus.text}
+                </div>
+              )}
+            </div>
+            <AdminActionButton
+              onClick={openResidentReportConfirm}
+              loading={loadingReportPreview}
+              loadingText="Memuat preview..."
+              disabled={sendingReport}
+            >
+              Kirim Rekap ke Grup WhatsApp
+            </AdminActionButton>
+          </div>
+        </Section>
+
+        <Section title="Quick Actions">
+          <div style={styles.quickActions}>
+            <QuickAction onClick={() => onNavigate("payment")}>Record Payment</QuickAction>
+            <QuickAction onClick={() => onNavigate("deposit")}>Booking Payment</QuickAction>
+            <QuickAction onClick={() => onNavigate("cashflow")}>Record Cashflow</QuickAction>
+            <QuickAction onClick={() => onNavigate("monitoring")}>Open Monitoring</QuickAction>
+            <QuickAction onClick={() => onNavigate("summary")}>Backup Summary</QuickAction>
+          </div>
+        </Section>
+
+        <Section title="Attention Needed">
+          {alerts.length === 0 ? (
+            <div className="admin-empty-state">Tidak ada perhatian khusus. Sistem terlihat stabil.</div>
+          ) : (
+            <div style={styles.alertList}>
+              {alerts.map((alert) => (
+                <AlertItem
+                  key={alert.title}
+                  tone={alert.tone}
+                  title={alert.title}
+                  detail={alert.detail}
+                  action={alert.action}
+                  onClick={() => onNavigate(alert.tab)}
+                />
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section title="Operational Snapshot">
+          <div className="admin-monitor-grid">
+            <MonitoringCard label="App Config" value={configOk ? "Ready" : "Not ready"} meta={configOk ? [`Kas: ${money(appConfig.monthly_fee)}`, `Sampah: ${money(appConfig.trash_fee)}`] : ["Konfigurasi belum tersedia."]} error={!configOk} />
+            <MonitoringCard label="Daily Backup" value={backupOk ? "Healthy" : "Need check"} meta={backupOk ? [`File: ${dailyBackup.name}`, `Retention: ${dailyBackup.count} backup files`] : ["Backup harian belum valid."]} error={!backupOk} />
+            <MonitoringCard label="Member Aktif" value={`${activeMembers.length} rumah`} meta={[`${activeCurrentMembers.length} rumah aktif di periode ini.`]} />
+          </div>
+        </Section>
+
+        <Section title="Recent Cashflow">
+          {recentCashflows.length === 0 ? (
+            <div className="admin-empty-state">Belum ada transaksi cashflow.</div>
+          ) : (
+            <div className="admin-table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th className="admin-th">Tanggal</th>
+                    <th className="admin-th">Type</th>
+                    <th className="admin-th">Amount</th>
+                    <th className="admin-th">Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentCashflows.map((item, index) => (
+                    <tr key={item.id || index} className={index % 2 ? "admin-row-alt" : ""}>
+                      <td className="admin-td">{formatDate(item.date)}</td>
+                      <td className="admin-td">{item.type}</td>
+                      <td className="admin-td">{money(item.amount)}</td>
+                      <td className="admin-td">{item.note || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
       </div>
 
-      <Section title="Quick Summary">
-        <div className="admin-monitor-grid">
-          <MonitoringCard label="Saldo Kas" value={money(currentBalance)} meta={["Income dikurangi expense semua periode."]} error={currentBalance < 0} />
-          <MonitoringCard label="Pemasukan Bulan Ini" value={money(currentIncome)} meta={[`Periode ${formatPeriod(currentPeriod)}`]} />
-          <MonitoringCard label="Pengeluaran Bulan Ini" value={money(currentExpense)} meta={[`Periode ${formatPeriod(currentPeriod)}`]} />
-          <MonitoringCard label="Pembayaran Bulan Ini" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} error={unpaidCurrentCount > 0} />
-          <MonitoringCard label="Ready Booking" value={`${readyBookings.length} rumah`} meta={[`${waitingBookings.length} booking menunggu periode bayar.`]} error={readyBookings.length > 0} />
-          <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
-        </div>
-      </Section>
-
-      <Section title="Laporan Warga">
-        <div style={styles.reportCard}>
-          <div>
-            <div style={styles.reportTitle}>Kirim rekap kas ke grup WhatsApp</div>
-            <div style={styles.reportDetail}>Mengirim ringkasan pengeluaran bulan lalu dan saldo kas saat ini ke grup warga.</div>
-            {reportStatus && (
-              <div style={{ ...styles.reportStatus, color: reportStatus.type === "success" ? "#16a34a" : "#dc2626" }}>
-                {reportStatus.text}
-              </div>
-            )}
-          </div>
-          <button type="button" className="admin-small-btn" onClick={sendResidentReport} disabled={sendingReport}>
-            {sendingReport ? "Mengirim..." : "Kirim Rekap ke Grup WhatsApp"}
-          </button>
-        </div>
-      </Section>
-
-      <Section title="Quick Actions">
-        <div style={styles.quickActions}>
-          <QuickAction onClick={() => onNavigate("payment")}>Record Payment</QuickAction>
-          <QuickAction onClick={() => onNavigate("deposit")}>Booking Payment</QuickAction>
-          <QuickAction onClick={() => onNavigate("cashflow")}>Record Cashflow</QuickAction>
-          <QuickAction onClick={() => onNavigate("monitoring")}>Open Monitoring</QuickAction>
-          <QuickAction onClick={() => onNavigate("summary")}>Backup Summary</QuickAction>
-        </div>
-      </Section>
-
-      <Section title="Attention Needed">
-        {alerts.length === 0 ? (
-          <div className="admin-empty-state">Tidak ada perhatian khusus. Sistem terlihat stabil.</div>
-        ) : (
-          <div style={styles.alertList}>
-            {alerts.map((alert) => (
-              <AlertItem
-                key={alert.title}
-                tone={alert.tone}
-                title={alert.title}
-                detail={alert.detail}
-                action={alert.action}
-                onClick={() => onNavigate(alert.tab)}
-              />
-            ))}
-          </div>
-        )}
-      </Section>
-
-      <Section title="Operational Snapshot">
-        <div className="admin-monitor-grid">
-          <MonitoringCard label="App Config" value={configOk ? "Ready" : "Not ready"} meta={configOk ? [`Kas: ${money(appConfig.monthly_fee)}`, `Sampah: ${money(appConfig.trash_fee)}`] : ["Konfigurasi belum tersedia."]} error={!configOk} />
-          <MonitoringCard label="Daily Backup" value={backupOk ? "Healthy" : "Need check"} meta={backupOk ? [`File: ${dailyBackup.name}`, `Retention: ${dailyBackup.count} backup files`] : ["Backup harian belum valid."]} error={!backupOk} />
-          <MonitoringCard label="Member Aktif" value={`${activeMembers.length} rumah`} meta={[`${activeCurrentMembers.length} rumah aktif di periode ini.`]} />
-        </div>
-      </Section>
-
-      <Section title="Recent Cashflow">
-        {recentCashflows.length === 0 ? (
-          <div className="admin-empty-state">Belum ada transaksi cashflow.</div>
-        ) : (
-          <div className="admin-table-wrapper">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th className="admin-th">Tanggal</th>
-                  <th className="admin-th">Type</th>
-                  <th className="admin-th">Amount</th>
-                  <th className="admin-th">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentCashflows.map((item, index) => (
-                  <tr key={item.id || index} className={index % 2 ? "admin-row-alt" : ""}>
-                    <td className="admin-td">{formatDate(item.date)}</td>
-                    <td className="admin-td">{item.type}</td>
-                    <td className="admin-td">{money(item.amount)}</td>
-                    <td className="admin-td">{item.note || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-    </div>
+      <AdminConfirmModal
+        open={showReportConfirm}
+        title="Konfirmasi kirim rekap warga"
+        description="Pastikan isi pesan sudah benar sebelum dikirim ke grup WhatsApp."
+        confirmText="Kirim ke Grup"
+        cancelText="Cek Lagi"
+        loading={sendingReport}
+        onCancel={closeReportConfirm}
+        onConfirm={sendResidentReport}
+      >
+        <pre style={styles.previewBox}>{reportPreview}</pre>
+      </AdminConfirmModal>
+    </>
   );
 }
 
@@ -336,6 +378,20 @@ const styles = {
     marginTop: 8,
     fontSize: 12,
     fontWeight: 800,
+  },
+  previewBox: {
+    margin: 0,
+    padding: 14,
+    borderRadius: 14,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+    color: "var(--admin-text)",
+    fontFamily: "inherit",
+    fontSize: 13,
+    fontWeight: 600,
+    lineHeight: 1.55,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   },
   alertList: {
     display: "grid",
