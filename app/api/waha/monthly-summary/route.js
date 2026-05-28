@@ -1,4 +1,5 @@
 import { GET as getSheetsSummary } from "@/app/api/sheets/summary/route";
+import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,25 +45,27 @@ function buildText(data) {
   const expenseLines = expenses.length
     ? [...expenses]
         .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
-        .map((item, index) => `${index + 1}. ${item.note || "-"} | ${money(item.amount)}`)
+        .map((item, index) => `${index + 1}. ${item.note || "-"} ${money(item.amount)}`)
     : [`Tidak ada pengeluaran pada bulan ${lastMonth.month || "lalu"}.`];
 
   return [
-    "*Laporan Kas Blok E*",
-    "Amarta Residence 2",
+    "Assalamu'alaikum malam semua, ijin rekap uang kas Amarta Residence 2 blok E.",
     "",
-    `*Pengeluaran bulan ${lastMonth.month || "lalu"}:*`,
+    "Rincian pengeluaran bulan lalu:",
     ...expenseLines,
-    "",
     `Jumlah pengeluaran: ${money(lastMonth.expenseTotal)}`,
-    `Sisa saldo sampai ${lastMonth.month || "bulan lalu"}: ${money(lastMonth.remaining)}`,
+    `Sisa saldo bulan lalu: ${money(lastMonth.remaining)}`,
     "",
-    `Kas masuk bulan ${currentMonth.month || "ini"}: dari ${paidHouseCount} rumah`,
-    `Kas masuk + sisa saldo: ${money(summary.currentIncomePlusLastRemaining)}`,
+    `Kas masuk bulan ${currentMonth.month || "ini"} dari ${paidHouseCount} rumah + sisa saldo: ${money(summary.currentIncomePlusLastRemaining)}`,
+    "",
     `Pengeluaran bulan ini: ${money(currentMonth.expenseTotal)}`,
+    `Saldo kas saat ini: ${money(summary.currentBalance)}`,
     "",
-    "*Saldo kas saat ini:*",
-    money(summary.currentBalance),
+    "Dan untuk ingin mengecek keluar masuknya dana kas bpk-bpk bisa lihat di link ini ya.",
+    "",
+    "https://amarta-residence.vercel.app",
+    "",
+    "Terima kasih 🙏",
     "",
     "```ini adalah pesan otomatis.```",
   ].join("\n");
@@ -96,8 +99,16 @@ async function sendText(text) {
   };
 }
 
-export async function GET() {
+export async function POST(req) {
   try {
+    if (!(await isAdmin(req))) {
+      return unauthorized();
+    }
+
+    if (!validateCSRF(req)) {
+      return Response.json({ error: "CSRF tidak valid" }, { status: 403 });
+    }
+
     const summary = await getSummary();
     const text = buildText(summary);
     const waha = await sendText(text);
