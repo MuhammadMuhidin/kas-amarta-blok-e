@@ -109,8 +109,14 @@ export async function POST(req) {
       return Response.json({ error: "CSRF tidak valid" }, { status: 403 });
     }
 
+    const body = await req.json().catch(() => ({}));
     const summary = await getSummary();
     const text = buildText(summary);
+
+    if (body.preview === true) {
+      return Response.json({ ok: true, preview: true, source: "/api/sheets/summary", chatId: WAHA_CHAT_ID, session: WAHA_SESSION, text });
+    }
+
     const waha = await sendText(text);
 
     if (!waha.ok) {
