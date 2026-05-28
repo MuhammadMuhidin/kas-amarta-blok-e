@@ -1,12 +1,14 @@
 "use client";
 
+import AdminActionButton from "@/components/admin/AdminActionButton";
+import AdminConfirmModal from "@/components/admin/AdminConfirmModal";
 import MonitoringCard from "@/components/admin/MonitoringCard";
+import { sendJson } from "@/components/admin/adminClientApi";
+import Toast from "@/components/Toast";
+import { useState } from "react";
 
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
-
-function normalize(value) {
-  return String(value || "").trim();
-}
+const normalize = (value) => String(value || "").trim();
 
 function formatDate(value) {
   if (!value) return "-";
@@ -43,11 +45,7 @@ function Section({ title, children }) {
 }
 
 function QuickAction({ children, onClick }) {
-  return (
-    <button type="button" className="admin-small-btn" onClick={onClick}>
-      {children}
-    </button>
-  );
+  return <AdminActionButton onClick={onClick}>{children}</AdminActionButton>;
 }
 
 function AlertItem({ tone = "info", title, detail, action, onClick }) {
@@ -59,11 +57,7 @@ function AlertItem({ tone = "info", title, detail, action, onClick }) {
         <div style={{ ...styles.alertTitle, color }}>{title}</div>
         <div style={styles.alertDetail}>{detail}</div>
       </div>
-      {action && (
-        <button type="button" className="admin-small-btn" onClick={onClick}>
-          {action}
-        </button>
-      )}
+      {action && <AdminActionButton onClick={onClick}>{action}</AdminActionButton>}
     </div>
   );
 }
@@ -80,54 +74,83 @@ export default function OverviewTab({
   getDepositStatus,
   onNavigate,
 }) {
-  const activeMembers = personal.filter((person) => person.active === "Y");
-  const activeCurrentMembers = activeMembers.filter((person) => {
-    if (!person.join_date) return true;
-    return String(person.join_date).slice(0, 7) <= currentPeriod;
-  });
+  const [sendingReport, setSendingReport] = useState(false);
+  const [loadingReportPreview, setLoadingReportPreview] = useState(false);
+  const [reportPreview, setReportPreview] = useState("");
+  const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [toast, setToast] = useState({ show: false, type: "info", message: "" });
 
+  function showToast(type, message) {
+    setToast({ show: true, type, message });
+    setTimeout(() => setToast((current) => (current.message === message ? { ...current, show: false } : current)), 2800);
+  }
+
+  async function openResidentReportConfirm() {
+    if (loadingReportPreview || sendingReport) return;
+
+    setLoadingReportPreview(true);
+
+    try {
+      const data = await sendJson("/api/waha/monthly-summary", "POST", { preview: true });
+      setReportPreview(data.text || "");
+      setShowReportConfirm(true);
+    } catch (err) {
+      showToast("error", err.message || "Gagal memuat preview rekap.");
+    } finally {
+      setLoadingReportPreview(false);
+    }
+  }
+
+  async function sendResidentReport() {
+    if (sendingReport) return;
+
+    setSendingReport(true);
+
+    try {
+      await sendJson("/api/waha/monthly-summary", "POST", {});
+      setShowReportConfirm(false);
+      setReportPreview("");
+      showToast("success", "Rekap berhasil dikirim ke grup WhatsApp.");
+    } catch (err) {
+      showToast("error", err.message || "Gagal mengirim rekap ke grup.");
+    } finally {
+      setSendingReport(false);
+    }
+  }
+
+  function closeReportConfirm() {
+    if (!sendingReport) setShowReportConfirm(false);
+  }
+
+  const activeMembers = personal.filter((person) => person.active === "Y");
+  const activeCurrentMembers = activeMembers.filter((person) => !person.join_date || String(person.join_date).slice(0, 7) <= currentPeriod);
   const paidCurrentKeys = new Set(
     payments
       .filter((payment) => String(payment.period || "").slice(0, 7) === currentPeriod)
       .map((payment) => normalize(payment.person_house || payment.house || payment.person_id)),
   );
-
-  const paidCurrentCount = activeCurrentMembers.filter((person) =>
-    paidCurrentKeys.has(normalize(person.house)),
-  ).length;
+  const paidCurrentCount = activeCurrentMembers.filter((person) => paidCurrentKeys.has(normalize(person.house))).length;
   const unpaidCurrentCount = Math.max(activeCurrentMembers.length - paidCurrentCount, 0);
 
-  const currentMonthCashflows = cashflows.filter(
-    (item) => String(item.date || "").slice(0, 7) === currentPeriod,
-  );
-  const currentIncome = currentMonthCashflows
-    .filter((item) => item.type === "income")
-    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const currentExpense = currentMonthCashflows
-    .filter((item) => item.type === "expense")
-    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const allIncome = cashflows
-    .filter((item) => item.type === "income")
-    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const allExpense = cashflows
-    .filter((item) => item.type === "expense")
-    .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const currentMonthCashflows = cashflows.filter((item) => String(item.date || "").slice(0, 7) === currentPeriod);
+  const currentIncome = currentMonthCashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const currentExpense = currentMonthCashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const allIncome = cashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const allExpense = cashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const currentBalance = allIncome - allExpense;
 
   const readyBookings = sortedDeposits.filter((deposit) => getDepositStatus(deposit) === "pending");
   const waitingBookings = sortedDeposits.filter((deposit) => getDepositStatus(deposit) === "waiting");
   const backupOk = Boolean(dailyBackup?.ok);
   const configOk = Boolean(appConfig);
-
-  const recentCashflows = [...cashflows]
-    .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
-    .slice(0, 5);
+  const recentCashflows = [...cashflows].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).slice(0, 5);
+  const periodLabel = formatPeriod(currentPeriod);
 
   const alerts = [
     unpaidCurrentCount > 0 && {
       tone: "warning",
       title: `${unpaidCurrentCount} rumah belum bayar bulan ini`,
-      detail: `Periode ${formatPeriod(currentPeriod)} masih perlu ditagih atau dicek.` ,
+      detail: `Periode ${periodLabel} masih perlu ditagih atau dicek.`,
       action: "Buka Payment",
       tab: "payment",
     },
@@ -155,92 +178,114 @@ export default function OverviewTab({
   ].filter(Boolean);
 
   return (
-    <div className="admin-card" style={{ display: "grid", gap: 22 }}>
-      <div style={styles.header}>
-        <div>
-          <h2 style={{ margin: "0 0 4px" }}>Overview</h2>
-          <div style={styles.muted}>Ringkasan operasional kas, pembayaran, booking, dan kesehatan sistem.</div>
+    <>
+      <Toast show={toast.show} type={toast.type} message={toast.message} />
+
+      <div className="admin-card" style={{ display: "grid", gap: 22 }}>
+        <div style={styles.header}>
+          <div>
+            <h2 style={{ margin: "0 0 4px" }}>Overview</h2>
+            <div style={styles.muted}>Ringkasan operasional kas, pembayaran, booking, dan kesehatan sistem.</div>
+          </div>
+          <div style={styles.periodBadge}>{periodLabel}</div>
         </div>
-        <div style={styles.periodBadge}>{formatPeriod(currentPeriod)}</div>
+
+        <Section title="Quick Summary">
+          <div className="admin-monitor-grid">
+            <MonitoringCard label="Saldo Kas" value={money(currentBalance)} meta={["Income dikurangi expense semua periode."]} error={currentBalance < 0} />
+            <MonitoringCard label="Pemasukan Bulan Ini" value={money(currentIncome)} meta={[`Periode ${periodLabel}`]} />
+            <MonitoringCard label="Pengeluaran Bulan Ini" value={money(currentExpense)} meta={[`Periode ${periodLabel}`]} />
+            <MonitoringCard label="Pembayaran Bulan Ini" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} error={unpaidCurrentCount > 0} />
+            <MonitoringCard label="Ready Booking" value={`${readyBookings.length} rumah`} meta={[`${waitingBookings.length} booking menunggu periode bayar.`]} error={readyBookings.length > 0} />
+            <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
+          </div>
+        </Section>
+
+        <Section title="Laporan Warga">
+          <div style={styles.reportCard}>
+            <div>
+              <div style={styles.reportTitle}>Kirim rekap kas ke grup WhatsApp</div>
+              <div style={styles.reportDetail}>Review isi pesan terlebih dulu sebelum dikirim ke grup warga.</div>
+            </div>
+            <AdminActionButton onClick={openResidentReportConfirm} loading={loadingReportPreview} loadingText="Memuat preview..." disabled={sendingReport}>
+              Kirim Rekap ke Grup WhatsApp
+            </AdminActionButton>
+          </div>
+        </Section>
+
+        <Section title="Quick Actions">
+          <div style={styles.quickActions}>
+            <QuickAction onClick={() => onNavigate("payment")}>Record Payment</QuickAction>
+            <QuickAction onClick={() => onNavigate("deposit")}>Booking Payment</QuickAction>
+            <QuickAction onClick={() => onNavigate("cashflow")}>Record Cashflow</QuickAction>
+            <QuickAction onClick={() => onNavigate("monitoring")}>Open Monitoring</QuickAction>
+            <QuickAction onClick={() => onNavigate("summary")}>Backup Summary</QuickAction>
+          </div>
+        </Section>
+
+        <Section title="Attention Needed">
+          {alerts.length === 0 ? (
+            <div className="admin-empty-state">Tidak ada perhatian khusus. Sistem terlihat stabil.</div>
+          ) : (
+            <div style={styles.alertList}>
+              {alerts.map((alert) => (
+                <AlertItem key={alert.title} tone={alert.tone} title={alert.title} detail={alert.detail} action={alert.action} onClick={() => onNavigate(alert.tab)} />
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section title="Operational Snapshot">
+          <div className="admin-monitor-grid">
+            <MonitoringCard label="App Config" value={configOk ? "Ready" : "Not ready"} meta={configOk ? [`Kas: ${money(appConfig.monthly_fee)}`, `Sampah: ${money(appConfig.trash_fee)}`] : ["Konfigurasi belum tersedia."]} error={!configOk} />
+            <MonitoringCard label="Daily Backup" value={backupOk ? "Healthy" : "Need check"} meta={backupOk ? [`File: ${dailyBackup.name}`, `Retention: ${dailyBackup.count} backup files`] : ["Backup harian belum valid."]} error={!backupOk} />
+            <MonitoringCard label="Member Aktif" value={`${activeMembers.length} rumah`} meta={[`${activeCurrentMembers.length} rumah aktif di periode ini.`]} />
+          </div>
+        </Section>
+
+        <Section title="Recent Cashflow">
+          {recentCashflows.length === 0 ? (
+            <div className="admin-empty-state">Belum ada transaksi cashflow.</div>
+          ) : (
+            <div className="admin-table-wrapper">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th className="admin-th">Tanggal</th>
+                    <th className="admin-th">Type</th>
+                    <th className="admin-th">Amount</th>
+                    <th className="admin-th">Note</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentCashflows.map((item, index) => (
+                    <tr key={item.id || index} className={index % 2 ? "admin-row-alt" : ""}>
+                      <td className="admin-td">{formatDate(item.date)}</td>
+                      <td className="admin-td">{item.type}</td>
+                      <td className="admin-td">{money(item.amount)}</td>
+                      <td className="admin-td">{item.note || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
       </div>
 
-      <Section title="Quick Summary">
-        <div className="admin-monitor-grid">
-          <MonitoringCard label="Saldo Kas" value={money(currentBalance)} meta={["Income dikurangi expense semua periode."]} error={currentBalance < 0} />
-          <MonitoringCard label="Pemasukan Bulan Ini" value={money(currentIncome)} meta={[`Periode ${formatPeriod(currentPeriod)}`]} />
-          <MonitoringCard label="Pengeluaran Bulan Ini" value={money(currentExpense)} meta={[`Periode ${formatPeriod(currentPeriod)}`]} />
-          <MonitoringCard label="Pembayaran Bulan Ini" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} error={unpaidCurrentCount > 0} />
-          <MonitoringCard label="Ready Booking" value={`${readyBookings.length} rumah`} meta={[`${waitingBookings.length} booking menunggu periode bayar.`]} error={readyBookings.length > 0} />
-          <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
-        </div>
-      </Section>
-
-      <Section title="Quick Actions">
-        <div style={styles.quickActions}>
-          <QuickAction onClick={() => onNavigate("payment")}>Record Payment</QuickAction>
-          <QuickAction onClick={() => onNavigate("deposit")}>Booking Payment</QuickAction>
-          <QuickAction onClick={() => onNavigate("cashflow")}>Record Cashflow</QuickAction>
-          <QuickAction onClick={() => onNavigate("monitoring")}>Open Monitoring</QuickAction>
-          <QuickAction onClick={() => onNavigate("summary")}>Backup Summary</QuickAction>
-        </div>
-      </Section>
-
-      <Section title="Attention Needed">
-        {alerts.length === 0 ? (
-          <div className="admin-empty-state">Tidak ada perhatian khusus. Sistem terlihat stabil.</div>
-        ) : (
-          <div style={styles.alertList}>
-            {alerts.map((alert) => (
-              <AlertItem
-                key={alert.title}
-                tone={alert.tone}
-                title={alert.title}
-                detail={alert.detail}
-                action={alert.action}
-                onClick={() => onNavigate(alert.tab)}
-              />
-            ))}
-          </div>
-        )}
-      </Section>
-
-      <Section title="Operational Snapshot">
-        <div className="admin-monitor-grid">
-          <MonitoringCard label="App Config" value={configOk ? "Ready" : "Not ready"} meta={configOk ? [`Kas: ${money(appConfig.monthly_fee)}`, `Sampah: ${money(appConfig.trash_fee)}`] : ["Konfigurasi belum tersedia."]} error={!configOk} />
-          <MonitoringCard label="Daily Backup" value={backupOk ? "Healthy" : "Need check"} meta={backupOk ? [`File: ${dailyBackup.name}`, `Retention: ${dailyBackup.count} backup files`] : ["Backup harian belum valid."]} error={!backupOk} />
-          <MonitoringCard label="Member Aktif" value={`${activeMembers.length} rumah`} meta={[`${activeCurrentMembers.length} rumah aktif di periode ini.`]} />
-        </div>
-      </Section>
-
-      <Section title="Recent Cashflow">
-        {recentCashflows.length === 0 ? (
-          <div className="admin-empty-state">Belum ada transaksi cashflow.</div>
-        ) : (
-          <div className="admin-table-wrapper">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th className="admin-th">Tanggal</th>
-                  <th className="admin-th">Type</th>
-                  <th className="admin-th">Amount</th>
-                  <th className="admin-th">Note</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentCashflows.map((item, index) => (
-                  <tr key={item.id || index} className={index % 2 ? "admin-row-alt" : ""}>
-                    <td className="admin-td">{formatDate(item.date)}</td>
-                    <td className="admin-td">{item.type}</td>
-                    <td className="admin-td">{money(item.amount)}</td>
-                    <td className="admin-td">{item.note || "-"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Section>
-    </div>
+      <AdminConfirmModal
+        open={showReportConfirm}
+        title="Konfirmasi kirim rekap warga"
+        description="Pastikan isi pesan sudah benar sebelum dikirim ke grup WhatsApp."
+        confirmText="Kirim ke Grup"
+        cancelText="Cek Lagi"
+        loading={sendingReport}
+        onCancel={closeReportConfirm}
+        onConfirm={sendResidentReport}
+      >
+        <pre style={styles.previewBox}>{reportPreview}</pre>
+      </AdminConfirmModal>
+    </>
   );
 }
 
@@ -271,6 +316,42 @@ const styles = {
     display: "flex",
     gap: 10,
     flexWrap: "wrap",
+  },
+  reportCard: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+    flexWrap: "wrap",
+  },
+  reportTitle: {
+    fontSize: 15,
+    fontWeight: 900,
+    marginBottom: 4,
+  },
+  reportDetail: {
+    color: "var(--admin-muted)",
+    fontSize: 12,
+    fontWeight: 600,
+    lineHeight: 1.5,
+  },
+  previewBox: {
+    margin: 0,
+    padding: 14,
+    borderRadius: 14,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+    color: "var(--admin-text)",
+    fontFamily: "inherit",
+    fontSize: 13,
+    fontWeight: 600,
+    lineHeight: 1.55,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
   },
   alertList: {
     display: "grid",
