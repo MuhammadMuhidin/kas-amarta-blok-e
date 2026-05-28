@@ -48,21 +48,23 @@ function buildText(data) {
     : [`Tidak ada pengeluaran pada bulan ${lastMonth.month || "lalu"}.`];
 
   return [
-    "*Laporan Kas Amarta Residence 2 Blok E*",
+    "*Laporan Kas Blok E*",
+    "Amarta Residence 2",
     "",
-    `*Detail pengeluaran bulan ${lastMonth.month || "lalu"}:*`,
+    `*Pengeluaran bulan ${lastMonth.month || "lalu"}:*`,
     ...expenseLines,
     "",
-    `Total pengeluaran ${lastMonth.month || "bulan lalu"}: ${money(lastMonth.expenseTotal)}`,
-    `Sisa saldo kumulatif per ${lastMonth.month || "bulan lalu"}: ${money(lastMonth.remaining)}`,
+    `Jumlah pengeluaran: ${money(lastMonth.expenseTotal)}`,
+    `Sisa saldo sampai ${lastMonth.month || "bulan lalu"}: ${money(lastMonth.remaining)}`,
     "",
-    `Kas bulan ${currentMonth.month || "berjalan"} dari ${paidHouseCount} rumah + sisa bulan lalu: ${money(summary.currentIncomePlusLastRemaining)}`,
+    `Kas masuk bulan ${currentMonth.month || "ini"}: dari ${paidHouseCount} rumah`,
+    `Kas masuk + sisa saldo: ${money(summary.currentIncomePlusLastRemaining)}`,
     `Pengeluaran bulan ini: ${money(currentMonth.expenseTotal)}`,
     "",
-    "*Total saldo saat ini:*",
+    "*Saldo kas saat ini:*",
     money(summary.currentBalance),
     "",
-    "```ini adalah pesan otomatis, tidak perlu dibalas.```",
+    "```ini adalah pesan otomatis.```",
   ].join("\n");
 }
 
