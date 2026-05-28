@@ -1,6 +1,8 @@
 "use client";
 
 import MonitoringCard from "@/components/admin/MonitoringCard";
+import { sendJson } from "@/components/admin/adminClientApi";
+import { useState } from "react";
 
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 
@@ -80,6 +82,25 @@ export default function OverviewTab({
   getDepositStatus,
   onNavigate,
 }) {
+  const [sendingReport, setSendingReport] = useState(false);
+  const [reportStatus, setReportStatus] = useState(null);
+
+  async function sendResidentReport() {
+    if (sendingReport) return;
+
+    setSendingReport(true);
+    setReportStatus(null);
+
+    try {
+      await sendJson("/api/waha/monthly-summary", "POST", {});
+      setReportStatus({ type: "success", text: "Rekap berhasil dikirim ke grup WhatsApp." });
+    } catch (err) {
+      setReportStatus({ type: "error", text: err.message || "Gagal mengirim rekap ke grup." });
+    } finally {
+      setSendingReport(false);
+    }
+  }
+
   const activeMembers = personal.filter((person) => person.active === "Y");
   const activeCurrentMembers = activeMembers.filter((person) => {
     if (!person.join_date) return true;
@@ -172,6 +193,23 @@ export default function OverviewTab({
           <MonitoringCard label="Pembayaran Bulan Ini" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} error={unpaidCurrentCount > 0} />
           <MonitoringCard label="Ready Booking" value={`${readyBookings.length} rumah`} meta={[`${waitingBookings.length} booking menunggu periode bayar.`]} error={readyBookings.length > 0} />
           <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
+        </div>
+      </Section>
+
+      <Section title="Laporan Warga">
+        <div style={styles.reportCard}>
+          <div>
+            <div style={styles.reportTitle}>Kirim rekap kas ke grup WhatsApp</div>
+            <div style={styles.reportDetail}>Mengirim ringkasan pengeluaran bulan lalu dan saldo kas saat ini ke grup warga.</div>
+            {reportStatus && (
+              <div style={{ ...styles.reportStatus, color: reportStatus.type === "success" ? "#16a34a" : "#dc2626" }}>
+                {reportStatus.text}
+              </div>
+            )}
+          </div>
+          <button type="button" className="admin-small-btn" onClick={sendResidentReport} disabled={sendingReport}>
+            {sendingReport ? "Mengirim..." : "Kirim Rekap ke Grup WhatsApp"}
+          </button>
         </div>
       </Section>
 
@@ -271,6 +309,33 @@ const styles = {
     display: "flex",
     gap: 10,
     flexWrap: "wrap",
+  },
+  reportCard: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 14,
+    padding: 16,
+    borderRadius: 16,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+    flexWrap: "wrap",
+  },
+  reportTitle: {
+    fontSize: 15,
+    fontWeight: 900,
+    marginBottom: 4,
+  },
+  reportDetail: {
+    color: "var(--admin-muted)",
+    fontSize: 12,
+    fontWeight: 600,
+    lineHeight: 1.5,
+  },
+  reportStatus: {
+    marginTop: 8,
+    fontSize: 12,
+    fontWeight: 800,
   },
   alertList: {
     display: "grid",
