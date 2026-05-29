@@ -16,11 +16,14 @@ function jsonNoStore(payload, init = {}) {
   return response;
 }
 
-export async function GET() {
+export async function GET(req) {
   try {
-    const posts = await listPublishedTimelinePosts({ limit: 20 });
+    const { searchParams } = new URL(req.url);
+    const limit = Number(searchParams.get("limit") || 8);
+    const offset = Number(searchParams.get("offset") || 0);
+    const result = await listPublishedTimelinePosts({ limit, offset });
 
-    return jsonNoStore({ ok: true, posts });
+    return jsonNoStore({ ok: true, ...result });
   } catch (err) {
     return jsonNoStore({ error: err.message || "Gagal membaca timeline kegiatan" }, { status: 500 });
   }
