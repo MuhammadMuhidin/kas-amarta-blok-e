@@ -148,6 +148,7 @@ const themes = [
 
 const publicThemeKeys = Object.keys(themes[0].vars);
 const reloadFlag = "public-theme-hard-reload";
+const publicThemePaths = new Set(["/", "/kas"]);
 
 function normalizeTheme(themeId) {
   return themeId === "ios" ? "ledger" : themeId;
@@ -189,10 +190,10 @@ export default function PublicThemePicker() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState("default");
 
-  const isPublicHome = pathname === "/";
+  const isPublicThemePath = publicThemePaths.has(pathname);
 
   useEffect(() => {
-    if (!isPublicHome) {
+    if (!isPublicThemePath) {
       clearPublicTheme();
       setOpen(false);
       forceReloadOnce(pathname);
@@ -211,7 +212,7 @@ export default function PublicThemePicker() {
     applyTheme(saved);
 
     return clearPublicTheme;
-  }, [isPublicHome, pathname]);
+  }, [isPublicThemePath, pathname]);
 
   function chooseTheme(nextTheme) {
     const normalizedTheme = normalizeTheme(nextTheme);
@@ -221,7 +222,7 @@ export default function PublicThemePicker() {
     applyTheme(normalizedTheme);
   }
 
-  if (!isPublicHome) return null;
+  if (!isPublicThemePath) return null;
 
   return (
     <>
