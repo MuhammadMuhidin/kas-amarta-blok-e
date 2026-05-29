@@ -47,6 +47,20 @@ function getCoverImage(post) {
   return firstImage?.image_url || "";
 }
 
+function getNextLikeCount(post, data) {
+  const apiLikeCount = Number(data?.like_count);
+
+  if (Number.isFinite(apiLikeCount)) {
+    return apiLikeCount;
+  }
+
+  if (data?.liked === true) {
+    return Number(post.like_count || 0) + 1;
+  }
+
+  return Number(post.like_count || 0);
+}
+
 export default function TimelineClient() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +110,7 @@ export default function TimelineClient() {
     if (likedIds.has(postId) || likingIds.has(postId)) return;
 
     const visitorId = getVisitorId();
+    setError("");
 
     setLikingIds((current) => {
       const next = new Set(current);
@@ -123,15 +138,13 @@ export default function TimelineClient() {
         return next;
       });
 
-      if (data.liked === true) {
-        setPosts((current) =>
-          current.map((post) =>
-            post.id === postId
-              ? { ...post, like_count: Number(data.like_count || post.like_count || 0) }
-              : post,
-          ),
-        );
-      }
+      setPosts((current) =>
+        current.map((post) =>
+          post.id === postId
+            ? { ...post, like_count: getNextLikeCount(post, data) }
+            : post,
+        ),
+      );
     } catch (err) {
       setError(err.message || "Gagal menyimpan like");
     } finally {
