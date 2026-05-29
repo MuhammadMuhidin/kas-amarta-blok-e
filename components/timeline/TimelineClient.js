@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 const VISITOR_ID_KEY = "amarta_timeline_visitor_id";
+const LIKED_POSTS_KEY = "amarta_timeline_liked_posts";
 
 function createVisitorId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -23,6 +24,23 @@ function getVisitorId() {
   const next = createVisitorId();
   window.localStorage.setItem(VISITOR_ID_KEY, next);
   return next;
+}
+
+function readLikedPostIds() {
+  if (typeof window === "undefined") return new Set();
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(LIKED_POSTS_KEY) || "[]");
+    return new Set(Array.isArray(parsed) ? parsed.filter(Boolean) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeLikedPostIds(nextLikedIds) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(LIKED_POSTS_KEY, JSON.stringify([...nextLikedIds]));
 }
 
 function formatDate(value) {
@@ -73,6 +91,10 @@ export default function TimelineClient() {
   const [animatedLikeIds, setAnimatedLikeIds] = useState(() => new Set());
 
   useEffect(() => {
+    setLikedIds(readLikedPostIds());
+  }, []);
+
+  useEffect(() => {
     let ignore = false;
 
     async function loadPosts() {
@@ -115,6 +137,15 @@ export default function TimelineClient() {
   }, []);
 
   const hasPosts = posts.length > 0;
+
+  function persistLikedPost(postId) {
+    setLikedIds((current) => {
+      const next = new Set(current);
+      next.add(postId);
+      writeLikedPostIds(next);
+      return next;
+    });
+  }
 
   function animateLike(postId) {
     setAnimatedLikeIds((current) => {
@@ -159,11 +190,7 @@ export default function TimelineClient() {
         throw new Error(data.error || "Gagal menyimpan like");
       }
 
-      setLikedIds((current) => {
-        const next = new Set(current);
-        next.add(postId);
-        return next;
-      });
+      persistLikedPost(postId);
 
       setPosts((current) =>
         current.map((post) =>
@@ -173,7 +200,9 @@ export default function TimelineClient() {
         ),
       );
 
-      animateLike(postId);
+      if (data.liked === true) {
+        animateLike(postId);
+      }
     } catch (err) {
       setError(err.message || "Gagal menyimpan like");
     } finally {
