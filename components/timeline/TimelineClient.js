@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 const VISITOR_ID_KEY = "amarta_timeline_visitor_id";
@@ -57,11 +57,34 @@ function formatDate(value) {
   });
 }
 
-function getCoverImage(post) {
-  if (post.cover_image_url) return post.cover_image_url;
+function getPostImages(post) {
+  return Array.isArray(post.images) ? post.images.filter((image) => image?.image_url) : [];
+}
 
-  const firstImage = Array.isArray(post.images) ? post.images[0] : null;
-  return firstImage?.image_url || "";
+function getCoverImage(post) {
+  const images = getPostImages(post);
+
+  if (post.cover_image_url) {
+    const matchedCover = images.find((image) => image.image_url === post.cover_image_url || image.image_key === post.cover_image_key);
+
+    return matchedCover || {
+      image_url: post.cover_image_url,
+      image_key: post.cover_image_key || "cover",
+      caption: "",
+    };
+  }
+
+  return images[0] || null;
+}
+
+function getCollageImages(post) {
+  const images = getPostImages(post);
+  const cover = getCoverImage(post);
+
+  if (!cover) return [];
+
+  const rest = images.filter((image) => image.image_url !== cover.image_url);
+  return [cover, ...rest];
 }
 
 function getNextLikeCount(post, data) {
@@ -89,6 +112,7 @@ export default function TimelineClient() {
   const [likedIds, setLikedIds] = useState(() => new Set());
   const [likingIds, setLikingIds] = useState(() => new Set());
   const [animatedLikeIds, setAnimatedLikeIds] = useState(() => new Set());
+  const [selectedGallery, setSelectedGallery] = useState(null);
 
   useEffect(() => {
     setLikedIds(readLikedPostIds());
@@ -137,6 +161,11 @@ export default function TimelineClient() {
   }, []);
 
   const hasPosts = posts.length > 0;
+  const selectedGalleryImage = useMemo(() => {
+    if (!selectedGallery) return null;
+
+    return selectedGallery.images[selectedGallery.index] || null;
+  }, [selectedGallery]);
 
   function persistLikedPost(postId) {
     setLikedIds((current) => {
@@ -161,6 +190,29 @@ export default function TimelineClient() {
         return next;
       });
     }, 900);
+  }
+
+  function openGallery(post, startIndex = 0) {
+    const images = getCollageImages(post);
+
+    if (!images.length) return;
+
+    setSelectedGallery({
+      postTitle: post.title,
+      images,
+      index: Math.min(Math.max(startIndex, 0), images.length - 1),
+    });
+  }
+
+  function moveGallery(step) {
+    setSelectedGallery((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        index: (current.index + step + current.images.length) % current.images.length,
+      };
+    });
   }
 
   async function handleLike(postId) {
@@ -254,16 +306,46 @@ export default function TimelineClient() {
       {!loading && hasPosts ? (
         <section className="timeline-feed" aria-label="Timeline kegiatan warga">
           {posts.map((post) => {
-            const coverImage = getCoverImage(post);
+            const images = getCollageImages(post);
+            const coverImage = images[0] || null;
+            const secondImage = images[1] || null;
+            const thirdImage = images[2] || null;
+            const remainingPhotoCount = Math.max(images.length - 2, 0);
             const isLiked = likedIds.has(post.id);
             const isLiking = likingIds.has(post.id);
             const isAnimating = animatedLikeIds.has(post.id);
+            const coverCaption = coverImage?.caption || "";
 
             return (
               <article className="timeline-card" key={post.id}>
                 {coverImage ? (
-                  <div className="timeline-card-media">
-                    <img src={coverImage} alt={post.title || "Foto kegiatan warga"} />
+                  <div className={`timeline-collage photo-count-${Math.min(images.length, 3)}`}>
+                    <button className="timeline-collage-main" type="button" onClick={() => openGallery(post, 0)}>
+                      <img src={coverImage.image_url} alt={coverCaption || post.title || "Foto kegiatan warga"} />
+                      {coverCaption ? <span className="timeline-collage-caption">{coverCaption}</span> : null}
+                    </button>
+
+                    {secondImage ? (
+                      <button className="timeline-collage-side top" type="button" onClick={() => openGallery(post, 1)}>
+                        <img src={secondImage.image_url} alt={secondImage.caption || post.title || "Foto kegiatan warga"} />
+                        {images.length === 2 ? (
+                          <span className="timeline-collage-overlay">
+                            <strong>2 Foto</strong>
+                            <small>Lihat dokumentasi</small>
+                          </span>
+                        ) : null}
+                      </button>
+                    ) : null}
+
+                    {thirdImage ? (
+                      <button className="timeline-collage-side bottom" type="button" onClick={() => openGallery(post, 2)}>
+                        <img src={thirdImage.image_url} alt={thirdImage.caption || post.title || "Foto kegiatan warga"} />
+                        <span className="timeline-collage-overlay">
+                          <strong>{remainingPhotoCount > 1 ? `+${remainingPhotoCount} Foto` : "3 Foto"}</strong>
+                          <small>Lihat semua</small>
+                        </span>
+                      </button>
+                    ) : null}
                   </div>
                 ) : null}
 
@@ -277,8 +359,12 @@ export default function TimelineClient() {
 
                   {post.description ? <p>{post.description}</p> : null}
 
-                  {Array.isArray(post.images) && post.images.length > 1 ? (
-                    <div className="timeline-image-count">{post.images.length} foto dokumentasi</div>
+                  {coverCaption ? <div className="timeline-cover-caption">{coverCaption}</div> : null}
+
+                  {images.length > 1 ? (
+                    <button type="button" className="timeline-image-count" onClick={() => openGallery(post, 0)}>
+                      Lihat semua {images.length} foto dokumentasi
+                    </button>
                   ) : null}
 
                   <div className="timeline-card-actions">
@@ -297,6 +383,44 @@ export default function TimelineClient() {
             );
           })}
         </section>
+      ) : null}
+
+      {selectedGallery && selectedGalleryImage ? (
+        <div className="timeline-gallery-overlay" onClick={() => setSelectedGallery(null)}>
+          <section className="timeline-gallery-modal" onClick={(event) => event.stopPropagation()}>
+            <button className="timeline-gallery-close" type="button" onClick={() => setSelectedGallery(null)} aria-label="Tutup galeri">
+              ×
+            </button>
+
+            <div className="timeline-gallery-header">
+              <div>
+                <div className="timeline-gallery-kicker">Dokumentasi</div>
+                <h2>{selectedGallery.postTitle}</h2>
+              </div>
+              <span>{selectedGallery.index + 1} / {selectedGallery.images.length}</span>
+            </div>
+
+            <div className="timeline-gallery-photo-wrap">
+              {selectedGallery.images.length > 1 ? (
+                <button className="timeline-gallery-nav prev" type="button" onClick={() => moveGallery(-1)} aria-label="Foto sebelumnya">
+                  ‹
+                </button>
+              ) : null}
+
+              <img src={selectedGalleryImage.image_url} alt={selectedGalleryImage.caption || selectedGallery.postTitle || "Foto kegiatan warga"} />
+
+              {selectedGallery.images.length > 1 ? (
+                <button className="timeline-gallery-nav next" type="button" onClick={() => moveGallery(1)} aria-label="Foto berikutnya">
+                  ›
+                </button>
+              ) : null}
+            </div>
+
+            <p className="timeline-gallery-caption">
+              {selectedGalleryImage.caption || "Belum ada caption untuk foto ini."}
+            </p>
+          </section>
+        </div>
       ) : null}
     </main>
   );
