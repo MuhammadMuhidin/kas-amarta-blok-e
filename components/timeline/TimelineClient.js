@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 const VISITOR_ID_KEY = "amarta_timeline_visitor_id";
 const LIKED_POSTS_KEY = "amarta_timeline_liked_posts";
 const GALLERY_SWIPE_THRESHOLD = 42;
 const DESCRIPTION_PREVIEW_LIMIT = 180;
+const TIMELINE_PAGE_SIZE = 6;
 
 function createVisitorId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -123,18 +124,33 @@ function getNextLikeCount(post, data) {
   return Number(post.like_count || 0);
 }
 
-function getTimelinePostsUrl() {
-  return `/api/timeline/posts?t=${Date.now()}`;
+function getTimelinePostsUrl({ limit = TIMELINE_PAGE_SIZE, offset = 0 } = {}) {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+    t: String(Date.now()),
+  });
+
+  return `/api/timeline/posts?${params.toString()}`;
 }
 
 function isLongDescription(description = "") {
   return description.length > DESCRIPTION_PREVIEW_LIMIT || description.split("\n").length > 3;
 }
 
-function TimelineSkeleton() {
+function mergePosts(currentPosts, nextPosts) {
+  const map = new Map();
+
+  currentPosts.forEach((post) => map.set(post.id, post));
+  nextPosts.forEach((post) => map.set(post.id, post));
+
+  return [...map.values()];
+}
+
+function TimelineSkeleton({ count = 2 } = {}) {
   return (
     <section className="timeline-feed" aria-label="Memuat timeline kegiatan warga">
-      {[0, 1].map((item) => (
+      {Array.from({ length: count }).map((_, item) => (
         <article className="timeline-card timeline-skeleton-card" key={item}>
           <div className="timeline-post-header">
             <div className="timeline-skeleton-avatar" />
@@ -161,6 +177,7 @@ function TimelineSkeleton() {
 export default function TimelineClient() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [likedIds, setLikedIds] = useState(() => new Set());
   const [likingIds, setLikingIds] = useState(() => new Set());
@@ -168,53 +185,86 @@ export default function TimelineClient() {
   const [expandedPostIds, setExpandedPostIds] = useState(() => new Set());
   const [selectedGallery, setSelectedGallery] = useState(null);
   const [gallerySwipeDirection, setGallerySwipeDirection] = useState("");
+  const [nextOffset, setNextOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const swipeStartRef = useRef(null);
+  const loadMoreRef = useRef(null);
 
   useEffect(() => {
     setLikedIds(readLikedPostIds());
   }, []);
 
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadPosts() {
-      try {
+  const loadPosts = useCallback(async ({ offset = 0, reset = false } = {}) => {
+    try {
+      if (reset) {
         setLoading(true);
-        setError("");
-
-        const response = await fetch(getTimelinePostsUrl(), {
-          cache: "no-store",
-          headers: {
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-          },
-        });
-        const data = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          throw new Error(data.error || "Gagal memuat kegiatan warga");
-        }
-
-        if (!ignore) {
-          setPosts(Array.isArray(data.posts) ? data.posts : []);
-        }
-      } catch (err) {
-        if (!ignore) {
-          setError(err.message || "Gagal memuat kegiatan warga");
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
+      } else {
+        setLoadingMore(true);
       }
+      setError("");
+
+      const response = await fetch(getTimelinePostsUrl({ offset }), {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Gagal memuat kegiatan warga");
+      }
+
+      const nextPosts = Array.isArray(data.posts) ? data.posts : [];
+
+      setPosts((currentPosts) => (reset ? nextPosts : mergePosts(currentPosts, nextPosts)));
+      setNextOffset(Number(data.nextOffset || offset + nextPosts.length));
+      setHasMore(Boolean(data.hasMore));
+    } catch (err) {
+      setError(err.message || "Gagal memuat kegiatan warga");
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadPosts({ offset: 0, reset: true });
+  }, [loadPosts]);
+
+  useEffect(() => {
+    function handleScroll() {
+      setShowBackToTop(window.scrollY > 700);
     }
 
-    loadPosts();
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
-    return () => {
-      ignore = true;
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+
+    if (!target || !hasMore || loading || loadingMore) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+
+        if (entry.isIntersecting && hasMore && !loading && !loadingMore) {
+          loadPosts({ offset: nextOffset });
+        }
+      },
+      { rootMargin: "420px 0px" },
+    );
+
+    observer.observe(target);
+
+    return () => observer.disconnect();
+  }, [hasMore, loading, loadingMore, loadPosts, nextOffset]);
 
   const hasPosts = posts.length > 0;
   const selectedGalleryImage = useMemo(() => {
@@ -303,6 +353,10 @@ export default function TimelineClient() {
     if (Math.abs(deltaX) < GALLERY_SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return;
 
     moveGallery(deltaX < 0 ? 1 : -1);
+  }
+
+  function scrollToTop() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function handleLike(postId) {
@@ -485,6 +539,22 @@ export default function TimelineClient() {
             );
           })}
         </section>
+      ) : null}
+
+      {!loading && hasMore ? (
+        <div className="timeline-load-more" ref={loadMoreRef} aria-live="polite">
+          {loadingMore ? "Memuat kegiatan lainnya..." : "Scroll untuk memuat kegiatan lainnya"}
+        </div>
+      ) : null}
+
+      {!loading && hasPosts && !hasMore ? (
+        <div className="timeline-end-message">Semua kegiatan sudah ditampilkan.</div>
+      ) : null}
+
+      {showBackToTop ? (
+        <button type="button" className="timeline-back-to-top" onClick={scrollToTop} aria-label="Kembali ke atas">
+          ↑
+        </button>
       ) : null}
 
       {selectedGallery && selectedGalleryImage ? (
