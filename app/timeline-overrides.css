@@ -89,10 +89,9 @@
 }
 
 .timeline-social-actions {
-  display: grid !important;
-  grid-template-columns: minmax(0, auto) 1fr minmax(0, auto);
+  display: flex !important;
   align-items: center !important;
-  justify-content: stretch !important;
+  justify-content: flex-start !important;
   gap: 10px !important;
   flex-wrap: nowrap !important;
 }
@@ -163,13 +162,14 @@
   min-width: 0;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 7px;
+  margin-right: auto;
   color: var(--muted);
   font-size: var(--font-small);
   font-weight: 850;
   white-space: nowrap;
-  text-align: center;
+  text-align: left;
 }
 
 .timeline-reaction-icons {
@@ -297,7 +297,6 @@
   }
 
   .timeline-social-actions {
-    grid-template-columns: minmax(0, auto) 1fr minmax(0, auto);
     gap: 8px !important;
   }
 
