@@ -89,14 +89,24 @@
 }
 
 .timeline-social-actions {
-  align-items: center;
-  justify-content: flex-start;
-  flex-wrap: wrap;
+  display: grid !important;
+  grid-template-columns: minmax(0, auto) 1fr minmax(0, auto);
+  align-items: center !important;
+  justify-content: stretch !important;
+  gap: 10px !important;
+  flex-wrap: nowrap !important;
 }
 
 .timeline-reaction-wrap {
   position: relative;
   display: inline-flex;
+  min-width: 0;
+}
+
+.timeline-like-button,
+.timeline-share-button {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .timeline-reaction-picker {
@@ -150,18 +160,22 @@
 }
 
 .timeline-reaction-summary {
+  min-width: 0;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 7px;
   color: var(--muted);
   font-size: var(--font-small);
   font-weight: 850;
   white-space: nowrap;
+  text-align: center;
 }
 
 .timeline-reaction-icons {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
 }
 
 .timeline-reaction-icons span {
@@ -283,7 +297,26 @@
   }
 
   .timeline-social-actions {
-    justify-content: space-between;
+    grid-template-columns: minmax(0, auto) 1fr minmax(0, auto);
+    gap: 8px !important;
+  }
+
+  .timeline-like-button,
+  .timeline-share-button {
+    min-height: 38px;
+    padding-inline: 10px;
+    font-size: var(--font-small);
+  }
+
+  .timeline-reaction-summary {
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  .timeline-reaction-icons span {
+    width: 19px;
+    height: 19px;
+    font-size: 11px;
   }
 
   .timeline-reaction-picker {
