@@ -1,5 +1,6 @@
 import Link from "next/link";
 import "@/app/page.css";
+import "@/app/timeline.css";
 
 export default function ResidentTimelinePage() {
   return (
