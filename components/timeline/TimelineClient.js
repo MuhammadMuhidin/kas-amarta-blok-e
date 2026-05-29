@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import PublicThemeSelector from "@/components/theme/PublicThemeSelector";
 
 const VISITOR_ID_KEY = "amarta_timeline_visitor_id";
 
@@ -67,6 +66,7 @@ export default function TimelineClient() {
   const [error, setError] = useState("");
   const [likedIds, setLikedIds] = useState(() => new Set());
   const [likingIds, setLikingIds] = useState(() => new Set());
+  const [animatedLikeIds, setAnimatedLikeIds] = useState(() => new Set());
 
   useEffect(() => {
     let ignore = false;
@@ -105,6 +105,22 @@ export default function TimelineClient() {
   }, []);
 
   const hasPosts = posts.length > 0;
+
+  function animateLike(postId) {
+    setAnimatedLikeIds((current) => {
+      const next = new Set(current);
+      next.add(postId);
+      return next;
+    });
+
+    window.setTimeout(() => {
+      setAnimatedLikeIds((current) => {
+        const next = new Set(current);
+        next.delete(postId);
+        return next;
+      });
+    }, 900);
+  }
 
   async function handleLike(postId) {
     if (likedIds.has(postId) || likingIds.has(postId)) return;
@@ -145,6 +161,8 @@ export default function TimelineClient() {
             : post,
         ),
       );
+
+      animateLike(postId);
     } catch (err) {
       setError(err.message || "Gagal menyimpan like");
     } finally {
@@ -166,7 +184,6 @@ export default function TimelineClient() {
           dan dokumentasi lingkungan
         </p>
         <div className="timeline-hero-actions">
-          <PublicThemeSelector />
           <Link className="timeline-kas-link" href="/kas">
             Lihat Kas Warga
           </Link>
@@ -200,6 +217,7 @@ export default function TimelineClient() {
             const coverImage = getCoverImage(post);
             const isLiked = likedIds.has(post.id);
             const isLiking = likingIds.has(post.id);
+            const isAnimating = animatedLikeIds.has(post.id);
 
             return (
               <article className="timeline-card" key={post.id}>
@@ -226,7 +244,7 @@ export default function TimelineClient() {
                   <div className="timeline-card-actions">
                     <button
                       type="button"
-                      className={`timeline-like-button${isLiked ? " active" : ""}`}
+                      className={`timeline-like-button${isLiked ? " active" : ""}${isAnimating ? " animate" : ""}`}
                       disabled={isLiked || isLiking}
                       onClick={() => handleLike(post.id)}
                     >
