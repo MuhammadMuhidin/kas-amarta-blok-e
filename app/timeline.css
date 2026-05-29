@@ -163,6 +163,7 @@
 }
 
 .timeline-like-button {
+  position: relative;
   min-height: 42px;
   padding: 0 14px;
   display: inline-flex;
@@ -183,6 +184,7 @@
   color: var(--danger);
   font-size: 18px;
   line-height: 1;
+  transform-origin: center;
 }
 
 .timeline-like-button:hover:not(:disabled) {
@@ -193,7 +195,90 @@
 .timeline-like-button.active,
 .timeline-like-button:disabled {
   cursor: default;
-  opacity: 0.76;
+  opacity: 0.58;
+  filter: grayscale(0.35);
+}
+
+.timeline-like-button.active span {
+  color: var(--muted);
+}
+
+.timeline-like-button.animate {
+  animation: timelineLikeButtonPop 0.62s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.timeline-like-button.animate span {
+  animation: timelineHeartWiggle 0.62s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.timeline-like-button.animate::after {
+  content: "✨";
+  position: absolute;
+  top: -16px;
+  right: -8px;
+  font-size: 18px;
+  pointer-events: none;
+  animation: timelineSparkFloat 0.82s ease-out forwards;
+}
+
+@keyframes timelineLikeButtonPop {
+  0% {
+    transform: scale(1);
+  }
+
+  35% {
+    transform: scale(1.12) rotate(-2deg);
+  }
+
+  70% {
+    transform: scale(0.97) rotate(1deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes timelineHeartWiggle {
+  0% {
+    transform: scale(1) rotate(0);
+  }
+
+  35% {
+    transform: scale(1.45) rotate(-12deg);
+  }
+
+  65% {
+    transform: scale(1.15) rotate(10deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes timelineSparkFloat {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.7) rotate(0deg);
+  }
+
+  30% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-22px) scale(1.1) rotate(18deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-like-button.animate,
+  .timeline-like-button.animate span,
+  .timeline-like-button.animate::after {
+    animation: none;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
