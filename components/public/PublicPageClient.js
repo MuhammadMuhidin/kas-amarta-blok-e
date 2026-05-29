@@ -133,9 +133,9 @@ export default function PublicPageClient() {
         <header className="hero-header">
           <div className="hero-eyebrow">Amarta Residence • Blok E</div>
           <p className="hero-desc">
-            Pusat transparansi pembayaran
+            Pusat transparansi iuran, pengeluaran,
             <br />
-            dan pengelolaan kas warga
+            dan laporan kas warga secara berkala.
           </p>
         </header>
 
