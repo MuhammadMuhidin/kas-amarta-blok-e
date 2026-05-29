@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listPublishedTimelinePosts } from "@/lib/timelineRepository";
+import { getPublishedTimelinePostById, listPublishedTimelinePosts } from "@/lib/timelineRepository";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -19,6 +19,14 @@ function jsonNoStore(payload, init = {}) {
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
+    const postId = String(searchParams.get("post") || "").trim();
+
+    if (postId) {
+      const post = await getPublishedTimelinePostById(postId);
+
+      return jsonNoStore({ ok: true, post });
+    }
+
     const limit = Number(searchParams.get("limit") || 8);
     const offset = Number(searchParams.get("offset") || 0);
     const result = await listPublishedTimelinePosts({ limit, offset });
