@@ -33,3 +33,20 @@ export async function sendJson(path, method, body) {
 
   return data;
 }
+
+export async function sendFormData(path, method, formData) {
+  const res = await fetch(path, {
+    method,
+    headers: {
+      "x-csrf-token": getCookieValue("csrf_token"),
+    },
+    body: formData,
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    throw new Error(data.error || "Request failed");
+  }
+
+  return data;
+}
