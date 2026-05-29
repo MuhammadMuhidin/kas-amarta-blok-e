@@ -24,7 +24,7 @@ td {
 }
 
 .public-theme-button {
-  position: fixed;
+  position: absolute;
   top: 14px;
   right: 14px;
   z-index: 80;
@@ -256,10 +256,5 @@ html[data-public-theme="hacker"] .public-theme-button {
 
   .hero-desc {
     margin-top: 6px !important;
-  }
-
-  .pay-item {
-    min-height: 44px !important;
-    padding-block: 8px !important;
   }
 }
