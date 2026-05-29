@@ -1,34 +1,30 @@
 .timeline-page {
-  width: min(100%, 720px);
-  max-width: 720px;
+  width: 100%;
+  max-width: 760px;
 }
 
 .timeline-hero {
-  width: min(100%, 720px);
-  margin: 0 auto 22px;
-  padding: 32px 20px 24px;
+  width: 100%;
+  margin: 0 auto 18px;
+  padding: 22px 0 8px;
+  text-align: center;
 }
 
-.timeline-hero .hero-eyebrow {
-  font-size: clamp(18px, 1.65vw, 26px);
-  letter-spacing: 0.1em;
-  line-height: 1.25;
-}
-
+.timeline-hero .hero-eyebrow,
 .timeline-hero .hero-desc {
-  margin-top: 12px;
-  font-size: clamp(16px, 1.35vw, 21px);
-  line-height: 1.45;
+  font-size: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
 }
 
 .timeline-hero-actions {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .timeline-kas-link {
-  min-height: 52px;
-  padding-inline: 28px;
-  font-size: clamp(17px, 1.25vw, 22px);
+  min-height: 44px;
+  padding-inline: 18px;
+  font-size: var(--font-base);
 }
 
 .timeline-feed {
@@ -49,7 +45,7 @@
 }
 
 .timeline-card h1 {
-  font-size: clamp(22px, 3vw, 30px);
+  font-size: clamp(21px, 3vw, 28px);
 }
 
 .timeline-collage,
@@ -57,13 +53,13 @@
   height: clamp(220px, 42vw, 350px);
 }
 
-.timeline-gallery-bridge-arrow {
-  position: fixed;
+.timeline-gallery-arrow {
+  position: absolute;
   top: 50%;
-  z-index: 10000;
-  width: 48px;
-  height: 48px;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  z-index: 3;
+  width: 46px;
+  height: 46px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 999px;
   background: rgba(15, 23, 42, 0.62);
   color: #ffffff;
@@ -78,24 +74,17 @@
   transition: 0.18s ease;
 }
 
-.timeline-gallery-bridge-arrow:hover {
+.timeline-gallery-arrow:hover {
   background: rgba(15, 23, 42, 0.78);
   transform: translateY(-50%) scale(1.04);
 }
 
-.timeline-gallery-bridge-arrow.prev {
-  left: max(22px, calc((100vw - 860px) / 2 - 70px));
+.timeline-gallery-arrow.prev {
+  left: 16px;
 }
 
-.timeline-gallery-bridge-arrow.next {
-  right: max(22px, calc((100vw - 860px) / 2 - 70px));
-}
-
-@media (min-width: 1100px) {
-  .timeline-hero {
-    padding-top: 42px;
-    padding-bottom: 34px;
-  }
+.timeline-gallery-arrow.next {
+  right: 16px;
 }
 
 @media (max-width: 700px) {
@@ -105,28 +94,8 @@
   }
 
   .timeline-hero {
-    width: 100%;
     margin-bottom: 14px;
-    padding: 18px 12px 12px;
-  }
-
-  .timeline-hero .hero-eyebrow {
-    font-size: clamp(15px, 4.2vw, 20px);
-  }
-
-  .timeline-hero .hero-desc {
-    margin-top: 8px;
-    font-size: clamp(13px, 3.6vw, 16px);
-  }
-
-  .timeline-hero-actions {
-    margin-top: 16px;
-  }
-
-  .timeline-kas-link {
-    min-height: 46px;
-    padding-inline: 20px;
-    font-size: clamp(15px, 4vw, 18px);
+    padding: 18px 0 10px;
   }
 
   .timeline-collage,
@@ -134,7 +103,17 @@
     height: clamp(210px, 68vw, 330px);
   }
 
-  .timeline-gallery-bridge-arrow {
-    display: none;
+  .timeline-gallery-arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 32px;
+  }
+
+  .timeline-gallery-arrow.prev {
+    left: 10px;
+  }
+
+  .timeline-gallery-arrow.next {
+    right: 10px;
   }
 }
