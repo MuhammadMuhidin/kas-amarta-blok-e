@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { isAdmin, unauthorized } from "@/lib/auth";
+import { dbTable } from "@/lib/dbTable";
 import { supabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
+
+const ADMIN_ACTIVITIES_TABLE = dbTable("admin_activities");
 
 const modules = new Set([
   "personal",
@@ -56,7 +59,7 @@ export async function GET(req) {
     const to = from + limit - 1;
 
     let query = supabase
-      .from("admin_activities")
+      .from(ADMIN_ACTIVITIES_TABLE)
       .select(
         "id,type,module,severity,message,metadata,actor,device_name,ip,location,created_at",
         { count: "exact" },
