@@ -80,6 +80,7 @@ export default function TimelineTab({ showPopup }) {
   const [editingPost, setEditingPost] = useState(null);
   const [uploadPost, setUploadPost] = useState(null);
   const [deletePost, setDeletePost] = useState(null);
+  const [publishPost, setPublishPost] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [imageCaption, setImageCaption] = useState("");
   const [setAsCover, setSetAsCover] = useState(true);
@@ -164,15 +165,18 @@ export default function TimelineTab({ showPopup }) {
     }
   }
 
-  async function handleTogglePublish(post) {
+  async function handleTogglePublish() {
+    if (!publishPost) return;
+
     setError("");
     setSaving(true);
 
     try {
-      await sendJson(`/api/admin/timeline/posts/${post.id}`, "PATCH", {
-        published: !post.published,
+      await sendJson(`/api/admin/timeline/posts/${publishPost.id}`, "PATCH", {
+        published: !publishPost.published,
       });
-      showPopup?.(post.published ? "Kegiatan dipindahkan ke draft" : "Kegiatan dipublikasikan", "success");
+      showPopup?.(publishPost.published ? "Kegiatan dipindahkan ke draft" : "Kegiatan dipublikasikan", "success");
+      setPublishPost(null);
       await loadPosts();
     } catch (err) {
       const message = err.message || "Gagal mengubah status kegiatan";
@@ -365,7 +369,7 @@ export default function TimelineTab({ showPopup }) {
                             className="admin-small-btn"
                             type="button"
                             disabled={saving}
-                            onClick={() => handleTogglePublish(post)}
+                            onClick={() => setPublishPost(post)}
                           >
                             {post.published ? "Draft" : "Publish"}
                           </button>
@@ -419,6 +423,29 @@ export default function TimelineTab({ showPopup }) {
                 Batal
               </button>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {publishPost ? (
+        <div className={modalStyles.overlay} onClick={() => setPublishPost(null)}>
+          <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
+            <h3>{publishPost.published ? "Pindahkan ke Draft?" : "Publish Kegiatan?"}</h3>
+            <p>
+              {publishPost.published
+                ? `Kegiatan "${publishPost.title}" akan disembunyikan dari halaman utama warga.`
+                : `Kegiatan "${publishPost.title}" akan tampil di halaman utama warga.`}
+            </p>
+            <div className="timeline-admin-confirm-actions">
+              <button type="button" className="admin-small-btn" onClick={() => setPublishPost(null)} disabled={saving}>
+                Batal
+              </button>
+              <button type="button" className="admin-small-btn" onClick={handleTogglePublish} disabled={saving}>
+                <LoadingButtonContent loading={saving} loadingText="Menyimpan...">
+                  {publishPost.published ? "Pindahkan ke Draft" : "Publish"}
+                </LoadingButtonContent>
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
