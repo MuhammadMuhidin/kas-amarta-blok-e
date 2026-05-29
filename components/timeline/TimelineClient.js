@@ -10,9 +10,7 @@ const DESCRIPTION_PREVIEW_LIMIT = 180;
 const TIMELINE_PAGE_SIZE = 6;
 
 function createVisitorId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
 
   return `visitor-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
@@ -21,7 +19,6 @@ function getVisitorId() {
   if (typeof window === "undefined") return "";
 
   const existing = window.localStorage.getItem(VISITOR_ID_KEY);
-
   if (existing) return existing;
 
   const next = createVisitorId();
@@ -50,7 +47,6 @@ function formatDate(value) {
   if (!value) return "Tanggal belum diisi";
 
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return value;
 
   return date.toLocaleDateString("id-ID", {
@@ -60,24 +56,28 @@ function formatDate(value) {
   });
 }
 
+function startOfDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+}
+
 function formatRelativeDate(value) {
   if (!value) return "Tanggal belum diisi";
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return formatDate(value);
 
-  const diffMs = Date.now() - date.getTime();
-  const diffMinutes = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMinutes / 60);
-  const diffDays = Math.floor(diffHours / 24);
+  const diffDays = Math.floor((startOfDay(new Date()) - startOfDay(date)) / 86400000);
 
-  if (diffMinutes < 1) return "Baru saja";
-  if (diffMinutes < 60) return `${diffMinutes} menit lalu`;
-  if (diffHours < 24) return `${diffHours} jam lalu`;
+  if (diffDays <= 0) return "Hari ini";
   if (diffDays === 1) return "Kemarin";
   if (diffDays < 7) return `${diffDays} hari lalu`;
+  if (diffDays < 14) return "Seminggu lalu";
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} minggu lalu`;
+  if (diffDays < 60) return "Sebulan lalu";
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)} bulan lalu`;
+  if (diffDays < 730) return "Setahun lalu";
 
-  return formatDate(value);
+  return `${Math.floor(diffDays / 365)} tahun lalu`;
 }
 
 function getPostImages(post) {
@@ -113,13 +113,8 @@ function getCollageImages(post) {
 function getNextLikeCount(post, data) {
   const apiLikeCount = Number(data?.like_count);
 
-  if (Number.isFinite(apiLikeCount)) {
-    return apiLikeCount;
-  }
-
-  if (data?.liked === true) {
-    return Number(post.like_count || 0) + 1;
-  }
+  if (Number.isFinite(apiLikeCount)) return apiLikeCount;
+  if (data?.liked === true) return Number(post.like_count || 0) + 1;
 
   return Number(post.like_count || 0);
 }
@@ -191,10 +186,6 @@ export default function TimelineClient() {
   const swipeStartRef = useRef(null);
   const loadMoreRef = useRef(null);
 
-  useEffect(() => {
-    setLikedIds(readLikedPostIds());
-  }, []);
-
   const loadPosts = useCallback(async ({ offset = 0, reset = false } = {}) => {
     try {
       if (reset) {
@@ -213,9 +204,7 @@ export default function TimelineClient() {
       });
       const data = await response.json().catch(() => ({}));
 
-      if (!response.ok) {
-        throw new Error(data.error || "Gagal memuat kegiatan warga");
-      }
+      if (!response.ok) throw new Error(data.error || "Gagal memuat kegiatan warga");
 
       const nextPosts = Array.isArray(data.posts) ? data.posts : [];
 
@@ -228,6 +217,10 @@ export default function TimelineClient() {
       setLoading(false);
       setLoadingMore(false);
     }
+  }, []);
+
+  useEffect(() => {
+    setLikedIds(readLikedPostIds());
   }, []);
 
   useEffect(() => {
@@ -265,6 +258,33 @@ export default function TimelineClient() {
 
     return () => observer.disconnect();
   }, [hasMore, loading, loadingMore, loadPosts, nextOffset]);
+
+  useEffect(() => {
+    if (!selectedGallery) return undefined;
+
+    function handleGalleryKeydown(event) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSelectedGallery(null);
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        moveGallery(1);
+        return;
+      }
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        moveGallery(-1);
+      }
+    }
+
+    window.addEventListener("keydown", handleGalleryKeydown);
+
+    return () => window.removeEventListener("keydown", handleGalleryKeydown);
+  }, [selectedGallery]);
 
   const hasPosts = posts.length > 0;
   const selectedGalleryImage = useMemo(() => {
@@ -382,9 +402,7 @@ export default function TimelineClient() {
       });
       const data = await response.json().catch(() => ({}));
 
-      if (!response.ok) {
-        throw new Error(data.error || "Gagal menyimpan like");
-      }
+      if (!response.ok) throw new Error(data.error || "Gagal menyimpan like");
 
       persistLikedPost(postId);
 
@@ -396,9 +414,7 @@ export default function TimelineClient() {
         ),
       );
 
-      if (data.liked === true) {
-        animateLike(postId);
-      }
+      if (data.liked === true) animateLike(postId);
     } catch (err) {
       setError(err.message || "Gagal menyimpan like");
     } finally {
@@ -586,7 +602,17 @@ export default function TimelineClient() {
               }}
             >
               <img src={selectedGalleryImage.image_url} alt={selectedGalleryImage.caption || selectedGallery.postTitle || "Foto kegiatan warga"} />
-              {selectedGallery.images.length > 1 ? <div className="timeline-gallery-swipe-hint">Geser untuk foto lain</div> : null}
+              {selectedGallery.images.length > 1 ? (
+                <>
+                  <button type="button" className="timeline-gallery-arrow prev" onClick={() => moveGallery(-1)} aria-label="Foto sebelumnya">
+                    ‹
+                  </button>
+                  <button type="button" className="timeline-gallery-arrow next" onClick={() => moveGallery(1)} aria-label="Foto berikutnya">
+                    ›
+                  </button>
+                  <div className="timeline-gallery-swipe-hint">Geser atau pakai tombol ← →</div>
+                </>
+              ) : null}
             </div>
 
             {selectedGallery.images.length > 1 ? (
