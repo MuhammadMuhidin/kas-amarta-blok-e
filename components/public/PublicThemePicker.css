@@ -121,14 +121,14 @@ body:has(.hero-header)::before {
   top: 26px;
   right: max(26px, calc((100vw - 940px) / 2 + 18px));
   z-index: 80;
-  width: auto;
-  min-width: 42px;
+  width: 34px;
+  min-width: 34px;
   height: 34px;
-  padding: 0 12px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 0;
   border-radius: 999px;
   border: 1px solid color-mix(in srgb, var(--primary) 20%, rgba(255, 255, 255, 0.24));
   background: color-mix(in srgb, var(--surface) 80%, transparent);
@@ -146,11 +146,7 @@ body:has(.hero-header)::before {
 }
 
 .public-theme-button::after {
-  content: "Tema";
-  color: var(--text);
-  font-size: var(--font-small);
-  font-weight: 900;
-  line-height: 1;
+  content: none;
 }
 
 html[data-public-theme="midnight"] .public-theme-button,
@@ -164,21 +160,11 @@ html[data-public-theme="hacker"] .public-theme-button {
     0 4px 12px rgba(255,255,255,.04);
 }
 
-html[data-public-theme="midnight"] .public-theme-button::after,
-html[data-public-theme="amoled"] .public-theme-button::after,
-html[data-public-theme="hacker"] .public-theme-button::after {
-  color: #f8fafc;
-}
-
 html[data-public-theme="hacker"] .public-theme-button {
   color: #4ade80;
   border-color: rgba(34,197,94,.16);
   box-shadow:
     0 0 18px rgba(34,197,94,.10);
-}
-
-html[data-public-theme="hacker"] .public-theme-button::after {
-  color: #4ade80;
 }
 
 .public-theme-button:hover {
