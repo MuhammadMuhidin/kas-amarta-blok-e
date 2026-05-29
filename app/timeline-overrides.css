@@ -81,6 +81,10 @@
   }
 }
 
+.timeline-gallery-photo-wrap {
+  background: var(--bg) !important;
+}
+
 .timeline-gallery-swipe-hint {
   display: none !important;
 }
