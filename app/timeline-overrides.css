@@ -228,8 +228,12 @@
   z-index: 3;
   width: 46px;
   height: 46px;
+  padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: rgba(15, 23, 42, 0.62);
   color: #ffffff;
   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.22);
@@ -248,12 +252,19 @@
   transform: translateY(-50%) scale(1.04);
 }
 
+.timeline-gallery-arrow.prev,
+.timeline-gallery-arrow.next {
+  text-align: center;
+}
+
 .timeline-gallery-arrow.prev {
   left: 16px;
+  padding-right: 2px;
 }
 
 .timeline-gallery-arrow.next {
   right: 16px;
+  padding-left: 2px;
 }
 
 @keyframes timelineReactionPickerIn {
