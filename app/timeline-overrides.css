@@ -325,6 +325,7 @@
   }
 
   .timeline-hero .hero-desc {
+    font-size: var(--font-base);
     line-height: 1.42;
   }
 
