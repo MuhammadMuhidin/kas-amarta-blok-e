@@ -4,10 +4,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 const VISITOR_ID_KEY = "amarta_timeline_visitor_id";
-const LIKED_POSTS_KEY = "amarta_timeline_liked_posts";
+const REACTION_POSTS_KEY = "amarta_timeline_reactions";
+const LEGACY_LIKED_POSTS_KEY = "amarta_timeline_liked_posts";
 const GALLERY_SWIPE_THRESHOLD = 42;
 const DESCRIPTION_PREVIEW_LIMIT = 180;
 const TIMELINE_PAGE_SIZE = 6;
+const LONG_PRESS_DELAY = 420;
+const HIGHLIGHT_DELAY = 1800;
+
+const REACTIONS = [
+  { type: "like", emoji: "👍", label: "Suka" },
+  { type: "care", emoji: "❤️", label: "Peduli" },
+  { type: "thanks", emoji: "🙏", label: "Terima kasih" },
+  { type: "appreciate", emoji: "👏", label: "Apresiasi" },
+  { type: "informative", emoji: "💡", label: "Informatif" },
+];
+
+const DEFAULT_REACTION = REACTIONS[0];
 
 function createVisitorId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
@@ -26,21 +39,38 @@ function getVisitorId() {
   return next;
 }
 
-function readLikedPostIds() {
-  if (typeof window === "undefined") return new Set();
+function readReactionMap() {
+  if (typeof window === "undefined") return {};
 
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(LIKED_POSTS_KEY) || "[]");
-    return new Set(Array.isArray(parsed) ? parsed.filter(Boolean) : []);
+    const parsed = JSON.parse(window.localStorage.getItem(REACTION_POSTS_KEY) || "{}");
+    const validTypes = new Set(REACTIONS.map((reaction) => reaction.type));
+    const nextMap = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+
+    try {
+      const legacyLikedIds = JSON.parse(window.localStorage.getItem(LEGACY_LIKED_POSTS_KEY) || "[]");
+
+      if (Array.isArray(legacyLikedIds)) {
+        legacyLikedIds.filter(Boolean).forEach((postId) => {
+          if (!nextMap[postId]) nextMap[postId] = DEFAULT_REACTION.type;
+        });
+      }
+    } catch {
+      // Ignore legacy liked-post migration errors.
+    }
+
+    return Object.fromEntries(
+      Object.entries(nextMap).filter(([, value]) => validTypes.has(value)),
+    );
   } catch {
-    return new Set();
+    return {};
   }
 }
 
-function writeLikedPostIds(nextLikedIds) {
+function writeReactionMap(nextMap) {
   if (typeof window === "undefined") return;
 
-  window.localStorage.setItem(LIKED_POSTS_KEY, JSON.stringify([...nextLikedIds]));
+  window.localStorage.setItem(REACTION_POSTS_KEY, JSON.stringify(nextMap));
 }
 
 function formatDate(value) {
@@ -110,21 +140,17 @@ function getCollageImages(post) {
   return [cover, ...rest];
 }
 
-function getNextLikeCount(post, data) {
-  const apiLikeCount = Number(data?.like_count);
-
-  if (Number.isFinite(apiLikeCount)) return apiLikeCount;
-  if (data?.liked === true) return Number(post.like_count || 0) + 1;
-
-  return Number(post.like_count || 0);
-}
-
-function getTimelinePostsUrl({ limit = TIMELINE_PAGE_SIZE, offset = 0 } = {}) {
+function getTimelinePostsUrl({ limit = TIMELINE_PAGE_SIZE, offset = 0, postId = "" } = {}) {
   const params = new URLSearchParams({
-    limit: String(limit),
-    offset: String(offset),
     t: String(Date.now()),
   });
+
+  if (postId) {
+    params.set("post", postId);
+  } else {
+    params.set("limit", String(limit));
+    params.set("offset", String(offset));
+  }
 
   return `/api/timeline/posts?${params.toString()}`;
 }
@@ -140,6 +166,58 @@ function mergePosts(currentPosts, nextPosts) {
   nextPosts.forEach((post) => map.set(post.id, post));
 
   return [...map.values()];
+}
+
+function getReactionByType(type = "") {
+  return REACTIONS.find((reaction) => reaction.type === type) || null;
+}
+
+function getReactionCounts(post) {
+  return post.reaction_counts && typeof post.reaction_counts === "object" ? post.reaction_counts : {};
+}
+
+function getReactionTotal(post) {
+  const counts = getReactionCounts(post);
+  const total = REACTIONS.reduce((sum, reaction) => sum + Number(counts[reaction.type] || 0), 0);
+
+  return total || Number(post.reaction_total ?? post.like_count ?? 0);
+}
+
+function getTopReactions(post) {
+  const counts = getReactionCounts(post);
+
+  return REACTIONS
+    .map((reaction) => ({ ...reaction, count: Number(counts[reaction.type] || 0) }))
+    .filter((reaction) => reaction.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3);
+}
+
+function buildSharedPostUrl(postId) {
+  if (typeof window === "undefined") return `/?post=${postId}`;
+
+  const url = new URL(window.location.href);
+  url.pathname = "/";
+  url.search = "";
+  url.hash = "";
+  url.searchParams.set("post", postId);
+
+  return url.toString();
+}
+
+function updatePostReaction(post, data, requestedReactionType) {
+  const nextReactionType = data.current_reaction || data.reaction_type || "";
+  const nextCounts = data.reaction_counts || post.reaction_counts || {};
+  const nextTotal = Number(data.reaction_total ?? data.like_count ?? getReactionTotal({ ...post, reaction_counts: nextCounts }));
+
+  return {
+    ...post,
+    reaction_counts: nextCounts,
+    reaction_total: nextTotal,
+    like_count: nextTotal,
+    current_reaction: nextReactionType,
+    last_reaction_type: requestedReactionType,
+  };
 }
 
 function TimelineSkeleton({ count = 2 } = {}) {
@@ -174,19 +252,24 @@ export default function TimelineClient() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
-  const [likedIds, setLikedIds] = useState(() => new Set());
-  const [likingIds, setLikingIds] = useState(() => new Set());
-  const [animatedLikeIds, setAnimatedLikeIds] = useState(() => new Set());
+  const [reactionMap, setReactionMap] = useState({});
+  const [reactingIds, setReactingIds] = useState(() => new Set());
+  const [animatedReactionIds, setAnimatedReactionIds] = useState(() => new Set());
   const [expandedPostIds, setExpandedPostIds] = useState(() => new Set());
   const [selectedGallery, setSelectedGallery] = useState(null);
   const [gallerySwipeDirection, setGallerySwipeDirection] = useState("");
+  const [reactionPickerPostId, setReactionPickerPostId] = useState("");
   const [nextOffset, setNextOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [highlightPostId, setHighlightPostId] = useState("");
   const swipeStartRef = useRef(null);
   const loadMoreRef = useRef(null);
+  const longPressTimerRef = useRef(null);
+  const longPressTriggeredRef = useRef(false);
+  const sharedPostIdRef = useRef("");
 
-  const loadPosts = useCallback(async ({ offset = 0, reset = false } = {}) => {
+  const loadPosts = useCallback(async ({ offset = 0, reset = false, postId = "" } = {}) => {
     try {
       if (reset) {
         setLoading(true);
@@ -195,7 +278,7 @@ export default function TimelineClient() {
       }
       setError("");
 
-      const response = await fetch(getTimelinePostsUrl({ offset }), {
+      const response = await fetch(getTimelinePostsUrl({ offset, postId }), {
         cache: "no-store",
         headers: {
           "Cache-Control": "no-cache",
@@ -205,6 +288,24 @@ export default function TimelineClient() {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) throw new Error(data.error || "Gagal memuat kegiatan warga");
+
+      if (postId) {
+        const sharedPost = data.post;
+
+        if (sharedPost?.id) {
+          setPosts((currentPosts) => mergePosts([sharedPost], currentPosts));
+          setHighlightPostId(sharedPost.id);
+          window.setTimeout(() => {
+            document.getElementById(`timeline-post-${sharedPost.id}`)?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          }, 220);
+          window.setTimeout(() => setHighlightPostId(""), HIGHLIGHT_DELAY);
+        }
+
+        return;
+      }
 
       const nextPosts = Array.isArray(data.posts) ? data.posts : [];
 
@@ -220,16 +321,44 @@ export default function TimelineClient() {
   }, []);
 
   useEffect(() => {
-    setLikedIds(readLikedPostIds());
+    setReactionMap(readReactionMap());
   }, []);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sharedPostId = params.get("post") || "";
+    sharedPostIdRef.current = sharedPostId;
+
     loadPosts({ offset: 0, reset: true });
   }, [loadPosts]);
 
   useEffect(() => {
+    if (!sharedPostIdRef.current || loading || posts.length === 0) return;
+
+    const sharedPostId = sharedPostIdRef.current;
+    const hasSharedPost = posts.some((post) => post.id === sharedPostId);
+
+    if (hasSharedPost) {
+      setHighlightPostId(sharedPostId);
+      window.setTimeout(() => {
+        document.getElementById(`timeline-post-${sharedPostId}`)?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+      }, 220);
+      window.setTimeout(() => setHighlightPostId(""), HIGHLIGHT_DELAY);
+      sharedPostIdRef.current = "";
+      return;
+    }
+
+    loadPosts({ postId: sharedPostId });
+    sharedPostIdRef.current = "";
+  }, [loading, loadPosts, posts]);
+
+  useEffect(() => {
     function handleScroll() {
       setShowBackToTop(window.scrollY > 700);
+      setReactionPickerPostId("");
     }
 
     handleScroll();
@@ -286,6 +415,18 @@ export default function TimelineClient() {
     return () => window.removeEventListener("keydown", handleGalleryKeydown);
   }, [selectedGallery]);
 
+  useEffect(() => {
+    function closePicker(event) {
+      if (!event.target.closest?.(".timeline-reaction-wrap")) {
+        setReactionPickerPostId("");
+      }
+    }
+
+    document.addEventListener("pointerdown", closePicker);
+
+    return () => document.removeEventListener("pointerdown", closePicker);
+  }, []);
+
   const hasPosts = posts.length > 0;
   const selectedGalleryImage = useMemo(() => {
     if (!selectedGallery) return null;
@@ -293,11 +434,17 @@ export default function TimelineClient() {
     return selectedGallery.images[selectedGallery.index] || null;
   }, [selectedGallery]);
 
-  function persistLikedPost(postId) {
-    setLikedIds((current) => {
-      const next = new Set(current);
-      next.add(postId);
-      writeLikedPostIds(next);
+  function persistReaction(postId, reactionType) {
+    setReactionMap((current) => {
+      const next = { ...current };
+
+      if (reactionType) {
+        next[postId] = reactionType;
+      } else {
+        delete next[postId];
+      }
+
+      writeReactionMap(next);
       return next;
     });
   }
@@ -316,15 +463,15 @@ export default function TimelineClient() {
     });
   }
 
-  function animateLike(postId) {
-    setAnimatedLikeIds((current) => {
+  function animateReaction(postId) {
+    setAnimatedReactionIds((current) => {
       const next = new Set(current);
       next.add(postId);
       return next;
     });
 
     window.setTimeout(() => {
-      setAnimatedLikeIds((current) => {
+      setAnimatedReactionIds((current) => {
         const next = new Set(current);
         next.delete(postId);
         return next;
@@ -379,13 +526,27 @@ export default function TimelineClient() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  async function handleLike(postId) {
-    if (likedIds.has(postId) || likingIds.has(postId)) return;
+  function startLongPress(postId) {
+    longPressTriggeredRef.current = false;
+    window.clearTimeout(longPressTimerRef.current);
+    longPressTimerRef.current = window.setTimeout(() => {
+      longPressTriggeredRef.current = true;
+      setReactionPickerPostId(postId);
+    }, LONG_PRESS_DELAY);
+  }
+
+  function cancelLongPress() {
+    window.clearTimeout(longPressTimerRef.current);
+  }
+
+  async function handleReaction(postId, reactionType = DEFAULT_REACTION.type) {
+    if (reactingIds.has(postId)) return;
 
     const visitorId = getVisitorId();
     setError("");
+    setReactionPickerPostId("");
 
-    setLikingIds((current) => {
+    setReactingIds((current) => {
       const next = new Set(current);
       next.add(postId);
       return next;
@@ -398,31 +559,72 @@ export default function TimelineClient() {
           "Content-Type": "application/json",
           "Cache-Control": "no-cache",
         },
-        body: JSON.stringify({ visitor_id: visitorId }),
+        body: JSON.stringify({ visitor_id: visitorId, reaction_type: reactionType }),
       });
       const data = await response.json().catch(() => ({}));
 
-      if (!response.ok) throw new Error(data.error || "Gagal menyimpan like");
+      if (!response.ok) throw new Error(data.error || "Gagal menyimpan reaction");
 
-      persistLikedPost(postId);
+      persistReaction(postId, data.current_reaction || "");
 
       setPosts((current) =>
         current.map((post) =>
-          post.id === postId
-            ? { ...post, like_count: getNextLikeCount(post, data) }
-            : post,
+          post.id === postId ? updatePostReaction(post, data, reactionType) : post,
         ),
       );
 
-      if (data.liked === true) animateLike(postId);
+      if (data.current_reaction) animateReaction(postId);
     } catch (err) {
-      setError(err.message || "Gagal menyimpan like");
+      setError(err.message || "Gagal menyimpan reaction");
     } finally {
-      setLikingIds((current) => {
+      setReactingIds((current) => {
         const next = new Set(current);
         next.delete(postId);
         return next;
       });
+    }
+  }
+
+  function handleReactionButtonClick(postId) {
+    const isCoarsePointer = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
+
+    if (longPressTriggeredRef.current) {
+      longPressTriggeredRef.current = false;
+      return;
+    }
+
+    if (isCoarsePointer) {
+      handleReaction(postId, DEFAULT_REACTION.type);
+      return;
+    }
+
+    setReactionPickerPostId((current) => (current === postId ? "" : postId));
+  }
+
+  async function handleShare(post) {
+    const url = buildSharedPostUrl(post.id);
+    const title = post.title || "Kegiatan Warga Amarta Residence Blok E";
+    const text = `Kegiatan Warga Amarta Residence Blok E\n\n${title}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url });
+        return;
+      }
+
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      setError("Link kegiatan disalin");
+      window.setTimeout(() => setError(""), 1800);
+    } catch (err) {
+      if (err?.name === "AbortError") return;
+
+      try {
+        await navigator.clipboard.writeText(url);
+        setError("Link kegiatan disalin");
+        window.setTimeout(() => setError(""), 1800);
+      } catch {
+        setError("Gagal membagikan link kegiatan");
+      }
     }
   }
 
@@ -462,24 +664,26 @@ export default function TimelineClient() {
             const secondImage = images[1] || null;
             const thirdImage = images[2] || null;
             const remainingPhotoCount = Math.max(images.length - 2, 0);
-            const isLiked = likedIds.has(post.id);
-            const isLiking = likingIds.has(post.id);
-            const isAnimating = animatedLikeIds.has(post.id);
+            const currentReactionType = reactionMap[post.id] || post.current_reaction || "";
+            const currentReaction = getReactionByType(currentReactionType);
+            const topReactions = getTopReactions(post);
+            const reactionTotal = getReactionTotal(post);
+            const isReacting = reactingIds.has(post.id);
+            const isAnimating = animatedReactionIds.has(post.id);
             const isExpanded = expandedPostIds.has(post.id);
             const descriptionIsLong = isLongDescription(post.description || "");
             const coverCaption = coverImage?.caption || "";
             const postDate = post.event_date || post.created_at;
-            const likeCount = Number(post.like_count || 0);
+            const cardHighlighted = highlightPostId === post.id;
 
             return (
-              <article className="timeline-card" key={post.id}>
+              <article id={`timeline-post-${post.id}`} className={`timeline-card${cardHighlighted ? " highlighted" : ""}`} key={post.id}>
                 <div className="timeline-post-header">
                   <div className="timeline-post-avatar" aria-hidden="true">A</div>
                   <div className="timeline-post-author">
                     <strong>Amarta Residence Blok E</strong>
                     <span>{formatRelativeDate(postDate)} • {post.category || "Dokumentasi Warga"}</span>
                   </div>
-                  <span className="timeline-post-badge">Kegiatan</span>
                 </div>
 
                 <div className="timeline-card-body timeline-card-copy">
@@ -539,16 +743,53 @@ export default function TimelineClient() {
                   ) : null}
 
                   <div className="timeline-social-actions">
-                    <button
-                      type="button"
-                      className={`timeline-like-button${isLiked ? " active" : ""}${isAnimating ? " animate" : ""}`}
-                      disabled={isLiked || isLiking}
-                      onClick={() => handleLike(post.id)}
-                    >
-                      <span aria-hidden="true">{isLiked ? "♥" : "♡"}</span>
-                      {isLiked ? "Disukai" : "Suka"}
+                    <div className="timeline-reaction-wrap">
+                      {reactionPickerPostId === post.id ? (
+                        <div className="timeline-reaction-picker" role="menu" aria-label="Pilih reaction">
+                          {REACTIONS.map((reaction) => (
+                            <button
+                              key={reaction.type}
+                              type="button"
+                              className={currentReactionType === reaction.type ? "active" : ""}
+                              onClick={() => handleReaction(post.id, reaction.type)}
+                              aria-label={reaction.label}
+                            >
+                              <span aria-hidden="true">{reaction.emoji}</span>
+                              <small>{reaction.label}</small>
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      <button
+                        type="button"
+                        className={`timeline-like-button${currentReaction ? " active" : ""}${isAnimating ? " animate" : ""}`}
+                        disabled={isReacting}
+                        onPointerDown={() => startLongPress(post.id)}
+                        onPointerUp={cancelLongPress}
+                        onPointerCancel={cancelLongPress}
+                        onPointerLeave={cancelLongPress}
+                        onClick={() => handleReactionButtonClick(post.id)}
+                      >
+                        <span aria-hidden="true">{currentReaction?.emoji || DEFAULT_REACTION.emoji}</span>
+                        {currentReaction?.label || DEFAULT_REACTION.label}
+                      </button>
+                    </div>
+
+                    <div className="timeline-reaction-summary" aria-label={`${reactionTotal} reaksi`}>
+                      {topReactions.length ? (
+                        <span className="timeline-reaction-icons">
+                          {topReactions.map((reaction) => (
+                            <span key={reaction.type} aria-hidden="true">{reaction.emoji}</span>
+                          ))}
+                        </span>
+                      ) : null}
+                      <span>{reactionTotal.toLocaleString("id-ID")} reaksi</span>
+                    </div>
+
+                    <button type="button" className="timeline-share-button" onClick={() => handleShare(post)}>
+                      Bagikan
                     </button>
-                    <span className="timeline-like-count">{likeCount.toLocaleString("id-ID")} suka</span>
                   </div>
                 </div>
               </article>
