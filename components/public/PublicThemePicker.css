@@ -201,7 +201,7 @@ html[data-public-theme="hacker"] .public-theme-button {
   }
 
   .hero-desc {
-    font-size: clamp(11px, 2.75vw, 13px);
+    font-size: var(--font-base);
     line-height: 1.42;
   }
 
