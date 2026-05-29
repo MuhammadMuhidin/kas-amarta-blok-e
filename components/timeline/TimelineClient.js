@@ -431,9 +431,9 @@ export default function TimelineClient() {
       <header className="hero-header timeline-hero">
         <div className="hero-eyebrow">Amarta Residence • Blok E</div>
         <p className="hero-desc">
-          Dashboard kegiatan warga
+          Ruang informasi kegiatan warga, dokumentasi lingkungan,
           <br />
-          dan dokumentasi lingkungan
+          dan kabar terbaru Amarta Residence Blok E.
         </p>
         <div className="timeline-hero-actions">
           <Link className="timeline-kas-link" href="/kas">
