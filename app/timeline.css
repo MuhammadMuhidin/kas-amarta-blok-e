@@ -626,15 +626,16 @@
 
 .timeline-gallery-photo-wrap img {
   object-fit: contain;
-  animation: timelineGalleryImageSettle 0.28s ease both;
+  animation: timelineGalleryImageSettle 0.22s ease both;
+  will-change: transform;
 }
 
 .timeline-gallery-photo-wrap.swipe-next img {
-  animation: timelineGallerySwipeNext 0.34s ease both;
+  animation: timelineGallerySwipeNext 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .timeline-gallery-photo-wrap.swipe-prev img {
-  animation: timelineGallerySwipePrev 0.34s ease both;
+  animation: timelineGallerySwipePrev 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .timeline-gallery-swipe-hint {
@@ -692,8 +693,8 @@
 
 @keyframes timelineGalleryImageSettle {
   0% {
-    opacity: 0.78;
-    transform: scale(0.985);
+    opacity: 0.98;
+    transform: scale(0.997);
   }
 
   100% {
@@ -704,8 +705,8 @@
 
 @keyframes timelineGallerySwipeNext {
   0% {
-    opacity: 0;
-    transform: translateX(28px) scale(0.985);
+    opacity: 0.98;
+    transform: translateX(12px) scale(0.997);
   }
 
   100% {
@@ -716,8 +717,8 @@
 
 @keyframes timelineGallerySwipePrev {
   0% {
-    opacity: 0;
-    transform: translateX(-28px) scale(0.985);
+    opacity: 0.98;
+    transform: translateX(-12px) scale(0.997);
   }
 
   100% {
