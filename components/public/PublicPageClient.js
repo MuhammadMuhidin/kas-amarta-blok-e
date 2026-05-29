@@ -135,7 +135,7 @@ export default function PublicPageClient() {
           <p className="hero-desc">
             Pusat transparansi iuran, pengeluaran,
             <br />
-            dan laporan kas warga secara berkala.
+            dan laporan kas warga.
           </p>
         </header>
 
