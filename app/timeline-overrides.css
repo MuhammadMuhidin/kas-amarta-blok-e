@@ -3,6 +3,18 @@
   max-width: 760px;
 }
 
+@media (min-width: 900px) {
+  .timeline-page {
+    max-width: 880px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .timeline-page {
+    max-width: 940px;
+  }
+}
+
 .timeline-hero {
   width: 100%;
   margin: 0 auto 18px;
@@ -51,6 +63,13 @@
 .timeline-collage,
 .timeline-skeleton-media {
   height: clamp(220px, 42vw, 350px);
+}
+
+@media (min-width: 900px) {
+  .timeline-collage,
+  .timeline-skeleton-media {
+    height: clamp(300px, 38vw, 430px);
+  }
 }
 
 .timeline-gallery-arrow {
