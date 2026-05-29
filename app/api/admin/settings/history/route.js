@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { isAdmin, unauthorized } from "@/lib/auth";
+import { dbTable } from "@/lib/dbTable";
 import { supabase } from "@/lib/supabase";
 
 export const runtime = "nodejs";
+
+const ADMIN_ACTIVITIES_TABLE = dbTable("admin_activities");
 
 export async function GET(req) {
   try {
@@ -11,7 +14,7 @@ export async function GET(req) {
     }
 
     const { data, error } = await supabase
-      .from("admin_activities")
+      .from(ADMIN_ACTIVITIES_TABLE)
       .select("id,type,module,severity,message,metadata,actor,device_name,created_at")
       .in("module", ["settings-app", "settings-auth"])
       .order("created_at", {
