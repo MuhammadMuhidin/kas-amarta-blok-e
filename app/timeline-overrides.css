@@ -77,6 +77,10 @@
   }
 }
 
+.timeline-gallery-swipe-hint {
+  display: none !important;
+}
+
 .timeline-gallery-arrow {
   position: absolute;
   top: 50%;
