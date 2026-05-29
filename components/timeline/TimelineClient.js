@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import PublicThemeSelector from "@/components/theme/PublicThemeSelector";
 
 const VISITOR_ID_KEY = "amarta_timeline_visitor_id";
 
@@ -89,7 +90,7 @@ export default function TimelineClient() {
     };
   }, []);
 
-  const hasPosts = useMemo(() => posts.length > 0, [posts]);
+  const hasPosts = posts.length > 0;
 
   async function handleLike(postId) {
     if (likedIds.has(postId) || likingIds.has(postId)) return;
@@ -152,6 +153,7 @@ export default function TimelineClient() {
           dan dokumentasi lingkungan
         </p>
         <div className="timeline-hero-actions">
+          <PublicThemeSelector />
           <Link className="timeline-kas-link" href="/kas">
             Lihat Kas Warga
           </Link>
