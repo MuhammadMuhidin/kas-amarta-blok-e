@@ -1,0 +1,142 @@
+.timeline-admin-summary .admin-summary-card {
+  display: grid;
+  gap: 4px;
+  cursor: default;
+}
+
+.timeline-admin-summary strong {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.timeline-admin-summary span {
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.timeline-admin-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.timeline-admin-form-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.timeline-admin-form-header p {
+  margin: 6px 0 0;
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.timeline-admin-textarea {
+  min-height: 110px;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.timeline-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.timeline-admin-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--admin-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.timeline-admin-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--admin-primary);
+}
+
+.timeline-admin-table {
+  min-width: 880px;
+}
+
+.timeline-admin-title-cell {
+  min-width: 220px;
+  text-align: left;
+  white-space: normal;
+}
+
+.timeline-admin-title-cell strong,
+.timeline-admin-title-cell span {
+  display: block;
+}
+
+.timeline-admin-title-cell strong {
+  line-height: 1.35;
+}
+
+.timeline-admin-title-cell span {
+  margin-top: 4px;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.timeline-admin-actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.timeline-danger-btn {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.timeline-admin-modal {
+  max-width: 460px;
+}
+
+.timeline-admin-modal h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+
+.timeline-admin-modal p {
+  margin: 0 0 16px;
+  color: var(--admin-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.timeline-admin-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .timeline-admin-form-header {
+    flex-direction: column;
+  }
+
+  .timeline-admin-form-header .admin-small-btn,
+  .timeline-admin-confirm-actions .admin-small-btn {
+    width: 100%;
+  }
+
+  .timeline-admin-confirm-actions {
+    flex-direction: column-reverse;
+  }
+}
