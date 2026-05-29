@@ -9,7 +9,6 @@ const LEGACY_LIKED_POSTS_KEY = "amarta_timeline_liked_posts";
 const GALLERY_SWIPE_THRESHOLD = 42;
 const DESCRIPTION_PREVIEW_LIMIT = 180;
 const TIMELINE_PAGE_SIZE = 6;
-const LONG_PRESS_DELAY = 420;
 const HIGHLIGHT_DELAY = 1800;
 
 const REACTIONS = [
@@ -265,8 +264,6 @@ export default function TimelineClient() {
   const [highlightPostId, setHighlightPostId] = useState("");
   const swipeStartRef = useRef(null);
   const loadMoreRef = useRef(null);
-  const longPressTimerRef = useRef(null);
-  const longPressTriggeredRef = useRef(false);
   const sharedPostIdRef = useRef("");
 
   const loadPosts = useCallback(async ({ offset = 0, reset = false, postId = "" } = {}) => {
@@ -526,21 +523,8 @@ export default function TimelineClient() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function startLongPress(postId) {
-    longPressTriggeredRef.current = false;
-    window.clearTimeout(longPressTimerRef.current);
-    longPressTimerRef.current = window.setTimeout(() => {
-      longPressTriggeredRef.current = true;
-      setReactionPickerPostId(postId);
-    }, LONG_PRESS_DELAY);
-  }
-
-  function cancelLongPress() {
-    window.clearTimeout(longPressTimerRef.current);
-  }
-
   async function handleReaction(postId, reactionType = DEFAULT_REACTION.type) {
-    if (reactingIds.has(postId)) return;
+    if (reactionMap[postId] || reactingIds.has(postId)) return;
 
     const visitorId = getVisitorId();
     setError("");
@@ -585,18 +569,8 @@ export default function TimelineClient() {
     }
   }
 
-  function handleReactionButtonClick(postId) {
-    const isCoarsePointer = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
-
-    if (longPressTriggeredRef.current) {
-      longPressTriggeredRef.current = false;
-      return;
-    }
-
-    if (isCoarsePointer) {
-      handleReaction(postId, DEFAULT_REACTION.type);
-      return;
-    }
+  function handleReactionButtonClick(postId, currentReactionType = "") {
+    if (currentReactionType) return;
 
     setReactionPickerPostId((current) => (current === postId ? "" : postId));
   }
@@ -669,6 +643,7 @@ export default function TimelineClient() {
             const topReactions = getTopReactions(post);
             const reactionTotal = getReactionTotal(post);
             const isReacting = reactingIds.has(post.id);
+            const isReactionLocked = Boolean(currentReactionType);
             const isAnimating = animatedReactionIds.has(post.id);
             const isExpanded = expandedPostIds.has(post.id);
             const descriptionIsLong = isLongDescription(post.description || "");
@@ -744,7 +719,7 @@ export default function TimelineClient() {
 
                   <div className="timeline-social-actions">
                     <div className="timeline-reaction-wrap">
-                      {reactionPickerPostId === post.id ? (
+                      {reactionPickerPostId === post.id && !isReactionLocked ? (
                         <div className="timeline-reaction-picker" role="menu" aria-label="Pilih reaction">
                           {REACTIONS.map((reaction) => (
                             <button
@@ -752,6 +727,7 @@ export default function TimelineClient() {
                               type="button"
                               className={currentReactionType === reaction.type ? "active" : ""}
                               onClick={() => handleReaction(post.id, reaction.type)}
+                              onContextMenu={(event) => event.preventDefault()}
                               aria-label={reaction.label}
                             >
                               <span aria-hidden="true">{reaction.emoji}</span>
@@ -763,13 +739,11 @@ export default function TimelineClient() {
 
                       <button
                         type="button"
-                        className={`timeline-like-button${currentReaction ? " active" : ""}${isAnimating ? " animate" : ""}`}
-                        disabled={isReacting}
-                        onPointerDown={() => startLongPress(post.id)}
-                        onPointerUp={cancelLongPress}
-                        onPointerCancel={cancelLongPress}
-                        onPointerLeave={cancelLongPress}
-                        onClick={() => handleReactionButtonClick(post.id)}
+                        className={`timeline-like-button${currentReaction ? " active muted" : ""}${isAnimating ? " animate" : ""}`}
+                        disabled={isReactionLocked || isReacting}
+                        onContextMenu={(event) => event.preventDefault()}
+                        onClick={() => handleReactionButtonClick(post.id, currentReactionType)}
+                        aria-label={currentReaction?.label || "Pilih reaction"}
                       >
                         <span aria-hidden="true">{currentReaction?.emoji || DEFAULT_REACTION.emoji}</span>
                         {currentReaction?.label || DEFAULT_REACTION.label}
