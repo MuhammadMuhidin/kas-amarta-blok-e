@@ -60,6 +60,10 @@ function getNextLikeCount(post, data) {
   return Number(post.like_count || 0);
 }
 
+function getTimelinePostsUrl() {
+  return `/api/timeline/posts?t=${Date.now()}`;
+}
+
 export default function TimelineClient() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -76,7 +80,13 @@ export default function TimelineClient() {
         setLoading(true);
         setError("");
 
-        const response = await fetch("/api/timeline/posts", { cache: "no-store" });
+        const response = await fetch(getTimelinePostsUrl(), {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        });
         const data = await response.json().catch(() => ({}));
 
         if (!response.ok) {
@@ -139,6 +149,7 @@ export default function TimelineClient() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
         },
         body: JSON.stringify({ visitor_id: visitorId }),
       });
