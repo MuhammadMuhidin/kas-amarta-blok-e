@@ -8,6 +8,7 @@ const WAHA_SEND_TEXT_URI = process.env.WAHA_SEND_TEXT_URI;
 const WAHA_API_KEY = process.env.WAHA_API_KEY;
 const WAHA_CHAT_ID = process.env.WAHA_CHAT_ID;
 const WAHA_SESSION = process.env.WAHA_SESSION;
+const PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
 
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 
@@ -49,29 +50,29 @@ function buildText(data) {
     : [`Tidak ada pengeluaran pada bulan ${lastMonth.month || "lalu"}.`];
 
   return [
-  "Assalamu’alaikum, selamat malam Bapak-Bapak.",
-  "",
-  "Izin menyampaikan rekap uang kas Amarta Residence 2 Blok E.",
-  "",
-  "Rincian pengeluaran bulan lalu:",
-  ...expenseLines,
-  "",
-  `Total pengeluaran: ${money(lastMonth.expenseTotal)}`,
-  `Sisa saldo bulan lalu: ${money(lastMonth.remaining)}`,
-  "",
-  `Kas masuk bulan ${currentMonth.month || "ini"} dari ${paidHouseCount} rumah ditambah sisa saldo bulan lalu: ${money(summary.currentIncomePlusLastRemaining)}`,
-  "",
-  `Pengeluaran bulan ini: ${money(currentMonth.expenseTotal)}`,
-  `Saldo kas saat ini: ${money(summary.currentBalance)}`,
-  "",
-  "Bagi Bapak-Bapak yang ingin mengecek rincian pemasukan dan pengeluaran dana kas, dapat melihatnya melalui tautan berikut:",
-  "",
-  "https://amarta-residence.vercel.app",
-  "",
-  "Terima kasih.",
-  "",
-  "_Pesan ini dikirim secara otomatis._",
-].join("\n");
+    "Assalamu’alaikum, selamat malam Bapak-Bapak.",
+    "",
+    "Izin menyampaikan rekap uang kas Amarta Residence 2 Blok E.",
+    "",
+    "Rincian pengeluaran bulan lalu:",
+    ...expenseLines,
+    "",
+    `Total pengeluaran: ${money(lastMonth.expenseTotal)}`,
+    `Sisa saldo bulan lalu: ${money(lastMonth.remaining)}`,
+    "",
+    `Kas masuk bulan ${currentMonth.month || "ini"} dari ${paidHouseCount} rumah ditambah sisa saldo bulan lalu: ${money(summary.currentIncomePlusLastRemaining)}`,
+    "",
+    `Pengeluaran bulan ini: ${money(currentMonth.expenseTotal)}`,
+    `Saldo kas saat ini: ${money(summary.currentBalance)}`,
+    "",
+    "Bagi Bapak-Bapak yang ingin mengecek rincian pemasukan dan pengeluaran dana kas, dapat melihatnya melalui tautan berikut:",
+    "",
+    PUBLIC_KAS_URL,
+    "",
+    "Terima kasih.",
+    "",
+    "_Pesan ini dikirim secara otomatis._",
+  ].join("\n");
 }
 
 async function sendText(text) {
