@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 
 const VISITOR_ID_KEY = "amarta_timeline_visitor_id";
 const LIKED_POSTS_KEY = "amarta_timeline_liked_posts";
+const GALLERY_SWIPE_THRESHOLD = 42;
 
 function createVisitorId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -113,6 +114,8 @@ export default function TimelineClient() {
   const [likingIds, setLikingIds] = useState(() => new Set());
   const [animatedLikeIds, setAnimatedLikeIds] = useState(() => new Set());
   const [selectedGallery, setSelectedGallery] = useState(null);
+  const [gallerySwipeDirection, setGallerySwipeDirection] = useState("");
+  const swipeStartRef = useRef(null);
 
   useEffect(() => {
     setLikedIds(readLikedPostIds());
@@ -197,6 +200,7 @@ export default function TimelineClient() {
 
     if (!images.length) return;
 
+    setGallerySwipeDirection("");
     setSelectedGallery({
       postTitle: post.title,
       images,
@@ -206,13 +210,32 @@ export default function TimelineClient() {
 
   function moveGallery(step) {
     setSelectedGallery((current) => {
-      if (!current) return current;
+      if (!current || current.images.length < 2) return current;
+
+      setGallerySwipeDirection(step > 0 ? "next" : "prev");
+      window.setTimeout(() => setGallerySwipeDirection(""), 360);
 
       return {
         ...current,
         index: (current.index + step + current.images.length) % current.images.length,
       };
     });
+  }
+
+  function startGallerySwipe(clientX, clientY = 0) {
+    swipeStartRef.current = { x: clientX, y: clientY };
+  }
+
+  function finishGallerySwipe(clientX, clientY = 0) {
+    if (!swipeStartRef.current || !selectedGallery || selectedGallery.images.length < 2) return;
+
+    const deltaX = clientX - swipeStartRef.current.x;
+    const deltaY = clientY - swipeStartRef.current.y;
+    swipeStartRef.current = null;
+
+    if (Math.abs(deltaX) < GALLERY_SWIPE_THRESHOLD || Math.abs(deltaX) < Math.abs(deltaY)) return;
+
+    moveGallery(deltaX < 0 ? 1 : -1);
   }
 
   async function handleLike(postId) {
@@ -322,7 +345,6 @@ export default function TimelineClient() {
                   <div className={`timeline-collage photo-count-${Math.min(images.length, 3)}`}>
                     <button className="timeline-collage-main" type="button" onClick={() => openGallery(post, 0)}>
                       <img src={coverImage.image_url} alt={coverCaption || post.title || "Foto kegiatan warga"} />
-                      {coverCaption ? <span className="timeline-collage-caption">{coverCaption}</span> : null}
                     </button>
 
                     {secondImage ? (
@@ -400,20 +422,21 @@ export default function TimelineClient() {
               <span>{selectedGallery.index + 1} / {selectedGallery.images.length}</span>
             </div>
 
-            <div className="timeline-gallery-photo-wrap">
-              {selectedGallery.images.length > 1 ? (
-                <button className="timeline-gallery-nav prev" type="button" onClick={() => moveGallery(-1)} aria-label="Foto sebelumnya">
-                  ‹
-                </button>
-              ) : null}
-
+            <div
+              className={`timeline-gallery-photo-wrap${gallerySwipeDirection ? ` swipe-${gallerySwipeDirection}` : ""}`}
+              onMouseDown={(event) => startGallerySwipe(event.clientX, event.clientY)}
+              onMouseUp={(event) => finishGallerySwipe(event.clientX, event.clientY)}
+              onMouseLeave={() => {
+                swipeStartRef.current = null;
+              }}
+              onTouchStart={(event) => startGallerySwipe(event.touches[0].clientX, event.touches[0].clientY)}
+              onTouchEnd={(event) => {
+                const touch = event.changedTouches[0];
+                finishGallerySwipe(touch.clientX, touch.clientY);
+              }}
+            >
               <img src={selectedGalleryImage.image_url} alt={selectedGalleryImage.caption || selectedGallery.postTitle || "Foto kegiatan warga"} />
-
-              {selectedGallery.images.length > 1 ? (
-                <button className="timeline-gallery-nav next" type="button" onClick={() => moveGallery(1)} aria-label="Foto berikutnya">
-                  ›
-                </button>
-              ) : null}
+              {selectedGallery.images.length > 1 ? <div className="timeline-gallery-swipe-hint">Geser untuk foto lain</div> : null}
             </div>
 
             <p className="timeline-gallery-caption">
