@@ -6,6 +6,7 @@ import Link from "next/link";
 const VISITOR_ID_KEY = "amarta_timeline_visitor_id";
 const LIKED_POSTS_KEY = "amarta_timeline_liked_posts";
 const GALLERY_SWIPE_THRESHOLD = 42;
+const DESCRIPTION_PREVIEW_LIMIT = 180;
 
 function createVisitorId() {
   if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -58,6 +59,26 @@ function formatDate(value) {
   });
 }
 
+function formatRelativeDate(value) {
+  if (!value) return "Tanggal belum diisi";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return formatDate(value);
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMinutes < 1) return "Baru saja";
+  if (diffMinutes < 60) return `${diffMinutes} menit lalu`;
+  if (diffHours < 24) return `${diffHours} jam lalu`;
+  if (diffDays === 1) return "Kemarin";
+  if (diffDays < 7) return `${diffDays} hari lalu`;
+
+  return formatDate(value);
+}
+
 function getPostImages(post) {
   return Array.isArray(post.images) ? post.images.filter((image) => image?.image_url) : [];
 }
@@ -106,6 +127,37 @@ function getTimelinePostsUrl() {
   return `/api/timeline/posts?t=${Date.now()}`;
 }
 
+function isLongDescription(description = "") {
+  return description.length > DESCRIPTION_PREVIEW_LIMIT || description.split("\n").length > 3;
+}
+
+function TimelineSkeleton() {
+  return (
+    <section className="timeline-feed" aria-label="Memuat timeline kegiatan warga">
+      {[0, 1].map((item) => (
+        <article className="timeline-card timeline-skeleton-card" key={item}>
+          <div className="timeline-post-header">
+            <div className="timeline-skeleton-avatar" />
+            <div className="timeline-post-author">
+              <div className="timeline-skeleton-line short" />
+              <div className="timeline-skeleton-line tiny" />
+            </div>
+          </div>
+          <div className="timeline-card-body timeline-card-copy">
+            <div className="timeline-skeleton-line title" />
+            <div className="timeline-skeleton-line" />
+            <div className="timeline-skeleton-line mid" />
+          </div>
+          <div className="timeline-skeleton-media" />
+          <div className="timeline-card-body">
+            <div className="timeline-skeleton-line tiny" />
+          </div>
+        </article>
+      ))}
+    </section>
+  );
+}
+
 export default function TimelineClient() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -113,6 +165,7 @@ export default function TimelineClient() {
   const [likedIds, setLikedIds] = useState(() => new Set());
   const [likingIds, setLikingIds] = useState(() => new Set());
   const [animatedLikeIds, setAnimatedLikeIds] = useState(() => new Set());
+  const [expandedPostIds, setExpandedPostIds] = useState(() => new Set());
   const [selectedGallery, setSelectedGallery] = useState(null);
   const [gallerySwipeDirection, setGallerySwipeDirection] = useState("");
   const swipeStartRef = useRef(null);
@@ -175,6 +228,20 @@ export default function TimelineClient() {
       const next = new Set(current);
       next.add(postId);
       writeLikedPostIds(next);
+      return next;
+    });
+  }
+
+  function toggleExpandedPost(postId) {
+    setExpandedPostIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(postId)) {
+        next.delete(postId);
+      } else {
+        next.add(postId);
+      }
+
       return next;
     });
   }
@@ -307,22 +374,13 @@ export default function TimelineClient() {
 
       {error ? <div className="timeline-alert">{error}</div> : null}
 
-      {loading ? (
-        <section className="timeline-placeholder">
-          <div className="timeline-placeholder-icon">📸</div>
-          <h1>Memuat Kegiatan Warga</h1>
-          <p>Data kegiatan sedang dimuat dari server.</p>
-        </section>
-      ) : null}
+      {loading ? <TimelineSkeleton /> : null}
 
       {!loading && !hasPosts ? (
-        <section className="timeline-placeholder">
+        <section className="timeline-placeholder timeline-empty-state">
           <div className="timeline-placeholder-icon">📸</div>
-          <h1>Kegiatan Warga</h1>
-          <p>
-            Belum ada kegiatan yang dipublikasikan. Setelah admin menambahkan dan mempublikasikan
-            kegiatan, dokumentasinya akan tampil di sini.
-          </p>
+          <h1>Belum ada dokumentasi kegiatan</h1>
+          <p>Kegiatan warga yang dipublikasikan admin akan tampil di sini.</p>
         </section>
       ) : null}
 
@@ -337,10 +395,40 @@ export default function TimelineClient() {
             const isLiked = likedIds.has(post.id);
             const isLiking = likingIds.has(post.id);
             const isAnimating = animatedLikeIds.has(post.id);
+            const isExpanded = expandedPostIds.has(post.id);
+            const descriptionIsLong = isLongDescription(post.description || "");
             const coverCaption = coverImage?.caption || "";
+            const postDate = post.event_date || post.created_at;
+            const likeCount = Number(post.like_count || 0);
 
             return (
               <article className="timeline-card" key={post.id}>
+                <div className="timeline-post-header">
+                  <div className="timeline-post-avatar" aria-hidden="true">A</div>
+                  <div className="timeline-post-author">
+                    <strong>Amarta Residence Blok E</strong>
+                    <span>{formatRelativeDate(postDate)} • {post.category || "Dokumentasi Warga"}</span>
+                  </div>
+                  <span className="timeline-post-badge">Kegiatan</span>
+                </div>
+
+                <div className="timeline-card-body timeline-card-copy">
+                  <h1>{post.title}</h1>
+
+                  {post.description ? (
+                    <>
+                      <p className={descriptionIsLong && !isExpanded ? "timeline-description-clamped" : ""}>
+                        {post.description}
+                      </p>
+                      {descriptionIsLong ? (
+                        <button type="button" className="timeline-read-more" onClick={() => toggleExpandedPost(post.id)}>
+                          {isExpanded ? "Tampilkan lebih sedikit" : "Lihat selengkapnya"}
+                        </button>
+                      ) : null}
+                    </>
+                  ) : null}
+                </div>
+
                 {coverImage ? (
                   <div className={`timeline-collage photo-count-${Math.min(images.length, 3)}`}>
                     <button className="timeline-collage-main" type="button" onClick={() => openGallery(post, 0)}>
@@ -371,16 +459,7 @@ export default function TimelineClient() {
                   </div>
                 ) : null}
 
-                <div className="timeline-card-body">
-                  <div className="timeline-meta-row">
-                    <span>{formatDate(post.event_date || post.created_at)}</span>
-                    {post.category ? <span>{post.category}</span> : null}
-                  </div>
-
-                  <h1>{post.title}</h1>
-
-                  {post.description ? <p>{post.description}</p> : null}
-
+                <div className="timeline-card-body timeline-card-footer">
                   {coverCaption ? <div className="timeline-cover-caption">{coverCaption}</div> : null}
 
                   {images.length > 1 ? (
@@ -389,16 +468,17 @@ export default function TimelineClient() {
                     </button>
                   ) : null}
 
-                  <div className="timeline-card-actions">
+                  <div className="timeline-social-actions">
                     <button
                       type="button"
                       className={`timeline-like-button${isLiked ? " active" : ""}${isAnimating ? " animate" : ""}`}
                       disabled={isLiked || isLiking}
                       onClick={() => handleLike(post.id)}
                     >
-                      <span aria-hidden="true">♥</span>
-                      {Number(post.like_count || 0).toLocaleString("id-ID")}
+                      <span aria-hidden="true">{isLiked ? "♥" : "♡"}</span>
+                      {isLiked ? "Disukai" : "Suka"}
                     </button>
+                    <span className="timeline-like-count">{likeCount.toLocaleString("id-ID")} suka</span>
                   </div>
                 </div>
               </article>
@@ -438,6 +518,24 @@ export default function TimelineClient() {
               <img src={selectedGalleryImage.image_url} alt={selectedGalleryImage.caption || selectedGallery.postTitle || "Foto kegiatan warga"} />
               {selectedGallery.images.length > 1 ? <div className="timeline-gallery-swipe-hint">Geser untuk foto lain</div> : null}
             </div>
+
+            {selectedGallery.images.length > 1 ? (
+              <div className="timeline-gallery-dots" aria-label="Indikator foto galeri">
+                {selectedGallery.images.map((image, index) => (
+                  <button
+                    key={image.id || image.image_key || image.image_url}
+                    type="button"
+                    className={index === selectedGallery.index ? "active" : ""}
+                    onClick={() => {
+                      setGallerySwipeDirection(index > selectedGallery.index ? "next" : "prev");
+                      setSelectedGallery((current) => current ? { ...current, index } : current);
+                      window.setTimeout(() => setGallerySwipeDirection(""), 360);
+                    }}
+                    aria-label={`Lihat foto ${index + 1}`}
+                  />
+                ))}
+              </div>
+            ) : null}
 
             <p className="timeline-gallery-caption">
               {selectedGalleryImage.caption || "Belum ada caption untuk foto ini."}
