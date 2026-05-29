@@ -118,25 +118,39 @@ body:has(.hero-header)::before {
 
 .public-theme-button {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 26px;
+  right: max(26px, calc((100vw - 940px) / 2 + 18px));
   z-index: 80;
-  width: 40px;
-  height: 40px;
+  width: auto;
+  min-width: 42px;
+  height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.22);
-  background: rgba(255,255,255,.72);
+  border: 1px solid color-mix(in srgb, var(--primary) 20%, rgba(255, 255, 255, 0.24));
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
   color: var(--text);
   box-shadow:
     0 10px 24px rgba(15,23,42,.10),
-    0 4px 12px rgba(37,99,235,.08);
+    0 4px 12px color-mix(in srgb, var(--primary) 10%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 900;
   cursor: pointer;
   opacity: .96;
   transition: .18s ease;
+}
+
+.public-theme-button::after {
+  content: "Tema";
+  color: var(--text);
+  font-size: var(--font-small);
+  font-weight: 900;
+  line-height: 1;
 }
 
 html[data-public-theme="midnight"] .public-theme-button,
@@ -150,11 +164,21 @@ html[data-public-theme="hacker"] .public-theme-button {
     0 4px 12px rgba(255,255,255,.04);
 }
 
+html[data-public-theme="midnight"] .public-theme-button::after,
+html[data-public-theme="amoled"] .public-theme-button::after,
+html[data-public-theme="hacker"] .public-theme-button::after {
+  color: #f8fafc;
+}
+
 html[data-public-theme="hacker"] .public-theme-button {
   color: #4ade80;
   border-color: rgba(34,197,94,.16);
   box-shadow:
     0 0 18px rgba(34,197,94,.10);
+}
+
+html[data-public-theme="hacker"] .public-theme-button::after {
+  color: #4ade80;
 }
 
 .public-theme-button:hover {
@@ -274,10 +298,17 @@ html[data-public-theme="hacker"] .public-theme-button {
 
 @media (max-width: 700px) {
   .public-theme-button {
-    top: 8%;
-    right: 10px;
-    width: 38px;
-    height: 38px;
+    top: 22px;
+    right: 24px;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: 15px;
+  }
+
+  .public-theme-button::after {
+    content: none;
   }
 
   .public-theme-modal {
@@ -295,6 +326,7 @@ html[data-public-theme="hacker"] .public-theme-button {
   }
 
   .hero-eyebrow {
+    max-width: calc(100% - 48px);
     min-height: 30px;
     padding-inline: 12px;
     font-size: clamp(10.5px, 2.7vw, 12px);
@@ -337,6 +369,14 @@ html[data-public-theme="hacker"] .public-theme-button {
 
   .hero-header {
     padding: 16px 12px 14px !important;
+  }
+
+  .public-theme-button {
+    top: 18px;
+    right: 20px;
+    width: 32px;
+    min-width: 32px;
+    height: 32px;
   }
 
   .summary {
