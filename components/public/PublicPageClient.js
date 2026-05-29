@@ -6,7 +6,6 @@ import CashflowTab from "@/components/public/tabs/CashflowTab";
 import InsightTab from "@/components/public/tabs/InsightTab";
 import PaymentStatusTab from "@/components/public/tabs/PaymentStatusTab";
 import PublicTabs from "@/components/public/PublicTabs";
-import PublicThemeSelector from "@/components/theme/PublicThemeSelector";
 import ReceiptPreviewModal from "@/components/public/ReceiptPreviewModal";
 import ResidentDetailModal from "@/components/public/ResidentDetailModal";
 import useAnimatedNumber from "@/hooks/public/useAnimatedNumber";
@@ -138,9 +137,6 @@ export default function PublicPageClient() {
             <br />
             dan pengelolaan kas warga
           </p>
-          <div className="public-hero-actions">
-            <PublicThemeSelector />
-          </div>
         </header>
 
         <PublicTabs activeTab={activeTab} setActiveTab={setActiveTab} onLogin={goToLogin} />
