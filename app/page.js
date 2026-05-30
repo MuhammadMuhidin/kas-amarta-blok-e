@@ -176,6 +176,16 @@ const timelineReactionCountScript = `
     return Number(value || 0).toLocaleString("id-ID");
   }
 
+  function getActiveReactions(counts) {
+    return reactions
+      .map((reaction) => ({ ...reaction, count: Number(counts?.[reaction.type] || 0) }))
+      .filter((reaction) => reaction.count > 0);
+  }
+
+  function getReactionTotal(counts) {
+    return reactions.reduce((sum, reaction) => sum + Number(counts?.[reaction.type] || 0), 0);
+  }
+
   function positionPopover(popover, target) {
     const rect = target.getBoundingClientRect();
     const width = popover.offsetWidth || Math.min(180, window.innerWidth - 32);
@@ -204,10 +214,27 @@ const timelineReactionCountScript = `
     createPopover(target, '<div class="timeline-reaction-count-popover-loading">Memuat</div>', "Memuat rincian reaksi");
   }
 
+  function syncSummary(target, counts) {
+    const total = getReactionTotal(counts);
+    const activeReactions = getActiveReactions(counts).slice(0, 3);
+    const icons = target.querySelector(".timeline-reaction-icons");
+    const label = target.querySelector(":scope > span:last-child");
+
+    target.dataset.reactionCounts = JSON.stringify(counts || {});
+    target.setAttribute("aria-label", total + " reaksi");
+
+    if (icons) {
+      icons.innerHTML = activeReactions.map((reaction) => '<span aria-hidden="true">' + reaction.emoji + '</span>').join("");
+      icons.style.display = activeReactions.length ? "inline-flex" : "none";
+    }
+
+    if (label) {
+      label.textContent = formatNumber(total) + " reaksi";
+    }
+  }
+
   function renderPopover(target, counts) {
-    const activeReactions = reactions
-      .map((reaction) => ({ ...reaction, count: Number(counts?.[reaction.type] || 0) }))
-      .filter((reaction) => reaction.count > 0);
+    const activeReactions = getActiveReactions(counts);
     const html = activeReactions.length
       ? activeReactions.map((reaction) => (
         '<div class="timeline-reaction-count-popover-row" aria-label="' + reaction.label + ' ' + formatNumber(reaction.count) + '">' +
@@ -217,15 +244,23 @@ const timelineReactionCountScript = `
       )).join("")
       : '<div class="timeline-reaction-count-popover-empty">Belum ada reaksi</div>';
 
+    syncSummary(target, counts);
     createPopover(target, html);
   }
 
-  async function showReactionCounts(target) {
+  function readEmbeddedCounts(target) {
+    try {
+      const parsed = JSON.parse(target.dataset.reactionCounts || "{}");
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  async function refreshReactionCounts(target) {
     const article = target.closest("[id^='timeline-post-']");
     const postId = article?.id?.replace("timeline-post-", "") || "";
     if (!postId) return;
-
-    renderLoadingPopover(target);
 
     try {
       const response = await fetch("/api/timeline/posts?post=" + encodeURIComponent(postId) + "&t=" + Date.now(), {
@@ -233,11 +268,18 @@ const timelineReactionCountScript = `
         headers: { "Cache-Control": "no-cache", Pragma: "no-cache" },
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || "Gagal membaca reaksi");
-      renderPopover(target, data.post?.reaction_counts || {});
+      if (!response.ok) return;
+      if (data.post?.reaction_counts) {
+        renderPopover(target, data.post.reaction_counts);
+      }
     } catch {
-      removePopover();
+      // Keep the already-rendered embedded counts if refresh fails.
     }
+  }
+
+  function showReactionCounts(target) {
+    renderPopover(target, readEmbeddedCounts(target));
+    refreshReactionCounts(target);
   }
 
   document.addEventListener("pointerdown", (event) => {
