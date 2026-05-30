@@ -5,7 +5,7 @@ import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const WAHA_CHAT_ID = process.env.WAHA_CHAT_ID;
+const WA_CHAT_ID = process.env.WA_CHAT_ID || process.env.WAHA_CHAT_ID;
 const WA_SESSION_ID = process.env.WA_SESSION_ID || process.env.WAHA_SESSION || "main";
 const PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
 const GITHUB_OWNER = process.env.GITHUB_OWNER || "MuhammadMuhidin";
@@ -92,7 +92,7 @@ async function triggerWhatsAppWorkflow({ jobId, chatId, message, period, session
   }
 
   if (!chatId) {
-    throw new Error("WAHA_CHAT_ID belum dikonfigurasi.");
+    throw new Error("WA_CHAT_ID belum dikonfigurasi.");
   }
 
   const response = await fetch(
@@ -141,7 +141,7 @@ export async function POST(req) {
     const summary = await getSummary();
     const text = buildText(summary);
     const period = String(body.period || getCurrentPeriod(summary));
-    const chatId = String(body.chatId || WAHA_CHAT_ID || "").trim();
+    const chatId = String(body.chatId || WA_CHAT_ID || "").trim();
     const sessionId = String(body.sessionId || WA_SESSION_ID || "main").trim();
 
     if (body.preview === true) {
