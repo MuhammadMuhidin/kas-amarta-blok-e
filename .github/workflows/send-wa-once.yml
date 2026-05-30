@@ -53,11 +53,13 @@ jobs:
         run: npm ci
 
       - name: Install WhatsApp sender dependencies
-        run: npm install --no-save @whiskeysockets/baileys pg pino qrcode-terminal
+        run: npm install --no-save @whiskeysockets/baileys pg pino
 
       - name: Send WhatsApp message
         env:
           NEONDB_URI: ${{ secrets.NEONDB_URI }}
+          WA_PAIR_TYPE: ${{ vars.WA_PAIR_TYPE || 'QR' }}
+          WA_PHONE_NUMBER: ${{ secrets.WA_PHONE_NUMBER }}
           WA_JOB_ID: ${{ inputs.jobId }}
           WA_SESSION_ID: ${{ inputs.sessionId }}
           WA_CHAT_ID: ${{ inputs.chatId }}
