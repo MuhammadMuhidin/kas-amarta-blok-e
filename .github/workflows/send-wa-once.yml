@@ -10,7 +10,7 @@ on:
       sessionId:
         description: "Baileys auth session ID stored in NeonDB"
         required: true
-        default: "amarta-main"
+        default: "main"
         type: string
       chatId:
         description: "WhatsApp chat or group ID"
@@ -53,13 +53,13 @@ jobs:
         run: npm ci
 
       - name: Install WhatsApp sender dependencies
-        run: npm install --no-save @whiskeysockets/baileys pg pino
+        run: npm install --no-save @whiskeysockets/baileys pg qrcode-terminal
 
       - name: Send WhatsApp message
         env:
           NEONDB_URI: ${{ secrets.NEONDB_URI }}
-          WA_PAIR_TYPE: ${{ vars.WA_PAIR_TYPE || 'QR' }}
-          WA_PHONE_NUMBER: ${{ secrets.WA_PHONE_NUMBER }}
+          PAIR_TYPE: ${{ vars.PAIR_TYPE || vars.WA_PAIR_TYPE || 'QR' }}
+          PHONE_NUMBER: ${{ secrets.PHONE_NUMBER || secrets.WA_PHONE_NUMBER }}
           WA_JOB_ID: ${{ inputs.jobId }}
           WA_SESSION_ID: ${{ inputs.sessionId }}
           WA_CHAT_ID: ${{ inputs.chatId }}
