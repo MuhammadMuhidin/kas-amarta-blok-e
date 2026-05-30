@@ -63,6 +63,24 @@ function getPostPreviewUrl(postId) {
   return url.toString();
 }
 
+function getPostCoverImage(post) {
+  const images = Array.isArray(post.images) ? post.images.filter((image) => image?.image_url) : [];
+
+  if (post.cover_image_url) {
+    return images.find((image) => image.image_url === post.cover_image_url || image.image_key === post.cover_image_key) || {
+      image_url: post.cover_image_url,
+    };
+  }
+
+  return images[0] || null;
+}
+
+function getPhotoBadgeClassName(photoCount) {
+  return photoCount > 0
+    ? "timeline-admin-photo-badge ready"
+    : "timeline-admin-photo-badge warning";
+}
+
 function postMatchesSearch(post, keyword) {
   const search = normalize(keyword).toLowerCase();
 
@@ -408,46 +426,66 @@ export default function TimelineTab({ showPopup }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedPosts.map((post, index) => (
-                    <tr key={post.id} className={index % 2 ? "admin-row-alt" : ""}>
-                      <td className="admin-td timeline-admin-title-cell">
-                        <strong>{post.title}</strong>
-                        <span>{post.category || "Tanpa kategori"}</span>
-                      </td>
-                      <td className="admin-td">{formatDate(post.event_date || post.created_at)}</td>
-                      <td className="admin-td">
-                        <span className={statusClassName(post.published)}>
-                          {post.published ? "Tayang" : "Draft"}
-                        </span>
-                      </td>
-                      <td className="admin-td">{post.images?.length || 0}</td>
-                      <td className="admin-td">{Number(post.reaction_total ?? post.like_count ?? 0).toLocaleString("id-ID")}</td>
-                      <td className="admin-td">
-                        <div className="timeline-admin-actions">
-                          <button className="admin-small-btn" type="button" onClick={() => openEdit(post)}>
-                            Edit
-                          </button>
-                          <button className="admin-small-btn" type="button" onClick={() => setUploadPost(post)}>
-                            Foto
-                          </button>
-                          <button className="admin-small-btn" type="button" onClick={() => openPreview(post)}>
-                            Preview
-                          </button>
-                          <button
-                            className="admin-small-btn"
-                            type="button"
-                            disabled={saving}
-                            onClick={() => setPublishPost(post)}
-                          >
-                            {post.published ? "Jadikan Draft" : "Tayangkan"}
-                          </button>
-                          <button className="admin-small-btn timeline-danger-btn" type="button" onClick={() => setDeletePost(post)}>
-                            Hapus
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {sortedPosts.map((post, index) => {
+                    const coverImage = getPostCoverImage(post);
+                    const photoCount = post.images?.length || 0;
+
+                    return (
+                      <tr key={post.id} className={index % 2 ? "admin-row-alt" : ""}>
+                        <td className="admin-td timeline-admin-title-cell">
+                          <div className="timeline-admin-post-cell">
+                            <div className="timeline-admin-thumb" aria-hidden="true">
+                              {coverImage ? (
+                                <img src={coverImage.image_url} alt="" />
+                              ) : (
+                                <span>📸</span>
+                              )}
+                            </div>
+                            <div>
+                              <strong>{post.title}</strong>
+                              <span>{post.category || "Tanpa kategori"}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="admin-td">{formatDate(post.event_date || post.created_at)}</td>
+                        <td className="admin-td">
+                          <span className={statusClassName(post.published)}>
+                            {post.published ? "Tayang" : "Draft"}
+                          </span>
+                        </td>
+                        <td className="admin-td">
+                          <span className={getPhotoBadgeClassName(photoCount)}>
+                            {photoCount > 0 ? `${photoCount} foto` : "Belum ada foto"}
+                          </span>
+                        </td>
+                        <td className="admin-td">{Number(post.reaction_total ?? post.like_count ?? 0).toLocaleString("id-ID")}</td>
+                        <td className="admin-td">
+                          <div className="timeline-admin-actions">
+                            <button className="admin-small-btn" type="button" onClick={() => openEdit(post)}>
+                              Edit
+                            </button>
+                            <button className="admin-small-btn" type="button" onClick={() => setUploadPost(post)}>
+                              Foto
+                            </button>
+                            <button className="admin-small-btn" type="button" onClick={() => openPreview(post)}>
+                              Preview
+                            </button>
+                            <button
+                              className="admin-small-btn"
+                              type="button"
+                              disabled={saving}
+                              onClick={() => setPublishPost(post)}
+                            >
+                              {post.published ? "Jadikan Draft" : "Tayangkan"}
+                            </button>
+                            <button className="admin-small-btn timeline-danger-btn" type="button" onClick={() => setDeletePost(post)}>
+                              Hapus
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -522,7 +560,7 @@ export default function TimelineTab({ showPopup }) {
         <div className={modalStyles.overlay} onClick={() => setDeletePost(null)}>
           <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
             <h3>Hapus Kegiatan?</h3>
-            <p>Kegiatan "{deletePost.title}" akan dihapus beserta foto dan like yang terkait di database.</p>
+            <p>Kegiatan "{deletePost.title}" akan dihapus beserta foto dan reaksi yang terkait di database.</p>
             <div className="timeline-admin-confirm-actions">
               <button type="button" className="admin-small-btn" onClick={() => setDeletePost(null)} disabled={!!deletingId}>
                 Batal
