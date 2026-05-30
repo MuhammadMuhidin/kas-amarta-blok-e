@@ -1,0 +1,68 @@
+name: Send WhatsApp Once
+
+on:
+  workflow_dispatch:
+    inputs:
+      jobId:
+        description: "Unique job ID from admin API"
+        required: true
+        type: string
+      sessionId:
+        description: "Baileys auth session ID stored in NeonDB"
+        required: true
+        default: "amarta-main"
+        type: string
+      chatId:
+        description: "WhatsApp chat or group ID"
+        required: true
+        type: string
+      message:
+        description: "Message text to send"
+        required: true
+        type: string
+      period:
+        description: "Report period, e.g. 2026-05"
+        required: false
+        type: string
+      source:
+        description: "Trigger source"
+        required: false
+        default: "admin-overview"
+        type: string
+
+concurrency:
+  group: send-wa-${{ inputs.sessionId }}
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install app dependencies
+        run: npm ci
+
+      - name: Install WhatsApp sender dependencies
+        run: npm install --no-save @whiskeysockets/baileys pg pino qrcode-terminal
+
+      - name: Send WhatsApp message
+        env:
+          NEONDB_URI: ${{ secrets.NEONDB_URI }}
+          WA_JOB_ID: ${{ inputs.jobId }}
+          WA_SESSION_ID: ${{ inputs.sessionId }}
+          WA_CHAT_ID: ${{ inputs.chatId }}
+          WA_MESSAGE_TEXT: ${{ inputs.message }}
+          WA_PERIOD: ${{ inputs.period }}
+          WA_SOURCE: ${{ inputs.source }}
+          WA_CONNECT_TIMEOUT_MS: 180000
+        run: node scripts/send-wa-once.mjs
