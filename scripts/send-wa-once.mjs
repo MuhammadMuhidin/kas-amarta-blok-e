@@ -150,17 +150,17 @@ async function connect() {
     auth: state,
     logger: Pino({ level: "silent" }),
     browser: ["Amarta WA Bot", "Chrome", "1.0.0"],
-    printQRInTerminal: false,
+    printQRInTerminal: true,
   });
 
   sock.ev.on("creds.update", saveCreds);
 
   await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Timeout menunggu koneksi WhatsApp.")), CONNECT_TIMEOUT_MS);
+    const timeout = setTimeout(() => reject(new Error("Timeout menunggu koneksi WhatsApp. Jika QR muncul, scan QR lalu jalankan ulang jika pesan belum terkirim.")), CONNECT_TIMEOUT_MS);
 
     sock.ev.on("connection.update", (update) => {
       if (update.qr) {
-        console.log("Session belum terhubung. Pairing ulang diperlukan sebelum pengiriman bisa berhasil.");
+        console.log("QR pairing muncul di log ini. Buka WhatsApp > Perangkat tertaut > Tautkan perangkat, lalu scan QR tersebut.");
       }
 
       if (update.connection === "open") {
