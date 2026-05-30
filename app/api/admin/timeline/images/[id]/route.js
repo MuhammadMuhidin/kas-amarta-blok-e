@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
-import { deleteTimelineImage, updateTimelineImage, updateTimelinePost } from "@/lib/timelineRepository";
+import { deleteTimelineImage, getTimelineImageById, updateTimelineImage, updateTimelinePost } from "@/lib/timelineRepository";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -35,9 +35,13 @@ export async function PATCH(req, { params }) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const image = await updateTimelineImage(params.id, normalizePayload(body));
+    const payload = normalizePayload(body);
+    const shouldSetAsCover = body.set_as_cover === true;
+    const image = Object.keys(payload).length > 0
+      ? await updateTimelineImage(params.id, payload)
+      : await getTimelineImageById(params.id);
 
-    if (body.set_as_cover === true) {
+    if (shouldSetAsCover) {
       await updateTimelinePost(image.post_id, {
         cover_image_key: image.image_key,
         cover_image_url: image.image_url,
