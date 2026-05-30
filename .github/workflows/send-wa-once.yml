@@ -54,8 +54,8 @@ jobs:
       - name: Send WhatsApp message
         env:
           NEONDB_URI: ${{ secrets.NEONDB_URI }}
-          PAIR_TYPE: ${{ vars.PAIR_TYPE || vars.WA_PAIR_TYPE || 'QR' }}
-          PHONE_NUMBER: ${{ secrets.PHONE_NUMBER || secrets.WA_PHONE_NUMBER }}
+          WA_PAIR_TYPE: ${{ vars.WA_PAIR_TYPE || 'QR' }}
+          WA_PHONE_NUMBER: ${{ secrets.WA_PHONE_NUMBER }}
           WA_JOB_ID: ${{ inputs.jobId }}
           WA_SESSION_ID: ${{ inputs.sessionId }}
           WA_CHAT_ID: ${{ inputs.chatId }}
