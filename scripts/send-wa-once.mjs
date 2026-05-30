@@ -14,11 +14,15 @@ const CHAT_ID = process.env.WA_CHAT_ID;
 const MESSAGE_TEXT = process.env.WA_MESSAGE_TEXT;
 const SOURCE = process.env.WA_SOURCE || "github-actions";
 const PERIOD = process.env.WA_PERIOD || "";
+const PAIR_TYPE = String(process.env.WA_PAIR_TYPE || "QR").trim().toUpperCase();
+const PHONE_NUMBER = String(process.env.WA_PHONE_NUMBER || "").replace(/\D/g, "");
 const CONNECT_TIMEOUT_MS = Number(process.env.WA_CONNECT_TIMEOUT_MS || 180000);
 
 if (!DATABASE_URL) throw new Error("NEONDB_URI atau DATABASE_URL wajib diisi.");
 if (!CHAT_ID) throw new Error("WA_CHAT_ID wajib diisi.");
 if (!MESSAGE_TEXT) throw new Error("WA_MESSAGE_TEXT wajib diisi.");
+if (!["QR", "CODE"].includes(PAIR_TYPE)) throw new Error("WA_PAIR_TYPE hanya boleh QR atau CODE.");
+if (PAIR_TYPE === "CODE" && !PHONE_NUMBER) throw new Error("WA_PHONE_NUMBER wajib diisi jika WA_PAIR_TYPE=CODE. Gunakan format 628xxxxxxxxxx.");
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
@@ -144,36 +148,55 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function formatPairingCode(code) {
+  return String(code || "").match(/.{1,4}/g)?.join("-") || code;
+}
+
 async function connect() {
   const { state, saveCreds } = await useMultiFileAuthState(AUTH_DIR);
   const sock = makeWASocket({
     auth: state,
     logger: Pino({ level: "silent" }),
     browser: ["Amarta WA Bot", "Chrome", "1.0.0"],
-    printQRInTerminal: true,
+    printQRInTerminal: PAIR_TYPE === "QR",
   });
 
   sock.ev.on("creds.update", saveCreds);
 
+  let pairingCodeRequested = false;
+
   await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Timeout menunggu koneksi WhatsApp. Jika QR muncul, scan QR lalu jalankan ulang jika pesan belum terkirim.")), CONNECT_TIMEOUT_MS);
+    const timeout = setTimeout(() => reject(new Error("Timeout menunggu koneksi WhatsApp. Jika pairing sudah muncul, scan QR atau masukkan kode lalu jalankan ulang jika pesan belum terkirim.")), CONNECT_TIMEOUT_MS);
 
-    sock.ev.on("connection.update", (update) => {
-      if (update.qr) {
-        console.log("QR pairing muncul di log ini. Buka WhatsApp > Perangkat tertaut > Tautkan perangkat, lalu scan QR tersebut.");
-      }
-
-      if (update.connection === "open") {
-        clearTimeout(timeout);
-        resolve();
-      }
-
-      if (update.connection === "close") {
-        const code = update.lastDisconnect?.error?.output?.statusCode;
-        if (code === 401) {
-          clearTimeout(timeout);
-          reject(new Error("Session WhatsApp logout. Pairing ulang diperlukan."));
+    sock.ev.on("connection.update", async (update) => {
+      try {
+        if (PAIR_TYPE === "QR" && update.qr) {
+          console.log("QR pairing muncul di log ini. Buka WhatsApp > Perangkat tertaut > Tautkan perangkat, lalu scan QR tersebut.");
         }
+
+        if (PAIR_TYPE === "CODE" && update.qr && !pairingCodeRequested && !sock.authState.creds.registered) {
+          pairingCodeRequested = true;
+          await wait(1500);
+          const code = await sock.requestPairingCode(PHONE_NUMBER);
+          console.log(`PAIRING_CODE=${formatPairingCode(code)}`);
+          console.log("Buka WhatsApp > Perangkat tertaut > Tautkan dengan nomor telepon, lalu masukkan kode di atas.");
+        }
+
+        if (update.connection === "open") {
+          clearTimeout(timeout);
+          resolve();
+        }
+
+        if (update.connection === "close") {
+          const code = update.lastDisconnect?.error?.output?.statusCode;
+          if (code === 401) {
+            clearTimeout(timeout);
+            reject(new Error("Session WhatsApp logout. Pairing ulang diperlukan."));
+          }
+        }
+      } catch (err) {
+        clearTimeout(timeout);
+        reject(err);
       }
     });
   });
@@ -184,10 +207,11 @@ async function connect() {
 async function main() {
   try {
     await ensureTables();
-    await saveJob("running", "", { startedAt: new Date().toISOString() });
+    await saveJob("running", "", { startedAt: new Date().toISOString(), pairType: PAIR_TYPE });
 
     const restoredFiles = await restoreAuth();
     console.log(`Auth restored: ${restoredFiles} file(s)`);
+    console.log(`Pair type: ${PAIR_TYPE}`);
 
     const { sock, saveCreds } = await connect();
     await sock.sendMessage(CHAT_ID, { text: MESSAGE_TEXT });
@@ -203,7 +227,7 @@ async function main() {
     const message = err?.message || "Gagal mengirim WhatsApp.";
     console.error(message);
     try {
-      await saveJob("failed", message, { failedAt: new Date().toISOString() });
+      await saveJob("failed", message, { failedAt: new Date().toISOString(), pairType: PAIR_TYPE });
     } finally {
       await pool.end();
     }
