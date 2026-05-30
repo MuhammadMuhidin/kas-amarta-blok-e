@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 const WA_CHAT_ID = process.env.WA_CHAT_ID || process.env.WAHA_CHAT_ID;
 const WA_SESSION_ID = process.env.WA_SESSION_ID || process.env.WAHA_SESSION || "main";
+const WA_TARGET_ENV = process.env.WA_TARGET_ENV || "development";
 const PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
 const GITHUB_OWNER = process.env.GITHUB_OWNER || "MuhammadMuhidin";
 const GITHUB_REPO = process.env.GITHUB_REPO || "kas-amarta-blok-e";
@@ -86,7 +87,7 @@ function buildText(data) {
   ].join("\n");
 }
 
-async function triggerWhatsAppWorkflow({ jobId, chatId, message, period, sessionId }) {
+async function triggerWhatsAppWorkflow({ jobId, chatId, message, period, sessionId, targetEnv }) {
   if (!GITHUB_ACTIONS_TOKEN) {
     throw new Error("GITHUB_ACTIONS_TOKEN belum dikonfigurasi.");
   }
@@ -110,6 +111,7 @@ async function triggerWhatsAppWorkflow({ jobId, chatId, message, period, session
         inputs: {
           jobId,
           sessionId,
+          targetEnv,
           chatId,
           message,
           period,
@@ -143,9 +145,10 @@ export async function POST(req) {
     const period = String(body.period || getCurrentPeriod(summary));
     const chatId = String(body.chatId || WA_CHAT_ID || "").trim();
     const sessionId = String(body.sessionId || WA_SESSION_ID || "main").trim();
+    const targetEnv = String(body.targetEnv || WA_TARGET_ENV || "development").trim();
 
     if (body.preview === true) {
-      return Response.json({ ok: true, preview: true, source: "/api/sheets/summary", chatId, session: sessionId, period, text });
+      return Response.json({ ok: true, preview: true, source: "/api/sheets/summary", chatId, session: sessionId, targetEnv, period, text });
     }
 
     const jobId = randomUUID();
@@ -155,6 +158,7 @@ export async function POST(req) {
       message: text,
       period,
       sessionId,
+      targetEnv,
     });
 
     return Response.json({
@@ -165,6 +169,7 @@ export async function POST(req) {
       source: "/api/sheets/summary",
       chatId,
       session: sessionId,
+      targetEnv,
       period,
       text,
     });
