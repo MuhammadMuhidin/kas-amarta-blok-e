@@ -1,3 +1,4 @@
+import Script from "next/script";
 import TimelineClient from "@/components/timeline/TimelineClient";
 import "@/app/page.css";
 import "@/app/public-theme.css";
@@ -160,6 +161,9 @@ const timelineInstagramRefinementCss = `
 
 const timelineReactionCountScript = `
 (() => {
+  if (window.__amartaTimelineReactionPopoverBound) return;
+  window.__amartaTimelineReactionPopoverBound = true;
+
   const reactions = [
     { type: "like", emoji: "👍", label: "Suka" },
     { type: "care", emoji: "❤️", label: "Peduli" },
@@ -168,8 +172,16 @@ const timelineReactionCountScript = `
     { type: "informative", emoji: "💡", label: "Informatif" },
   ];
 
+  function getOpenPopover() {
+    return document.querySelector(".timeline-reaction-count-popover");
+  }
+
+  function getPostIdFromSummary(target) {
+    return target.closest("[id^='timeline-post-']")?.id?.replace("timeline-post-", "") || "";
+  }
+
   function removePopover() {
-    document.querySelector(".timeline-reaction-count-popover")?.remove();
+    getOpenPopover()?.remove();
   }
 
   function formatNumber(value) {
@@ -197,10 +209,12 @@ const timelineReactionCountScript = `
   }
 
   function createPopover(target, html, label = "Rincian reaksi") {
+    const postId = getPostIdFromSummary(target);
     removePopover();
 
     const popover = document.createElement("div");
     popover.className = "timeline-reaction-count-popover";
+    popover.dataset.postId = postId;
     popover.setAttribute("role", "dialog");
     popover.setAttribute("aria-label", label);
     popover.innerHTML = html;
@@ -258,8 +272,7 @@ const timelineReactionCountScript = `
   }
 
   async function refreshReactionCounts(target, { renderEmpty = true } = {}) {
-    const article = target.closest("[id^='timeline-post-']");
-    const postId = article?.id?.replace("timeline-post-", "") || "";
+    const postId = getPostIdFromSummary(target);
     if (!postId) return;
 
     try {
@@ -296,11 +309,23 @@ const timelineReactionCountScript = `
     refreshReactionCounts(target, { renderEmpty: true });
   }
 
+  function isSameOpenSummary(summary) {
+    const openPopover = getOpenPopover();
+    return Boolean(openPopover && summary && openPopover.dataset.postId === getPostIdFromSummary(summary));
+  }
+
   document.addEventListener("pointerdown", (event) => {
     const summary = event.target.closest?.(".timeline-reaction-summary");
-    if (!summary) return;
+    const popover = event.target.closest?.(".timeline-reaction-count-popover");
 
-    event.preventDefault();
+    if (summary) {
+      event.preventDefault();
+      return;
+    }
+
+    if (!popover) {
+      removePopover();
+    }
   }, { passive: false });
 
   document.addEventListener("click", (event) => {
@@ -309,6 +334,12 @@ const timelineReactionCountScript = `
     if (summary) {
       event.preventDefault();
       event.stopPropagation();
+
+      if (isSameOpenSummary(summary)) {
+        removePopover();
+        return;
+      }
+
       showReactionCounts(summary);
       return;
     }
@@ -328,7 +359,7 @@ export default function ResidentTimelinePage() {
     <>
       <style>{timelineInstagramRefinementCss}</style>
       <TimelineClient />
-      <script dangerouslySetInnerHTML={{ __html: timelineReactionCountScript }} />
+      <Script id="timeline-reaction-count-popover" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: timelineReactionCountScript }} />
     </>
   );
 }
