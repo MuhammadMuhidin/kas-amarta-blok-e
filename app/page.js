@@ -27,6 +27,15 @@ const timelineInstagramRefinementCss = `
     object-fit: cover !important;
   }
 
+  .timeline-story-item small,
+  .timeline-back-to-top {
+    display: none !important;
+  }
+
+  .timeline-story-item {
+    gap: 0 !important;
+  }
+
   .timeline-bottom-nav-item:first-child span {
     font-size: 0 !important;
   }
