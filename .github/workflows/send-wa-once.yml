@@ -12,6 +12,11 @@ on:
         required: true
         default: "main"
         type: string
+      targetEnv:
+        description: "GitHub environment name for WA secrets"
+        required: true
+        default: "development"
+        type: string
       chatId:
         description: "WhatsApp chat or group ID"
         required: true
@@ -31,12 +36,13 @@ on:
         type: string
 
 concurrency:
-  group: send-wa-${{ inputs.sessionId }}
+  group: send-wa-${{ inputs.targetEnv }}-${{ inputs.sessionId }}
   cancel-in-progress: false
 
 jobs:
   send:
     runs-on: ubuntu-latest
+    environment: ${{ inputs.targetEnv }}
     timeout-minutes: 10
 
     steps:
