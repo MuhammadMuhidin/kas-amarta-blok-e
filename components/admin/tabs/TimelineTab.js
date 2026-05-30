@@ -21,6 +21,189 @@ const statusFilters = [
   { value: "draft", label: "Draft" },
 ];
 
+const timelineAdminCss = `
+  .timeline-admin-form-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .timeline-admin-form-header h3 {
+    margin: 0;
+  }
+
+  .timeline-admin-form-header p {
+    margin: 6px 0 0;
+    color: var(--admin-muted);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .timeline-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+
+  .timeline-admin-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--admin-text);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .timeline-admin-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .timeline-admin-actions .admin-small-btn.active {
+    background: var(--admin-text);
+    color: var(--admin-card);
+  }
+
+  .timeline-admin-table {
+    min-width: 860px;
+  }
+
+  .timeline-admin-title-cell {
+    min-width: 280px;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .timeline-admin-post-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .timeline-admin-thumb {
+    width: 58px;
+    height: 58px;
+    flex: 0 0 58px;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--admin-border);
+    background: var(--admin-row);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+
+  .timeline-admin-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .timeline-admin-title-cell strong,
+  .timeline-admin-title-cell span {
+    display: block;
+    white-space: normal;
+    line-height: 1.45;
+  }
+
+  .timeline-admin-title-cell span {
+    margin-top: 4px;
+    color: var(--admin-muted);
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .timeline-admin-photo-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .timeline-admin-photo-badge.ready {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+  }
+
+  .timeline-admin-photo-badge.warning {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+  }
+
+  .timeline-danger-btn {
+    background: #dc2626;
+    color: #ffffff;
+  }
+
+  .timeline-admin-modal {
+    max-width: 720px;
+  }
+
+  .timeline-admin-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin: 14px 0 18px;
+  }
+
+  .timeline-admin-photo-item {
+    display: grid;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 14px;
+    border: 1px solid var(--admin-border);
+    background: var(--admin-row);
+  }
+
+  .timeline-admin-photo-item img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
+  }
+
+  .timeline-admin-preview-image {
+    width: 100%;
+    max-height: 320px;
+    object-fit: cover;
+    border-radius: 16px;
+    border: 1px solid var(--admin-border);
+    display: block;
+    margin: 10px 0 12px;
+  }
+
+  @media (max-width: 640px) {
+    .timeline-admin-form-header {
+      align-items: stretch;
+    }
+
+    .timeline-admin-form-header .admin-small-btn,
+    .timeline-admin-actions .admin-small-btn {
+      width: 100%;
+    }
+
+    .timeline-admin-actions {
+      align-items: stretch;
+      justify-content: stretch;
+    }
+  }
+`;
+
 function normalize(value) {
   return String(value || "").trim();
 }
@@ -389,6 +572,7 @@ export default function TimelineTab({ showPopup }) {
 
   return (
     <>
+      <style>{timelineAdminCss}</style>
       <div className="activity-panel">
         <div className="activity-header">
           <div>
