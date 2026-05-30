@@ -4,6 +4,7 @@ import { generateId } from "@/lib/id";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 import { uploadCashflowReceipt } from "@/lib/r2Upload";
+import { withMediaReceiptUrl } from "@/lib/mediaUrl";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -75,7 +76,7 @@ export async function GET(req) {
 
   const rows = res.data.values || [];
 
-  const data = rows.slice(1).map((r) => ({
+  const data = rows.slice(1).map((r) => withMediaReceiptUrl({
     id: r[0],
     ref_id: r[1],
     type: (r[2] || "").toLowerCase(),
@@ -196,5 +197,5 @@ export async function POST(req) {
     },
   });
 
-  return NextResponse.json({ success: true, receipt_url: receiptUrl });
+  return NextResponse.json({ success: true, receipt_url: withMediaReceiptUrl({ receipt_url: receiptUrl }).receipt_url });
 }
