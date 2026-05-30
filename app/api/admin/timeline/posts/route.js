@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 import { createTimelinePost, listAdminTimelinePosts } from "@/lib/timelineRepository";
+import { withMediaPostUrls } from "@/lib/mediaUrl";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -36,7 +37,7 @@ export async function GET(req) {
 
     const posts = await listAdminTimelinePosts({ limit: 50 });
 
-    return NextResponse.json({ ok: true, posts });
+    return NextResponse.json({ ok: true, posts: posts.map(withMediaPostUrls) });
   } catch (err) {
     return NextResponse.json({ error: err.message || "Gagal membaca data kegiatan" }, { status: 500 });
   }
@@ -55,7 +56,7 @@ export async function POST(req) {
     const body = await req.json().catch(() => ({}));
     const post = await createTimelinePost(normalizePayload(body));
 
-    return NextResponse.json({ ok: true, post });
+    return NextResponse.json({ ok: true, post: withMediaPostUrls(post) });
   } catch (err) {
     return NextResponse.json({ error: err.message || "Gagal membuat kegiatan" }, { status: 500 });
   }
