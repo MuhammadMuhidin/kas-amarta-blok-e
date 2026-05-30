@@ -5,6 +5,17 @@ import "@/app/timeline.css";
 import "@/app/timeline-overrides.css";
 
 const timelineInstagramRefinementCss = `
+  .timeline-hero {
+    text-align: center !important;
+  }
+
+  .timeline-hero .hero-eyebrow,
+  .timeline-hero .hero-desc {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    text-align: center !important;
+  }
+
   .timeline-story-item.unread .timeline-story-ring {
     background: var(--primary) !important;
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 13%, transparent) !important;
