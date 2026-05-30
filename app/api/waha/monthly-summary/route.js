@@ -1,14 +1,19 @@
+import { randomUUID } from "crypto";
 import { GET as getSheetsSummary } from "@/app/api/sheets/summary/route";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const WAHA_SEND_TEXT_URI = process.env.WAHA_SEND_TEXT_URI;
-const WAHA_API_KEY = process.env.WAHA_API_KEY;
-const WAHA_CHAT_ID = process.env.WAHA_CHAT_ID;
-const WAHA_SESSION = process.env.WAHA_SESSION;
+const WA_CHAT_ID = process.env.WA_CHAT_ID || process.env.WAHA_CHAT_ID;
+const WA_SESSION_ID = process.env.WA_SESSION_ID || process.env.WAHA_SESSION || "main";
+const WA_TARGET_ENV = process.env.WA_TARGET_ENV || "development";
 const PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
+const GITHUB_OWNER = process.env.GITHUB_OWNER || "MuhammadMuhidin";
+const GITHUB_REPO = process.env.GITHUB_REPO || "kas-amarta-blok-e";
+const GITHUB_WORKFLOW_ID = process.env.GITHUB_WORKFLOW_ID || "send-wa-once.yml";
+const GITHUB_WORKFLOW_REF = process.env.GITHUB_WORKFLOW_REF || "development";
+const GITHUB_ACTIONS_TOKEN = process.env.GITHUB_ACTIONS_TOKEN;
 
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 
@@ -35,6 +40,13 @@ function countPaidHouses(data) {
       .map((payment) => String(payment.person_house || payment.house || payment.person_id || ""))
       .filter(Boolean),
   ).size;
+}
+
+function getCurrentPeriod(data) {
+  const periods = Array.isArray(data?.periods) ? data.periods : [];
+  const currentPeriod = [...periods].sort((a, b) => a.localeCompare(b)).pop();
+
+  return currentPeriod || new Date().toISOString().slice(0, 7);
 }
 
 function buildText(data) {
@@ -75,32 +87,46 @@ function buildText(data) {
   ].join("\n");
 }
 
-async function sendText(text) {
-  const response = await fetch(WAHA_SEND_TEXT_URI, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Api-Key": WAHA_API_KEY,
+async function triggerWhatsAppWorkflow({ jobId, chatId, message, period, sessionId, targetEnv }) {
+  if (!GITHUB_ACTIONS_TOKEN) {
+    throw new Error("GITHUB_ACTIONS_TOKEN belum dikonfigurasi.");
+  }
+
+  if (!chatId) {
+    throw new Error("WA_CHAT_ID belum dikonfigurasi.");
+  }
+
+  const response = await fetch(
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/workflows/${GITHUB_WORKFLOW_ID}/dispatches`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${GITHUB_ACTIONS_TOKEN}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28",
+      },
+      body: JSON.stringify({
+        ref: GITHUB_WORKFLOW_REF,
+        inputs: {
+          jobId,
+          sessionId,
+          targetEnv,
+          chatId,
+          message,
+          period,
+          source: "admin-overview",
+        },
+      }),
     },
-    body: JSON.stringify({
-      chatId: WAHA_CHAT_ID,
-      text,
-      session: WAHA_SESSION,
-    }),
-  });
+  );
 
-  const raw = await response.text();
-  let detail = raw;
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Gagal trigger GitHub Actions (${response.status}): ${detail}`);
+  }
 
-  try {
-    detail = JSON.parse(raw);
-  } catch {}
-
-  return {
-    ok: response.ok,
-    status: response.status,
-    detail,
-  };
+  return { ok: true, status: response.status };
 }
 
 export async function POST(req) {
@@ -116,18 +142,37 @@ export async function POST(req) {
     const body = await req.json().catch(() => ({}));
     const summary = await getSummary();
     const text = buildText(summary);
+    const period = String(body.period || getCurrentPeriod(summary));
+    const chatId = String(body.chatId || WA_CHAT_ID || "").trim();
+    const sessionId = String(body.sessionId || WA_SESSION_ID || "main").trim();
+    const targetEnv = String(body.targetEnv || WA_TARGET_ENV || "development").trim();
 
     if (body.preview === true) {
-      return Response.json({ ok: true, preview: true, source: "/api/sheets/summary", chatId: WAHA_CHAT_ID, session: WAHA_SESSION, text });
+      return Response.json({ ok: true, preview: true, source: "/api/sheets/summary", chatId, session: sessionId, targetEnv, period, text });
     }
 
-    const waha = await sendText(text);
+    const jobId = randomUUID();
+    const workflow = await triggerWhatsAppWorkflow({
+      jobId,
+      chatId,
+      message: text,
+      period,
+      sessionId,
+      targetEnv,
+    });
 
-    if (!waha.ok) {
-      return Response.json({ error: "Gagal mengirim pesan ke WAHA", status: waha.status, detail: waha.detail }, { status: 502 });
-    }
-
-    return Response.json({ ok: true, source: "/api/sheets/summary", chatId: WAHA_CHAT_ID, session: WAHA_SESSION, text, waha: waha.detail });
+    return Response.json({
+      ok: true,
+      queued: true,
+      jobId,
+      workflow,
+      source: "/api/sheets/summary",
+      chatId,
+      session: sessionId,
+      targetEnv,
+      period,
+      text,
+    });
   } catch (err) {
     return Response.json({ error: err.message || "Internal Server Error" }, { status: 500 });
   }
