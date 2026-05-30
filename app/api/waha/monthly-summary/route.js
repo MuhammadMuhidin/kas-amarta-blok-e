@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const WAHA_CHAT_ID = process.env.WAHA_CHAT_ID;
-const WAHA_SESSION = process.env.WAHA_SESSION || "amarta-main";
+const WA_SESSION_ID = process.env.WA_SESSION_ID || process.env.WAHA_SESSION || "main";
 const PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
 const GITHUB_OWNER = process.env.GITHUB_OWNER || "MuhammadMuhidin";
 const GITHUB_REPO = process.env.GITHUB_REPO || "kas-amarta-blok-e";
@@ -142,7 +142,7 @@ export async function POST(req) {
     const text = buildText(summary);
     const period = String(body.period || getCurrentPeriod(summary));
     const chatId = String(body.chatId || WAHA_CHAT_ID || "").trim();
-    const sessionId = String(body.sessionId || WAHA_SESSION || "amarta-main").trim();
+    const sessionId = String(body.sessionId || WA_SESSION_ID || "main").trim();
 
     if (body.preview === true) {
       return Response.json({ ok: true, preview: true, source: "/api/sheets/summary", chatId, session: sessionId, period, text });
