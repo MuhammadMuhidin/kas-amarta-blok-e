@@ -1,4 +1,5 @@
 import { getSheetData } from "@/lib/google";
+import { withMediaReceiptUrl } from "@/lib/mediaUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export async function GET() {
           r.__type === "cashflow" &&
           ["income", "expense"].includes((r.type || "").toLowerCase()),
       )
+      .map(withMediaReceiptUrl)
       .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
     /* ========================= */
