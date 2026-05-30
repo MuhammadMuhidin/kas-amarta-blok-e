@@ -76,8 +76,10 @@ const timelineInstagramRefinementCss = `
   .timeline-reaction-count-popover {
     position: fixed;
     z-index: 10020;
-    width: min(260px, calc(100vw - 32px));
-    padding: 12px;
+    width: auto;
+    min-width: 104px;
+    max-width: min(180px, calc(100vw - 32px));
+    padding: 10px;
     border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
     border-radius: 18px;
     background: color-mix(in srgb, var(--surface) 94%, transparent);
@@ -87,21 +89,16 @@ const timelineInstagramRefinementCss = `
     color: var(--text);
   }
 
-  .timeline-reaction-count-popover h4 {
-    margin: 0 0 10px;
-    font-size: 13px;
-    font-weight: 950;
-  }
-
   .timeline-reaction-count-popover-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 10px;
-    padding: 8px 6px;
+    gap: 14px;
+    min-width: 76px;
+    padding: 7px 8px;
     border-radius: 12px;
-    font-size: 13px;
-    font-weight: 800;
+    font-size: 15px;
+    font-weight: 900;
   }
 
   .timeline-reaction-count-popover-row + .timeline-reaction-count-popover-row {
@@ -112,11 +109,12 @@ const timelineInstagramRefinementCss = `
     background: color-mix(in srgb, var(--primary) 8%, transparent);
   }
 
-  .timeline-reaction-count-popover-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
+  .timeline-reaction-count-popover-empty {
+    padding: 7px 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
   }
 
   .timeline-reaction-count-popover-count {
@@ -155,7 +153,7 @@ const timelineReactionCountScript = `
 
   function positionPopover(popover, target) {
     const rect = target.getBoundingClientRect();
-    const width = Math.min(260, window.innerWidth - 32);
+    const width = popover.offsetWidth || Math.min(180, window.innerWidth - 32);
     const left = Math.min(Math.max(16, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 16);
     const top = Math.max(16, rect.top - popover.offsetHeight - 10);
 
@@ -166,20 +164,21 @@ const timelineReactionCountScript = `
   function renderPopover(target, counts) {
     removePopover();
 
-    const total = reactions.reduce((sum, reaction) => sum + Number(counts?.[reaction.type] || 0), 0);
+    const activeReactions = reactions
+      .map((reaction) => ({ ...reaction, count: Number(counts?.[reaction.type] || 0) }))
+      .filter((reaction) => reaction.count > 0);
     const popover = document.createElement("div");
     popover.className = "timeline-reaction-count-popover";
     popover.setAttribute("role", "dialog");
     popover.setAttribute("aria-label", "Rincian reaksi");
-    popover.innerHTML = [
-      '<h4>Rincian reaksi • ' + formatNumber(total) + '</h4>',
-      ...reactions.map((reaction) => (
-        '<div class="timeline-reaction-count-popover-row">' +
-          '<span class="timeline-reaction-count-popover-label"><span aria-hidden="true">' + reaction.emoji + '</span><span>' + reaction.label + '</span></span>' +
-          '<span class="timeline-reaction-count-popover-count">' + formatNumber(counts?.[reaction.type] || 0) + '</span>' +
+    popover.innerHTML = activeReactions.length
+      ? activeReactions.map((reaction) => (
+        '<div class="timeline-reaction-count-popover-row" aria-label="' + reaction.label + ' ' + formatNumber(reaction.count) + '">' +
+          '<span aria-hidden="true">' + reaction.emoji + '</span>' +
+          '<span class="timeline-reaction-count-popover-count">' + formatNumber(reaction.count) + '</span>' +
         '</div>'
-      )),
-    ].join("");
+      )).join("")
+      : '<div class="timeline-reaction-count-popover-empty">Belum ada reaksi</div>';
 
     document.body.appendChild(popover);
     positionPopover(popover, target);
