@@ -78,14 +78,8 @@ function getReadiness(post) {
   if (!normalize(post.event_date)) missing.push("tanggal");
   if (!post.images?.length) missing.push("foto");
 
-  if (post.published) {
-    return { value: "published", label: "Tayang", missing, ready: missing.length === 0 };
-  }
-
-  if (missing.length > 0) {
-    return { value: "incomplete", label: "Belum Lengkap", missing, ready: false };
-  }
-
+  if (post.published) return { value: "published", label: "Tayang", missing, ready: missing.length === 0 };
+  if (missing.length > 0) return { value: "incomplete", label: "Belum Lengkap", missing, ready: false };
   return { value: "ready", label: "Siap Tayang", missing, ready: true };
 }
 
@@ -100,18 +94,10 @@ function postMatchesSearch(post, keyword) {
 
 function badgeStyle(type) {
   if (type === "ready" || type === "published") {
-    return {
-      background: "#dcfce7",
-      color: "#166534",
-      border: "1px solid #86efac",
-    };
+    return { background: "#dcfce7", color: "#166534", border: "1px solid #86efac" };
   }
 
-  return {
-    background: "#fef3c7",
-    color: "#92400e",
-    border: "1px solid #fcd34d",
-  };
+  return { background: "#fef3c7", color: "#92400e", border: "1px solid #fcd34d" };
 }
 
 function StatusBadge({ state }) {
@@ -140,26 +126,11 @@ function TimelineSummary({ posts }) {
 
   return (
     <div className="admin-summary-cards timeline-admin-summary">
-      <div className="admin-summary-card">
-        <strong>{posts.length}</strong>
-        <span>Total Postingan</span>
-      </div>
-      <div className="admin-summary-card">
-        <strong>{publishedCount}</strong>
-        <span>Tayang</span>
-      </div>
-      <div className="admin-summary-card">
-        <strong>{readyCount}</strong>
-        <span>Siap Tayang</span>
-      </div>
-      <div className="admin-summary-card">
-        <strong>{incompleteCount}</strong>
-        <span>Belum Lengkap</span>
-      </div>
-      <div className="admin-summary-card">
-        <strong>{draftCount}</strong>
-        <span>Draft</span>
-      </div>
+      <div className="admin-summary-card"><strong>{posts.length}</strong><span>Total Postingan</span></div>
+      <div className="admin-summary-card"><strong>{publishedCount}</strong><span>Tayang</span></div>
+      <div className="admin-summary-card"><strong>{readyCount}</strong><span>Siap Tayang</span></div>
+      <div className="admin-summary-card"><strong>{incompleteCount}</strong><span>Belum Lengkap</span></div>
+      <div className="admin-summary-card"><strong>{draftCount}</strong><span>Draft</span></div>
     </div>
   );
 }
@@ -188,11 +159,7 @@ export default function TimelineTab({ showPopup }) {
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
       const state = getReadiness(post);
-      const statusMatched =
-        statusFilter === "all" ||
-        statusFilter === state.value ||
-        (statusFilter === "draft" && !post.published);
-
+      const statusMatched = statusFilter === "all" || statusFilter === state.value || (statusFilter === "draft" && !post.published);
       return statusMatched && postMatchesSearch(post, searchTerm);
     });
   }, [posts, searchTerm, statusFilter]);
@@ -243,21 +210,16 @@ export default function TimelineTab({ showPopup }) {
     setImageFiles([]);
     setImageCaption("");
     setSetAsCover(true);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function validateBeforePublish(post) {
     const state = getReadiness(post);
-
     if (state.ready) return true;
 
     const message = `Lengkapi ${state.missing.join(", ")} sebelum postingan ditayangkan.`;
     setError(message);
     showPopup?.(message, "warning");
-
     return false;
   }
 
@@ -266,24 +228,17 @@ export default function TimelineTab({ showPopup }) {
     setError("");
 
     const payload = buildPostPayload(form);
-
     if (!payload.title) {
       setError("Judul kegiatan wajib diisi");
       return;
     }
 
     if (payload.published) {
-      const nextPost = {
-        ...(editingPost || {}),
-        ...payload,
-        images: editingPost?.images || [],
-      };
-
+      const nextPost = { ...(editingPost || {}), ...payload, images: editingPost?.images || [] };
       if (!validateBeforePublish(nextPost)) return;
     }
 
     setSaving(true);
-
     try {
       if (editingPost) {
         await sendJson(`/api/admin/timeline/posts/${editingPost.id}`, "PATCH", payload);
@@ -292,7 +247,6 @@ export default function TimelineTab({ showPopup }) {
         await sendJson("/api/admin/timeline/posts", "POST", { ...payload, published: false });
         showPopup?.("Postingan dibuat sebagai draft", "success");
       }
-
       resetForm();
       await loadPosts();
     } catch (err) {
@@ -306,7 +260,6 @@ export default function TimelineTab({ showPopup }) {
 
   async function handleTogglePublish() {
     if (!publishPost) return;
-
     if (!publishPost.published && !validateBeforePublish(publishPost)) {
       setPublishPost(null);
       return;
@@ -314,11 +267,8 @@ export default function TimelineTab({ showPopup }) {
 
     setSaving(true);
     setError("");
-
     try {
-      await sendJson(`/api/admin/timeline/posts/${publishPost.id}`, "PATCH", {
-        published: !publishPost.published,
-      });
+      await sendJson(`/api/admin/timeline/posts/${publishPost.id}`, "PATCH", { published: !publishPost.published });
       showPopup?.(publishPost.published ? "Postingan disimpan sebagai draft" : "Postingan ditayangkan", "success");
       setPublishPost(null);
       await loadPosts();
@@ -333,7 +283,6 @@ export default function TimelineTab({ showPopup }) {
 
   async function handleUpload(e) {
     e.preventDefault();
-
     if (!photoPost) return;
 
     if (!imageFiles.length) {
@@ -343,7 +292,6 @@ export default function TimelineTab({ showPopup }) {
 
     setUploading(true);
     setError("");
-
     try {
       const formData = new FormData();
       formData.append("post_id", photoPost.id);
@@ -370,7 +318,6 @@ export default function TimelineTab({ showPopup }) {
 
     setSaving(true);
     setError("");
-
     try {
       await sendJson(`/api/admin/timeline/images/${image.id}`, "PATCH", { set_as_cover: true });
       showPopup?.("Cover berhasil diperbarui", "success");
@@ -386,15 +333,31 @@ export default function TimelineTab({ showPopup }) {
   }
 
   async function handleDeleteImage(image) {
-    if (!image?.id) return;
+    if (!image?.id || !photoPost?.id) return;
 
     setSaving(true);
     setError("");
-
     try {
+      const remainingImages = (photoPost.images || []).filter((item) => item.id !== image.id);
+      const isCurrentCover = photoPost.cover_image_key === image.image_key || photoPost.cover_image_url === image.image_url;
+      const nextCover = isCurrentCover ? remainingImages[0] : null;
+
       await sendJson(`/api/admin/timeline/images/${image.id}`, "DELETE", {});
+
+      if (isCurrentCover) {
+        await sendJson(`/api/admin/timeline/posts/${photoPost.id}`, "PATCH", {
+          cover_image_key: nextCover?.image_key || "",
+          cover_image_url: nextCover?.image_url || "",
+        });
+      }
+
       showPopup?.("Foto berhasil dihapus", "success");
-      setPhotoPost((current) => current ? { ...current, images: (current.images || []).filter((item) => item.id !== image.id) } : current);
+      setPhotoPost((current) => current ? {
+        ...current,
+        images: remainingImages,
+        cover_image_key: isCurrentCover ? (nextCover?.image_key || "") : current.cover_image_key,
+        cover_image_url: isCurrentCover ? (nextCover?.image_url || "") : current.cover_image_url,
+      } : current);
       await loadPosts();
     } catch (err) {
       const message = err.message || "Gagal menghapus foto";
@@ -410,7 +373,6 @@ export default function TimelineTab({ showPopup }) {
 
     setDeletingId(deletePost.id);
     setError("");
-
     try {
       await sendJson(`/api/admin/timeline/posts/${deletePost.id}`, "DELETE", {});
       showPopup?.("Postingan berhasil dihapus", "success");
@@ -440,7 +402,6 @@ export default function TimelineTab({ showPopup }) {
         </div>
 
         {error ? <div className="admin-error-box">{error}</div> : null}
-
         <TimelineSummary posts={posts} />
 
         <div className="admin-card">
@@ -533,7 +494,7 @@ export default function TimelineTab({ showPopup }) {
                           </div>
                         </td>
                         <td className="admin-td"><StatusBadge state={state} /></td>
-                        <td className="admin-td"><span className={getPhotoBadgeClassName(photoCount)}>{photoCount > 0 ? `${photoCount} foto` : "Belum ada foto"}</span></td>
+                        <td className="admin-td"><span className={photoCount > 0 ? "timeline-admin-photo-badge ready" : "timeline-admin-photo-badge warning"}>{photoCount > 0 ? `${photoCount} foto` : "Belum ada foto"}</span></td>
                         <td className="admin-td">{Number(post.reaction_total ?? post.like_count ?? 0).toLocaleString("id-ID")}</td>
                         <td className="admin-td">
                           <div className="timeline-admin-actions">
@@ -564,7 +525,6 @@ export default function TimelineTab({ showPopup }) {
               <div className="timeline-admin-photo-grid">
                 {photoPost.images.map((image) => {
                   const isCover = photoPost.cover_image_key === image.image_key || photoPost.cover_image_url === image.image_url;
-
                   return (
                     <div key={image.id} className="timeline-admin-photo-item">
                       <img src={image.image_url} alt="" />
