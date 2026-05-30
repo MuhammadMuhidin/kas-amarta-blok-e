@@ -36,7 +36,7 @@ on:
         type: string
 
 concurrency:
-  group: send-wa-${{ inputs.targetEnv }}-${{ inputs.sessionId }}
+  group: send-wa-${{ inputs.sessionId }}
   cancel-in-progress: false
 
 jobs:
