@@ -257,7 +257,7 @@ const timelineReactionCountScript = `
     }
   }
 
-  async function refreshReactionCounts(target) {
+  async function refreshReactionCounts(target, { renderEmpty = true } = {}) {
     const article = target.closest("[id^='timeline-post-']");
     const postId = article?.id?.replace("timeline-post-", "") || "";
     if (!postId) return;
@@ -270,7 +270,13 @@ const timelineReactionCountScript = `
       const data = await response.json().catch(() => ({}));
       if (!response.ok) return;
       if (data.post?.reaction_counts) {
-        renderPopover(target, data.post.reaction_counts);
+        const latestCounts = data.post.reaction_counts;
+        if (renderEmpty || getReactionTotal(latestCounts) > 0) {
+          renderPopover(target, latestCounts);
+        } else {
+          syncSummary(target, latestCounts);
+          removePopover();
+        }
       }
     } catch {
       // Keep the already-rendered embedded counts if refresh fails.
@@ -278,8 +284,16 @@ const timelineReactionCountScript = `
   }
 
   function showReactionCounts(target) {
-    renderPopover(target, readEmbeddedCounts(target));
-    refreshReactionCounts(target);
+    const embeddedCounts = readEmbeddedCounts(target);
+
+    if (getReactionTotal(embeddedCounts) > 0) {
+      renderPopover(target, embeddedCounts);
+      refreshReactionCounts(target, { renderEmpty: true });
+      return;
+    }
+
+    renderLoadingPopover(target);
+    refreshReactionCounts(target, { renderEmpty: true });
   }
 
   document.addEventListener("pointerdown", (event) => {
