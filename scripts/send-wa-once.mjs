@@ -32,6 +32,8 @@ if (PAIR_TYPE === "CODE" && !PHONE_NUMBER) throw new Error("PHONE_NUMBER/WA_PHON
 let sock = null;
 let isConnected = false;
 let isPairingRequested = false;
+let shouldReconnect = true;
+let shouldExit = false;
 
 let lastConnectedAt = null;
 let lastDisconnectAt = null;
@@ -39,6 +41,7 @@ let isLoggedOut = false;
 let requiresRePair = false;
 
 let uploadTimer = null;
+let reconnectTimer = null;
 let isUploading = false;
 let connectResolve = null;
 let connectReject = null;
@@ -146,7 +149,7 @@ async function downloadAuth() {
 }
 
 function scheduleUpload() {
-  if (uploadTimer) return;
+  if (shouldExit || uploadTimer) return;
 
   uploadTimer = setTimeout(async () => {
     if (isUploading) return;
@@ -180,6 +183,7 @@ function formatPairingCode(code) {
 
 function finishConnect() {
   if (connectTimeout) clearTimeout(connectTimeout);
+  connectTimeout = null;
   connectResolve?.();
   connectResolve = null;
   connectReject = null;
@@ -187,6 +191,7 @@ function finishConnect() {
 
 function failConnect(err) {
   if (connectTimeout) clearTimeout(connectTimeout);
+  connectTimeout = null;
   connectReject?.(err);
   connectResolve = null;
   connectReject = null;
@@ -215,7 +220,9 @@ function handleConnectionUpdate(connection, lastDisconnect, reconnectFn) {
       return;
     }
 
-    setTimeout(reconnectFn, 3000);
+    if (!shouldReconnect || shouldExit) return;
+
+    reconnectTimer = setTimeout(reconnectFn, 3000);
   }
 }
 
@@ -256,6 +263,7 @@ async function initWithCode() {
     isPairingRequested = true;
 
     setTimeout(async () => {
+      if (shouldExit) return;
       try {
         const code = await sock.requestPairingCode(PHONE_NUMBER);
         console.log("Pairing code:", formatPairingCode(code));
@@ -309,6 +317,35 @@ async function sendMessage() {
   console.log(`sent to ${CHAT_ID}`);
 }
 
+async function closeResources() {
+  shouldExit = true;
+  shouldReconnect = false;
+
+  if (uploadTimer) clearTimeout(uploadTimer);
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  if (connectTimeout) clearTimeout(connectTimeout);
+
+  uploadTimer = null;
+  reconnectTimer = null;
+  connectTimeout = null;
+
+  try {
+    await uploadAuth();
+  } catch {}
+
+  try {
+    sock?.ws?.close?.();
+  } catch {}
+
+  try {
+    sock?.end?.();
+  } catch {}
+
+  try {
+    await pool.end();
+  } catch {}
+}
+
 async function start() {
   await ensureTables();
   await saveJob("running", "", { startedAt: new Date().toISOString(), pairType: PAIR_TYPE });
@@ -337,6 +374,8 @@ async function start() {
 
 try {
   await start();
+  await closeResources();
+  process.exit(0);
 } catch (err) {
   const message = err?.message || "Gagal mengirim WhatsApp.";
   console.log("send error:", message);
@@ -345,16 +384,6 @@ try {
     await saveJob("failed", message, { failedAt: new Date().toISOString(), pairType: PAIR_TYPE });
   } catch {}
 
-  process.exitCode = 1;
-} finally {
-  try {
-    if (uploadTimer) clearTimeout(uploadTimer);
-    await uploadAuth();
-  } catch {}
-
-  try {
-    sock?.end?.();
-  } catch {}
-
-  await pool.end();
+  await closeResources();
+  process.exit(1);
 }
