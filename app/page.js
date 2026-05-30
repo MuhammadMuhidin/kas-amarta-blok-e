@@ -52,6 +52,20 @@ const timelineInstagramRefinementCss = `
     border-radius: 999px;
     padding: 6px 8px;
     transition: background 0.16s ease;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
+  .timeline-reaction-summary,
+  .timeline-reaction-summary *,
+  .timeline-reaction-count-popover,
+  .timeline-reaction-count-popover * {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   .timeline-reaction-summary:hover,
@@ -190,6 +204,13 @@ const timelineReactionCountScript = `
       renderPopover(target, {});
     }
   }
+
+  document.addEventListener("pointerdown", (event) => {
+    const summary = event.target.closest?.(".timeline-reaction-summary");
+    if (!summary) return;
+
+    event.preventDefault();
+  }, { passive: false });
 
   document.addEventListener("click", (event) => {
     const summary = event.target.closest?.(".timeline-reaction-summary");
