@@ -6,6 +6,7 @@ import Link from "next/link";
 const VISITOR_ID_KEY = "amarta_timeline_visitor_id";
 const REACTION_POSTS_KEY = "amarta_timeline_reactions";
 const LEGACY_LIKED_POSTS_KEY = "amarta_timeline_liked_posts";
+const READ_POSTS_KEY = "amarta_timeline_read_posts";
 const GALLERY_SWIPE_THRESHOLD = 42;
 const DESCRIPTION_PREVIEW_LIMIT = 180;
 const TIMELINE_PAGE_SIZE = 6;
@@ -70,6 +71,23 @@ function writeReactionMap(nextMap) {
   if (typeof window === "undefined") return;
 
   window.localStorage.setItem(REACTION_POSTS_KEY, JSON.stringify(nextMap));
+}
+
+function readReadPostIds() {
+  if (typeof window === "undefined") return new Set();
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(READ_POSTS_KEY) || "[]");
+    return new Set(Array.isArray(parsed) ? parsed.filter(Boolean) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function writeReadPostIds(nextSet) {
+  if (typeof window === "undefined") return;
+
+  window.localStorage.setItem(READ_POSTS_KEY, JSON.stringify([...nextSet]));
 }
 
 function formatDate(value) {
@@ -252,6 +270,7 @@ export default function TimelineClient() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
   const [reactionMap, setReactionMap] = useState({});
+  const [readPostIds, setReadPostIds] = useState(() => new Set());
   const [reactingIds, setReactingIds] = useState(() => new Set());
   const [animatedReactionIds, setAnimatedReactionIds] = useState(() => new Set());
   const [expandedPostIds, setExpandedPostIds] = useState(() => new Set());
@@ -319,6 +338,7 @@ export default function TimelineClient() {
 
   useEffect(() => {
     setReactionMap(readReactionMap());
+    setReadPostIds(readReadPostIds());
   }, []);
 
   useEffect(() => {
@@ -336,6 +356,7 @@ export default function TimelineClient() {
     const hasSharedPost = posts.some((post) => post.id === sharedPostId);
 
     if (hasSharedPost) {
+      markPostRead(sharedPostId);
       setHighlightPostId(sharedPostId);
       window.setTimeout(() => {
         document.getElementById(`timeline-post-${sharedPostId}`)?.scrollIntoView({
@@ -431,6 +452,33 @@ export default function TimelineClient() {
     return selectedGallery.images[selectedGallery.index] || null;
   }, [selectedGallery]);
 
+  function markPostRead(postId) {
+    if (!postId) return;
+
+    setReadPostIds((current) => {
+      if (current.has(postId)) return current;
+
+      const next = new Set(current);
+      next.add(postId);
+      writeReadPostIds(next);
+      return next;
+    });
+  }
+
+  function scrollToPost(postId) {
+    markPostRead(postId);
+    setHighlightPostId(postId);
+    document.getElementById(`timeline-post-${postId}`)?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+    window.setTimeout(() => setHighlightPostId(""), HIGHLIGHT_DELAY);
+  }
+
+  function openThemePicker() {
+    document.querySelector(".public-theme-button")?.click();
+  }
+
   function persistReaction(postId, reactionType) {
     setReactionMap((current) => {
       const next = { ...current };
@@ -481,6 +529,7 @@ export default function TimelineClient() {
 
     if (!images.length) return;
 
+    markPostRead(post.id);
     setGallerySwipeDirection("");
     setSelectedGallery({
       postTitle: post.title,
@@ -610,14 +659,37 @@ export default function TimelineClient() {
           Ruang informasi kegiatan warga,
           dan dokumentasi lingkungan.
         </p>
-        <div className="timeline-hero-actions">
-          <Link className="timeline-kas-link" href="/kas">
-            Lihat Kas Warga
-          </Link>
-        </div>
       </header>
 
       {error ? <div className="timeline-alert">{error}</div> : null}
+
+      {!loading && hasPosts ? (
+        <section className="timeline-story-rail" aria-label="Navigasi postingan kegiatan">
+          {posts.map((post, index) => {
+            const coverImage = getCoverImage(post);
+            const isRead = readPostIds.has(post.id);
+
+            return (
+              <button
+                key={post.id}
+                type="button"
+                className={`timeline-story-item${isRead ? " read" : " unread"}`}
+                onClick={() => scrollToPost(post.id)}
+                aria-label={`Buka postingan ${post.title || index + 1}`}
+              >
+                <span className="timeline-story-ring">
+                  {coverImage ? (
+                    <img src={coverImage.image_url} alt="" />
+                  ) : (
+                    <span aria-hidden="true">A</span>
+                  )}
+                </span>
+                <small>{post.category || `Post ${index + 1}`}</small>
+              </button>
+            );
+          })}
+        </section>
+      ) : null}
 
       {loading ? <TimelineSkeleton /> : null}
 
@@ -786,6 +858,21 @@ export default function TimelineClient() {
           ↑
         </button>
       ) : null}
+
+      <nav className="timeline-bottom-nav" aria-label="Navigasi utama">
+        <button type="button" className="timeline-bottom-nav-item" onClick={scrollToTop}>
+          <span aria-hidden="true">⌂</span>
+          <strong>Beranda</strong>
+        </button>
+        <Link className="timeline-bottom-nav-item" href="/kas">
+          <span aria-hidden="true">Rp</span>
+          <strong>Kas Warga</strong>
+        </Link>
+        <button type="button" className="timeline-bottom-nav-item" onClick={openThemePicker}>
+          <span aria-hidden="true">🎨</span>
+          <strong>Tema</strong>
+        </button>
+      </nav>
 
       {selectedGallery && selectedGalleryImage ? (
         <div className="timeline-gallery-overlay" onClick={() => setSelectedGallery(null)}>
