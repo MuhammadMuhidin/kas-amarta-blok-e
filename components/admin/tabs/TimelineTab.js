@@ -13,6 +13,12 @@ const emptyForm = {
   published: false,
 };
 
+const timelineStatusFilters = [
+  { value: "all", label: "Semua" },
+  { value: "published", label: "Tayang" },
+  { value: "draft", label: "Draft" },
+];
+
 function normalize(value) {
   return String(value || "").trim();
 }
@@ -47,6 +53,25 @@ function buildPostPayload(form) {
   };
 }
 
+function getPostPreviewUrl(postId) {
+  if (typeof window === "undefined") return `/?post=${postId}`;
+
+  const url = new URL(window.location.origin);
+  url.pathname = "/";
+  url.searchParams.set("post", postId);
+
+  return url.toString();
+}
+
+function postMatchesSearch(post, keyword) {
+  const search = normalize(keyword).toLowerCase();
+
+  if (!search) return true;
+
+  return [post.title, post.description, post.category, formatDate(post.event_date || post.created_at)]
+    .some((value) => String(value || "").toLowerCase().includes(search));
+}
+
 function TimelineSummary({ posts }) {
   const publishedCount = posts.filter((post) => post.published).length;
   const draftCount = posts.length - publishedCount;
@@ -59,7 +84,7 @@ function TimelineSummary({ posts }) {
       </div>
       <div className="admin-summary-card">
         <strong>{publishedCount}</strong>
-        <span>Published</span>
+        <span>Tayang</span>
       </div>
       <div className="admin-summary-card">
         <strong>{draftCount}</strong>
@@ -84,9 +109,20 @@ export default function TimelineTab({ showPopup }) {
   const [imageFile, setImageFile] = useState(null);
   const [imageCaption, setImageCaption] = useState("");
   const [setAsCover, setSetAsCover] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
   const fileInputRef = useRef(null);
 
-  const sortedPosts = useMemo(() => posts, [posts]);
+  const sortedPosts = useMemo(() => {
+    return posts.filter((post) => {
+      const statusMatched =
+        statusFilter === "all" ||
+        (statusFilter === "published" && post.published) ||
+        (statusFilter === "draft" && !post.published);
+
+      return statusMatched && postMatchesSearch(post, searchTerm);
+    });
+  }, [posts, searchTerm, statusFilter]);
 
   async function loadPosts() {
     try {
@@ -119,6 +155,12 @@ export default function TimelineTab({ showPopup }) {
       event_date: post.event_date || "",
       published: post.published === true,
     });
+  }
+
+  function openPreview(post) {
+    if (!post?.id) return;
+
+    window.open(getPostPreviewUrl(post.id), "_blank", "noopener,noreferrer");
   }
 
   function resetUploadState() {
@@ -175,7 +217,7 @@ export default function TimelineTab({ showPopup }) {
       await sendJson(`/api/admin/timeline/posts/${publishPost.id}`, "PATCH", {
         published: !publishPost.published,
       });
-      showPopup?.(publishPost.published ? "Kegiatan dipindahkan ke draft" : "Kegiatan dipublikasikan", "success");
+      showPopup?.(publishPost.published ? "Kegiatan dipindahkan ke draft" : "Kegiatan ditayangkan", "success");
       setPublishPost(null);
       await loadPosts();
     } catch (err) {
@@ -265,7 +307,7 @@ export default function TimelineTab({ showPopup }) {
           <div className="timeline-admin-form-header">
             <div>
               <h3>{editingPost ? "Edit Kegiatan" : "Tambah Kegiatan"}</h3>
-              <p>Isi judul, deskripsi, kategori, tanggal, lalu publish jika siap tampil di publik.</p>
+              <p>Isi judul, deskripsi, kategori, tanggal, lalu tayangkan jika siap tampil di publik.</p>
             </div>
             {editingPost ? (
               <button type="button" className="admin-small-btn" onClick={resetForm}>
@@ -307,7 +349,7 @@ export default function TimelineTab({ showPopup }) {
                 checked={form.published}
                 onChange={(e) => setForm((current) => ({ ...current, published: e.target.checked }))}
               />
-              <span>Publish ke halaman utama</span>
+              <span>Tayangkan ke halaman utama</span>
             </label>
             <button className="admin-btn" disabled={saving}>
               <LoadingButtonContent loading={saving} loadingText="Menyimpan...">
@@ -321,14 +363,37 @@ export default function TimelineTab({ showPopup }) {
           <div className="timeline-admin-form-header">
             <div>
               <h3>Daftar Kegiatan</h3>
-              <p>Upload foto, publish/unpublish, edit, atau hapus postingan kegiatan.</p>
+              <p>Upload foto, tayangkan/jadikan draft, edit, preview, atau hapus postingan kegiatan.</p>
+            </div>
+          </div>
+
+          <div className="timeline-admin-grid" style={{ marginBottom: 12 }}>
+            <input
+              className="admin-input"
+              placeholder="Cari judul, kategori, tanggal..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <div className="timeline-admin-actions">
+              {timelineStatusFilters.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  className={statusFilter === item.value ? "admin-small-btn active" : "admin-small-btn"}
+                  onClick={() => setStatusFilter(item.value)}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           </div>
 
           {loading ? (
             <p>Loading kegiatan...</p>
-          ) : sortedPosts.length === 0 ? (
+          ) : posts.length === 0 ? (
             <div className="admin-empty-state">Belum ada kegiatan warga.</div>
+          ) : sortedPosts.length === 0 ? (
+            <div className="admin-empty-state">Tidak ada kegiatan yang sesuai filter.</div>
           ) : (
             <div className="admin-table-wrapper">
               <table className="admin-table timeline-admin-table">
@@ -338,7 +403,7 @@ export default function TimelineTab({ showPopup }) {
                     <th className="admin-th">Tanggal</th>
                     <th className="admin-th">Status</th>
                     <th className="admin-th">Foto</th>
-                    <th className="admin-th">Like</th>
+                    <th className="admin-th">Reaksi</th>
                     <th className="admin-th">Aksi</th>
                   </tr>
                 </thead>
@@ -352,18 +417,21 @@ export default function TimelineTab({ showPopup }) {
                       <td className="admin-td">{formatDate(post.event_date || post.created_at)}</td>
                       <td className="admin-td">
                         <span className={statusClassName(post.published)}>
-                          {post.published ? "Published" : "Draft"}
+                          {post.published ? "Tayang" : "Draft"}
                         </span>
                       </td>
                       <td className="admin-td">{post.images?.length || 0}</td>
-                      <td className="admin-td">{Number(post.like_count || 0).toLocaleString("id-ID")}</td>
+                      <td className="admin-td">{Number(post.reaction_total ?? post.like_count ?? 0).toLocaleString("id-ID")}</td>
                       <td className="admin-td">
                         <div className="timeline-admin-actions">
+                          <button className="admin-small-btn" type="button" onClick={() => openEdit(post)}>
+                            Edit
+                          </button>
                           <button className="admin-small-btn" type="button" onClick={() => setUploadPost(post)}>
                             Foto
                           </button>
-                          <button className="admin-small-btn" type="button" onClick={() => openEdit(post)}>
-                            Edit
+                          <button className="admin-small-btn" type="button" onClick={() => openPreview(post)}>
+                            Preview
                           </button>
                           <button
                             className="admin-small-btn"
@@ -371,7 +439,7 @@ export default function TimelineTab({ showPopup }) {
                             disabled={saving}
                             onClick={() => setPublishPost(post)}
                           >
-                            {post.published ? "Draft" : "Publish"}
+                            {post.published ? "Jadikan Draft" : "Tayangkan"}
                           </button>
                           <button className="admin-small-btn timeline-danger-btn" type="button" onClick={() => setDeletePost(post)}>
                             Hapus
@@ -430,7 +498,7 @@ export default function TimelineTab({ showPopup }) {
       {publishPost ? (
         <div className={modalStyles.overlay} onClick={() => setPublishPost(null)}>
           <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
-            <h3>{publishPost.published ? "Pindahkan ke Draft?" : "Publish Kegiatan?"}</h3>
+            <h3>{publishPost.published ? "Jadikan Draft?" : "Tayangkan Kegiatan?"}</h3>
             <p>
               {publishPost.published
                 ? `Kegiatan "${publishPost.title}" akan disembunyikan dari halaman utama warga.`
@@ -442,7 +510,7 @@ export default function TimelineTab({ showPopup }) {
               </button>
               <button type="button" className="admin-small-btn" onClick={handleTogglePublish} disabled={saving}>
                 <LoadingButtonContent loading={saving} loadingText="Menyimpan...">
-                  {publishPost.published ? "Pindahkan ke Draft" : "Publish"}
+                  {publishPost.published ? "Jadikan Draft" : "Tayangkan"}
                 </LoadingButtonContent>
               </button>
             </div>
