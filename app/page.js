@@ -117,6 +117,31 @@ const timelineInstagramRefinementCss = `
     white-space: nowrap;
   }
 
+  .timeline-reaction-count-popover-loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 850;
+    white-space: nowrap;
+  }
+
+  .timeline-reaction-count-popover-loading::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    border: 2px solid color-mix(in srgb, var(--primary) 28%, transparent);
+    border-top-color: var(--primary);
+    border-radius: 999px;
+    animation: timelineReactionPopoverSpin 0.7s linear infinite;
+  }
+
+  @keyframes timelineReactionPopoverSpin {
+    to { transform: rotate(360deg); }
+  }
+
   .timeline-reaction-count-popover-count {
     color: var(--muted);
     font-variant-numeric: tabular-nums;
@@ -161,17 +186,29 @@ const timelineReactionCountScript = `
     popover.style.top = top + "px";
   }
 
-  function renderPopover(target, counts) {
+  function createPopover(target, html, label = "Rincian reaksi") {
     removePopover();
 
-    const activeReactions = reactions
-      .map((reaction) => ({ ...reaction, count: Number(counts?.[reaction.type] || 0) }))
-      .filter((reaction) => reaction.count > 0);
     const popover = document.createElement("div");
     popover.className = "timeline-reaction-count-popover";
     popover.setAttribute("role", "dialog");
-    popover.setAttribute("aria-label", "Rincian reaksi");
-    popover.innerHTML = activeReactions.length
+    popover.setAttribute("aria-label", label);
+    popover.innerHTML = html;
+
+    document.body.appendChild(popover);
+    positionPopover(popover, target);
+    return popover;
+  }
+
+  function renderLoadingPopover(target) {
+    createPopover(target, '<div class="timeline-reaction-count-popover-loading">Memuat</div>', "Memuat rincian reaksi");
+  }
+
+  function renderPopover(target, counts) {
+    const activeReactions = reactions
+      .map((reaction) => ({ ...reaction, count: Number(counts?.[reaction.type] || 0) }))
+      .filter((reaction) => reaction.count > 0);
+    const html = activeReactions.length
       ? activeReactions.map((reaction) => (
         '<div class="timeline-reaction-count-popover-row" aria-label="' + reaction.label + ' ' + formatNumber(reaction.count) + '">' +
           '<span aria-hidden="true">' + reaction.emoji + '</span>' +
@@ -180,8 +217,7 @@ const timelineReactionCountScript = `
       )).join("")
       : '<div class="timeline-reaction-count-popover-empty">Belum ada reaksi</div>';
 
-    document.body.appendChild(popover);
-    positionPopover(popover, target);
+    createPopover(target, html);
   }
 
   async function showReactionCounts(target) {
@@ -189,7 +225,7 @@ const timelineReactionCountScript = `
     const postId = article?.id?.replace("timeline-post-", "") || "";
     if (!postId) return;
 
-    renderPopover(target, {});
+    renderLoadingPopover(target);
 
     try {
       const response = await fetch("/api/timeline/posts?post=" + encodeURIComponent(postId) + "&t=" + Date.now(), {
@@ -200,7 +236,7 @@ const timelineReactionCountScript = `
       if (!response.ok) throw new Error(data.error || "Gagal membaca reaksi");
       renderPopover(target, data.post?.reaction_counts || {});
     } catch {
-      renderPopover(target, {});
+      removePopover();
     }
   }
 
