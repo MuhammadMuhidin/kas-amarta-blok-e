@@ -1,9 +1,6 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import { getCurrentPeriod } from "@/lib/depositUtils";
 import { useEffect, useMemo, useState } from "react";
-
-function getCurrentPeriod() {
-  return new Date().toISOString().slice(0, 7);
-}
 
 const START_PAYMENT_PERIOD = "2026-02";
 
