@@ -28,7 +28,7 @@ export default function useAdminDerivedState({
   normalize,
 }) {
   const nextSixPeriods = useMemo(
-    () => Array.from({ length: 6 }).map((_, index) => addMonths(currentPeriod, index + 2)),
+    () => Array.from({ length: 6 }).map((_, index) => addMonths(currentPeriod, index + 1)),
     [currentPeriod],
   );
 
