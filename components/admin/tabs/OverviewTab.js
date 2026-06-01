@@ -112,8 +112,10 @@ function formatPeriod(period) {
   });
 }
 
-function sortUnpaidMembers(items) {
-  return [...items].sort((a, b) => normalize(a.house).localeCompare(normalize(b.house), "id-ID", { numeric: true }));
+function sortMembers(items) {
+  return [...items].sort((a, b) =>
+    normalize(a.house).localeCompare(normalize(b.house), "id-ID", { numeric: true }),
+  );
 }
 
 function Section({ title, children }) {
@@ -143,7 +145,7 @@ function AlertItem({ tone = "info", title, detail, action, onClick }) {
   );
 }
 
-function UnpaidDetailModal({ open, title, members, onClose }) {
+function DetailMembersModal({ open, title, members, statusText, emptyText, onClose }) {
   if (!open) return null;
 
   return (
@@ -152,7 +154,7 @@ function UnpaidDetailModal({ open, title, members, onClose }) {
         <div className="modal-header">
           <div>
             <div className="modal-title">{title}</div>
-            <div className="modal-section">{members.length} rumah belum bayar.</div>
+            <div className="modal-section">{members.length} rumah {statusText}.</div>
           </div>
         </div>
 
@@ -167,7 +169,7 @@ function UnpaidDetailModal({ open, title, members, onClose }) {
           <tbody>
             {members.length === 0 ? (
               <tr>
-                <td colSpan={3}>Semua rumah sudah bayar.</td>
+                <td colSpan={3}>{emptyText}</td>
               </tr>
             ) : members.map((person, index) => (
               <tr key={person.id || `${person.house}-${index}`}>
@@ -201,6 +203,7 @@ export default function OverviewTab({
   const [reportPreview, setReportPreview] = useState("");
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [unpaidDetail, setUnpaidDetail] = useState(null);
+  const [showPaidTrashDetail, setShowPaidTrashDetail] = useState(false);
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
 
   function showToast(type, message) {
@@ -255,7 +258,7 @@ export default function OverviewTab({
       .map((payment) => normalize(payment.person_house || payment.house || payment.person_id)),
   );
   const paidCurrentCount = activeCurrentMembers.filter((person) => paidCurrentKeys.has(normalize(person.house))).length;
-  const unpaidCurrentMembers = sortUnpaidMembers(activeCurrentMembers.filter((person) => !paidCurrentKeys.has(normalize(person.house))));
+  const unpaidCurrentMembers = sortMembers(activeCurrentMembers.filter((person) => !paidCurrentKeys.has(normalize(person.house))));
   const unpaidCurrentCount = unpaidCurrentMembers.length;
   const trashPaidPersonIds = new Set(
     trashRecords
@@ -264,8 +267,9 @@ export default function OverviewTab({
       .map((payment) => normalize(payment.person_id))
       .filter(Boolean),
   );
-  const paidCurrentTrashCount = activeCurrentTrashMembers.filter((person) => trashPaidPersonIds.has(normalize(person.id))).length;
-  const unpaidCurrentTrashMembers = sortUnpaidMembers(activeCurrentTrashMembers.filter((person) => !trashPaidPersonIds.has(normalize(person.id))));
+  const paidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => trashPaidPersonIds.has(normalize(person.id))));
+  const paidCurrentTrashCount = paidCurrentTrashMembers.length;
+  const unpaidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => !trashPaidPersonIds.has(normalize(person.id))));
   const unpaidCurrentTrashCount = unpaidCurrentTrashMembers.length;
 
   const currentMonthCashflows = cashflows.filter((item) => String(item.date || "").slice(0, 7) === currentPeriod);
@@ -340,7 +344,7 @@ export default function OverviewTab({
             <MonitoringCard label="Pemasukan Bulan Ini" value={money(currentIncome)} meta={[`Periode ${periodLabel}`]} />
             <MonitoringCard label="Pengeluaran Bulan Ini" value={money(currentExpense)} meta={[`Periode ${periodLabel}`]} />
             <MonitoringCard label="Pembayaran Bulan Ini (Kas)" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} metaActions={unpaidCurrentCount > 0 ? [{ label: "Lihat detail", onClick: () => setUnpaidDetail({ title: "Detail Belum Bayar Kas", members: unpaidCurrentMembers }) }] : []} error={unpaidCurrentCount > 0} />
-            <MonitoringCard label="Pembayaran Bulan Ini (Sampah)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} rumah`} meta={[`${unpaidCurrentTrashCount} rumah belum bayar.`]} metaActions={unpaidCurrentTrashCount > 0 ? [{ label: "Lihat detail", onClick: () => setUnpaidDetail({ title: "Detail Belum Bayar Sampah", members: unpaidCurrentTrashMembers }) }] : []} error={unpaidCurrentTrashCount > 0} />
+            <MonitoringCard label="Pembayaran Bulan Ini (Sampah)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} rumah`} meta={[`${unpaidCurrentTrashCount} rumah belum bayar.`, `${paidCurrentTrashCount} rumah sudah bayar.`]} metaActions={[unpaidCurrentTrashCount > 0 ? { label: "Lihat detail", onClick: () => setUnpaidDetail({ title: "Detail Belum Bayar Sampah", members: unpaidCurrentTrashMembers }) } : null, { label: "Lihat detail", onClick: () => setShowPaidTrashDetail(true) }]} error={unpaidCurrentTrashCount > 0} />
             <MonitoringCard label="Ready Booking" value={`${readyBookings.length} rumah`} meta={[`${waitingBookings.length} booking menunggu periode bayar.`]} error={readyBookings.length > 0} />
             <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
           </div>
@@ -352,9 +356,7 @@ export default function OverviewTab({
               <div style={styles.reportTitle}>Kirim rekap kas ke grup WhatsApp</div>
               <div style={styles.reportDetail}>Review isi pesan terlebih dulu sebelum dikirim ke grup warga.</div>
             </div>
-            <AdminActionButton onClick={openResidentReportConfirm} loading={loadingReportPreview} loadingText="Memuat preview..." disabled={sendingReport}>
-              Kirim Rekap ke Grup WhatsApp
-            </AdminActionButton>
+            <AdminActionButton onClick={openResidentReportConfirm} loading={loadingReportPreview} loadingText="Memuat preview..." disabled={sendingReport}>Kirim Rekap ke Grup WhatsApp</AdminActionButton>
           </div>
         </Section>
 
@@ -418,23 +420,10 @@ export default function OverviewTab({
         </Section>
       </div>
 
-      <UnpaidDetailModal
-        open={Boolean(unpaidDetail)}
-        title={unpaidDetail?.title || "Detail Belum Bayar"}
-        members={unpaidDetail?.members || []}
-        onClose={() => setUnpaidDetail(null)}
-      />
+      <DetailMembersModal open={Boolean(unpaidDetail)} title={unpaidDetail?.title || "Detail Belum Bayar"} members={unpaidDetail?.members || []} statusText="belum bayar" emptyText="Semua rumah sudah bayar." onClose={() => setUnpaidDetail(null)} />
+      <DetailMembersModal open={showPaidTrashDetail} title="Detail Sudah Bayar Sampah" members={paidCurrentTrashMembers} statusText="sudah bayar" emptyText="Belum ada rumah yang sudah bayar sampah bulan ini." onClose={() => setShowPaidTrashDetail(false)} />
 
-      <AdminConfirmModal
-        open={showReportConfirm}
-        title="Konfirmasi kirim rekap warga"
-        description="Pastikan isi pesan sudah benar sebelum dikirim ke grup WhatsApp."
-        confirmText="Kirim ke Grup"
-        cancelText="Cek Lagi"
-        loading={sendingReport}
-        onCancel={closeReportConfirm}
-        onConfirm={sendResidentReport}
-      >
+      <AdminConfirmModal open={showReportConfirm} title="Konfirmasi kirim rekap warga" description="Pastikan isi pesan sudah benar sebelum dikirim ke grup WhatsApp." confirmText="Kirim ke Grup" cancelText="Cek Lagi" loading={sendingReport} onCancel={closeReportConfirm} onConfirm={sendResidentReport}>
         <pre style={styles.previewBox}>{reportPreview}</pre>
       </AdminConfirmModal>
     </>
@@ -442,92 +431,16 @@ export default function OverviewTab({
 }
 
 const styles = {
-  header: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-  muted: {
-    color: "var(--admin-muted)",
-    fontSize: 13,
-    fontWeight: 600,
-    lineHeight: 1.6,
-  },
-  periodBadge: {
-    padding: "8px 12px",
-    borderRadius: 999,
-    border: "1px solid var(--admin-border)",
-    background: "var(--admin-row)",
-    color: "var(--admin-muted)",
-    fontSize: 12,
-    fontWeight: 800,
-  },
-  quickActions: {
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-  },
-  reportCard: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 14,
-    padding: 16,
-    borderRadius: 16,
-    border: "1px solid var(--admin-border)",
-    background: "var(--admin-row)",
-    flexWrap: "wrap",
-  },
-  reportTitle: {
-    fontSize: 15,
-    fontWeight: 900,
-    marginBottom: 4,
-  },
-  reportDetail: {
-    color: "var(--admin-muted)",
-    fontSize: 12,
-    fontWeight: 600,
-    lineHeight: 1.5,
-  },
-  previewBox: {
-    margin: 0,
-    padding: 14,
-    borderRadius: 14,
-    border: "1px solid var(--admin-border)",
-    background: "var(--admin-row)",
-    color: "var(--admin-text)",
-    fontFamily: "inherit",
-    fontSize: 13,
-    fontWeight: 600,
-    lineHeight: 1.55,
-    whiteSpace: "pre-wrap",
-    wordBreak: "break-word",
-  },
-  alertList: {
-    display: "grid",
-    gap: 10,
-  },
-  alertItem: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    padding: 14,
-    borderRadius: 14,
-    border: "1px solid var(--admin-border)",
-    background: "var(--admin-row)",
-  },
-  alertTitle: {
-    fontSize: 14,
-    fontWeight: 800,
-    marginBottom: 4,
-  },
-  alertDetail: {
-    color: "var(--admin-muted)",
-    fontSize: 12,
-    fontWeight: 600,
-    lineHeight: 1.5,
-  },
+  header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
+  muted: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 600, lineHeight: 1.6 },
+  periodBadge: { padding: "8px 12px", borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-muted)", fontSize: 12, fontWeight: 800 },
+  quickActions: { display: "flex", gap: 10, flexWrap: "wrap" },
+  reportCard: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, padding: 16, borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
+  reportTitle: { fontSize: 15, fontWeight: 900, marginBottom: 4 },
+  reportDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
+  previewBox: { margin: 0, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", fontFamily: "inherit", fontSize: 13, fontWeight: 600, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word" },
+  alertList: { display: "grid", gap: 10 },
+  alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
+  alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
+  alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
 };
