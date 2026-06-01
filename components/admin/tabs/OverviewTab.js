@@ -36,6 +36,10 @@ function formatPeriod(period) {
   });
 }
 
+function sortUnpaidMembers(items) {
+  return [...items].sort((a, b) => normalize(a.house).localeCompare(normalize(b.house), "id-ID", { numeric: true }));
+}
+
 function Section({ title, children }) {
   return (
     <section style={{ display: "grid", gap: 12 }}>
@@ -63,6 +67,46 @@ function AlertItem({ tone = "info", title, detail, action, onClick }) {
   );
 }
 
+function UnpaidDetailModal({ open, title, members, onClose }) {
+  if (!open) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <div className="modal-title">{title}</div>
+            <div className="modal-section">{members.length} rumah belum bayar.</div>
+          </div>
+        </div>
+
+        <table className="detail-table" style={{ marginLeft: "auto", marginRight: "auto" }}>
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Rumah</th>
+              <th>Nama</th>
+            </tr>
+          </thead>
+          <tbody>
+            {members.length === 0 ? (
+              <tr>
+                <td colSpan={3}>Semua rumah sudah bayar.</td>
+              </tr>
+            ) : members.map((person, index) => (
+              <tr key={person.id || `${person.house}-${index}`}>
+                <td>{index + 1}</td>
+                <td>{person.house || "-"}</td>
+                <td>{person.name || "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export default function OverviewTab({
   personal,
   payments,
@@ -80,6 +124,7 @@ export default function OverviewTab({
   const [loadingReportPreview, setLoadingReportPreview] = useState(false);
   const [reportPreview, setReportPreview] = useState("");
   const [showReportConfirm, setShowReportConfirm] = useState(false);
+  const [unpaidDetail, setUnpaidDetail] = useState(null);
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
 
   function showToast(type, message) {
@@ -134,7 +179,8 @@ export default function OverviewTab({
       .map((payment) => normalize(payment.person_house || payment.house || payment.person_id)),
   );
   const paidCurrentCount = activeCurrentMembers.filter((person) => paidCurrentKeys.has(normalize(person.house))).length;
-  const unpaidCurrentCount = Math.max(activeCurrentMembers.length - paidCurrentCount, 0);
+  const unpaidCurrentMembers = sortUnpaidMembers(activeCurrentMembers.filter((person) => !paidCurrentKeys.has(normalize(person.house))));
+  const unpaidCurrentCount = unpaidCurrentMembers.length;
   const trashPaidPersonIds = new Set(
     trashRecords
       .map((trash) => paymentById.get(normalize(trash.payment_id)))
@@ -143,7 +189,8 @@ export default function OverviewTab({
       .filter(Boolean),
   );
   const paidCurrentTrashCount = activeCurrentTrashMembers.filter((person) => trashPaidPersonIds.has(normalize(person.id))).length;
-  const unpaidCurrentTrashCount = Math.max(activeCurrentTrashMembers.length - paidCurrentTrashCount, 0);
+  const unpaidCurrentTrashMembers = sortUnpaidMembers(activeCurrentTrashMembers.filter((person) => !trashPaidPersonIds.has(normalize(person.id))));
+  const unpaidCurrentTrashCount = unpaidCurrentTrashMembers.length;
 
   const currentMonthCashflows = cashflows.filter((item) => String(item.date || "").slice(0, 7) === currentPeriod);
   const currentIncome = currentMonthCashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
@@ -215,8 +262,8 @@ export default function OverviewTab({
             <MonitoringCard label="Saldo Kas" value={money(currentBalance)} meta={["Income dikurangi expense semua periode."]} error={currentBalance < 0} />
             <MonitoringCard label="Pemasukan Bulan Ini" value={money(currentIncome)} meta={[`Periode ${periodLabel}`]} />
             <MonitoringCard label="Pengeluaran Bulan Ini" value={money(currentExpense)} meta={[`Periode ${periodLabel}`]} />
-            <MonitoringCard label="Pembayaran Bulan Ini (Kas)" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} error={unpaidCurrentCount > 0} />
-            <MonitoringCard label="Pembayaran Bulan Ini (Sampah)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} rumah`} meta={[`${unpaidCurrentTrashCount} rumah belum bayar.`]} error={unpaidCurrentTrashCount > 0} />
+            <MonitoringCard label="Pembayaran Bulan Ini (Kas)" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} metaActions={unpaidCurrentCount > 0 ? [{ label: "Lihat detail", onClick: () => setUnpaidDetail({ title: "Detail Belum Bayar Kas", members: unpaidCurrentMembers }) }] : []} error={unpaidCurrentCount > 0} />
+            <MonitoringCard label="Pembayaran Bulan Ini (Sampah)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} rumah`} meta={[`${unpaidCurrentTrashCount} rumah belum bayar.`]} metaActions={unpaidCurrentTrashCount > 0 ? [{ label: "Lihat detail", onClick: () => setUnpaidDetail({ title: "Detail Belum Bayar Sampah", members: unpaidCurrentTrashMembers }) }] : []} error={unpaidCurrentTrashCount > 0} />
             <MonitoringCard label="Ready Booking" value={`${readyBookings.length} rumah`} meta={[`${waitingBookings.length} booking menunggu periode bayar.`]} error={readyBookings.length > 0} />
             <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
           </div>
@@ -293,6 +340,13 @@ export default function OverviewTab({
           )}
         </Section>
       </div>
+
+      <UnpaidDetailModal
+        open={Boolean(unpaidDetail)}
+        title={unpaidDetail?.title || "Detail Belum Bayar"}
+        members={unpaidDetail?.members || []}
+        onClose={() => setUnpaidDetail(null)}
+      />
 
       <AdminConfirmModal
         open={showReportConfirm}
