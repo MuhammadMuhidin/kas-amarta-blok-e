@@ -9,6 +9,7 @@ import { useState } from "react";
 
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
+const normalizeUpper = (value) => normalize(value).toUpperCase();
 
 function formatDate(value) {
   if (!value) return "-";
@@ -65,6 +66,7 @@ function AlertItem({ tone = "info", title, detail, action, onClick }) {
 export default function OverviewTab({
   personal,
   payments,
+  trashRecords,
   cashflows,
   sortedDeposits,
   currentPeriod,
@@ -124,6 +126,8 @@ export default function OverviewTab({
 
   const activeMembers = personal.filter((person) => person.active === "Y");
   const activeCurrentMembers = activeMembers.filter((person) => !person.join_date || String(person.join_date).slice(0, 7) <= currentPeriod);
+  const activeCurrentTrashMembers = activeCurrentMembers.filter((person) => normalizeUpper(person.trash) === "Y");
+  const paymentById = new Map(payments.map((payment) => [normalize(payment.id), payment]));
   const paidCurrentKeys = new Set(
     payments
       .filter((payment) => String(payment.period || "").slice(0, 7) === currentPeriod)
@@ -131,6 +135,15 @@ export default function OverviewTab({
   );
   const paidCurrentCount = activeCurrentMembers.filter((person) => paidCurrentKeys.has(normalize(person.house))).length;
   const unpaidCurrentCount = Math.max(activeCurrentMembers.length - paidCurrentCount, 0);
+  const trashPaidPersonIds = new Set(
+    trashRecords
+      .map((trash) => paymentById.get(normalize(trash.payment_id)))
+      .filter((payment) => payment && String(payment.date || "").slice(0, 7) === currentPeriod)
+      .map((payment) => normalize(payment.person_id))
+      .filter(Boolean),
+  );
+  const paidCurrentTrashCount = activeCurrentTrashMembers.filter((person) => trashPaidPersonIds.has(normalize(person.id))).length;
+  const unpaidCurrentTrashCount = Math.max(activeCurrentTrashMembers.length - paidCurrentTrashCount, 0);
 
   const currentMonthCashflows = cashflows.filter((item) => String(item.date || "").slice(0, 7) === currentPeriod);
   const currentIncome = currentMonthCashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
@@ -149,7 +162,14 @@ export default function OverviewTab({
   const alerts = [
     unpaidCurrentCount > 0 && {
       tone: "warning",
-      title: `${unpaidCurrentCount} rumah belum bayar bulan ini`,
+      title: `${unpaidCurrentCount} rumah belum bayar kas bulan ini`,
+      detail: `Periode ${periodLabel} masih perlu ditagih atau dicek.`,
+      action: "Buka Payment",
+      tab: "payment",
+    },
+    unpaidCurrentTrashCount > 0 && {
+      tone: "warning",
+      title: `${unpaidCurrentTrashCount} rumah belum bayar sampah bulan ini`,
       detail: `Periode ${periodLabel} masih perlu ditagih atau dicek.`,
       action: "Buka Payment",
       tab: "payment",
@@ -195,7 +215,8 @@ export default function OverviewTab({
             <MonitoringCard label="Saldo Kas" value={money(currentBalance)} meta={["Income dikurangi expense semua periode."]} error={currentBalance < 0} />
             <MonitoringCard label="Pemasukan Bulan Ini" value={money(currentIncome)} meta={[`Periode ${periodLabel}`]} />
             <MonitoringCard label="Pengeluaran Bulan Ini" value={money(currentExpense)} meta={[`Periode ${periodLabel}`]} />
-            <MonitoringCard label="Pembayaran Bulan Ini" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} error={unpaidCurrentCount > 0} />
+            <MonitoringCard label="Pembayaran Bulan Ini (Kas)" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} error={unpaidCurrentCount > 0} />
+            <MonitoringCard label="Pembayaran Bulan Ini (Sampah)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} rumah`} meta={[`${unpaidCurrentTrashCount} rumah belum bayar.`]} error={unpaidCurrentTrashCount > 0} />
             <MonitoringCard label="Ready Booking" value={`${readyBookings.length} rumah`} meta={[`${waitingBookings.length} booking menunggu periode bayar.`]} error={readyBookings.length > 0} />
             <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
           </div>
