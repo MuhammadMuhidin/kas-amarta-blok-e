@@ -208,9 +208,10 @@ export default function CashflowTab({
           <button
             type="button"
             className="admin-small-btn"
+            style={styles.actionButton}
             onClick={() => setShowRecordForm((prev) => !prev)}
           >
-            {showRecordForm ? "▴" : "▾"} Add
+            {showRecordForm ? "▴" : "▾"} Record Payment
           </button>
         </div>
 
@@ -370,6 +371,14 @@ const styles = {
     marginBottom: 14,
   },
   title: { margin: 0 },
+  actionButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    whiteSpace: "nowrap",
+    minWidth: "max-content",
+  },
   helperText: {
     marginTop: 6,
     color: "var(--admin-muted)",
