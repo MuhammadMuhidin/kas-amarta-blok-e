@@ -466,6 +466,7 @@ export default function TimelineClient() {
   const [expandedPostIds, setExpandedPostIds] = useState(() => new Set());
   const [selectedGallery, setSelectedGallery] = useState(null);
   const [gallerySwipeDirection, setGallerySwipeDirection] = useState("");
+  const [galleryImageLoading, setGalleryImageLoading] = useState(false);
   const [reactionPickerPostId, setReactionPickerPostId] = useState("");
   const [nextOffset, setNextOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -596,6 +597,29 @@ export default function TimelineClient() {
   const hasPosts = posts.length > 0;
   const selectedGalleryImage = useMemo(() => selectedGallery ? selectedGallery.images[selectedGallery.index] || null : null, [selectedGallery]);
 
+  useEffect(() => {
+    if (!selectedGalleryImage?.image_url) {
+      setGalleryImageLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    setGalleryImageLoading(true);
+
+    const image = new Image();
+    image.onload = () => {
+      if (!cancelled) setGalleryImageLoading(false);
+    };
+    image.onerror = () => {
+      if (!cancelled) setGalleryImageLoading(false);
+    };
+    image.src = selectedGalleryImage.image_url;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedGalleryImage?.image_url]);
+
   function markPostRead(postId) {
     if (!postId) return;
     setReadPostIds((current) => {
@@ -657,12 +681,14 @@ export default function TimelineClient() {
     if (!images.length) return;
     markPostRead(post.id);
     setGallerySwipeDirection("");
+    setGalleryImageLoading(true);
     setSelectedGallery({ postTitle: post.title, images, index: Math.min(Math.max(startIndex, 0), images.length - 1) });
   }
 
   function moveGallery(step) {
     setSelectedGallery((current) => {
       if (!current || current.images.length < 2) return current;
+      setGalleryImageLoading(true);
       setGallerySwipeDirection(step > 0 ? "next" : "prev");
       window.setTimeout(() => setGallerySwipeDirection(""), 360);
       return { ...current, index: (current.index + step + current.images.length) % current.images.length };
@@ -818,7 +844,7 @@ export default function TimelineClient() {
 
       <nav className="timeline-bottom-nav" aria-label="Navigasi utama"><button type="button" className="timeline-bottom-nav-item" onClick={scrollToTop}><span aria-hidden="true">⌂</span><strong>Beranda</strong></button><Link className="timeline-bottom-nav-item" href="/kas"><span aria-hidden="true">Rp</span><strong>Kas Warga</strong></Link><button type="button" className="timeline-bottom-nav-item" onClick={openThemePicker}><span aria-hidden="true">🎨</span><strong>Tema</strong></button></nav>
 
-      {selectedGallery && selectedGalleryImage ? <div className="timeline-gallery-overlay" onClick={() => setSelectedGallery(null)}><section className="timeline-gallery-modal" onClick={(event) => event.stopPropagation()}><button className="timeline-gallery-close" type="button" onClick={() => setSelectedGallery(null)} aria-label="Tutup galeri">×</button><div className="timeline-gallery-header"><div><div className="timeline-gallery-kicker">Dokumentasi</div><h2>{selectedGallery.postTitle}</h2></div><span>{selectedGallery.index + 1} / {selectedGallery.images.length}</span></div><div className={`timeline-gallery-photo-wrap${gallerySwipeDirection ? ` swipe-${gallerySwipeDirection}` : ""}`} onMouseDown={(event) => startGallerySwipe(event.clientX, event.clientY)} onMouseUp={(event) => finishGallerySwipe(event.clientX, event.clientY)} onMouseLeave={() => { swipeStartRef.current = null; }} onTouchStart={(event) => startGallerySwipe(event.touches[0].clientX, event.touches[0].clientY)} onTouchEnd={(event) => { const touch = event.changedTouches[0]; finishGallerySwipe(touch.clientX, touch.clientY); }}><img src={selectedGalleryImage.image_url} alt={selectedGalleryImage.caption || selectedGallery.postTitle || "Foto kegiatan warga"} />{selectedGallery.images.length > 1 ? <><button type="button" className="timeline-gallery-arrow prev" onClick={() => moveGallery(-1)} aria-label="Foto sebelumnya">‹</button><button type="button" className="timeline-gallery-arrow next" onClick={() => moveGallery(1)} aria-label="Foto berikutnya">›</button><div className="timeline-gallery-swipe-hint">Geser atau pakai tombol ← →</div></> : null}</div>{selectedGallery.images.length > 1 ? <div className="timeline-gallery-dots" aria-label="Indikator foto galeri">{selectedGallery.images.map((image, index) => <button key={image.id || image.image_key || image.image_url} type="button" className={index === selectedGallery.index ? "active" : ""} onClick={() => { setGallerySwipeDirection(index > selectedGallery.index ? "next" : "prev"); setSelectedGallery((current) => current ? { ...current, index } : current); window.setTimeout(() => setGallerySwipeDirection(""), 360); }} aria-label={`Lihat foto ${index + 1}`} />)}</div> : null}<p className="timeline-gallery-caption">{selectedGalleryImage.caption || "Belum ada caption untuk foto ini."}</p></section></div> : null}
+      {selectedGallery && selectedGalleryImage ? <div className="timeline-gallery-overlay" onClick={() => setSelectedGallery(null)}><section className="timeline-gallery-modal" onClick={(event) => event.stopPropagation()}><button className="timeline-gallery-close" type="button" onClick={() => setSelectedGallery(null)} aria-label="Tutup galeri">×</button><div className="timeline-gallery-header"><div><div className="timeline-gallery-kicker">Dokumentasi</div><h2>{selectedGallery.postTitle}</h2></div><span>{selectedGallery.index + 1} / {selectedGallery.images.length}</span></div><div className={`timeline-gallery-photo-wrap${gallerySwipeDirection ? ` swipe-${gallerySwipeDirection}` : ""}${galleryImageLoading ? " is-loading" : ""}`} onMouseDown={(event) => startGallerySwipe(event.clientX, event.clientY)} onMouseUp={(event) => finishGallerySwipe(event.clientX, event.clientY)} onMouseLeave={() => { swipeStartRef.current = null; }} onTouchStart={(event) => startGallerySwipe(event.touches[0].clientX, event.touches[0].clientY)} onTouchEnd={(event) => { const touch = event.changedTouches[0]; finishGallerySwipe(touch.clientX, touch.clientY); }}>{galleryImageLoading ? <div className="timeline-gallery-loader" role="status" aria-label="Memuat foto"><span /></div> : null}<img key={selectedGalleryImage.image_url} src={selectedGalleryImage.image_url} alt={selectedGalleryImage.caption || selectedGallery.postTitle || "Foto kegiatan warga"} onLoad={() => setGalleryImageLoading(false)} onError={() => setGalleryImageLoading(false)} />{selectedGallery.images.length > 1 ? <><button type="button" className="timeline-gallery-arrow prev" onClick={() => moveGallery(-1)} aria-label="Foto sebelumnya">‹</button><button type="button" className="timeline-gallery-arrow next" onClick={() => moveGallery(1)} aria-label="Foto berikutnya">›</button><div className="timeline-gallery-swipe-hint">Geser atau pakai tombol ← →</div></> : null}</div>{selectedGallery.images.length > 1 ? <div className="timeline-gallery-dots" aria-label="Indikator foto galeri">{selectedGallery.images.map((image, index) => <button key={image.id || image.image_key || image.image_url} type="button" className={index === selectedGallery.index ? "active" : ""} onClick={() => { setGalleryImageLoading(true); setGallerySwipeDirection(index > selectedGallery.index ? "next" : "prev"); setSelectedGallery((current) => current ? { ...current, index } : current); window.setTimeout(() => setGallerySwipeDirection(""), 360); }} aria-label={`Lihat foto ${index + 1}`} />)}</div> : null}<p className="timeline-gallery-caption">{selectedGalleryImage.caption || "Belum ada caption untuk foto ini."}</p></section></div> : null}
     </main>
   );
 }
