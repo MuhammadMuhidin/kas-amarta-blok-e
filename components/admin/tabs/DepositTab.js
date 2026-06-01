@@ -4,7 +4,7 @@ import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import PersonSearchBox from "@/components/admin/PersonSearchBox";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
-import { sendJson } from "@/components/admin/adminClientApi";
+import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
 import { useMemo, useState } from "react";
 
@@ -34,30 +34,73 @@ function formatPeriod(period) {
   });
 }
 
-function buildMultiPayFailureMessage({ success, failures }) {
-  const failureLines = failures
-    .map((item, index) => `${index + 1}. ${item.house || "-"} - ${item.name || "-"} (${formatPeriod(item.period)}): ${item.error}`)
-    .join("\n");
+function buildMultiPayFailureMessage({ success, recovered, failures }) {
+  const recoveredLines = recovered.length
+    ? [
+        "",
+        "Terdeteksi sudah paid setelah response error:",
+        ...recovered.map((item, index) => `${index + 1}. ${item.house || "-"} - ${item.name || "-"} (${formatPeriod(item.period)}): ${item.note}`),
+      ]
+    : [];
+  const failureLines = failures.length
+    ? failures
+        .map((item, index) => `${index + 1}. ${item.house || "-"} - ${item.name || "-"} (${formatPeriod(item.period)}): ${item.error}`)
+        .join("\n")
+    : "-";
 
   return [
-    "[ADMIN ALERT] Multipay Booking Payment gagal sebagian.",
+    "[ADMIN ALERT] Multipay Booking Payment perlu pengecekan.",
     "",
     `Berhasil: ${success} rumah`,
+    `Recovered: ${recovered.length} rumah`,
     `Gagal: ${failures.length} rumah`,
+    ...recoveredLines,
     "",
     "Detail gagal:",
     failureLines,
   ].join("\n");
 }
 
-async function notifyMultiPayFailures({ success, failures }) {
-  if (!failures.length) return;
+async function notifyMultiPayFailures({ success, recovered, failures }) {
+  if (!failures.length && !recovered.length) return;
 
   await sendJson("/api/waha/workflow", "POST", {
-    period: failures[0]?.period || "-",
+    period: failures[0]?.period || recovered[0]?.period || "-",
     source: "admin-multipay-booking-failure",
-    message: buildMultiPayFailureMessage({ success, failures }),
+    message: buildMultiPayFailureMessage({ success, recovered, failures }),
   });
+}
+
+async function verifyBookingPaymentAfterFailure({ booking, normalize }) {
+  const [latestDeposits, latestPayments] = await Promise.all([
+    readJson("/api/sheets/deposit"),
+    readJson("/api/sheets/payment"),
+  ]);
+
+  const latestDeposit = latestDeposits.find((item) => normalize(item.id) === normalize(booking.id));
+  const recordedPayment = latestPayments.find((item) => {
+    const samePeriod = normalize(item.period) === normalize(booking.period);
+    const samePerson = normalize(item.person_id) === normalize(booking.person_id);
+    const sameHouse = normalize(item.person_house) === normalize(booking.house);
+
+    return samePeriod && (samePerson || sameHouse);
+  });
+
+  if (normalize(latestDeposit?.status).toLowerCase() === "paid" && normalize(latestDeposit?.payment_id)) {
+    return {
+      recovered: true,
+      note: "Booking sudah marked paid setelah response error.",
+    };
+  }
+
+  if (recordedPayment?.id) {
+    return {
+      recovered: false,
+      error: "Payment ditemukan, tetapi booking belum marked paid. Perlu cek manual agar tidak double payment.",
+    };
+  }
+
+  return null;
 }
 
 export default function DepositTab({
@@ -205,6 +248,7 @@ export default function DepositTab({
 
     try {
       let success = 0;
+      const recovered = [];
       const failures = [];
 
       for (const booking of readyPayBookings) {
@@ -212,30 +256,56 @@ export default function DepositTab({
 
         if (result?.ok) {
           success += 1;
-        } else {
+          continue;
+        }
+
+        try {
+          const verification = await verifyBookingPaymentAfterFailure({ booking, normalize });
+
+          if (verification?.recovered) {
+            success += 1;
+            recovered.push({
+              id: booking.id,
+              house: booking.house,
+              name: booking.name,
+              period: booking.period,
+              note: verification.note,
+            });
+            continue;
+          }
+
           failures.push({
             id: booking.id,
             house: booking.house,
             name: booking.name,
             period: booking.period,
-            error: result?.error || "Gagal membayarkan booking",
+            error: verification?.error || result?.error || "Gagal membayarkan booking",
+          });
+        } catch (verifyErr) {
+          failures.push({
+            id: booking.id,
+            house: booking.house,
+            name: booking.name,
+            period: booking.period,
+            error: `${result?.error || "Gagal membayarkan booking"}. Verifikasi gagal: ${verifyErr.message || "unknown"}`,
           });
         }
       }
 
       await refresh();
 
-      if (failures.length > 0) {
+      if (failures.length > 0 || recovered.length > 0) {
         try {
-          await notifyMultiPayFailures({ success, failures });
+          await notifyMultiPayFailures({ success, recovered, failures });
         } catch (notifyErr) {
           showToast(notifyErr.message || "Gagal trigger WhatsApp workflow", "error");
         }
       }
 
       if (failures.length === 0) {
+        const recoveredText = recovered.length ? ` (${recovered.length} hasil recovery)` : "";
         setShowMultiPayModal(false);
-        showToast(`Booking berhasil dibayarkan untuk ${success} rumah`, "success");
+        showToast(`Booking berhasil dibayarkan untuk ${success} rumah${recoveredText}`, "success");
       } else if (success > 0) {
         showToast(`Multipay sebagian berhasil: ${success} sukses, ${failures.length} gagal`, "warning");
       } else {
