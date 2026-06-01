@@ -120,6 +120,7 @@ export default function DepositTab({
   normalize,
   payDeposit,
   onBatchComplete,
+  onBatchStatusChange,
 }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [snapshotOverrides, setSnapshotOverrides] = useState({});
@@ -244,6 +245,7 @@ export default function DepositTab({
     if (readyPayBookings.length === 0 || multiPayLoading) return;
 
     setMultiPayLoading(true);
+    onBatchStatusChange?.(true);
     setMultiPayProgress({ current: 0, total: readyPayBookings.length });
 
     try {
@@ -315,6 +317,7 @@ export default function DepositTab({
       }
     } finally {
       setMultiPayLoading(false);
+      onBatchStatusChange?.(false);
       setMultiPayProgress({ current: 0, total: 0 });
     }
   }
