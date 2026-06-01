@@ -1,4 +1,5 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import { readJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod } from "@/lib/depositUtils";
 import { useEffect, useMemo, useState } from "react";
 
@@ -60,6 +61,18 @@ function isDepositPaid(deposit, normalize) {
   );
 }
 
+function WakeLockInfo({ wakeLock }) {
+  if (!wakeLock) return null;
+
+  const message = wakeLock.supported
+    ? wakeLock.locked
+      ? "Layar dijaga tetap aktif selama proses. Jangan pindah aplikasi sampai selesai."
+      : "Sedang mencoba menjaga layar tetap aktif. Jangan kunci layar sampai proses selesai."
+    : "Perangkat/browser tidak mendukung jaga layar aktif. Jangan kunci layar sampai proses selesai.";
+
+  return <div style={wakeLockInfoStyle}>{message}</div>;
+}
+
 export default function PaymentTab({
   configError,
   recordPayment,
@@ -72,22 +85,29 @@ export default function PaymentTab({
   normalize,
   isHousePaidForPeriod,
   loadingPayment,
+  paymentProgress,
+  wakeLock,
 }) {
   const [deposits, setDeposits] = useState([]);
   const currentPeriod = getCurrentPeriod();
 
   useEffect(() => {
-    async function loadDeposit() {
-      const res = await fetch("/api/sheets/deposit", {
-        cache: "no-store",
-        method: "GET",
-      });
+    let ignore = false;
 
-      const data = await res.json();
-      setDeposits(data || []);
+    async function loadDeposit() {
+      try {
+        const data = await readJson("/api/sheets/deposit");
+        if (!ignore) setDeposits(Array.isArray(data) ? data : []);
+      } catch {
+        if (!ignore) setDeposits([]);
+      }
     }
 
     loadDeposit();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const pendingCurrentDeposits = useMemo(() => {
@@ -101,6 +121,9 @@ export default function PaymentTab({
 
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
   const disableRecordPayment = loadingPayment || hasPendingCurrentDeposit;
+  const loadingText = paymentProgress?.total
+    ? `Mencatat pembayaran ${paymentProgress.current}/${paymentProgress.total}...`
+    : "Recording...";
 
   function isPaidForPeriod(person, period) {
     return payments.some((pay) => {
@@ -151,6 +174,7 @@ export default function PaymentTab({
           <select
             className="admin-input"
             value={payment.period}
+            disabled={loadingPayment}
             onChange={(e) => setPayment({ ...payment, period: e.target.value })}
           >
             <option value="">Pilih periode tunggakan</option>
@@ -178,17 +202,24 @@ export default function PaymentTab({
                 const effectiveStartPeriod = getEffectiveStartPeriod(joinPeriod);
                 const alreadyPaid = isHousePaidForPeriod(p);
                 const notJoined = period && effectiveStartPeriod && period < effectiveStartPeriod;
-                const disabledChip = alreadyPaid || notJoined;
+                const disabledChip = loadingPayment || alreadyPaid || notJoined;
                 const chipClass = [
                   "admin-checkbox-chip",
                   selected.includes(p.id) ? "admin-checkbox-chip-active" : "",
                   disabledChip ? "admin-checkbox-chip-disabled" : "",
                 ].filter(Boolean).join(" ");
+                const title = loadingPayment
+                  ? "Bulk payment sedang diproses"
+                  : alreadyPaid
+                    ? "Already paid for this period"
+                    : notJoined
+                      ? "Not joined yet for this period"
+                      : "";
 
                 return (
                   <label
                     key={p.id}
-                    title={alreadyPaid ? "Already paid for this period" : notJoined ? "Not joined yet for this period" : ""}
+                    title={title}
                     className={chipClass}
                   >
                     <input
@@ -208,12 +239,25 @@ export default function PaymentTab({
               })}
           </div>
           <button className="admin-btn" disabled={disableRecordPayment}>
-            <LoadingButtonContent loading={loadingPayment} loadingText="Recording...">
+            <LoadingButtonContent loading={loadingPayment} loadingText={loadingText}>
               Record Payment
             </LoadingButtonContent>
           </button>
+          {loadingPayment && <WakeLockInfo wakeLock={wakeLock} />}
         </form>
       </div>
     </>
   );
 }
+
+const wakeLockInfoStyle = {
+  marginTop: -4,
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  color: "var(--admin-muted)",
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.45,
+};

@@ -4,7 +4,7 @@ import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import PersonSearchBox from "@/components/admin/PersonSearchBox";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
-import { sendJson } from "@/components/admin/adminClientApi";
+import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
 import { useMemo, useState } from "react";
 
@@ -34,30 +34,85 @@ function formatPeriod(period) {
   });
 }
 
-function buildMultiPayFailureMessage({ success, failures }) {
-  const failureLines = failures
-    .map((item, index) => `${index + 1}. ${item.house || "-"} - ${item.name || "-"} (${formatPeriod(item.period)}): ${item.error}`)
-    .join("\n");
+function WakeLockInfo({ wakeLock }) {
+  if (!wakeLock) return null;
+
+  const message = wakeLock.supported
+    ? wakeLock.locked
+      ? "Layar dijaga tetap aktif selama proses. Jangan pindah aplikasi sampai selesai."
+      : "Sedang mencoba menjaga layar tetap aktif. Jangan kunci layar sampai proses selesai."
+    : "Perangkat/browser tidak mendukung jaga layar aktif. Jangan kunci layar sampai proses selesai.";
+
+  return <div style={wakeLockInfoStyle}>{message}</div>;
+}
+
+function buildMultiPayFailureMessage({ success, recovered, failures }) {
+  const recoveredLines = recovered.length
+    ? [
+        "",
+        "Terdeteksi sudah paid setelah response error:",
+        ...recovered.map((item, index) => `${index + 1}. ${item.house || "-"} - ${item.name || "-"} (${formatPeriod(item.period)}): ${item.note}`),
+      ]
+    : [];
+  const failureLines = failures.length
+    ? failures
+        .map((item, index) => `${index + 1}. ${item.house || "-"} - ${item.name || "-"} (${formatPeriod(item.period)}): ${item.error}`)
+        .join("\n")
+    : "-";
 
   return [
-    "[ADMIN ALERT] Multipay Booking Payment gagal sebagian.",
+    "[ADMIN ALERT] Multipay Booking Payment perlu pengecekan.",
     "",
     `Berhasil: ${success} rumah`,
+    `Recovered: ${recovered.length} rumah`,
     `Gagal: ${failures.length} rumah`,
+    ...recoveredLines,
     "",
     "Detail gagal:",
     failureLines,
   ].join("\n");
 }
 
-async function notifyMultiPayFailures({ success, failures }) {
-  if (!failures.length) return;
+async function notifyMultiPayFailures({ success, recovered, failures }) {
+  if (!failures.length && !recovered.length) return;
 
   await sendJson("/api/waha/workflow", "POST", {
-    period: failures[0]?.period || "-",
+    period: failures[0]?.period || recovered[0]?.period || "-",
     source: "admin-multipay-booking-failure",
-    message: buildMultiPayFailureMessage({ success, failures }),
+    message: buildMultiPayFailureMessage({ success, recovered, failures }),
   });
+}
+
+async function verifyBookingPaymentAfterFailure({ booking, normalize }) {
+  const [latestDeposits, latestPayments] = await Promise.all([
+    readJson("/api/sheets/deposit"),
+    readJson("/api/sheets/payment"),
+  ]);
+
+  const latestDeposit = latestDeposits.find((item) => normalize(item.id) === normalize(booking.id));
+  const recordedPayment = latestPayments.find((item) => {
+    const samePeriod = normalize(item.period) === normalize(booking.period);
+    const samePerson = normalize(item.person_id) === normalize(booking.person_id);
+    const sameHouse = normalize(item.person_house) === normalize(booking.house);
+
+    return samePeriod && (samePerson || sameHouse);
+  });
+
+  if (normalize(latestDeposit?.status).toLowerCase() === "paid" && normalize(latestDeposit?.payment_id)) {
+    return {
+      recovered: true,
+      note: "Booking sudah marked paid setelah response error.",
+    };
+  }
+
+  if (recordedPayment?.id) {
+    return {
+      recovered: false,
+      error: "Payment ditemukan, tetapi booking belum marked paid. Perlu cek manual agar tidak double payment.",
+    };
+  }
+
+  return null;
 }
 
 export default function DepositTab({
@@ -76,6 +131,9 @@ export default function DepositTab({
   payments,
   normalize,
   payDeposit,
+  onBatchComplete,
+  onBatchStatusChange,
+  wakeLock,
 }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [snapshotOverrides, setSnapshotOverrides] = useState({});
@@ -86,6 +144,7 @@ export default function DepositTab({
   const [showCreateBooking, setShowCreateBooking] = useState(false);
   const [showMultiPayModal, setShowMultiPayModal] = useState(false);
   const [multiPayLoading, setMultiPayLoading] = useState(false);
+  const [multiPayProgress, setMultiPayProgress] = useState({ current: 0, total: 0 });
   const [snapshotDraft, setSnapshotDraft] = useState({ amount: "", trash_amount: "" });
 
   const {
@@ -151,6 +210,9 @@ export default function DepositTab({
   }, 0);
 
   const isMultiPayDisabled = readyPayBookings.length === 0 || loading || loadingMore || multiPayLoading;
+  const multiPayLoadingText = multiPayProgress.total
+    ? `Membayar booking ${multiPayProgress.current}/${multiPayProgress.total}...`
+    : "Paying...";
   const bookingAmount = Number(selectedBooking?.amount || 0);
   const trashAmount = Number(selectedBooking?.trash_amount || 0);
   const totalBookingPayment = bookingAmount + trashAmount;
@@ -160,13 +222,6 @@ export default function DepositTab({
   function showToast(message, type = "success") {
     setToast({ message, type });
     setTimeout(() => setToast(null), 2500);
-  }
-
-  function getCookie(name) {
-    return document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(`${name}=`))
-      ?.split("=")[1];
   }
 
   function openBookingModal(deposit) {
@@ -196,53 +251,87 @@ export default function DepositTab({
   async function handlePayDeposit(id) {
     await payDeposit(id);
     await refresh();
+    await onBatchComplete?.();
   }
 
   async function handleMultiPayBookings() {
     if (readyPayBookings.length === 0 || multiPayLoading) return;
 
     setMultiPayLoading(true);
+    onBatchStatusChange?.(true);
+    setMultiPayProgress({ current: 0, total: readyPayBookings.length });
 
     try {
       let success = 0;
+      const recovered = [];
       const failures = [];
 
-      for (const booking of readyPayBookings) {
-        const result = await payDeposit(booking.id);
+      for (const [index, booking] of readyPayBookings.entries()) {
+        setMultiPayProgress({ current: index + 1, total: readyPayBookings.length });
+        const result = await payDeposit(booking.id, { silent: true });
 
         if (result?.ok) {
           success += 1;
-        } else {
+          continue;
+        }
+
+        try {
+          const verification = await verifyBookingPaymentAfterFailure({ booking, normalize });
+
+          if (verification?.recovered) {
+            success += 1;
+            recovered.push({
+              id: booking.id,
+              house: booking.house,
+              name: booking.name,
+              period: booking.period,
+              note: verification.note,
+            });
+            continue;
+          }
+
           failures.push({
             id: booking.id,
             house: booking.house,
             name: booking.name,
             period: booking.period,
-            error: result?.error || "Gagal membayarkan booking",
+            error: verification?.error || result?.error || "Gagal membayarkan booking",
+          });
+        } catch (verifyErr) {
+          failures.push({
+            id: booking.id,
+            house: booking.house,
+            name: booking.name,
+            period: booking.period,
+            error: `${result?.error || "Gagal membayarkan booking"}. Verifikasi gagal: ${verifyErr.message || "unknown"}`,
           });
         }
       }
 
-      await refresh();
+      await Promise.all([refresh(), onBatchComplete?.()]);
 
-      if (failures.length > 0) {
+      if (failures.length > 0 || recovered.length > 0) {
         try {
-          await notifyMultiPayFailures({ success, failures });
+          await notifyMultiPayFailures({ success, recovered, failures });
         } catch (notifyErr) {
           showToast(notifyErr.message || "Gagal trigger WhatsApp workflow", "error");
         }
       }
 
       if (failures.length === 0) {
+        const recoveredText = recovered.length ? `, ${recovered.length} recovery` : "";
         setShowMultiPayModal(false);
-        showToast(`Booking berhasil dibayarkan untuk ${success} rumah`, "success");
+        showToast(`Multipay selesai: ${success} sukses${recoveredText}, 0 gagal`, "success");
       } else if (success > 0) {
-        showToast(`Multipay sebagian berhasil: ${success} sukses, ${failures.length} gagal`, "warning");
+        const recoveredText = recovered.length ? `, ${recovered.length} recovery` : "";
+        showToast(`Multipay selesai: ${success} sukses${recoveredText}, ${failures.length} gagal`, "warning");
       } else {
-        showToast(`Semua multipay gagal untuk ${failures.length} rumah`, "error");
+        showToast(`Multipay selesai: 0 sukses, ${failures.length} gagal`, "error");
       }
     } finally {
       setMultiPayLoading(false);
+      onBatchStatusChange?.(false);
+      setMultiPayProgress({ current: 0, total: 0 });
     }
   }
 
@@ -273,29 +362,18 @@ export default function DepositTab({
     setSnapshotError("");
 
     try {
-      const csrfToken = getCookie("csrf_token");
-      const res = await fetch("/api/sheets/deposit", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": csrfToken,
-        },
-        body: JSON.stringify({
-          id: selectedBooking.id,
-          action: "UPDATE_SNAPSHOT",
-          amount,
-          trash_amount: nextTrashAmount,
-        }),
+      await sendJson("/api/sheets/deposit", "PATCH", {
+        id: selectedBooking.id,
+        action: "UPDATE_SNAPSHOT",
+        amount,
+        trash_amount: nextTrashAmount,
       });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || "Gagal memperbarui booking snapshot");
 
       const updatedBooking = { ...selectedBooking, amount, trash_amount: nextTrashAmount };
       setSnapshotOverrides((prev) => ({ ...prev, [selectedBooking.id]: updatedBooking }));
       setSelectedBooking(updatedBooking);
       setEditingSnapshot(false);
-      await refresh();
+      await Promise.all([refresh(), onBatchComplete?.()]);
       showToast("Booking snapshot berhasil diperbarui", "success");
     } catch (err) {
       const message = err.message || "Gagal memperbarui booking snapshot";
@@ -450,6 +528,8 @@ export default function DepositTab({
             bookings={readyPayBookings}
             total={readyPayTotal}
             loading={multiPayLoading}
+            loadingText={multiPayLoadingText}
+            wakeLock={wakeLock}
             onClose={() => setShowMultiPayModal(false)}
             onConfirm={handleMultiPayBookings}
           />
@@ -535,7 +615,7 @@ function BookingList({
   );
 }
 
-function MultiPayModal({ bookings, total, loading, onClose, onConfirm }) {
+function MultiPayModal({ bookings, total, loading, loadingText, wakeLock, onClose, onConfirm }) {
   return (
     <div className={modalStyles.overlay} onClick={loading ? undefined : onClose}>
       <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
@@ -563,11 +643,12 @@ function MultiPayModal({ bookings, total, loading, onClose, onConfirm }) {
             Cancel
           </button>
           <button type="button" className="admin-small-btn" disabled={loading || bookings.length === 0} onClick={onConfirm}>
-            <LoadingButtonContent loading={loading} loadingText="Paying...">
+            <LoadingButtonContent loading={loading} loadingText={loadingText || "Paying..."}>
               Pay {bookings.length} Booking
             </LoadingButtonContent>
           </button>
         </div>
+        {loading && <WakeLockInfo wakeLock={wakeLock} />}
       </div>
     </div>
   );
@@ -805,6 +886,18 @@ const multiPayItemStyle = {
 const multiPayTotalStyle = {
   ...totalRowStyle,
   marginBottom: 14,
+};
+
+const wakeLockInfoStyle = {
+  marginTop: 10,
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  color: "var(--admin-muted)",
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.45,
 };
 
 const snapshotLabelStyle = {

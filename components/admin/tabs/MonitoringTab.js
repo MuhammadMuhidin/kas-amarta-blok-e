@@ -1,10 +1,22 @@
 import { useEffect,useMemo,useState } from "react";
 import MonitoringCard from "@/components/admin/MonitoringCard";
+import { sendJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod } from "@/lib/depositUtils";
 
 function IssueTable({title,rows,columns}) {
   if (!rows?.length) return null;
   return <div className="admin-monitor-detail"><h3>{title}</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr>{columns.map((c)=><th key={c} className="admin-th">{c==="detail"?"Issue":c}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i} className={i%2?"admin-row-alt":""}>{columns.map((c)=><td key={c} className="admin-td admin-issue-text">{r[c]}</td>)}</tr>)}</tbody></table></div></div>;
+}
+
+function TrashIssueTable({rows,repairingPaymentId,onRepair}) {
+  if (!rows?.length) return null;
+
+  return <div className="admin-monitor-detail"><h3>Trash Payment Integrity</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th className="admin-th">house</th><th className="admin-th">name</th><th className="admin-th">period</th><th className="admin-th">Issue</th><th className="admin-th">Action</th></tr></thead><tbody>{rows.map((row,i)=>{
+    const canRepair = row.type === "PAYMENT_WITHOUT_TRASH" && row.payment_id;
+    const repairing = repairingPaymentId === row.payment_id;
+
+    return <tr key={`${row.type}-${row.payment_id || row.house}-${row.period}-${i}`} className={i%2?"admin-row-alt":""}><td className="admin-td admin-issue-text">{row.house}</td><td className="admin-td admin-issue-text">{row.name}</td><td className="admin-td admin-issue-text">{row.period}</td><td className="admin-td admin-issue-text">{row.detail}</td><td className="admin-td admin-issue-text">{canRepair ? <button type="button" className="admin-small-btn" disabled={repairing || Boolean(repairingPaymentId)} onClick={()=>onRepair(row)}>{repairing ? "Repairing..." : "Repair"}</button> : <span style={{color:"var(--admin-muted)",fontSize:12}}>Manual review</span>}</td></tr>;
+  })}</tbody></table></div></div>;
 }
 
 function Section({title,children}) {
@@ -112,13 +124,19 @@ function getReceiptStorageView(loading, data) {
   };
 }
 
-export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData}) {
+export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData,onRepairComplete}) {
   const [buildInfo,setBuildInfo] = useState(null);
   const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
   const [loadingSettlement,setLoadingSettlement] = useState(false);
   const [loadingReceiptStorage,setLoadingReceiptStorage] = useState(false);
   const [receiptStorage,setReceiptStorage] = useState(null);
+  const [repairingPaymentId,setRepairingPaymentId] = useState("");
+  const [repairedPaymentIds,setRepairedPaymentIds] = useState([]);
   const [rows,setRows] = useState({cashflows:[],deposits:[],trashRecords:[]});
+  const displayedTrashMismatch = useMemo(
+    ()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),
+    [trashMismatch,repairedPaymentIds],
+  );
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
   const health = useMemo(()=>getHealthStatus({
     loadingSettlement,
@@ -126,13 +144,27 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     buildInfo,
     dailyBackup,
     paymentCashflowIntegrity,
-    trashMismatch,
+    trashMismatch: displayedTrashMismatch,
     suspiciousData,
-  }),[loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData]);
+  }),[loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,displayedTrashMismatch,suspiciousData]);
   const receiptStorageView = useMemo(
     ()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),
     [loadingReceiptStorage,receiptStorage],
   );
+
+  async function handleRepairTrash(row) {
+    if (!row?.payment_id || repairingPaymentId) return;
+
+    setRepairingPaymentId(row.payment_id);
+
+    try {
+      await sendJson("/api/sheets/trash/repair", "POST", { payment_id: row.payment_id });
+      setRepairedPaymentIds((prev)=>prev.includes(row.payment_id) ? prev : [...prev,row.payment_id]);
+      await onRepairComplete?.();
+    } finally {
+      setRepairingPaymentId("");
+    }
+  }
 
   useEffect(()=>{
     let active = true;
@@ -231,13 +263,13 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     <Section title="Integrity & Data Quality">
       <div className="admin-monitor-grid">
         <MonitoringCard label="Payment Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length===0?"No issue detected":"Need review"]} />
-        <MonitoringCard label="Trash Payment Integrity" value={`${trashMismatch.length} issue`} meta={[trashMismatch.length===0?"No issue detected":"Need review"]} />
+        <MonitoringCard label="Trash Payment Integrity" value={`${displayedTrashMismatch.length} issue`} meta={[displayedTrashMismatch.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Data Quality Check" value={`${suspiciousData.length} issue`} meta={[suspiciousData.length===0?"No suspicious data":"Need review"]} />
       </div>
     </Section>
 
     <IssueTable title="Payment Cashflow Integrity" rows={paymentCashflowIntegrity} columns={["house","name","period","type","detail"]} />
-    <IssueTable title="Trash Payment Integrity" rows={trashMismatch} columns={["house","name","period","detail"]} />
+    <TrashIssueTable title="Trash Payment Integrity" rows={displayedTrashMismatch} repairingPaymentId={repairingPaymentId} onRepair={handleRepairTrash} />
     <IssueTable title="Suspicious Data" rows={suspiciousData} columns={["sheet","row","type","detail"]} />
   </div>;
 }

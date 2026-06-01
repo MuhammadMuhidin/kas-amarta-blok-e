@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
+import { getAppConfig } from "@/lib/appConfig";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 
@@ -10,6 +11,65 @@ const spreadsheetId = process.env.SPREADSHEET_ID;
 
 function normalize(value) {
   return String(value || "").trim();
+}
+
+async function ensurePaymentCashflow({ sheets, paymentId, personHouse, period, amount, date }) {
+  const cashflowRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Cashflow!A:F",
+  });
+
+  const cashflowRows = cashflowRes.data.values || [];
+  const hasCashflow = cashflowRows.slice(1).some((r) => normalize(r[1]) === normalize(paymentId));
+
+  if (hasCashflow) return false;
+
+  const note = `Pembayaran Kas ${personHouse} Periode ${period}`;
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: "Cashflow!A:F",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[generateId("CSFLOW-"), paymentId, "income", amount, note, date]],
+    },
+  });
+
+  return true;
+}
+
+async function ensurePaymentTrash({ sheets, paymentId, member, date }) {
+  const isTrashUser = normalize(member?.[3]).toUpperCase() === "Y";
+
+  if (!isTrashUser) return false;
+
+  const appConfig = await getAppConfig();
+  const trashAmount = Number(appConfig?.trash_fee || 0);
+
+  if (!trashAmount) {
+    throw new Error("Tarif sampah belum dikonfigurasi.");
+  }
+
+  const trashRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Trash!A:D",
+  });
+
+  const trashRows = trashRes.data.values || [];
+  const hasTrash = trashRows.slice(1).some((r) => normalize(r[1]) === normalize(paymentId));
+
+  if (hasTrash) return false;
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: "Trash!A:D",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[generateId("TRASH-"), paymentId, trashAmount, date]],
+    },
+  });
+
+  return true;
 }
 
 export async function GET() {
@@ -59,13 +119,13 @@ export async function POST(req) {
   const sheets = await getSheets();
   const today = new Date().toISOString().slice(0, 10);
 
-  const res = await sheets.spreadsheets.values.get({
+  const personalRes = await sheets.spreadsheets.values.get({
     spreadsheetId,
-    range: "personal!A:F",
+    range: "Personal!A:F",
   });
 
-  const rows = res.data.values || [];
-  const member = rows.slice(1).find((r) => normalize(r[1]) === house);
+  const personalRows = personalRes.data.values || [];
+  const member = personalRows.slice(1).find((r) => normalize(r[1]) === house);
 
   if (!member) {
     return NextResponse.json({ error: "House not found" }, { status: 404 });
@@ -81,8 +141,7 @@ export async function POST(req) {
   });
 
   const paymentRows = paymentRes.data.values || [];
-
-  const duplicatePayment = paymentRows.slice(1).some((r) => {
+  const existingPayment = paymentRows.slice(1).find((r) => {
     const samePerson = normalize(r[1]) === normalize(person_id);
     const sameHouse = normalize(r[2]) === normalize(person_house);
     const samePeriod = normalize(r[4]) === period;
@@ -90,44 +149,71 @@ export async function POST(req) {
     return samePeriod && (samePerson || sameHouse);
   });
 
-  if (duplicatePayment) {
-    return NextResponse.json(
-      { error: "Period already paid for this house" },
-      { status: 409 },
-    );
+  if (existingPayment) {
+    const existingPaymentId = existingPayment[0];
+    const existingPaymentAmount = Number(existingPayment[5]) || amount;
+    const existingPaymentDate = existingPayment[6] || today;
+    const cashflowRecovered = await ensurePaymentCashflow({
+      sheets,
+      paymentId: existingPaymentId,
+      personHouse: existingPayment[2] || person_house,
+      period,
+      amount: existingPaymentAmount,
+      date: existingPaymentDate,
+    });
+    const trashRecovered = await ensurePaymentTrash({
+      sheets,
+      paymentId: existingPaymentId,
+      member,
+      date: existingPaymentDate,
+    });
+
+    await recordAdminActivity(req, {
+      type: "idempotent",
+      module: "payment",
+      severity: "info",
+      message: `Reuse existing payment ${person_house} ${period}`,
+      metadata: {
+        payment_id: existingPaymentId,
+        person_id,
+        house: person_house,
+        name: person_name,
+        period,
+        amount: existingPaymentAmount,
+        cashflow_recovered: cashflowRecovered,
+        trash_recovered: trashRecovered,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      existing: true,
+      cashflow_recovered: cashflowRecovered,
+      trash_recovered: trashRecovered,
+      payment_id: existingPaymentId,
+    });
   }
 
   const paymentId = generateId("PAY-");
 
   await sheets.spreadsheets.values.append({
     spreadsheetId,
-    range: "payment!A:G",
+    range: "Payment!A:G",
     valueInputOption: "USER_ENTERED",
     requestBody: {
-      values: [
-        [
-          paymentId,
-          person_id,
-          person_house,
-          person_name,
-          period,
-          amount,
-          today,
-        ],
-      ],
+      values: [[paymentId, person_id, person_house, person_name, period, amount, today]],
     },
   });
 
-  const note = `Pembayaran Kas ${person_house} Periode ${period}`;
-
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: "cashflow!A:F",
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[generateId("CSFLOW-"), paymentId, "income", amount, note, today]],
-    },
+  const cashflowRecorded = await ensurePaymentCashflow({
+    sheets,
+    paymentId,
+    personHouse: person_house,
+    period,
+    amount,
+    date: today,
   });
+  const trashRecorded = await ensurePaymentTrash({ sheets, paymentId, member, date: today });
 
   await recordAdminActivity(req, {
     type: "create",
@@ -141,11 +227,15 @@ export async function POST(req) {
       name: person_name,
       period,
       amount,
+      cashflow_recorded: cashflowRecorded,
+      trash_recorded: trashRecorded,
     },
   });
 
   return NextResponse.json({
     success: true,
     payment_id: paymentId,
+    cashflow_recorded: cashflowRecorded,
+    trash_recorded: trashRecorded,
   });
 }

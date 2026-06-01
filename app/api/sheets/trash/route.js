@@ -8,6 +8,10 @@ export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
 
+function normalize(value) {
+  return String(value || "").trim();
+}
+
 export async function GET() {
   const sheets = await getSheets();
 
@@ -35,22 +39,50 @@ export async function POST(req) {
     }
 
     if (!validateCSRF(req)) {
-      return NextResponse.json(
-        {
-          error: "Invalid CSRF",
-        },
-        {
-          status: 403,
-        },
-      );
+      return NextResponse.json({ error: "Invalid CSRF" }, { status: 403 });
     }
 
     const body = await req.json();
+    const paymentId = normalize(body.payment_id);
+    const amount = Number(body.amount || 0);
+
+    if (!paymentId || !amount) {
+      return NextResponse.json(
+        { error: "Payment ID and amount are required" },
+        { status: 400 },
+      );
+    }
 
     const sheets = await getSheets();
+    const trashRes = await sheets.spreadsheets.values.get({
+      spreadsheetId,
+      range: "Trash!A:D",
+    });
+    const trashRows = trashRes.data.values || [];
+    const existingTrash = trashRows.slice(1).find((r) => normalize(r[1]) === paymentId);
+
+    if (existingTrash) {
+      await recordAdminActivity(req, {
+        type: "idempotent",
+        module: "trash",
+        severity: "info",
+        message: `Reuse existing trash payment ${paymentId}`,
+        metadata: {
+          trash_id: existingTrash[0],
+          payment_id: paymentId,
+          amount: Number(existingTrash[2]) || amount,
+          date: existingTrash[3] || null,
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        existing: true,
+        trash_id: existingTrash[0],
+      });
+    }
 
     const trashId = generateId("TRASH-");
-
     const today = new Date().toISOString().slice(0, 10);
 
     await sheets.spreadsheets.values.append({
@@ -58,7 +90,7 @@ export async function POST(req) {
       range: "trash!A:D",
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [[trashId, body.payment_id, body.amount, today]],
+        values: [[trashId, paymentId, amount, today]],
       },
     });
 
@@ -66,11 +98,11 @@ export async function POST(req) {
       type: "create",
       module: "trash",
       severity: "success",
-      message: `Record trash payment ${body.payment_id || "manual"}`,
+      message: `Record trash payment ${paymentId}`,
       metadata: {
         trash_id: trashId,
-        payment_id: body.payment_id || null,
-        amount: Number(body.amount || 0),
+        payment_id: paymentId,
+        amount,
         date: today,
         actor: "system",
       },
