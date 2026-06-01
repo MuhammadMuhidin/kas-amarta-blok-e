@@ -68,9 +68,10 @@ export default function PersonalTab({
         <button
           type="button"
           className="admin-small-btn"
+          style={styles.actionButton}
           onClick={() => setShowAddMember((prev) => !prev)}
         >
-          {showAddMember ? "▴" : "▾"} Add
+          {showAddMember ? "▴" : "▾"} Add Member
         </button>
       </div>
 
@@ -165,6 +166,15 @@ const styles = {
 
   sectionTitle: {
     margin: 0,
+  },
+
+  actionButton: {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    whiteSpace: "nowrap",
+    minWidth: "max-content",
   },
 
   metaBar: {
