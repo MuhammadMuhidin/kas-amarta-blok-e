@@ -81,25 +81,25 @@ function UnpaidDetailModal({ open, title, members, onClose }) {
           <button type="button" style={styles.detailCloseButton} onClick={onClose} aria-label="Tutup detail">×</button>
         </div>
 
-        <div className="admin-table-wrapper" style={styles.detailBody}>
-          <table className="admin-table">
+        <div style={styles.detailBody}>
+          <table className="admin-table" style={styles.detailTable}>
             <thead>
               <tr>
-                <th className="admin-th">No</th>
-                <th className="admin-th">Rumah</th>
-                <th className="admin-th">Nama</th>
+                <th className="admin-th" style={styles.detailNoCell}>No</th>
+                <th className="admin-th" style={styles.detailFitCell}>Rumah</th>
+                <th className="admin-th" style={styles.detailFitCell}>Nama</th>
               </tr>
             </thead>
             <tbody>
               {members.length === 0 ? (
                 <tr>
-                  <td className="admin-td" colSpan={3}>Semua rumah sudah bayar.</td>
+                  <td className="admin-td" colSpan={3} style={styles.detailFitCell}>Semua rumah sudah bayar.</td>
                 </tr>
               ) : members.map((person, index) => (
                 <tr key={person.id || `${person.house}-${index}`} className={index % 2 ? "admin-row-alt" : ""}>
-                  <td className="admin-td">{index + 1}</td>
-                  <td className="admin-td">{person.house || "-"}</td>
-                  <td className="admin-td">{person.name || "-"}</td>
+                  <td className="admin-td" style={styles.detailNoCell}>{index + 1}</td>
+                  <td className="admin-td" style={styles.detailFitCell}>{person.house || "-"}</td>
+                  <td className="admin-td" style={styles.detailFitCell}>{person.name || "-"}</td>
                 </tr>
               ))}
             </tbody>
@@ -467,12 +467,11 @@ const styles = {
     background: "rgba(2, 6, 23, 0.68)",
   },
   detailModal: {
-    width: "100%",
-    maxWidth: 640,
+    width: "fit-content",
+    minWidth: "min(100%, 320px)",
+    maxWidth: "calc(100vw - 32px)",
     maxHeight: "86vh",
     overflow: "hidden",
-    display: "grid",
-    gridTemplateRows: "auto minmax(0, 1fr)",
     borderRadius: 18,
     border: "1px solid var(--admin-border)",
     background: "var(--admin-card)",
@@ -509,10 +508,24 @@ const styles = {
     fontSize: 20,
     fontWeight: 900,
     lineHeight: 1,
+    flex: "0 0 auto",
   },
   detailBody: {
-    minHeight: 0,
+    maxHeight: "calc(86vh - 95px)",
     overflow: "auto",
     padding: 18,
+  },
+  detailTable: {
+    width: "max-content",
+    tableLayout: "auto",
+  },
+  detailNoCell: {
+    width: 1,
+    whiteSpace: "nowrap",
+    textAlign: "right",
+  },
+  detailFitCell: {
+    width: 1,
+    whiteSpace: "nowrap",
   },
 };
