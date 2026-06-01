@@ -107,6 +107,8 @@ export default function useAdminPaymentActions({
   }
 
   function toggleHouse(id) {
+    if (loadingPayment) return;
+
     const person = personal.find((item) => item.id === id);
     if (!person || isHousePaidForPeriod(person)) return;
 
@@ -236,11 +238,13 @@ export default function useAdminPaymentActions({
   }
 
   useEffect(() => {
+    if (loadingPayment) return;
+
     setSelected((prev) => prev.filter((id) => {
       const person = personal.find((item) => item.id === id);
       return person && !isHousePaidForPeriod(person);
     }));
-  }, [payment.period, payments, personal]);
+  }, [payment.period, payments, personal, loadingPayment]);
 
   return {
     selected,
