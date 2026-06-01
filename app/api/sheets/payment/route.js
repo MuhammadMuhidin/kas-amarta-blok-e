@@ -12,6 +12,33 @@ function normalize(value) {
   return String(value || "").trim();
 }
 
+async function ensurePaymentCashflow({ sheets, paymentId, personHouse, period, amount, date }) {
+  const cashflowRes = await sheets.spreadsheets.values.get({
+    spreadsheetId,
+    range: "Cashflow!A:F",
+  });
+
+  const cashflowRows = cashflowRes.data.values || [];
+  const hasCashflow = cashflowRows.slice(1).some((r) => normalize(r[1]) === normalize(paymentId));
+
+  if (hasCashflow) {
+    return false;
+  }
+
+  const note = `Pembayaran Kas ${personHouse} Periode ${period}`;
+
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: "Cashflow!A:F",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [[generateId("CSFLOW-"), paymentId, "income", amount, note, date]],
+    },
+  });
+
+  return true;
+}
+
 export async function GET() {
   const sheets = await getSheets();
 
@@ -81,8 +108,7 @@ export async function POST(req) {
   });
 
   const paymentRows = paymentRes.data.values || [];
-
-  const duplicatePayment = paymentRows.slice(1).some((r) => {
+  const existingPayment = paymentRows.slice(1).find((r) => {
     const samePerson = normalize(r[1]) === normalize(person_id);
     const sameHouse = normalize(r[2]) === normalize(person_house);
     const samePeriod = normalize(r[4]) === period;
@@ -90,11 +116,39 @@ export async function POST(req) {
     return samePeriod && (samePerson || sameHouse);
   });
 
-  if (duplicatePayment) {
-    return NextResponse.json(
-      { error: "Period already paid for this house" },
-      { status: 409 },
-    );
+  if (existingPayment) {
+    const existingPaymentId = existingPayment[0];
+    const cashflowRecovered = await ensurePaymentCashflow({
+      sheets,
+      paymentId: existingPaymentId,
+      personHouse: existingPayment[2] || person_house,
+      period,
+      amount: Number(existingPayment[5]) || amount,
+      date: existingPayment[6] || today,
+    });
+
+    await recordAdminActivity(req, {
+      type: "idempotent",
+      module: "payment",
+      severity: "info",
+      message: `Reuse existing payment ${person_house} ${period}`,
+      metadata: {
+        payment_id: existingPaymentId,
+        person_id,
+        house: person_house,
+        name: person_name,
+        period,
+        amount: Number(existingPayment[5]) || amount,
+        cashflow_recovered: cashflowRecovered,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      existing: true,
+      cashflow_recovered: cashflowRecovered,
+      payment_id: existingPaymentId,
+    });
   }
 
   const paymentId = generateId("PAY-");
@@ -118,15 +172,13 @@ export async function POST(req) {
     },
   });
 
-  const note = `Pembayaran Kas ${person_house} Periode ${period}`;
-
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: "cashflow!A:F",
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[generateId("CSFLOW-"), paymentId, "income", amount, note, today]],
-    },
+  await ensurePaymentCashflow({
+    sheets,
+    paymentId,
+    personHouse: person_house,
+    period,
+    amount,
+    date: today,
   });
 
   await recordAdminActivity(req, {
