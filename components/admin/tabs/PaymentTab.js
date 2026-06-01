@@ -61,6 +61,18 @@ function isDepositPaid(deposit, normalize) {
   );
 }
 
+function WakeLockInfo({ wakeLock }) {
+  if (!wakeLock) return null;
+
+  const message = wakeLock.supported
+    ? wakeLock.locked
+      ? "Layar dijaga tetap aktif selama proses. Jangan pindah aplikasi sampai selesai."
+      : "Sedang mencoba menjaga layar tetap aktif. Jangan kunci layar sampai proses selesai."
+    : "Perangkat/browser tidak mendukung jaga layar aktif. Jangan kunci layar sampai proses selesai.";
+
+  return <div style={wakeLockInfoStyle}>{message}</div>;
+}
+
 export default function PaymentTab({
   configError,
   recordPayment,
@@ -74,6 +86,7 @@ export default function PaymentTab({
   isHousePaidForPeriod,
   loadingPayment,
   paymentProgress,
+  wakeLock,
 }) {
   const [deposits, setDeposits] = useState([]);
   const currentPeriod = getCurrentPeriod();
@@ -230,8 +243,21 @@ export default function PaymentTab({
               Record Payment
             </LoadingButtonContent>
           </button>
+          {loadingPayment && <WakeLockInfo wakeLock={wakeLock} />}
         </form>
       </div>
     </>
   );
 }
+
+const wakeLockInfoStyle = {
+  marginTop: -4,
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  color: "var(--admin-muted)",
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.45,
+};
