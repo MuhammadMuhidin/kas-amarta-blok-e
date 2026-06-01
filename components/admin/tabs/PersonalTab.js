@@ -70,7 +70,7 @@ export default function PersonalTab({
           className="admin-small-btn"
           onClick={() => setShowAddMember((prev) => !prev)}
         >
-          {showAddMember ? "▴ Hide Add Member" : "▾ Add Member"}
+          {showAddMember ? "▴" : "▾"} Add
         </button>
       </div>
 
