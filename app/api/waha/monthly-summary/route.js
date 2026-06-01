@@ -93,7 +93,7 @@ export async function POST(req) {
     const text = buildText(summary);
     const defaults = getWhatsAppWorkflowDefaults();
     const period = String(body.period || getCurrentPeriod(summary));
-    const chatId = String(body.chatId || defaults.chatId || "").trim();
+    const chatId = String(body.chatId || defaults.reportChatId || "").trim();
     const sessionId = String(body.sessionId || defaults.sessionId || "main").trim();
     const targetEnv = String(body.targetEnv || defaults.targetEnv || "development").trim();
 
