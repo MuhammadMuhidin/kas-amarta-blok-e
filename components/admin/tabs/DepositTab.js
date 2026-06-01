@@ -129,6 +129,7 @@ export default function DepositTab({
   const [showCreateBooking, setShowCreateBooking] = useState(false);
   const [showMultiPayModal, setShowMultiPayModal] = useState(false);
   const [multiPayLoading, setMultiPayLoading] = useState(false);
+  const [multiPayProgress, setMultiPayProgress] = useState({ current: 0, total: 0 });
   const [snapshotDraft, setSnapshotDraft] = useState({ amount: "", trash_amount: "" });
 
   const {
@@ -194,6 +195,9 @@ export default function DepositTab({
   }, 0);
 
   const isMultiPayDisabled = readyPayBookings.length === 0 || loading || loadingMore || multiPayLoading;
+  const multiPayLoadingText = multiPayProgress.total
+    ? `Membayar booking ${multiPayProgress.current}/${multiPayProgress.total}...`
+    : "Paying...";
   const bookingAmount = Number(selectedBooking?.amount || 0);
   const trashAmount = Number(selectedBooking?.trash_amount || 0);
   const totalBookingPayment = bookingAmount + trashAmount;
@@ -245,14 +249,16 @@ export default function DepositTab({
     if (readyPayBookings.length === 0 || multiPayLoading) return;
 
     setMultiPayLoading(true);
+    setMultiPayProgress({ current: 0, total: readyPayBookings.length });
 
     try {
       let success = 0;
       const recovered = [];
       const failures = [];
 
-      for (const booking of readyPayBookings) {
-        const result = await payDeposit(booking.id);
+      for (const [index, booking] of readyPayBookings.entries()) {
+        setMultiPayProgress({ current: index + 1, total: readyPayBookings.length });
+        const result = await payDeposit(booking.id, { silent: true });
 
         if (result?.ok) {
           success += 1;
@@ -303,16 +309,18 @@ export default function DepositTab({
       }
 
       if (failures.length === 0) {
-        const recoveredText = recovered.length ? ` (${recovered.length} hasil recovery)` : "";
+        const recoveredText = recovered.length ? `, ${recovered.length} recovery` : "";
         setShowMultiPayModal(false);
-        showToast(`Booking berhasil dibayarkan untuk ${success} rumah${recoveredText}`, "success");
+        showToast(`Multipay selesai: ${success} sukses${recoveredText}, 0 gagal`, "success");
       } else if (success > 0) {
-        showToast(`Multipay sebagian berhasil: ${success} sukses, ${failures.length} gagal`, "warning");
+        const recoveredText = recovered.length ? `, ${recovered.length} recovery` : "";
+        showToast(`Multipay selesai: ${success} sukses${recoveredText}, ${failures.length} gagal`, "warning");
       } else {
-        showToast(`Semua multipay gagal untuk ${failures.length} rumah`, "error");
+        showToast(`Multipay selesai: 0 sukses, ${failures.length} gagal`, "error");
       }
     } finally {
       setMultiPayLoading(false);
+      setMultiPayProgress({ current: 0, total: 0 });
     }
   }
 
@@ -520,6 +528,7 @@ export default function DepositTab({
             bookings={readyPayBookings}
             total={readyPayTotal}
             loading={multiPayLoading}
+            loadingText={multiPayLoadingText}
             onClose={() => setShowMultiPayModal(false)}
             onConfirm={handleMultiPayBookings}
           />
@@ -605,7 +614,7 @@ function BookingList({
   );
 }
 
-function MultiPayModal({ bookings, total, loading, onClose, onConfirm }) {
+function MultiPayModal({ bookings, total, loading, loadingText, onClose, onConfirm }) {
   return (
     <div className={modalStyles.overlay} onClick={loading ? undefined : onClose}>
       <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
@@ -633,7 +642,7 @@ function MultiPayModal({ bookings, total, loading, onClose, onConfirm }) {
             Cancel
           </button>
           <button type="button" className="admin-small-btn" disabled={loading || bookings.length === 0} onClick={onConfirm}>
-            <LoadingButtonContent loading={loading} loadingText="Paying...">
+            <LoadingButtonContent loading={loading} loadingText={loadingText || "Paying..."}>
               Pay {bookings.length} Booking
             </LoadingButtonContent>
           </button>
