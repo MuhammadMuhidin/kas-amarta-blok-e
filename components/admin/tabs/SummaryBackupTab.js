@@ -13,7 +13,7 @@ function formatRupiah(value) {
   return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 }
 
-function getDelta(current, previous) {
+function getDelta(current, previous, { increaseIsGood = true } = {}) {
   const diff = Number(current || 0) - Number(previous || 0);
 
   if (diff === 0) {
@@ -24,10 +24,13 @@ function getDelta(current, previous) {
     };
   }
 
+  const isIncrease = diff > 0;
+  const isGood = increaseIsGood ? isIncrease : !isIncrease;
+
   return {
     value: Math.abs(diff),
-    label: diff > 0 ? "↑" : "↓",
-    color: diff > 0 ? expenseColor : successColor,
+    label: isIncrease ? "↑" : "↓",
+    color: isGood ? successColor : expenseColor,
   };
 }
 
@@ -84,21 +87,22 @@ export default function SummaryBackupTab() {
   const previous = summaryBackup?.[1];
 
   const incomeDelta = previous
-    ? getDelta(latest?.total_income, previous?.total_income)
+    ? getDelta(latest?.total_income, previous?.total_income, { increaseIsGood: true })
     : null;
 
   const expenseDelta = previous
-    ? getDelta(latest?.total_expense, previous?.total_expense)
+    ? getDelta(latest?.total_expense, previous?.total_expense, { increaseIsGood: false })
     : null;
 
   const netDelta = previous
-    ? getDelta(latest?.net_saldo, previous?.net_saldo)
+    ? getDelta(latest?.net_saldo, previous?.net_saldo, { increaseIsGood: true })
     : null;
 
   const activeDelta = previous
     ? getDelta(
         latest?.total_personal_active,
         previous?.total_personal_active,
+        { increaseIsGood: true },
       )
     : null;
 
