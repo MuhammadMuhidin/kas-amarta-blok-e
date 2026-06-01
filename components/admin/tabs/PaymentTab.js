@@ -161,6 +161,7 @@ export default function PaymentTab({
           <select
             className="admin-input"
             value={payment.period}
+            disabled={loadingPayment}
             onChange={(e) => setPayment({ ...payment, period: e.target.value })}
           >
             <option value="">Pilih periode tunggakan</option>
@@ -188,17 +189,24 @@ export default function PaymentTab({
                 const effectiveStartPeriod = getEffectiveStartPeriod(joinPeriod);
                 const alreadyPaid = isHousePaidForPeriod(p);
                 const notJoined = period && effectiveStartPeriod && period < effectiveStartPeriod;
-                const disabledChip = alreadyPaid || notJoined;
+                const disabledChip = loadingPayment || alreadyPaid || notJoined;
                 const chipClass = [
                   "admin-checkbox-chip",
                   selected.includes(p.id) ? "admin-checkbox-chip-active" : "",
                   disabledChip ? "admin-checkbox-chip-disabled" : "",
                 ].filter(Boolean).join(" ");
+                const title = loadingPayment
+                  ? "Bulk payment sedang diproses"
+                  : alreadyPaid
+                    ? "Already paid for this period"
+                    : notJoined
+                      ? "Not joined yet for this period"
+                      : "";
 
                 return (
                   <label
                     key={p.id}
-                    title={alreadyPaid ? "Already paid for this period" : notJoined ? "Not joined yet for this period" : ""}
+                    title={title}
                     className={chipClass}
                   >
                     <input
