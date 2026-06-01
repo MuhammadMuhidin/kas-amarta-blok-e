@@ -61,8 +61,11 @@ export default function useAdminDepositActions({
       await payDepositBooking({ id, action: "PAY_NOW" });
       showPopup("Booking payment berhasil dibayarkan", "success");
       await Promise.all([loadDeposit(), loadPayment(), loadTrash(), loadCashflow()]);
+      return { ok: true };
     } catch (err) {
-      showPopup(err.message || "Gagal membayarkan data booking", "error");
+      const message = err.message || "Gagal membayarkan data booking";
+      showPopup(message, "error");
+      return { ok: false, error: message };
     } finally {
       setPayingDepositId("");
     }
