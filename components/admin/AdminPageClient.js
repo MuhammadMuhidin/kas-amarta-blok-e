@@ -179,6 +179,10 @@ export default function AdminPageClient() {
     await Promise.all([loadDeposit(), loadPayment(), loadTrash(), loadCashflow()]);
   }
 
+  async function refreshMonitoringState() {
+    await Promise.all([loadPayment(), loadTrash(), loadCashflow()]);
+  }
+
   useEffect(() => {
     async function bootstrap() {
       const validSession = await checkSession();
@@ -242,7 +246,7 @@ export default function AdminPageClient() {
         {tab === "cashflow" && <CashflowTab key={`cashflow-${tabRefreshKey}`} addCashflow={addCashflow} cashflow={cashflow} setCashflow={setCashflow} loadingCashflow={loadingCashflow} />}
         {tab === "timeline" && <TimelineTab key={`timeline-${tabRefreshKey}`} showPopup={showPopup} />}
         {tab === "summary" && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
-        {tab === "monitoring" && <MonitoringTab key={`monitoring-${tabRefreshKey}`} loadingDailyBackup={loadingDailyBackup} dailyBackup={dailyBackup} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} suspiciousData={suspiciousData} />}
+        {tab === "monitoring" && <MonitoringTab key={`monitoring-${tabRefreshKey}`} loadingDailyBackup={loadingDailyBackup} dailyBackup={dailyBackup} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
         {tab === "activity" && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
         {tab === "settings" && <SettingsTab key={`settings-${tabRefreshKey}`} />}
       </div>
