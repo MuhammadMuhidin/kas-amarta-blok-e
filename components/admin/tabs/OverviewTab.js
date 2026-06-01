@@ -78,7 +78,6 @@ function UnpaidDetailModal({ open, title, members, onClose }) {
             <div className="modal-title">{title}</div>
             <div className="modal-section">{members.length} rumah belum bayar.</div>
           </div>
-          <button type="button" className="admin-small-btn" onClick={onClose} aria-label="Tutup detail">Tutup</button>
         </div>
 
         <table className="detail-table">
