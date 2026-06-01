@@ -71,40 +71,38 @@ function UnpaidDetailModal({ open, title, members, onClose }) {
   if (!open) return null;
 
   return (
-    <div style={styles.detailOverlay} onClick={onClose}>
-      <div style={styles.detailModal} onClick={(event) => event.stopPropagation()}>
-        <div style={styles.detailHeader}>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
           <div>
-            <div style={styles.detailTitle}>{title}</div>
-            <div style={styles.detailDescription}>{members.length} rumah belum bayar.</div>
+            <div className="modal-title">{title}</div>
+            <div className="modal-section">{members.length} rumah belum bayar.</div>
           </div>
-          <button type="button" style={styles.detailCloseButton} onClick={onClose} aria-label="Tutup detail">×</button>
+          <button type="button" className="admin-small-btn" onClick={onClose} aria-label="Tutup detail">Tutup</button>
         </div>
 
-        <div style={styles.detailBody}>
-          <table className="admin-table" style={styles.detailTable}>
-            <thead>
+        <table className="detail-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>Rumah</th>
+              <th>Nama</th>
+            </tr>
+          </thead>
+          <tbody>
+            {members.length === 0 ? (
               <tr>
-                <th className="admin-th" style={styles.detailNoCell}>No</th>
-                <th className="admin-th" style={styles.detailFitCell}>Rumah</th>
-                <th className="admin-th" style={styles.detailFitCell}>Nama</th>
+                <td colSpan={3}>Semua rumah sudah bayar.</td>
               </tr>
-            </thead>
-            <tbody>
-              {members.length === 0 ? (
-                <tr>
-                  <td className="admin-td" colSpan={3} style={styles.detailFitCell}>Semua rumah sudah bayar.</td>
-                </tr>
-              ) : members.map((person, index) => (
-                <tr key={person.id || `${person.house}-${index}`} className={index % 2 ? "admin-row-alt" : ""}>
-                  <td className="admin-td" style={styles.detailNoCell}>{index + 1}</td>
-                  <td className="admin-td" style={styles.detailFitCell}>{person.house || "-"}</td>
-                  <td className="admin-td" style={styles.detailFitCell}>{person.name || "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ) : members.map((person, index) => (
+              <tr key={person.id || `${person.house}-${index}`}>
+                <td>{index + 1}</td>
+                <td>{person.house || "-"}</td>
+                <td>{person.name || "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -455,77 +453,5 @@ const styles = {
     fontSize: 12,
     fontWeight: 600,
     lineHeight: 1.5,
-  },
-  detailOverlay: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 1000,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    background: "rgba(2, 6, 23, 0.68)",
-  },
-  detailModal: {
-    width: "fit-content",
-    minWidth: "min(100%, 320px)",
-    maxWidth: "calc(100vw - 32px)",
-    maxHeight: "86vh",
-    overflow: "hidden",
-    borderRadius: 18,
-    border: "1px solid var(--admin-border)",
-    background: "var(--admin-card)",
-    color: "var(--admin-text)",
-    boxShadow: "0 24px 60px rgba(0, 0, 0, 0.35)",
-  },
-  detailHeader: {
-    display: "flex",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 12,
-    padding: 18,
-    borderBottom: "1px solid var(--admin-border)",
-  },
-  detailTitle: {
-    fontSize: 17,
-    fontWeight: 900,
-    marginBottom: 5,
-  },
-  detailDescription: {
-    color: "var(--admin-muted)",
-    fontSize: 13,
-    fontWeight: 600,
-    lineHeight: 1.5,
-  },
-  detailCloseButton: {
-    width: 34,
-    height: 34,
-    border: "1px solid var(--admin-border)",
-    borderRadius: 999,
-    background: "var(--admin-row)",
-    color: "var(--admin-text)",
-    cursor: "pointer",
-    fontSize: 20,
-    fontWeight: 900,
-    lineHeight: 1,
-    flex: "0 0 auto",
-  },
-  detailBody: {
-    maxHeight: "calc(86vh - 95px)",
-    overflow: "auto",
-    padding: 18,
-  },
-  detailTable: {
-    width: "max-content",
-    tableLayout: "auto",
-  },
-  detailNoCell: {
-    width: 1,
-    whiteSpace: "nowrap",
-    textAlign: "right",
-  },
-  detailFitCell: {
-    width: 1,
-    whiteSpace: "nowrap",
   },
 };
