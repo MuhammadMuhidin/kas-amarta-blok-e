@@ -80,7 +80,7 @@ function UnpaidDetailModal({ open, title, members, onClose }) {
           </div>
         </div>
 
-        <table className="detail-table">
+        <table className="detail-table" style={{ marginLeft: "auto", marginRight: "auto" }}>
           <thead>
             <tr>
               <th>No</th>
