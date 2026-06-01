@@ -119,6 +119,7 @@ export default function DepositTab({
   payments,
   normalize,
   payDeposit,
+  onBatchComplete,
 }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [snapshotOverrides, setSnapshotOverrides] = useState({});
@@ -209,13 +210,6 @@ export default function DepositTab({
     setTimeout(() => setToast(null), 2500);
   }
 
-  function getCookie(name) {
-    return document.cookie
-      .split("; ")
-      .find((row) => row.startsWith(`${name}=`))
-      ?.split("=")[1];
-  }
-
   function openBookingModal(deposit) {
     const latest = { ...deposit, ...(snapshotOverrides[deposit.id] || {}) };
 
@@ -243,6 +237,7 @@ export default function DepositTab({
   async function handlePayDeposit(id) {
     await payDeposit(id);
     await refresh();
+    await onBatchComplete?.();
   }
 
   async function handleMultiPayBookings() {
@@ -298,7 +293,7 @@ export default function DepositTab({
         }
       }
 
-      await refresh();
+      await Promise.all([refresh(), onBatchComplete?.()]);
 
       if (failures.length > 0 || recovered.length > 0) {
         try {
@@ -351,29 +346,18 @@ export default function DepositTab({
     setSnapshotError("");
 
     try {
-      const csrfToken = getCookie("csrf_token");
-      const res = await fetch("/api/sheets/deposit", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "x-csrf-token": csrfToken,
-        },
-        body: JSON.stringify({
-          id: selectedBooking.id,
-          action: "UPDATE_SNAPSHOT",
-          amount,
-          trash_amount: nextTrashAmount,
-        }),
+      await sendJson("/api/sheets/deposit", "PATCH", {
+        id: selectedBooking.id,
+        action: "UPDATE_SNAPSHOT",
+        amount,
+        trash_amount: nextTrashAmount,
       });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || "Gagal memperbarui booking snapshot");
 
       const updatedBooking = { ...selectedBooking, amount, trash_amount: nextTrashAmount };
       setSnapshotOverrides((prev) => ({ ...prev, [selectedBooking.id]: updatedBooking }));
       setSelectedBooking(updatedBooking);
       setEditingSnapshot(false);
-      await refresh();
+      await Promise.all([refresh(), onBatchComplete?.()]);
       showToast("Booking snapshot berhasil diperbarui", "success");
     } catch (err) {
       const message = err.message || "Gagal memperbarui booking snapshot";
