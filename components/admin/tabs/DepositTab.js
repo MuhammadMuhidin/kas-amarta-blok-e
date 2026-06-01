@@ -402,7 +402,7 @@ export default function DepositTab({
             className="admin-small-btn"
             onClick={() => setShowCreateBooking((prev) => !prev)}
           >
-            {showCreateBooking ? "▴ Hide Booking" : "▾ Create Booking"}
+            {showCreateBooking ? "▴" : "▾"} Create
           </button>
         </div>
 
