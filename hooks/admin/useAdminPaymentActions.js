@@ -92,6 +92,7 @@ export default function useAdminPaymentActions({
 }) {
   const [selected, setSelected] = useState([]);
   const [loadingPayment, setLoadingPayment] = useState(false);
+  const [paymentProgress, setPaymentProgress] = useState({ current: 0, total: 0 });
 
   function isHousePaidForPeriod(person) {
     const period = normalize(payment.period);
@@ -131,13 +132,15 @@ export default function useAdminPaymentActions({
     }
 
     setLoadingPayment(true);
+    setPaymentProgress({ current: 0, total: selected.length });
 
     try {
       let success = 0;
       const recovered = [];
       const failures = [];
 
-      for (const id of selected) {
+      for (const [index, id] of selected.entries()) {
+        setPaymentProgress({ current: index + 1, total: selected.length });
         const person = personal.find((item) => item.id === id);
         if (!person) continue;
 
@@ -216,17 +219,19 @@ export default function useAdminPaymentActions({
       }
 
       if (failures.length === 0) {
-        const recoveredText = recovered.length ? ` (${recovered.length} hasil recovery)` : "";
-        showPopup(`Pembayaran berhasil dicatat untuk ${success} rumah${recoveredText}`, "success");
+        const recoveredText = recovered.length ? `, ${recovered.length} recovery` : "";
+        showPopup(`Pembayaran selesai: ${success} sukses${recoveredText}, 0 gagal`, "success");
         setSelected([]);
         setPayment({ period: "", amount: appConfig.monthly_fee });
       } else if (success > 0) {
-        showPopup(`Pembayaran sebagian berhasil: ${success} sukses, ${failures.length} gagal`, "warning");
+        const recoveredText = recovered.length ? `, ${recovered.length} recovery` : "";
+        showPopup(`Pembayaran selesai: ${success} sukses${recoveredText}, ${failures.length} gagal`, "warning");
       } else {
-        showPopup(`Semua pembayaran gagal dicatat untuk ${failures.length} rumah`, "error");
+        showPopup(`Pembayaran selesai: 0 sukses, ${failures.length} gagal`, "error");
       }
     } finally {
       setLoadingPayment(false);
+      setPaymentProgress({ current: 0, total: 0 });
     }
   }
 
@@ -240,6 +245,7 @@ export default function useAdminPaymentActions({
   return {
     selected,
     loadingPayment,
+    paymentProgress,
     toggleHouse,
     isHousePaidForPeriod,
     recordPayment,
