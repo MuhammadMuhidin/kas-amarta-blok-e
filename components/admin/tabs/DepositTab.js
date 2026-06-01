@@ -34,6 +34,18 @@ function formatPeriod(period) {
   });
 }
 
+function WakeLockInfo({ wakeLock }) {
+  if (!wakeLock) return null;
+
+  const message = wakeLock.supported
+    ? wakeLock.locked
+      ? "Layar dijaga tetap aktif selama proses. Jangan pindah aplikasi sampai selesai."
+      : "Sedang mencoba menjaga layar tetap aktif. Jangan kunci layar sampai proses selesai."
+    : "Perangkat/browser tidak mendukung jaga layar aktif. Jangan kunci layar sampai proses selesai.";
+
+  return <div style={wakeLockInfoStyle}>{message}</div>;
+}
+
 function buildMultiPayFailureMessage({ success, recovered, failures }) {
   const recoveredLines = recovered.length
     ? [
@@ -121,6 +133,7 @@ export default function DepositTab({
   payDeposit,
   onBatchComplete,
   onBatchStatusChange,
+  wakeLock,
 }) {
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [snapshotOverrides, setSnapshotOverrides] = useState({});
@@ -516,6 +529,7 @@ export default function DepositTab({
             total={readyPayTotal}
             loading={multiPayLoading}
             loadingText={multiPayLoadingText}
+            wakeLock={wakeLock}
             onClose={() => setShowMultiPayModal(false)}
             onConfirm={handleMultiPayBookings}
           />
@@ -601,7 +615,7 @@ function BookingList({
   );
 }
 
-function MultiPayModal({ bookings, total, loading, loadingText, onClose, onConfirm }) {
+function MultiPayModal({ bookings, total, loading, loadingText, wakeLock, onClose, onConfirm }) {
   return (
     <div className={modalStyles.overlay} onClick={loading ? undefined : onClose}>
       <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
@@ -634,6 +648,7 @@ function MultiPayModal({ bookings, total, loading, loadingText, onClose, onConfi
             </LoadingButtonContent>
           </button>
         </div>
+        {loading && <WakeLockInfo wakeLock={wakeLock} />}
       </div>
     </div>
   );
@@ -871,6 +886,18 @@ const multiPayItemStyle = {
 const multiPayTotalStyle = {
   ...totalRowStyle,
   marginBottom: 14,
+};
+
+const wakeLockInfoStyle = {
+  marginTop: 10,
+  padding: "10px 12px",
+  borderRadius: 12,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  color: "var(--admin-muted)",
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.45,
 };
 
 const snapshotLabelStyle = {
