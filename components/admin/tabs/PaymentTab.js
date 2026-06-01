@@ -1,4 +1,5 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import { readJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod } from "@/lib/depositUtils";
 import { useEffect, useMemo, useState } from "react";
 
@@ -78,17 +79,22 @@ export default function PaymentTab({
   const currentPeriod = getCurrentPeriod();
 
   useEffect(() => {
-    async function loadDeposit() {
-      const res = await fetch("/api/sheets/deposit", {
-        cache: "no-store",
-        method: "GET",
-      });
+    let ignore = false;
 
-      const data = await res.json();
-      setDeposits(data || []);
+    async function loadDeposit() {
+      try {
+        const data = await readJson("/api/sheets/deposit");
+        if (!ignore) setDeposits(Array.isArray(data) ? data : []);
+      } catch {
+        if (!ignore) setDeposits([]);
+      }
     }
 
     loadDeposit();
+
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   const pendingCurrentDeposits = useMemo(() => {
