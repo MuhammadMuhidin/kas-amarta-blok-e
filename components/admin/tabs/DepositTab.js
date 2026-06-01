@@ -4,6 +4,7 @@ import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import PersonSearchBox from "@/components/admin/PersonSearchBox";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
+import { sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
 import { useMemo, useState } from "react";
 
@@ -30,6 +31,32 @@ function formatPeriod(period) {
   return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
     month: "long",
     year: "numeric",
+  });
+}
+
+function buildMultiPayFailureMessage({ success, failures }) {
+  const failureLines = failures
+    .map((item, index) => `${index + 1}. ${item.house || "-"} - ${item.name || "-"} (${formatPeriod(item.period)}): ${item.error}`)
+    .join("\n");
+
+  return [
+    "[ADMIN ALERT] Multipay Booking Payment gagal sebagian.",
+    "",
+    `Berhasil: ${success} rumah`,
+    `Gagal: ${failures.length} rumah`,
+    "",
+    "Detail gagal:",
+    failureLines,
+  ].join("\n");
+}
+
+async function notifyMultiPayFailures({ success, failures }) {
+  if (!failures.length) return;
+
+  await sendJson("/api/waha/workflow", "POST", {
+    period: failures[0]?.period || "-",
+    source: "admin-multipay-booking-failure",
+    message: buildMultiPayFailureMessage({ success, failures }),
   });
 }
 
@@ -177,15 +204,43 @@ export default function DepositTab({
     setMultiPayLoading(true);
 
     try {
+      let success = 0;
+      const failures = [];
+
       for (const booking of readyPayBookings) {
-        await payDeposit(booking.id);
+        const result = await payDeposit(booking.id);
+
+        if (result?.ok) {
+          success += 1;
+        } else {
+          failures.push({
+            id: booking.id,
+            house: booking.house,
+            name: booking.name,
+            period: booking.period,
+            error: result?.error || "Gagal membayarkan booking",
+          });
+        }
       }
 
       await refresh();
-      setShowMultiPayModal(false);
-      showToast(`Booking berhasil dibayarkan untuk ${readyPayBookings.length} rumah`, "success");
-    } catch (err) {
-      showToast(err.message || "Gagal membayarkan booking", "error");
+
+      if (failures.length > 0) {
+        try {
+          await notifyMultiPayFailures({ success, failures });
+        } catch (notifyErr) {
+          showToast(notifyErr.message || "Gagal trigger WhatsApp workflow", "error");
+        }
+      }
+
+      if (failures.length === 0) {
+        setShowMultiPayModal(false);
+        showToast(`Booking berhasil dibayarkan untuk ${success} rumah`, "success");
+      } else if (success > 0) {
+        showToast(`Multipay sebagian berhasil: ${success} sukses, ${failures.length} gagal`, "warning");
+      } else {
+        showToast(`Semua multipay gagal untuk ${failures.length} rumah`, "error");
+      }
     } finally {
       setMultiPayLoading(false);
     }
