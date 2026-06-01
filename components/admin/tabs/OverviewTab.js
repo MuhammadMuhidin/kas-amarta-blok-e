@@ -36,17 +36,6 @@ function formatPeriod(period) {
   });
 }
 
-function formatUnpaidList(items, fallback) {
-  if (!items.length) return fallback;
-
-  const names = items
-    .slice(0, 4)
-    .map((person) => [person.house, person.name].filter(Boolean).join(" - ") || "Rumah tanpa nama");
-  const remaining = items.length - names.length;
-
-  return `Belum: ${names.join(", ")}${remaining > 0 ? ` +${remaining} lagi` : ""}`;
-}
-
 function Section({ title, children }) {
   return (
     <section style={{ display: "grid", gap: 12 }}>
@@ -145,8 +134,7 @@ export default function OverviewTab({
       .map((payment) => normalize(payment.person_house || payment.house || payment.person_id)),
   );
   const paidCurrentCount = activeCurrentMembers.filter((person) => paidCurrentKeys.has(normalize(person.house))).length;
-  const unpaidCurrentMembers = activeCurrentMembers.filter((person) => !paidCurrentKeys.has(normalize(person.house)));
-  const unpaidCurrentCount = unpaidCurrentMembers.length;
+  const unpaidCurrentCount = Math.max(activeCurrentMembers.length - paidCurrentCount, 0);
   const trashPaidPersonIds = new Set(
     trashRecords
       .map((trash) => paymentById.get(normalize(trash.payment_id)))
@@ -155,8 +143,7 @@ export default function OverviewTab({
       .filter(Boolean),
   );
   const paidCurrentTrashCount = activeCurrentTrashMembers.filter((person) => trashPaidPersonIds.has(normalize(person.id))).length;
-  const unpaidCurrentTrashMembers = activeCurrentTrashMembers.filter((person) => !trashPaidPersonIds.has(normalize(person.id)));
-  const unpaidCurrentTrashCount = unpaidCurrentTrashMembers.length;
+  const unpaidCurrentTrashCount = Math.max(activeCurrentTrashMembers.length - paidCurrentTrashCount, 0);
 
   const currentMonthCashflows = cashflows.filter((item) => String(item.date || "").slice(0, 7) === currentPeriod);
   const currentIncome = currentMonthCashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
@@ -183,7 +170,7 @@ export default function OverviewTab({
     unpaidCurrentTrashCount > 0 && {
       tone: "warning",
       title: `${unpaidCurrentTrashCount} rumah belum bayar sampah bulan ini`,
-      detail: formatUnpaidList(unpaidCurrentTrashMembers, `Periode ${periodLabel} masih perlu ditagih atau dicek.`),
+      detail: `Periode ${periodLabel} masih perlu ditagih atau dicek.`,
       action: "Buka Payment",
       tab: "payment",
     },
@@ -228,8 +215,8 @@ export default function OverviewTab({
             <MonitoringCard label="Saldo Kas" value={money(currentBalance)} meta={["Income dikurangi expense semua periode."]} error={currentBalance < 0} />
             <MonitoringCard label="Pemasukan Bulan Ini" value={money(currentIncome)} meta={[`Periode ${periodLabel}`]} />
             <MonitoringCard label="Pengeluaran Bulan Ini" value={money(currentExpense)} meta={[`Periode ${periodLabel}`]} />
-            <MonitoringCard label="Pembayaran Bulan Ini (Kas)" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`, formatUnpaidList(unpaidCurrentMembers, "Semua rumah aktif sudah bayar kas.")]} error={unpaidCurrentCount > 0} />
-            <MonitoringCard label="Pembayaran Bulan Ini (Sampah)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} rumah`} meta={[`${unpaidCurrentTrashCount} rumah belum bayar.`, formatUnpaidList(unpaidCurrentTrashMembers, "Semua rumah wajib sampah sudah bayar sampah.")]} error={unpaidCurrentTrashCount > 0} />
+            <MonitoringCard label="Pembayaran Bulan Ini (Kas)" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} error={unpaidCurrentCount > 0} />
+            <MonitoringCard label="Pembayaran Bulan Ini (Sampah)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} rumah`} meta={[`${unpaidCurrentTrashCount} rumah belum bayar.`]} error={unpaidCurrentTrashCount > 0} />
             <MonitoringCard label="Ready Booking" value={`${readyBookings.length} rumah`} meta={[`${waitingBookings.length} booking menunggu periode bayar.`]} error={readyBookings.length > 0} />
             <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
           </div>
