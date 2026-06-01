@@ -19,7 +19,7 @@ export async function POST(req) {
     const message = String(body.message || "").trim();
     const period = String(body.period || "-").trim();
     const source = String(body.source || "admin").trim();
-    const chatId = String(body.chatId || defaults.chatId || "").trim();
+    const chatId = String(body.chatId || defaults.alertChatId || "").trim();
     const sessionId = String(body.sessionId || defaults.sessionId || "main").trim();
     const targetEnv = String(body.targetEnv || defaults.targetEnv || "development").trim();
 
