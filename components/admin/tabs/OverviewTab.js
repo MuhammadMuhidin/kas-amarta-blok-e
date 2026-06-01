@@ -11,6 +11,82 @@ const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
 const normalizeUpper = (value) => normalize(value).toUpperCase();
 
+const overviewAdminCss = `
+  .admin-wrapper .admin-status-meta-action-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .admin-wrapper .admin-insight-link {
+    border: none;
+    background: none;
+    color: var(--admin-primary);
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 0;
+    white-space: nowrap;
+  }
+
+  .admin-wrapper .admin-insight-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .admin-wrapper .modal-overlay {
+    animation: adminModalOverlayIn 0.18s ease-out;
+  }
+
+  .admin-wrapper .modal-box {
+    animation: adminModalContentIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    transform-origin: center;
+  }
+
+  .admin-wrapper .detail-table {
+    width: 100%;
+    min-width: 0;
+    margin: 10px auto 0;
+    table-layout: auto;
+  }
+
+  .admin-wrapper .detail-table th,
+  .admin-wrapper .detail-table td {
+    white-space: nowrap;
+  }
+
+  @keyframes adminModalOverlayIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes adminModalContentIn {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .admin-wrapper .modal-overlay,
+    .admin-wrapper .modal-box {
+      animation: none;
+    }
+  }
+`;
+
 function formatDate(value) {
   if (!value) return "-";
 
@@ -80,7 +156,7 @@ function UnpaidDetailModal({ open, title, members, onClose }) {
           </div>
         </div>
 
-        <table className="detail-table" style={{ marginLeft: "auto", marginRight: "auto" }}>
+        <table className="detail-table">
           <thead>
             <tr>
               <th>No</th>
@@ -246,6 +322,7 @@ export default function OverviewTab({
 
   return (
     <>
+      <style>{overviewAdminCss}</style>
       <Toast show={toast.show} type={toast.type} message={toast.message} />
 
       <div className="admin-card" style={{ display: "grid", gap: 22 }}>
