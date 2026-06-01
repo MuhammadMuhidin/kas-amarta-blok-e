@@ -15,10 +15,10 @@ export default function MonitoringCard({
         const action = metaActions[index];
 
         return (
-          <div key={item} className="admin-status-meta" style={action ? styles.metaWithAction : undefined}>
+          <div key={item} className={`admin-status-meta${action ? " admin-status-meta-action-row" : ""}`}>
             <span>{item}</span>
             {action ? (
-              <button type="button" style={styles.metaActionButton} onClick={action.onClick}>
+              <button type="button" className="admin-insight-link" onClick={action.onClick}>
                 {action.label}
               </button>
             ) : null}
@@ -28,24 +28,3 @@ export default function MonitoringCard({
     </div>
   );
 }
-
-const styles = {
-  metaWithAction: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-  metaActionButton: {
-    border: 0,
-    padding: 0,
-    background: "transparent",
-    color: "var(--admin-primary, #2563eb)",
-    font: "inherit",
-    fontWeight: 800,
-    cursor: "pointer",
-    textDecoration: "underline",
-    textUnderlineOffset: 3,
-  },
-};
