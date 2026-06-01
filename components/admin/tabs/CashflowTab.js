@@ -210,7 +210,7 @@ export default function CashflowTab({
             className="admin-small-btn"
             onClick={() => setShowRecordForm((prev) => !prev)}
           >
-            {showRecordForm ? "▴ Hide Form" : "▾ Record Transaction"}
+            {showRecordForm ? "▴" : "▾"} Record
           </button>
         </div>
 
