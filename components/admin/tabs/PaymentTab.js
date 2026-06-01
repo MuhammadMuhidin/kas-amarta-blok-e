@@ -72,6 +72,7 @@ export default function PaymentTab({
   normalize,
   isHousePaidForPeriod,
   loadingPayment,
+  paymentProgress,
 }) {
   const [deposits, setDeposits] = useState([]);
   const currentPeriod = getCurrentPeriod();
@@ -101,6 +102,9 @@ export default function PaymentTab({
 
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
   const disableRecordPayment = loadingPayment || hasPendingCurrentDeposit;
+  const loadingText = paymentProgress?.total
+    ? `Mencatat pembayaran ${paymentProgress.current}/${paymentProgress.total}...`
+    : "Recording...";
 
   function isPaidForPeriod(person, period) {
     return payments.some((pay) => {
@@ -208,7 +212,7 @@ export default function PaymentTab({
               })}
           </div>
           <button className="admin-btn" disabled={disableRecordPayment}>
-            <LoadingButtonContent loading={loadingPayment} loadingText="Recording...">
+            <LoadingButtonContent loading={loadingPayment} loadingText={loadingText}>
               Record Payment
             </LoadingButtonContent>
           </button>
