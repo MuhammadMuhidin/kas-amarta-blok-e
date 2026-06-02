@@ -13,6 +13,12 @@ import {
   getWebAuthConfig,
   updateCounter,
 } from "@/lib/webauth";
+import {
+  clearRateLimit,
+  enforceFailureRateLimit,
+  RATE_LIMIT_SCOPES,
+  recordRateLimitFailure,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -50,10 +56,28 @@ async function createAuthResponse(req) {
 export async function POST(req) {
   try {
     const body = await req.json();
+    const credentialId = body?.id;
+    const rateLimitOptions = {
+      targetId: credentialId,
+    };
+
+    const verifyLimit = await enforceFailureRateLimit(
+      req,
+      RATE_LIMIT_SCOPES.webauthVerifyFailed,
+      rateLimitOptions,
+    );
+
+    if (verifyLimit) return verifyLimit;
 
     const challenge = req.cookies.get("webauth_login_challenge")?.value;
 
     if (!challenge) {
+      await recordRateLimitFailure(
+        req,
+        RATE_LIMIT_SCOPES.webauthVerifyFailed,
+        rateLimitOptions,
+      );
+
       return NextResponse.json(
         {
           error: "Challenge login expired",
@@ -62,11 +86,15 @@ export async function POST(req) {
       );
     }
 
-    const credentialId = body?.id;
-
     const savedCredential = await getCredentialById(credentialId);
 
     if (!savedCredential) {
+      await recordRateLimitFailure(
+        req,
+        RATE_LIMIT_SCOPES.webauthVerifyFailed,
+        rateLimitOptions,
+      );
+
       return NextResponse.json(
         {
           error: "Credential WebAuth not registered",
@@ -96,6 +124,12 @@ export async function POST(req) {
     });
 
     if (!verification.verified) {
+      await recordRateLimitFailure(
+        req,
+        RATE_LIMIT_SCOPES.webauthVerifyFailed,
+        rateLimitOptions,
+      );
+
       return NextResponse.json(
         {
           error: "Verify WebAuth failed",
@@ -109,8 +143,16 @@ export async function POST(req) {
       verification.authenticationInfo.newCounter,
     );
 
+    await clearRateLimit(
+      req,
+      RATE_LIMIT_SCOPES.webauthVerifyFailed,
+      rateLimitOptions,
+    );
+
     return createAuthResponse(req);
   } catch (err) {
+    await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.webauthVerifyFailed);
+
     return NextResponse.json(
       {
         error: err.message || "Verify WebAuth login failed",
