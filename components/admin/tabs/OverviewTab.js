@@ -310,7 +310,7 @@ export default function OverviewTab({
         summaryItems: [
           ["Tercatat", `${members.length}/${totalMembers} rumah`, isPaidStatus ? "Sudah lunas" : "Belum lunas"],
           ["Tarif", money(amount), "per rumah"],
-          ["Total", money(members.length * Number(amount || 0)), "dana tercatat"],
+          ["Total", money(members.length * Number(amount || 0)), "dana terkumpul"],
         ],
         badgeText: isPaidStatus ? "LUNAS" : "BELUM",
         listTitle: "Daftar Rumah",
