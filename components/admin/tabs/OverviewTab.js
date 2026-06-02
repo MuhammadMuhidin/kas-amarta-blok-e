@@ -294,24 +294,29 @@ export default function OverviewTab({
   const recentCashflows = [...cashflows].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).slice(0, 5);
   const periodLabel = formatPeriod(currentPeriod);
 
-  async function handleShareDetailJpg({ id, title, members, totalMembers, statusText, paymentLabel, amount, footerNote }) {
+  async function handleShareDetailJpg({ id, members, totalMembers, statusText, paymentLabel, amount, footerNote }) {
     if (exportingDetailJpg) return;
 
     setExportingDetailJpg(id);
 
+    const isTrashPayment = paymentLabel === "Sampah";
+    const isPaidStatus = statusText === "Sudah Bayar";
+
     try {
       const result = await shareMembersJpgReport({
-        title: `PEMBAYARAN ${paymentLabel.toUpperCase()}`,
+        title: isTrashPayment ? "Pembayaran Iuran Sampah" : "Pembayaran Kas",
         period: currentPeriod,
         members,
         summaryItems: [
-          ["Total Data", `${members.length}/${totalMembers} rumah`],
-          [`Tarif ${paymentLabel}`, money(amount)],
-          ["Estimasi Total", money(members.length * Number(amount || 0))],
-          ["Export", formatDate(new Date().toISOString())],
+          ["Tercatat", `${members.length}/${totalMembers} rumah`, isPaidStatus ? "Sudah lunas" : "Belum lunas"],
+          ["Tarif", money(amount), "per rumah"],
+          ["Total", money(members.length * Number(amount || 0)), "dana terkumpul"],
         ],
-        badgeText: statusText.toUpperCase(),
-        listTitle: `Daftar Rumah ${statusText}`,
+        badgeText: isPaidStatus ? "LUNAS" : "BELUM",
+        listTitle: "Daftar Rumah",
+        noteText: isTrashPayment
+          ? `Berikut ini daftar rumah yang ${isPaidStatus ? "sudah membayar iuran sampah" : "belum membayar iuran sampah"}.`
+          : `Berikut ini daftar rumah yang ${isPaidStatus ? "sudah membayar kas" : "belum membayar kas"}.`,
         footerNote,
         fileName: `${paymentLabel.toLowerCase()}-${statusText.toLowerCase().replaceAll(" ", "-")}-${currentPeriod}.jpg`,
       });
@@ -467,13 +472,12 @@ export default function OverviewTab({
         sharing={exportingDetailJpg === unpaidDetail?.type}
         onShareJpg={unpaidDetail ? () => handleShareDetailJpg({
           id: unpaidDetail.type,
-          title: unpaidDetail.title,
           members: unpaidDetail.members,
           totalMembers: unpaidDetail.type?.startsWith("sampah") ? activeCurrentTrashMembers.length : activeCurrentMembers.length,
           statusText: unpaidDetail.type?.endsWith("paid") ? "Sudah Bayar" : "Belum Bayar",
           paymentLabel: unpaidDetail.type?.startsWith("sampah") ? "Sampah" : "Kas",
           amount: unpaidDetail.type?.startsWith("sampah") ? appConfig?.trash_fee : appConfig?.monthly_fee,
-          footerNote: `Data ${unpaidDetail.type?.startsWith("sampah") ? "sampah" : "kas"} ${unpaidDetail.type?.endsWith("paid") ? "sudah bayar" : "belum bayar"} periode ${periodLabel}.`,
+          footerNote: "Jika ada data kurang sesuai, silakan konfirmasi ke admin kas.",
         }) : undefined}
         onClose={() => setUnpaidDetail(null)}
       />
@@ -486,13 +490,12 @@ export default function OverviewTab({
         sharing={exportingDetailJpg === "sampah-paid"}
         onShareJpg={() => handleShareDetailJpg({
           id: "sampah-paid",
-          title: "Detail Sudah Bayar Sampah",
           members: paidCurrentTrashMembers,
           totalMembers: activeCurrentTrashMembers.length,
           statusText: "Sudah Bayar",
           paymentLabel: "Sampah",
           amount: appConfig?.trash_fee,
-          footerNote: `Data sampah sudah bayar periode ${periodLabel}.`,
+          footerNote: "Jika ada data kurang sesuai, silakan konfirmasi ke admin kas.",
         })}
         onClose={() => setShowPaidTrashDetail(false)}
       />
