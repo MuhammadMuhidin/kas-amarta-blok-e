@@ -314,9 +314,9 @@ export default function OverviewTab({
         summaryItems: [
           ["Tercatat", `${members.length}/${totalMembers} rumah`, isPaidStatus ? "Sudah lunas" : "Belum lunas"],
           ["Tarif", money(amount), "per rumah"],
-          ["Total", money(members.length * Number(amount || 0)), "dana terkumpul"],
+          ["Total", money(members.length * Number(amount || 0)), isPaidStatus ? "dana terkumpul" : "belum terkumpul"],
         ],
-        badgeText: isPaidStatus ? "LUNAS" : "BELUM",
+        badgeText: isPaidStatus ? "LUNAS" : "BELUM LUNAS",
         listTitle: "Daftar Rumah",
         noteText: isTrashPayment
           ? `Berikut ini daftar rumah yang ${isPaidStatus ? "sudah membayar iuran sampah" : "belum membayar iuran sampah"}.`
