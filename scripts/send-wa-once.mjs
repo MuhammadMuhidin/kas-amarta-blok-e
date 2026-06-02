@@ -314,10 +314,24 @@ function assertReadyToSend() {
   }
 }
 
+async function getChatDisplayName() {
+  if (!String(CHAT_ID || "").endsWith("@g.us")) {
+    return "personal chat";
+  }
+
+  try {
+    const metadata = await sock.groupMetadata(CHAT_ID);
+    return metadata?.subject || "group chat";
+  } catch {
+    return "group chat";
+  }
+}
+
 async function sendMessage() {
   assertReadyToSend();
+  const targetName = await getChatDisplayName();
   await sock.sendMessage(CHAT_ID, { text: MESSAGE_TEXT });
-  console.log(`sent to ${CHAT_ID}`);
+  console.log(`sent to ${targetName}`);
 }
 
 async function listGroups() {
