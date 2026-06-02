@@ -4,6 +4,7 @@ import AdminActionButton from "@/components/admin/AdminActionButton";
 import AdminConfirmModal from "@/components/admin/AdminConfirmModal";
 import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
+import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
 import { useState } from "react";
 
@@ -145,7 +146,7 @@ function AlertItem({ tone = "info", title, detail, action, onClick }) {
   );
 }
 
-function DetailMembersModal({ open, title, members, statusText, emptyText, onClose }) {
+function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
   if (!open) return null;
 
   return (
@@ -156,6 +157,11 @@ function DetailMembersModal({ open, title, members, statusText, emptyText, onClo
             <div className="modal-title">{title}</div>
             <div className="modal-section">{members.length} rumah {statusText}.</div>
           </div>
+          {onShareJpg && (
+            <AdminActionButton loading={sharing} loadingText="Membuat JPG..." disabled={members.length === 0} onClick={onShareJpg}>
+              {shareLabel}
+            </AdminActionButton>
+          )}
         </div>
 
         <table className="detail-table">
@@ -204,6 +210,7 @@ export default function OverviewTab({
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [unpaidDetail, setUnpaidDetail] = useState(null);
   const [showPaidTrashDetail, setShowPaidTrashDetail] = useState(false);
+  const [exportingDetailJpg, setExportingDetailJpg] = useState("");
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
 
   function showToast(type, message) {
@@ -258,6 +265,7 @@ export default function OverviewTab({
       .map((payment) => normalize(payment.person_house || payment.house || payment.person_id)),
   );
   const paidCurrentCount = activeCurrentMembers.filter((person) => paidCurrentKeys.has(normalize(person.house))).length;
+  const paidCurrentMembers = sortMembers(activeCurrentMembers.filter((person) => paidCurrentKeys.has(normalize(person.house))));
   const unpaidCurrentMembers = sortMembers(activeCurrentMembers.filter((person) => !paidCurrentKeys.has(normalize(person.house))));
   const unpaidCurrentCount = unpaidCurrentMembers.length;
   const trashPaidPersonIds = new Set(
@@ -285,6 +293,36 @@ export default function OverviewTab({
   const configOk = Boolean(appConfig);
   const recentCashflows = [...cashflows].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).slice(0, 5);
   const periodLabel = formatPeriod(currentPeriod);
+
+  async function handleShareDetailJpg({ id, title, members, totalMembers, statusText, paymentLabel, amount, footerNote }) {
+    if (exportingDetailJpg) return;
+
+    setExportingDetailJpg(id);
+
+    try {
+      const result = await shareMembersJpgReport({
+        title: `PEMBAYARAN ${paymentLabel.toUpperCase()}`,
+        period: currentPeriod,
+        members,
+        summaryItems: [
+          ["Total Data", `${members.length}/${totalMembers} rumah`],
+          [`Tarif ${paymentLabel}`, money(amount)],
+          ["Estimasi Total", money(members.length * Number(amount || 0))],
+          ["Export", formatDate(new Date().toISOString())],
+        ],
+        badgeText: statusText.toUpperCase(),
+        listTitle: `Daftar Rumah ${statusText}`,
+        footerNote,
+        fileName: `${paymentLabel.toLowerCase()}-${statusText.toLowerCase().replaceAll(" ", "-")}-${currentPeriod}.jpg`,
+      });
+
+      showToast("success", result === "shared" ? "JPG siap dibagikan." : "JPG berhasil diunduh.");
+    } catch (err) {
+      showToast("error", err.message || "Gagal membuat JPG.");
+    } finally {
+      setExportingDetailJpg("");
+    }
+  }
 
   const alerts = [
     unpaidCurrentCount > 0 && {
@@ -343,8 +381,8 @@ export default function OverviewTab({
             <MonitoringCard label="Saldo Kas" value={money(currentBalance)} meta={["Income dikurangi expense semua periode."]} error={currentBalance < 0} />
             <MonitoringCard label="Pemasukan Bulan Ini" value={money(currentIncome)} meta={[`Periode ${periodLabel}`]} />
             <MonitoringCard label="Pengeluaran Bulan Ini" value={money(currentExpense)} meta={[`Periode ${periodLabel}`]} />
-            <MonitoringCard label="Pembayaran Bulan Ini (Kas)" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`]} metaActions={unpaidCurrentCount > 0 ? [{ label: "Lihat detail", onClick: () => setUnpaidDetail({ title: "Detail Belum Bayar Kas", members: unpaidCurrentMembers }) }] : []} error={unpaidCurrentCount > 0} />
-            <MonitoringCard label="Pembayaran Bulan Ini (Sampah)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} rumah`} meta={[`${unpaidCurrentTrashCount} rumah belum bayar.`, `${paidCurrentTrashCount} rumah sudah bayar.`]} metaActions={[unpaidCurrentTrashCount > 0 ? { label: "Lihat detail", onClick: () => setUnpaidDetail({ title: "Detail Belum Bayar Sampah", members: unpaidCurrentTrashMembers }) } : null, { label: "Lihat detail", onClick: () => setShowPaidTrashDetail(true) }]} error={unpaidCurrentTrashCount > 0} />
+            <MonitoringCard label="Pembayaran Bulan Ini (Kas)" value={`${paidCurrentCount}/${activeCurrentMembers.length} rumah`} meta={[`${unpaidCurrentCount} rumah belum bayar.`, `${paidCurrentCount} rumah sudah bayar.`]} metaActions={[unpaidCurrentCount > 0 ? { label: "Lihat detail", onClick: () => setUnpaidDetail({ type: "kas-unpaid", title: "Detail Belum Bayar Kas", members: unpaidCurrentMembers }) } : null, paidCurrentCount > 0 ? { label: "Lihat detail", onClick: () => setUnpaidDetail({ type: "kas-paid", title: "Detail Sudah Bayar Kas", members: paidCurrentMembers }) } : null]} error={unpaidCurrentCount > 0} />
+            <MonitoringCard label="Pembayaran Bulan Ini (Sampah)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} rumah`} meta={[`${unpaidCurrentTrashCount} rumah belum bayar.`, `${paidCurrentTrashCount} rumah sudah bayar.`]} metaActions={[unpaidCurrentTrashCount > 0 ? { label: "Lihat detail", onClick: () => setUnpaidDetail({ type: "sampah-unpaid", title: "Detail Belum Bayar Sampah", members: unpaidCurrentTrashMembers }) } : null, { label: "Lihat detail", onClick: () => setShowPaidTrashDetail(true) }]} error={unpaidCurrentTrashCount > 0} />
             <MonitoringCard label="Ready Booking" value={`${readyBookings.length} rumah`} meta={[`${waitingBookings.length} booking menunggu periode bayar.`]} error={readyBookings.length > 0} />
             <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
           </div>
@@ -420,8 +458,44 @@ export default function OverviewTab({
         </Section>
       </div>
 
-      <DetailMembersModal open={Boolean(unpaidDetail)} title={unpaidDetail?.title || "Detail Belum Bayar"} members={unpaidDetail?.members || []} statusText="belum bayar" emptyText="Semua rumah sudah bayar." onClose={() => setUnpaidDetail(null)} />
-      <DetailMembersModal open={showPaidTrashDetail} title="Detail Sudah Bayar Sampah" members={paidCurrentTrashMembers} statusText="sudah bayar" emptyText="Belum ada rumah yang sudah bayar sampah bulan ini." onClose={() => setShowPaidTrashDetail(false)} />
+      <DetailMembersModal
+        open={Boolean(unpaidDetail)}
+        title={unpaidDetail?.title || "Detail Pembayaran"}
+        members={unpaidDetail?.members || []}
+        statusText={unpaidDetail?.type?.endsWith("paid") ? "sudah bayar" : "belum bayar"}
+        emptyText="Tidak ada data rumah."
+        sharing={exportingDetailJpg === unpaidDetail?.type}
+        onShareJpg={unpaidDetail ? () => handleShareDetailJpg({
+          id: unpaidDetail.type,
+          title: unpaidDetail.title,
+          members: unpaidDetail.members,
+          totalMembers: unpaidDetail.type?.startsWith("sampah") ? activeCurrentTrashMembers.length : activeCurrentMembers.length,
+          statusText: unpaidDetail.type?.endsWith("paid") ? "Sudah Bayar" : "Belum Bayar",
+          paymentLabel: unpaidDetail.type?.startsWith("sampah") ? "Sampah" : "Kas",
+          amount: unpaidDetail.type?.startsWith("sampah") ? appConfig?.trash_fee : appConfig?.monthly_fee,
+          footerNote: `Data ${unpaidDetail.type?.startsWith("sampah") ? "sampah" : "kas"} ${unpaidDetail.type?.endsWith("paid") ? "sudah bayar" : "belum bayar"} periode ${periodLabel}.`,
+        }) : undefined}
+        onClose={() => setUnpaidDetail(null)}
+      />
+      <DetailMembersModal
+        open={showPaidTrashDetail}
+        title="Detail Sudah Bayar Sampah"
+        members={paidCurrentTrashMembers}
+        statusText="sudah bayar"
+        emptyText="Belum ada rumah yang sudah bayar sampah bulan ini."
+        sharing={exportingDetailJpg === "sampah-paid"}
+        onShareJpg={() => handleShareDetailJpg({
+          id: "sampah-paid",
+          title: "Detail Sudah Bayar Sampah",
+          members: paidCurrentTrashMembers,
+          totalMembers: activeCurrentTrashMembers.length,
+          statusText: "Sudah Bayar",
+          paymentLabel: "Sampah",
+          amount: appConfig?.trash_fee,
+          footerNote: `Data sampah sudah bayar periode ${periodLabel}.`,
+        })}
+        onClose={() => setShowPaidTrashDetail(false)}
+      />
 
       <AdminConfirmModal open={showReportConfirm} title="Konfirmasi kirim rekap warga" description="Pastikan isi pesan sudah benar sebelum dikirim ke grup WhatsApp." confirmText="Kirim ke Grup" cancelText="Cek Lagi" loading={sendingReport} onCancel={closeReportConfirm} onConfirm={sendResidentReport}>
         <pre style={styles.previewBox}>{reportPreview}</pre>
