@@ -22,10 +22,13 @@ const SOURCE = process.env.WA_SOURCE || "github-actions";
 const PERIOD = process.env.WA_PERIOD || "";
 const CONNECT_TIMEOUT_MS = Number(process.env.WA_CONNECT_TIMEOUT_MS || 180000);
 const AFTER_CONNECT_WAIT_MS = Number(process.env.WA_AFTER_CONNECT_WAIT_MS || 2500);
+const MODE = String(process.env.WA_MODE || "SEND").trim().toUpperCase().replace(/-/g, "_");
+const isListGroupsMode = MODE === "LIST_GROUPS";
 
 if (!DATABASE_URL) throw new Error("NEONDB_URI wajib diisi.");
-if (!CHAT_ID) throw new Error("WA_CHAT_ID wajib diisi.");
-if (!MESSAGE_TEXT) throw new Error("WA_MESSAGE_TEXT wajib diisi.");
+if (!["SEND", "LIST_GROUPS"].includes(MODE)) throw new Error("WA_MODE hanya boleh SEND atau LIST_GROUPS.");
+if (!isListGroupsMode && !CHAT_ID) throw new Error("WA_CHAT_ID wajib diisi.");
+if (!isListGroupsMode && !MESSAGE_TEXT) throw new Error("WA_MESSAGE_TEXT wajib diisi.");
 if (!["QR", "CODE"].includes(PAIR_TYPE)) throw new Error("PAIR_TYPE/WA_PAIR_TYPE hanya boleh QR atau CODE.");
 if (PAIR_TYPE === "CODE" && !PHONE_NUMBER) throw new Error("PHONE_NUMBER/WA_PHONE_NUMBER wajib diisi untuk PAIR_TYPE=CODE.");
 
@@ -90,7 +93,7 @@ async function saveJob(status, error = "", metadata = {}) {
       metadata = wa_send_jobs.metadata || EXCLUDED.metadata,
       updated_at = NOW()
     `,
-    [JOB_ID, SESSION_ID, CHAT_ID, MESSAGE_TEXT, SOURCE, PERIOD, status, error, JSON.stringify(metadata)],
+    [JOB_ID, SESSION_ID, CHAT_ID || "", MESSAGE_TEXT || "", SOURCE, PERIOD, status, error, JSON.stringify(metadata)],
   );
 }
 
@@ -311,10 +314,36 @@ function assertReadyToSend() {
   }
 }
 
+async function getChatDisplayName() {
+  if (!String(CHAT_ID || "").endsWith("@g.us")) {
+    return "personal chat";
+  }
+
+  try {
+    const metadata = await sock.groupMetadata(CHAT_ID);
+    return metadata?.subject || "group chat";
+  } catch {
+    return "group chat";
+  }
+}
+
 async function sendMessage() {
   assertReadyToSend();
+  const targetName = await getChatDisplayName();
   await sock.sendMessage(CHAT_ID, { text: MESSAGE_TEXT });
-  console.log(`sent to ${CHAT_ID}`);
+  console.log(`sent to ${targetName}`);
+}
+
+async function listGroups() {
+  assertReadyToSend();
+
+  const groups = await sock.groupFetchAllParticipating();
+
+  Object.values(groups)
+    .sort((a, b) => String(a.subject || "").localeCompare(String(b.subject || ""), "id-ID"))
+    .forEach((group) => {
+      console.log(`${group.id} ${group.subject || ""}`.trim());
+    });
 }
 
 async function closeResources() {
@@ -348,11 +377,15 @@ async function closeResources() {
 
 async function start() {
   await ensureTables();
-  await saveJob("running", "", { startedAt: new Date().toISOString(), pairType: PAIR_TYPE });
+
+  if (!isListGroupsMode) {
+    await saveJob("running", "", { startedAt: new Date().toISOString(), pairType: PAIR_TYPE, mode: MODE });
+  }
 
   const restored = await downloadAuth();
   console.log(`Auth restored from DB: ${restored} file(s)`);
   console.log(`Pair type: ${PAIR_TYPE}`);
+  console.log(`Mode: ${MODE}`);
 
   if (PAIR_TYPE === "CODE") {
     await initWithCode();
@@ -362,6 +395,13 @@ async function start() {
 
   await waitUntilConnected();
   await new Promise((resolve) => setTimeout(resolve, AFTER_CONNECT_WAIT_MS));
+
+  if (isListGroupsMode) {
+    await listGroups();
+    await uploadAuth();
+    return;
+  }
+
   await sendMessage();
   await uploadAuth();
 
@@ -380,9 +420,11 @@ try {
   const message = err?.message || "Gagal mengirim WhatsApp.";
   console.log("send error:", message);
 
-  try {
-    await saveJob("failed", message, { failedAt: new Date().toISOString(), pairType: PAIR_TYPE });
-  } catch {}
+  if (!isListGroupsMode) {
+    try {
+      await saveJob("failed", message, { failedAt: new Date().toISOString(), pairType: PAIR_TYPE, mode: MODE });
+    } catch {}
+  }
 
   await closeResources();
   process.exit(1);
