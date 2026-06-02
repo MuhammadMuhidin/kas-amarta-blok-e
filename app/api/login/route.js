@@ -8,6 +8,12 @@ import {
   createAdminSession,
   getSessionCookieName,
 } from "@/lib/adminSession";
+import {
+  clearRateLimit,
+  enforceFailureRateLimit,
+  RATE_LIMIT_SCOPES,
+  recordRateLimitFailure,
+} from "@/lib/rateLimit";
 
 async function createAuthResponse(req) {
   const csrfToken = createCSRFToken();
@@ -40,9 +46,18 @@ async function createAuthResponse(req) {
 
 export async function POST(req) {
   try {
+    const passwordLimit = await enforceFailureRateLimit(
+      req,
+      RATE_LIMIT_SCOPES.loginPasswordFailed,
+    );
+
+    if (passwordLimit) return passwordLimit;
+
     const { password, pin } = await req.json();
 
     if (password !== process.env.ADMIN_PASSWORD) {
+      await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.loginPasswordFailed);
+
       return NextResponse.json(
         {
           error: "Wrong password",
@@ -63,7 +78,16 @@ export async function POST(req) {
         });
       }
 
+      const pinLimit = await enforceFailureRateLimit(
+        req,
+        RATE_LIMIT_SCOPES.loginPinFailed,
+      );
+
+      if (pinLimit) return pinLimit;
+
       if (pin !== process.env.ADMIN_PIN) {
+        await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.loginPinFailed);
+
         return NextResponse.json(
           {
             error: "Wrong PIN",
@@ -74,6 +98,9 @@ export async function POST(req) {
         );
       }
     }
+
+    await clearRateLimit(req, RATE_LIMIT_SCOPES.loginPasswordFailed);
+    await clearRateLimit(req, RATE_LIMIT_SCOPES.loginPinFailed);
 
     if (webAuthEnabled) {
       return NextResponse.json({
