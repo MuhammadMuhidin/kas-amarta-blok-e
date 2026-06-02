@@ -207,11 +207,12 @@ export default function CashflowTab({
 
           <button
             type="button"
-            className="admin-small-btn"
-            style={styles.actionButton}
+            style={styles.collapseButton}
+            aria-label={showRecordForm ? "Collapse cashflow form" : "Expand cashflow form"}
+            aria-expanded={showRecordForm}
             onClick={() => setShowRecordForm((prev) => !prev)}
           >
-            {showRecordForm ? "▴" : "▾"} Record Payment
+            {showRecordForm ? "▴" : "▾"}
           </button>
         </div>
 
@@ -254,7 +255,7 @@ export default function CashflowTab({
                 <input
                   ref={fileInputRef}
                   className="admin-input"
-                  type={"file"}
+                  type="file"
                   accept="image/jpeg,image/png,image/webp,application/pdf"
                   onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
                 />
@@ -371,13 +372,22 @@ const styles = {
     marginBottom: 14,
   },
   title: { margin: 0 },
-  actionButton: {
+  collapseButton: {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    whiteSpace: "nowrap",
-    minWidth: "max-content",
+    width: 32,
+    height: 32,
+    padding: 0,
+    border: "none",
+    borderRadius: 8,
+    background: "transparent",
+    color: "inherit",
+    cursor: "pointer",
+    font: "inherit",
+    fontSize: 18,
+    fontWeight: 900,
+    lineHeight: 1,
   },
   helperText: {
     marginTop: 6,
