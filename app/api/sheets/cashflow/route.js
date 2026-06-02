@@ -5,6 +5,10 @@ import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 import { uploadCashflowReceipt } from "@/lib/r2Upload";
 import { withMediaReceiptUrl } from "@/lib/mediaUrl";
+import {
+  enforceRateLimit,
+  RATE_LIMIT_SCOPES,
+} from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -125,6 +129,14 @@ export async function POST(req) {
   if (!validateCSRF(req)) {
     return NextResponse.json({ error: "Invalid CSRF" }, { status: 403 });
   }
+
+  const cashflowLimit = await enforceRateLimit(
+    req,
+    RATE_LIMIT_SCOPES.cashflowCreate,
+    { identity: "session" },
+  );
+
+  if (cashflowLimit) return cashflowLimit;
 
   const contentType = req.headers.get("content-type") || "";
   const isMultipart = contentType.includes("multipart/form-data");

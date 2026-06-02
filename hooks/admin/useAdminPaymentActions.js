@@ -76,6 +76,14 @@ async function ensureTrashPayment({ person, paymentId, appConfig, createTrashPay
   return "Payment ditemukan setelah response error, trash berhasil dilengkapi.";
 }
 
+function createBulkBatchId(period) {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return `${period || "period"}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export default function useAdminPaymentActions({
   personal,
   payments,
@@ -133,6 +141,8 @@ export default function useAdminPaymentActions({
       return;
     }
 
+    const bulkBatchId = createBulkBatchId(payment.period);
+
     setLoadingPayment(true);
     setPaymentProgress({ current: 0, total: selected.length });
 
@@ -151,6 +161,9 @@ export default function useAdminPaymentActions({
             house: person.house,
             period: payment.period,
             amount: payment.amount,
+            bulk_batch_id: bulkBatchId,
+            bulk_index: index,
+            bulk_total: selected.length,
           });
 
           if ((person.trash || "").toUpperCase() === "Y") {

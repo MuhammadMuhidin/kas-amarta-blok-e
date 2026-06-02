@@ -4,6 +4,10 @@ import { generateId } from "@/lib/id";
 import { getAppConfig } from "@/lib/appConfig";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import {
+  enforceRateLimit,
+  RATE_LIMIT_SCOPES,
+} from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +112,34 @@ export async function POST(req) {
   const house = normalize(body.house);
   const period = normalize(body.period);
   const amount = Number(body.amount || 0);
+  const bulkBatchId = normalize(body.bulk_batch_id);
+  const bulkIndex = Number(body.bulk_index || 0);
+
+  if (bulkBatchId) {
+    if (bulkIndex === 0) {
+      const bulkLimit = await enforceRateLimit(
+        req,
+        RATE_LIMIT_SCOPES.paymentBulkCreate,
+        {
+          identity: "session",
+          targetId: `${period}:${bulkBatchId}`,
+        },
+      );
+
+      if (bulkLimit) return bulkLimit;
+    }
+  } else {
+    const paymentLimit = await enforceRateLimit(
+      req,
+      RATE_LIMIT_SCOPES.paymentCreate,
+      {
+        identity: "session",
+        targetId: period,
+      },
+    );
+
+    if (paymentLimit) return paymentLimit;
+  }
 
   if (!house || !period || !amount) {
     return NextResponse.json(
@@ -182,6 +214,7 @@ export async function POST(req) {
         amount: existingPaymentAmount,
         cashflow_recovered: cashflowRecovered,
         trash_recovered: trashRecovered,
+        bulk_batch_id: bulkBatchId || null,
       },
     });
 
@@ -229,6 +262,7 @@ export async function POST(req) {
       amount,
       cashflow_recorded: cashflowRecorded,
       trash_recorded: trashRecorded,
+      bulk_batch_id: bulkBatchId || null,
     },
   });
 

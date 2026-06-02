@@ -9,6 +9,13 @@ import {
   updateAppConfig,
 } from "@/lib/appConfig";
 import { recordAdminActivity } from "@/lib/adminActivity";
+import {
+  clearRateLimit,
+  enforceFailureRateLimit,
+  enforceRateLimit,
+  RATE_LIMIT_SCOPES,
+  recordRateLimitFailure,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -55,9 +62,31 @@ export async function PATCH(req) {
       );
     }
 
+    const settingsLimit = await enforceRateLimit(
+      req,
+      RATE_LIMIT_SCOPES.settingsUpdate,
+      { identity: "session" },
+    );
+
+    if (settingsLimit) return settingsLimit;
+
     const { key, value, pin } = await req.json();
 
+    const pinLimit = await enforceFailureRateLimit(
+      req,
+      RATE_LIMIT_SCOPES.settingsPinFailed,
+      { identity: "session" },
+    );
+
+    if (pinLimit) return pinLimit;
+
     if (pin !== process.env.ADMIN_PIN) {
+      await recordRateLimitFailure(
+        req,
+        RATE_LIMIT_SCOPES.settingsPinFailed,
+        { identity: "session" },
+      );
+
       return NextResponse.json(
         {
           error: "PIN tidak valid",
@@ -67,6 +96,12 @@ export async function PATCH(req) {
         },
       );
     }
+
+    await clearRateLimit(
+      req,
+      RATE_LIMIT_SCOPES.settingsPinFailed,
+      { identity: "session" },
+    );
 
     const currentConfig = await getAppConfig();
     const oldValue = currentConfig?.[key];

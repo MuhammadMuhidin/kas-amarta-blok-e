@@ -12,6 +12,10 @@ import {
 } from "@/lib/adminSession";
 
 import { recordAdminActivity } from "@/lib/adminActivity";
+import {
+  enforceRateLimit,
+  RATE_LIMIT_SCOPES,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -58,6 +62,14 @@ export async function DELETE(req) {
         },
       );
     }
+
+    const revokeLimit = await enforceRateLimit(
+      req,
+      RATE_LIMIT_SCOPES.sessionRevoke,
+      { identity: "session" },
+    );
+
+    if (revokeLimit) return revokeLimit;
 
     const { id } = await req.json();
     const sessions = await getAdminSessions(req);
