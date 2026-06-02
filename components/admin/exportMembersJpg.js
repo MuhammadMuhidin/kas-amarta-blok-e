@@ -1,5 +1,5 @@
 const DEFAULT_WIDTH = 1080;
-const DEFAULT_MIN_HEIGHT = 1920;
+const DEFAULT_MIN_HEIGHT = 1200;
 const DEFAULT_EXPORT_SCALE = 2;
 const ROW_HEIGHT = 38;
 const MIN_ROWS_PER_COLUMN = 20;
@@ -210,9 +210,9 @@ export async function shareMembersJpgReport({
   drawText(ctx, `Periode ${formatPeriod(period)}`, cardX + 40, cardY + 119, "400 23px Arial, sans-serif", "#ecfdf5");
 
   const badgeLabel = clean(badgeText) || "LUNAS";
-  const badgeFont = badgeLabel.length > 7 ? "700 18px Arial, sans-serif" : "700 23px Arial, sans-serif";
+  const badgeFont = "700 23px Arial, sans-serif";
   ctx.font = badgeFont;
-  const pillW = Math.max(165, Math.ceil(ctx.measureText(badgeLabel).width + 44));
+  const pillW = Math.max(165, Math.ceil(ctx.measureText(badgeLabel).width + 52));
   const pillH = 42;
   const pillX = cardX + cardW - pillW - 39;
   const pillY = cardY + 43;
