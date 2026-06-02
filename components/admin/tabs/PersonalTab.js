@@ -67,11 +67,12 @@ export default function PersonalTab({
 
         <button
           type="button"
-          className="admin-small-btn"
-          style={styles.actionButton}
+          style={styles.collapseButton}
+          aria-label={showAddMember ? "Collapse add member form" : "Expand add member form"}
+          aria-expanded={showAddMember}
           onClick={() => setShowAddMember((prev) => !prev)}
         >
-          {showAddMember ? "▴" : "▾"} Add Member
+          {showAddMember ? "▴" : "▾"}
         </button>
       </div>
 
@@ -168,13 +169,22 @@ const styles = {
     margin: 0,
   },
 
-  actionButton: {
+  collapseButton: {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    whiteSpace: "nowrap",
-    minWidth: "max-content",
+    width: 32,
+    height: 32,
+    padding: 0,
+    border: "none",
+    borderRadius: 8,
+    background: "transparent",
+    color: "inherit",
+    cursor: "pointer",
+    font: "inherit",
+    fontSize: 18,
+    fontWeight: 900,
+    lineHeight: 1,
   },
 
   metaBar: {
