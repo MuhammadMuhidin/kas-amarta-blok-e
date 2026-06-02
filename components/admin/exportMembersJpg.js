@@ -196,17 +196,17 @@ export async function shareMembersJpgReport({
   ctx.fillStyle = colors.green;
   ctx.fillRect(cardX, cardY + headerH - 23, cardW, 23);
 
-  drawText(ctx, subtitle, cardX + 39, cardY + 31, "700 19px Arial, sans-serif", colors.greenSoft);
-  drawText(ctx, title, cardX + 39, cardY + 64, "700 41px Arial, sans-serif", "#ffffff");
-  drawText(ctx, `Periode ${formatPeriod(period)}`, cardX + 40, cardY + 119, "400 21px Arial, sans-serif", "#ecfdf5");
+  drawText(ctx, subtitle, cardX + 39, cardY + 31, "700 21px Arial, sans-serif", colors.greenSoft);
+  drawText(ctx, title, cardX + 39, cardY + 64, "700 43px Arial, sans-serif", "#ffffff");
+  drawText(ctx, `Periode ${formatPeriod(period)}`, cardX + 40, cardY + 119, "400 23px Arial, sans-serif", "#ecfdf5");
 
   const pillW = 165;
   const pillH = 42;
   const pillX = cardX + cardW - pillW - 39;
   const pillY = cardY + 43;
   fillRoundedRect(ctx, pillX, pillY, pillW, pillH, 21, "#ffffff");
-  drawText(ctx, badgeText, pillX + pillW / 2, pillY + 10, "700 21px Arial, sans-serif", colors.greenDark, "center");
-  drawText(ctx, `Export: ${formatDate(new Date().toISOString())}`, cardX + cardW - 39, cardY + 113, "400 16px Arial, sans-serif", colors.greenSoft, "right");
+  drawText(ctx, badgeText, pillX + pillW / 2, pillY + 10, "700 23px Arial, sans-serif", colors.greenDark, "center");
+  drawText(ctx, `Export: ${formatDate(new Date().toISOString())}`, cardX + cardW - 39, cardY + 113, "400 18px Arial, sans-serif", colors.greenSoft, "right");
 
   const normalizedSummary = summaryItems.length
     ? summaryItems
@@ -222,19 +222,19 @@ export async function shareMembersJpgReport({
   normalizedSummary.slice(0, 3).forEach(([label, value, description], index) => {
     const x = cardX + 39 + index * (summaryW + summaryGap);
     fillRoundedRect(ctx, x, summaryTop, summaryW, summaryH, 14, colors.greenPanel, colors.greenBorder, 1);
-    drawText(ctx, label, x + 17, summaryTop + 16, "700 16px Arial, sans-serif", colors.greenDark);
-    drawText(ctx, value, x + 17, summaryTop + 45, index === 1 ? "700 24px Arial, sans-serif" : "700 27px Arial, sans-serif", colors.text);
-    drawText(ctx, description || "", x + 17, summaryTop + 83, "400 14px Arial, sans-serif", colors.muted);
+    drawText(ctx, label, x + 17, summaryTop + 16, "700 18px Arial, sans-serif", colors.greenDark);
+    drawText(ctx, value, x + 17, summaryTop + 45, index === 1 ? "700 26px Arial, sans-serif" : "700 29px Arial, sans-serif", colors.text);
+    drawText(ctx, description || "", x + 17, summaryTop + 83, "400 16px Arial, sans-serif", colors.muted);
   });
 
   const noteTop = summaryTop + summaryH + 17;
   fillRoundedRect(ctx, cardX + 39, noteTop, cardW - 78, 52, 13, colors.note, colors.noteBorder, 1);
-  drawText(ctx, "Catatan:", cardX + 56, noteTop + 15, "700 15.5px Arial, sans-serif", colors.text);
-  drawText(ctx, noteText, cardX + 139, noteTop + 15, "400 15.5px Arial, sans-serif", colors.text);
+  drawText(ctx, "Catatan:", cardX + 56, noteTop + 15, "700 17.5px Arial, sans-serif", colors.text);
+  drawText(ctx, noteText, cardX + 139, noteTop + 15, "400 17.5px Arial, sans-serif", colors.text);
 
   const listTop = noteTop + 84;
-  drawText(ctx, listTitle, cardX + 39, listTop, "700 24px Arial, sans-serif", colors.text);
-  drawText(ctx, `${members.length} rumah`, cardX + cardW - 39, listTop + 5, "400 16px Arial, sans-serif", colors.muted, "right");
+  drawText(ctx, listTitle, cardX + 39, listTop, "700 26px Arial, sans-serif", colors.text);
+  drawText(ctx, `${members.length} rumah`, cardX + cardW - 39, listTop + 5, "400 18px Arial, sans-serif", colors.muted, "right");
 
   ctx.strokeStyle = colors.border;
   ctx.lineWidth = 1.5;
@@ -251,10 +251,10 @@ export async function shareMembersJpgReport({
   const firstColumnCount = Math.ceil(members.length / 2);
 
   function drawTableHeader(x, y) {
-    drawText(ctx, "NO", x, y, "700 12.5px Arial, sans-serif", colors.soft);
-    drawText(ctx, "RUMAH", x + 45, y, "700 12.5px Arial, sans-serif", colors.soft);
-    drawText(ctx, "NAMA", x + 141, y, "700 12.5px Arial, sans-serif", colors.soft);
-    drawText(ctx, "OK", x + columnWidth - 9, y, "700 12.5px Arial, sans-serif", colors.soft, "right");
+    drawText(ctx, "NO", x, y, "700 14.5px Arial, sans-serif", colors.soft);
+    drawText(ctx, "RUMAH", x + 45, y, "700 14.5px Arial, sans-serif", colors.soft);
+    drawText(ctx, "NAMA", x + 141, y, "700 14.5px Arial, sans-serif", colors.soft);
+    drawText(ctx, "OK", x + columnWidth - 9, y, "700 14.5px Arial, sans-serif", colors.soft, "right");
 
     ctx.strokeStyle = colors.border;
     ctx.lineWidth = 1;
@@ -272,11 +272,11 @@ export async function shareMembersJpgReport({
       fillRoundedRect(ctx, x - 7, y - 5, columnWidth + 7, ROW_HEIGHT - 5, 9, colors.row);
     }
 
-    drawText(ctx, String(index).padStart(2, "0"), x, y + 1, "700 17px Arial, sans-serif", colors.blue);
-    drawText(ctx, clean(member.house) || "-", x + 45, y - 2, "700 21.5px Arial, sans-serif", colors.text);
-    drawText(ctx, truncateText(ctx, clean(member.name) || "-", columnWidth - 220), x + 141, y + 2, "400 18px Arial, sans-serif", colors.muted);
+    drawText(ctx, String(index).padStart(2, "0"), x, y + 1, "700 19px Arial, sans-serif", colors.blue);
+    drawText(ctx, clean(member.house) || "-", x + 45, y - 2, "700 23.5px Arial, sans-serif", colors.text);
+    drawText(ctx, truncateText(ctx, clean(member.name) || "-", columnWidth - 220), x + 141, y + 2, "400 20px Arial, sans-serif", colors.muted);
     fillRoundedRect(ctx, x + columnWidth - 39, y + 1, 39, 24, 12, colors.greenSoft);
-    drawText(ctx, "✓", x + columnWidth - 19.5, y + 5, "700 16px Arial, sans-serif", colors.greenDark, "center");
+    drawText(ctx, "✓", x + columnWidth - 19.5, y + 5, "700 18px Arial, sans-serif", colors.greenDark, "center");
   }
 
   const rowsY = tableHeaderY + 38;
@@ -299,9 +299,9 @@ export async function shareMembersJpgReport({
   ctx.stroke();
 
   fillRoundedRect(ctx, cardX + 39, footerTop + 22, cardW - 78, 85, 13, colors.row, colors.border, 1);
-  drawText(ctx, footerText, cardX + 56, footerTop + 37, "700 15.5px Arial, sans-serif", colors.text);
-  drawText(ctx, footerNote, cardX + 56, footerTop + 59, "400 14px Arial, sans-serif", colors.muted);
-  drawText(ctx, fileName, cardX + cardW - 56, footerTop + 54, "400 12px Arial, sans-serif", colors.soft, "right");
+  drawText(ctx, footerText, cardX + 56, footerTop + 37, "700 17.5px Arial, sans-serif", colors.text);
+  drawText(ctx, footerNote, cardX + 56, footerTop + 59, "400 16px Arial, sans-serif", colors.muted);
+  drawText(ctx, fileName, cardX + cardW - 56, footerTop + 54, "400 14px Arial, sans-serif", colors.soft, "right");
 
   const blob = await canvasToBlob(canvas);
   return shareOrDownloadBlob(blob, fileName, title);
