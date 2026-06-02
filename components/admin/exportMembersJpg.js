@@ -77,6 +77,15 @@ function drawText(ctx, text, x, y, font, fillStyle, align = "left") {
   ctx.fillText(text, x, y);
 }
 
+function drawCenteredText(ctx, text, x, y, font, fillStyle) {
+  ctx.font = font;
+  ctx.fillStyle = fillStyle;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, x, y);
+  ctx.textBaseline = "top";
+}
+
 function truncateText(ctx, value, maxWidth) {
   const text = clean(value) || "-";
   if (ctx.measureText(text).width <= maxWidth) return text;
@@ -200,12 +209,15 @@ export async function shareMembersJpgReport({
   drawText(ctx, title, cardX + 39, cardY + 64, "700 43px Arial, sans-serif", "#ffffff");
   drawText(ctx, `Periode ${formatPeriod(period)}`, cardX + 40, cardY + 119, "400 23px Arial, sans-serif", "#ecfdf5");
 
-  const pillW = 165;
+  const badgeLabel = clean(badgeText) || "LUNAS";
+  const badgeFont = badgeLabel.length > 7 ? "700 18px Arial, sans-serif" : "700 23px Arial, sans-serif";
+  ctx.font = badgeFont;
+  const pillW = Math.max(165, Math.ceil(ctx.measureText(badgeLabel).width + 44));
   const pillH = 42;
   const pillX = cardX + cardW - pillW - 39;
   const pillY = cardY + 43;
   fillRoundedRect(ctx, pillX, pillY, pillW, pillH, 21, "#ffffff");
-  drawText(ctx, badgeText, pillX + pillW / 2, pillY + 10, "700 23px Arial, sans-serif", colors.greenDark, "center");
+  drawCenteredText(ctx, badgeLabel, pillX + pillW / 2, pillY + pillH / 2, badgeFont, colors.greenDark);
   drawText(ctx, `Export: ${formatDate(new Date().toISOString())}`, cardX + cardW - 39, cardY + 113, "400 18px Arial, sans-serif", colors.greenSoft, "right");
 
   const normalizedSummary = summaryItems.length
