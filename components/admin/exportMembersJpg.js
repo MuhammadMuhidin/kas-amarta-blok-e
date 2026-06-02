@@ -254,7 +254,6 @@ export async function shareMembersJpgReport({
     drawText(ctx, "NO", x, y, "700 14.5px Arial, sans-serif", colors.soft);
     drawText(ctx, "RUMAH", x + 45, y, "700 14.5px Arial, sans-serif", colors.soft);
     drawText(ctx, "NAMA", x + 141, y, "700 14.5px Arial, sans-serif", colors.soft);
-    drawText(ctx, "OK", x + columnWidth - 9, y, "700 14.5px Arial, sans-serif", colors.soft, "right");
 
     ctx.strokeStyle = colors.border;
     ctx.lineWidth = 1;
@@ -274,9 +273,7 @@ export async function shareMembersJpgReport({
 
     drawText(ctx, String(index).padStart(2, "0"), x, y + 1, "700 19px Arial, sans-serif", colors.blue);
     drawText(ctx, clean(member.house) || "-", x + 45, y - 2, "700 23.5px Arial, sans-serif", colors.text);
-    drawText(ctx, truncateText(ctx, clean(member.name) || "-", columnWidth - 220), x + 141, y + 2, "400 20px Arial, sans-serif", colors.muted);
-    fillRoundedRect(ctx, x + columnWidth - 39, y + 1, 39, 24, 12, colors.greenSoft);
-    drawText(ctx, "✓", x + columnWidth - 19.5, y + 5, "700 18px Arial, sans-serif", colors.greenDark, "center");
+    drawText(ctx, truncateText(ctx, clean(member.name) || "-", columnWidth - 175), x + 141, y + 2, "400 20px Arial, sans-serif", colors.muted);
   }
 
   const rowsY = tableHeaderY + 38;
