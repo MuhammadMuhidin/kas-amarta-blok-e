@@ -3,9 +3,18 @@ name: Send WhatsApp Once
 on:
   workflow_dispatch:
     inputs:
+      mode:
+        description: "Action mode"
+        required: true
+        default: "send"
+        type: choice
+        options:
+          - send
+          - list-groups
       jobId:
         description: "Unique job ID from admin API"
-        required: true
+        required: false
+        default: "manual"
         type: string
       sessionId:
         description: "Baileys auth session ID stored in NeonDB"
@@ -18,12 +27,12 @@ on:
         default: "development"
         type: string
       chatId:
-        description: "WhatsApp chat or group ID"
-        required: true
+        description: "WhatsApp chat or group ID. Required for send mode."
+        required: false
         type: string
       message:
-        description: "Message text to send"
-        required: true
+        description: "Message text to send. Required for send mode."
+        required: false
         type: string
       period:
         description: "Report period, e.g. 2026-05"
@@ -57,9 +66,10 @@ jobs:
       - name: Install WhatsApp sender dependencies
         run: npm install --no-save --no-audit --no-fund @whiskeysockets/baileys pg qrcode-terminal
 
-      - name: Send WhatsApp message
+      - name: Run WhatsApp action
         env:
           NEONDB_URI: ${{ secrets.NEONDB_URI }}
+          WA_MODE: ${{ inputs.mode }}
           WA_PAIR_TYPE: ${{ vars.WA_PAIR_TYPE || 'QR' }}
           WA_PHONE_NUMBER: ${{ secrets.WA_PHONE_NUMBER }}
           WA_JOB_ID: ${{ inputs.jobId }}
