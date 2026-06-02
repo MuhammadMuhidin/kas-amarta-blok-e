@@ -397,13 +397,15 @@ export default function DepositTab({
             </div>
           </div>
 
-          <button
-            type="button"
-            className="admin-small-btn"
-            onClick={() => setShowCreateBooking((prev) => !prev)}
-          >
-            {showCreateBooking ? "▴" : "▾"} Add
-          </button>
+<button
+  type="button"
+  style={collapseButtonStyle}
+  aria-label={showCreateBooking ? "Collapse booking payment form" : "Expand booking payment form"}
+  aria-expanded={showCreateBooking}
+  onClick={() => setShowCreateBooking((prev) => !prev)}
+>
+  {showCreateBooking ? "▴" : "▾"}
+</button>
         </div>
 
         {showCreateBooking && (
@@ -906,4 +908,22 @@ const snapshotLabelStyle = {
   color: "var(--admin-muted)",
   fontSize: 13,
   fontWeight: 700,
+};
+
+const collapseButtonStyle = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: 32,
+  height: 32,
+  padding: 0,
+  border: "none",
+  borderRadius: 8,
+  background: "transparent",
+  color: "inherit",
+  cursor: "pointer",
+  font: "inherit",
+  fontSize: 18,
+  fontWeight: 900,
+  lineHeight: 1,
 };
