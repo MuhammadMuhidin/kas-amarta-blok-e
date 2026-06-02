@@ -119,6 +119,10 @@ function sortMembers(items) {
   );
 }
 
+function isPaidDetailType(type) {
+  return String(type || "").endsWith("-paid");
+}
+
 function Section({ title, children }) {
   return (
     <section style={{ display: "grid", gap: 12 }}>
@@ -310,9 +314,9 @@ export default function OverviewTab({
         summaryItems: [
           ["Tercatat", `${members.length}/${totalMembers} rumah`, isPaidStatus ? "Sudah lunas" : "Belum lunas"],
           ["Tarif", money(amount), "per rumah"],
-          ["Total", money(members.length * Number(amount || 0)), "dana terkumpul"],
+          ["Total", money(members.length * Number(amount || 0)), isPaidStatus ? "dana terkumpul" : "belum terkumpul"],
         ],
-        badgeText: isPaidStatus ? "LUNAS" : "BELUM",
+        badgeText: isPaidStatus ? "LUNAS" : "BELUM LUNAS",
         listTitle: "Daftar Rumah",
         noteText: isTrashPayment
           ? `Berikut ini daftar rumah yang ${isPaidStatus ? "sudah membayar iuran sampah" : "belum membayar iuran sampah"}.`
@@ -467,14 +471,14 @@ export default function OverviewTab({
         open={Boolean(unpaidDetail)}
         title={unpaidDetail?.title || "Detail Pembayaran"}
         members={unpaidDetail?.members || []}
-        statusText={unpaidDetail?.type?.endsWith("paid") ? "sudah bayar" : "belum bayar"}
+        statusText={isPaidDetailType(unpaidDetail?.type) ? "sudah bayar" : "belum bayar"}
         emptyText="Tidak ada data rumah."
         sharing={exportingDetailJpg === unpaidDetail?.type}
         onShareJpg={unpaidDetail ? () => handleShareDetailJpg({
           id: unpaidDetail.type,
           members: unpaidDetail.members,
           totalMembers: unpaidDetail.type?.startsWith("sampah") ? activeCurrentTrashMembers.length : activeCurrentMembers.length,
-          statusText: unpaidDetail.type?.endsWith("paid") ? "Sudah Bayar" : "Belum Bayar",
+          statusText: isPaidDetailType(unpaidDetail.type) ? "Sudah Bayar" : "Belum Bayar",
           paymentLabel: unpaidDetail.type?.startsWith("sampah") ? "Sampah" : "Kas",
           amount: unpaidDetail.type?.startsWith("sampah") ? appConfig?.trash_fee : appConfig?.monthly_fee,
           footerNote: "Jika ada data kurang sesuai, silakan konfirmasi ke admin kas.",
