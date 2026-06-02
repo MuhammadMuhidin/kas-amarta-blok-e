@@ -4,6 +4,10 @@ import { generateId } from "@/lib/id";
 import { getAppConfig } from "@/lib/appConfig";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import {
+  enforceRateLimit,
+  RATE_LIMIT_SCOPES,
+} from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +112,17 @@ export async function POST(req) {
   const house = normalize(body.house);
   const period = normalize(body.period);
   const amount = Number(body.amount || 0);
+
+  const paymentLimit = await enforceRateLimit(
+    req,
+    RATE_LIMIT_SCOPES.paymentCreate,
+    {
+      identity: "session",
+      targetId: period,
+    },
+  );
+
+  if (paymentLimit) return paymentLimit;
 
   if (!house || !period || !amount) {
     return NextResponse.json(
