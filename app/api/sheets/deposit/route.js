@@ -8,6 +8,10 @@ import {
   getCurrentPeriod,
   sortDeposits,
 } from "@/lib/depositUtils";
+import {
+  enforceRateLimit,
+  RATE_LIMIT_SCOPES,
+} from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -223,6 +227,19 @@ export async function PATCH(req) {
 
   if (!["PAY_NOW", "UPDATE_SNAPSHOT"].includes(action)) {
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+  }
+
+  if (action === "PAY_NOW") {
+    const payNowLimit = await enforceRateLimit(
+      req,
+      RATE_LIMIT_SCOPES.depositPayNow,
+      {
+        identity: "session",
+        targetId: id,
+      },
+    );
+
+    if (payNowLimit) return payNowLimit;
   }
 
   const today = new Date().toISOString().slice(0, 10);
