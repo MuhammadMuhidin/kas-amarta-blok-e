@@ -1,5 +1,6 @@
 const DEFAULT_WIDTH = 1080;
 const DEFAULT_MIN_HEIGHT = 1920;
+const DEFAULT_EXPORT_SCALE = 2;
 const ROW_HEIGHT = 48;
 const MIN_ROWS_PER_COLUMN = 20;
 
@@ -9,6 +10,14 @@ function money(value) {
 
 function clean(value) {
   return String(value || "").trim();
+}
+
+function clampExportScale(value) {
+  const scale = Number(value || DEFAULT_EXPORT_SCALE);
+
+  if (!Number.isFinite(scale)) return DEFAULT_EXPORT_SCALE;
+
+  return Math.min(Math.max(scale, 1), 3);
 }
 
 function formatDate(value) {
@@ -80,7 +89,7 @@ function truncateText(ctx, value, maxWidth) {
   return `${next}…`;
 }
 
-function canvasToBlob(canvas, type = "image/jpeg", quality = 0.94) {
+function canvasToBlob(canvas, type = "image/jpeg", quality = 0.98) {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);
@@ -127,11 +136,13 @@ export async function shareMembersJpgReport({
   footerText = "Data otomatis dari Sistem Kas Amarta Residence Blok E",
   footerNote = "Hanya menampilkan data sesuai detail yang dipilih.",
   fileName = "laporan-pembayaran.jpg",
+  exportScale = DEFAULT_EXPORT_SCALE,
 } = {}) {
   if (typeof document === "undefined") {
     throw new Error("Export JPG hanya tersedia di browser.");
   }
 
+  const scale = clampExportScale(exportScale);
   const rowsPerColumn = Math.max(MIN_ROWS_PER_COLUMN, Math.ceil(members.length / 2));
   const dynamicHeight = 540 + 112 + rowsPerColumn * ROW_HEIGHT + 280;
   const width = DEFAULT_WIDTH;
@@ -142,8 +153,14 @@ export async function shareMembersJpgReport({
 
   if (!ctx) throw new Error("Browser tidak mendukung canvas export.");
 
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+
+  ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
 
   const colors = {
     bg: "#f8fafc",
