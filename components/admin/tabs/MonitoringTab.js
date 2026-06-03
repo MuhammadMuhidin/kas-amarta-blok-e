@@ -10,11 +10,9 @@ function IssueTable({title,rows,columns}) {
 
 function TrashIssueTable({rows,repairingPaymentId,onRepair}) {
   if (!rows?.length) return null;
-
   return <div className="admin-monitor-detail"><h3>Trash Payment Integrity</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th className="admin-th">house</th><th className="admin-th">name</th><th className="admin-th">period</th><th className="admin-th">Issue</th><th className="admin-th">Action</th></tr></thead><tbody>{rows.map((row,i)=>{
     const canRepair = row.type === "PAYMENT_WITHOUT_TRASH" && row.payment_id;
     const repairing = repairingPaymentId === row.payment_id;
-
     return <tr key={`${row.type}-${row.payment_id || row.house}-${row.period}-${i}`} className={i%2?"admin-row-alt":""}><td className="admin-td admin-issue-text">{row.house}</td><td className="admin-td admin-issue-text">{row.name}</td><td className="admin-td admin-issue-text">{row.period}</td><td className="admin-td admin-issue-text">{row.detail}</td><td className="admin-td admin-issue-text">{canRepair ? <button type="button" className="admin-small-btn" disabled={repairing || Boolean(repairingPaymentId)} onClick={()=>onRepair(row)}>{repairing ? "Repairing..." : "Repair"}</button> : <span style={{color:"var(--admin-muted)",fontSize:12}}>Manual review</span>}</td></tr>;
   })}</tbody></table></div></div>;
 }
@@ -34,9 +32,7 @@ function getSettlement({cashflows,deposits,trashRecords}) {
     if (type==="expense") return t-n(c.amount);
     return t;
   },0);
-  const recon = deposits
-    .filter((d)=>String(d.status||"").toLowerCase()!=="paid")
-    .reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
+  const recon = deposits.filter((d)=>String(d.status||"").toLowerCase()!=="paid").reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
   const trashMonthly = trashRecords.reduce((t,r)=>{
     const period = String(r.date||"").slice(0,7);
     return period===periodNow ? t+n(r.amount) : t;
@@ -67,61 +63,17 @@ function getHealthStatus({loadingSettlement,rows,buildInfo,dailyBackup,paymentCa
   const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + suspiciousData.length;
   const integrityOk = integrityIssueCount === 0;
   const reportReady = sheetOk && buildOk;
-
-  return {
-    sheetOk,
-    buildOk,
-    backupOk,
-    integrityOk,
-    reportReady,
-    integrityIssueCount,
-  };
+  return { sheetOk, buildOk, backupOk, integrityOk, reportReady, integrityIssueCount };
 }
 
 function getReceiptStorageView(loading, data) {
-  if (loading) {
-    return {
-      value: "Checking...",
-      meta: ["Mengecek akses publik R2 receipt."],
-      error: false,
-    };
-  }
-
-  if (!data) {
-    return {
-      value: "Need check",
-      meta: ["Health check receipt belum tersedia."],
-      error: true,
-    };
-  }
-
-  if (data.status === "no_sample") {
-    return {
-      value: "No receipt sample",
-      meta: [data.message || "Belum ada sample receipt_url untuk dicek otomatis."],
-      error: false,
-    };
-  }
-
+  if (loading) return { value: "Checking...", meta: ["Checking public access to R2 receipts."], error: false };
+  if (!data) return { value: "Need check", meta: ["Receipt health check is not available yet."], error: true };
+  if (data.status === "no_sample") return { value: "No receipt sample", meta: [data.message || "No receipt_url sample is available for automatic checking yet."], error: false };
   if (data.ok) {
-    return {
-      value: "Reachable",
-      meta: [
-        data.host ? `Host: ${data.host}` : "R2 public receipt bisa diakses.",
-        data.status_code ? `HTTP ${data.status_code}` : data.message,
-      ].filter(Boolean),
-      error: false,
-    };
+    return { value: "Reachable", meta: [data.host ? `Host: ${data.host}` : "R2 public receipts are reachable.", data.status_code ? `HTTP ${data.status_code}` : data.message].filter(Boolean), error: false };
   }
-
-  return {
-    value: "Unreachable",
-    meta: [
-      data.message || "R2 public receipt tidak bisa diakses.",
-      data.status_code ? `HTTP ${data.status_code}` : "Warga kemungkinan tidak bisa membuka nota.",
-    ],
-    error: true,
-  };
+  return { value: "Unreachable", meta: [data.message || "R2 public receipts are not reachable.", data.status_code ? `HTTP ${data.status_code}` : "Residents may not be able to open receipts."], error: true };
 }
 
 export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData,onRepairComplete}) {
@@ -133,30 +85,14 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
   const [repairingPaymentId,setRepairingPaymentId] = useState("");
   const [repairedPaymentIds,setRepairedPaymentIds] = useState([]);
   const [rows,setRows] = useState({cashflows:[],deposits:[],trashRecords:[]});
-  const displayedTrashMismatch = useMemo(
-    ()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),
-    [trashMismatch,repairedPaymentIds],
-  );
+  const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
-  const health = useMemo(()=>getHealthStatus({
-    loadingSettlement,
-    rows,
-    buildInfo,
-    dailyBackup,
-    paymentCashflowIntegrity,
-    trashMismatch: displayedTrashMismatch,
-    suspiciousData,
-  }),[loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,displayedTrashMismatch,suspiciousData]);
-  const receiptStorageView = useMemo(
-    ()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),
-    [loadingReceiptStorage,receiptStorage],
-  );
+  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,suspiciousData}),[loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,displayedTrashMismatch,suspiciousData]);
+  const receiptStorageView = useMemo(()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),[loadingReceiptStorage,receiptStorage]);
 
   async function handleRepairTrash(row) {
     if (!row?.payment_id || repairingPaymentId) return;
-
     setRepairingPaymentId(row.payment_id);
-
     try {
       await sendJson("/api/sheets/trash/repair", "POST", { payment_id: row.payment_id });
       setRepairedPaymentIds((prev)=>prev.includes(row.payment_id) ? prev : [...prev,row.payment_id]);
@@ -174,11 +110,7 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
         const endpoints = ["cashflow","deposit","trash"];
         const res = await Promise.all(endpoints.map((x)=>fetch(`/api/sheets/${x}`,{cache:"no-store"})));
         const data = await Promise.all(res.map((r)=>r.json()));
-        if (active) setRows({
-          cashflows:Array.isArray(data[0])?data[0]:[],
-          deposits:Array.isArray(data[1])?data[1]:[],
-          trashRecords:Array.isArray(data[2])?data[2]:[],
-        });
+        if (active) setRows({cashflows:Array.isArray(data[0])?data[0]:[],deposits:Array.isArray(data[1])?data[1]:[],trashRecords:Array.isArray(data[2])?data[2]:[]});
       } catch {
         if (active) setRows({cashflows:[],deposits:[],trashRecords:[]});
       } finally {
@@ -216,7 +148,7 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
         const data = await res.json();
         if (active) setReceiptStorage(data);
       } catch (error) {
-        if (active) setReceiptStorage({ok:false,status:"error",message:error.message || "Gagal mengecek R2 public receipt."});
+        if (active) setReceiptStorage({ok:false,status:"error",message:error.message || "Failed to check R2 public receipts."});
       } finally {
         if (active) setLoadingReceiptStorage(false);
       }
@@ -229,31 +161,31 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:18,flexWrap:"wrap",position:"static"}}>
       <div>
         <h2 style={{margin:"0 0 4px"}}>Monitoring</h2>
-        <div style={{fontSize:13,color:"var(--admin-muted)",fontWeight:600}}>Settlement, status sistem, dan kualitas data.</div>
+        <div style={{fontSize:13,color:"var(--admin-muted)",fontWeight:600}}>Settlement, system status, and data quality.</div>
       </div>
       <BuildBadge loading={loadingBuildInfo} buildInfo={buildInfo} />
     </div>
 
     <Section title="Operational Health Check">
       <div className="admin-monitor-grid">
-        <MonitoringCard label="Sheets API" value={loadingSettlement?"Checking...":health.sheetOk?"Connected":"Need check"} meta={[health.sheetOk?`${rows.cashflows.length} cashflow, ${rows.deposits.length} booking, ${rows.trashRecords.length} trash rows loaded.`:"Data operasional belum terbaca."]} error={!loadingSettlement&&!health.sheetOk} />
-        <MonitoringCard label="Build Metadata" value={loadingBuildInfo?"Checking...":health.buildOk?"Ready":"Missing"} meta={buildInfo?[`${String(buildInfo.platform||"unknown").toUpperCase()} - ${buildInfo.branch}`,`Commit: ${buildInfo.commitShort}`]:["Build info tidak tersedia."]} error={!loadingBuildInfo&&!health.buildOk} />
-        <MonitoringCard label="Backup Health" value={loadingDailyBackup?"Checking...":health.backupOk?"Healthy":"Need check"} meta={health.backupOk?[`Last file: ${dailyBackup.name}`,`Retention: ${dailyBackup.count} backup files`]:["Backup harian belum valid."]} error={!loadingDailyBackup&&!health.backupOk} />
-        <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"Ada issue yang perlu direview."]} error={!health.integrityOk} />
-        <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data dan build metadata tersedia untuk report.":"Report bisa gagal jika data/build tidak sehat."]} error={!health.reportReady} />
+        <MonitoringCard label="Sheets API" value={loadingSettlement?"Checking...":health.sheetOk?"Connected":"Need check"} meta={[health.sheetOk?`${rows.cashflows.length} cashflow, ${rows.deposits.length} booking, ${rows.trashRecords.length} trash rows loaded.`:"Operational data has not been read yet."]} error={!loadingSettlement&&!health.sheetOk} />
+        <MonitoringCard label="Build Metadata" value={loadingBuildInfo?"Checking...":health.buildOk?"Ready":"Missing"} meta={buildInfo?[`${String(buildInfo.platform||"unknown").toUpperCase()} - ${buildInfo.branch}`,`Commit: ${buildInfo.commitShort}`]:["Build info is not available."]} error={!loadingBuildInfo&&!health.buildOk} />
+        <MonitoringCard label="Backup Health" value={loadingDailyBackup?"Checking...":health.backupOk?"Healthy":"Need check"} meta={health.backupOk?[`Last file: ${dailyBackup.name}`,`Retention: ${dailyBackup.count} backup files`]:["Daily backup is not valid yet."]} error={!loadingDailyBackup&&!health.backupOk} />
+        <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"There are issues that need review."]} error={!health.integrityOk} />
+        <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data and build metadata are available for reports.":"Reports may fail if data/build status is unhealthy."]} error={!health.reportReady} />
         <MonitoringCard label="Receipt Storage" value={receiptStorageView.value} meta={receiptStorageView.meta} error={receiptStorageView.error} />
       </div>
     </Section>
 
     <Section title="Settlement">
       <div className="admin-monitor-grid">
-        <MonitoringCard label="Saldo Kas Terkini" value={loadingSettlement?"Checking...":rupiah(settlement.mainCash)} meta={["Income dikurangi expense dari semua cashflow."]} />
-        <MonitoringCard label="Saldo Rekonsiliasi" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total booking payment yang belum paid."]} />
-        <MonitoringCard label="Trash Payment Monthly" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total pembayaran iuran sampah masuk bulan berjalan."]} />
+        <MonitoringCard label="Current Cash Balance" value={loadingSettlement?"Checking...":rupiah(settlement.mainCash)} meta={["Income minus expenses from all cashflow records."]} />
+        <MonitoringCard label="Reconciliation Balance" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total unpaid booking payments."]} />
+        <MonitoringCard label="Monthly Trash Payment" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total trash fee payments received in the current month."]} />
       </div>
     </Section>
 
-    <Section title="Status Sistem">
+    <Section title="System Status">
       <div className="admin-monitor-grid">
         <MonitoringCard label="Current Build" value={loadingBuildInfo?"Checking...":buildInfo?`${String(buildInfo.platform||"UNKNOWN").toUpperCase()} - ${buildInfo.branch}`:"Build info not found"} meta={buildInfo?[`Commit: ${buildInfo.commitShort}`,`Message: ${buildInfo.commitMessage||"unknown"}`,`Env: ${buildInfo.environment}`,`Built: ${fmtTime(buildInfo.buildTime)}`]:[]} error={!loadingBuildInfo&&!buildInfo} />
         <MonitoringCard label="Daily Backup Status" value={loadingDailyBackup?"Checking...":dailyBackup?.ok?dailyBackup.name:"Backup file not found"} meta={dailyBackup?.ok?[`Last created: ${dailyBackup.created_at}`,`Retention: ${dailyBackup?.count} backup files`]:[]} error={!loadingDailyBackup&&!dailyBackup?.ok} />
