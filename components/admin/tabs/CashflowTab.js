@@ -140,12 +140,12 @@ export default function CashflowTab({
     setFormError("");
 
     if (!cashflow.type.trim() || !String(cashflow.amount || "").trim() || !cashflow.note.trim()) {
-      setFormError("Lengkapi jenis, nominal dan catatan transaksi");
+      setFormError("Complete the type, nominal and transaction notes");
       return;
     }
 
     if (isExpense && !receiptFile) {
-      setFormError("Expense wajib melampirkan struk/nota/bukti pembelian");
+      setFormError("Expenses must include receipts/notes/proof of purchase");
       return;
     }
 
@@ -182,9 +182,9 @@ export default function CashflowTab({
       resetReceiptFile();
       await refresh();
       setShowRecordForm(false);
-      showToast("Transaksi berhasil dicatat", "success");
+      showToast("Transaction successfully recorded", "success");
     } catch (err) {
-      const message = err.message || "Gagal mencatat transaksi";
+      const message = err.message || "Failed to record transaction";
       setFormError(message);
       showToast(message, "error");
     } finally {
@@ -201,7 +201,7 @@ export default function CashflowTab({
           <div>
             <h3 style={styles.title}>Direct Cashflow</h3>
             <div style={styles.helperText}>
-              Catat pemasukan atau pengeluaran langsung di luar pembayaran warga.
+              Record direct income or expenses outside of resident payments.
             </div>
           </div>
 
@@ -251,7 +251,7 @@ export default function CashflowTab({
 
             {isExpense && (
               <label style={styles.fileLabel}>
-                <span>Struk / nota / bukti pembelian</span>
+                <span>Receipt / note / proof of purchase</span>
                 <input
                   ref={fileInputRef}
                   className="admin-input"
@@ -259,7 +259,7 @@ export default function CashflowTab({
                   accept="image/jpeg,image/png,image/webp,application/pdf"
                   onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
                 />
-                <small style={styles.helperText}>Wajib untuk expense. Format JPG, PNG, WEBP, atau PDF. Maksimal 5MB.</small>
+                <small style={styles.helperText}>Required for expenses. JPG, PNG, WEBP, or PDF format. Maximum 5MB.</small>
               </label>
             )}
 
@@ -296,7 +296,7 @@ export default function CashflowTab({
         {loading ? (
           <p>Loading cashflow...</p>
         ) : items.length === 0 ? (
-          <div className="admin-empty-state">Direct cashflow belum tersedia.</div>
+          <div className="admin-empty-state">Direct cashflow is not yet available.</div>
         ) : (
           <>
             <div className="admin-table-wrapper">
