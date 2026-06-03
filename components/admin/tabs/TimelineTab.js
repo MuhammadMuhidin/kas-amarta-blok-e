@@ -14,10 +14,10 @@ const emptyForm = {
 };
 
 const statusFilters = [
-  { value: "all", label: "Semua" },
-  { value: "published", label: "Tayang" },
-  { value: "ready", label: "Siap Tayang" },
-  { value: "incomplete", label: "Belum Lengkap" },
+  { value: "all", label: "All" },
+  { value: "published", label: "Published" },
+  { value: "ready", label: "Ready to Publish" },
+  { value: "incomplete", label: "Incomplete" },
   { value: "draft", label: "Draft" },
 ];
 
@@ -256,14 +256,14 @@ function getPostCover(post) {
 function getReadiness(post) {
   const missing = [];
 
-  if (!normalize(post.title)) missing.push("judul");
-  if (!normalize(post.description)) missing.push("deskripsi");
-  if (!normalize(post.event_date)) missing.push("tanggal");
-  if (!post.images?.length) missing.push("foto");
+  if (!normalize(post.title)) missing.push("title");
+  if (!normalize(post.description)) missing.push("description");
+  if (!normalize(post.event_date)) missing.push("date");
+  if (!post.images?.length) missing.push("photo");
 
-  if (post.published) return { value: "published", label: "Tayang", missing, ready: missing.length === 0 };
-  if (missing.length > 0) return { value: "incomplete", label: "Belum Lengkap", missing, ready: false };
-  return { value: "ready", label: "Siap Tayang", missing, ready: true };
+  if (post.published) return { value: "published", label: "Published", missing, ready: missing.length === 0 };
+  if (missing.length > 0) return { value: "incomplete", label: "Incomplete", missing, ready: false };
+  return { value: "ready", label: "Ready to Publish", missing, ready: true };
 }
 
 function postMatchesSearch(post, keyword) {
@@ -309,10 +309,10 @@ function TimelineSummary({ posts }) {
 
   return (
     <div className="admin-summary-cards timeline-admin-summary">
-      <div className="admin-summary-card"><strong>{posts.length}</strong><span>Total Postingan</span></div>
-      <div className="admin-summary-card"><strong>{publishedCount}</strong><span>Tayang</span></div>
-      <div className="admin-summary-card"><strong>{readyCount}</strong><span>Siap Tayang</span></div>
-      <div className="admin-summary-card"><strong>{incompleteCount}</strong><span>Belum Lengkap</span></div>
+      <div className="admin-summary-card"><strong>{posts.length}</strong><span>Total Posts</span></div>
+      <div className="admin-summary-card"><strong>{publishedCount}</strong><span>Published</span></div>
+      <div className="admin-summary-card"><strong>{readyCount}</strong><span>Ready to Publish</span></div>
+      <div className="admin-summary-card"><strong>{incompleteCount}</strong><span>Incomplete</span></div>
       <div className="admin-summary-card"><strong>{draftCount}</strong><span>Draft</span></div>
     </div>
   );
@@ -354,7 +354,7 @@ export default function TimelineTab({ showPopup }) {
       const data = await readJson("/api/admin/timeline/posts");
       setPosts(Array.isArray(data.posts) ? data.posts : []);
     } catch (err) {
-      setError(err.message || "Gagal memuat postingan");
+      setError(err.message || "Failed to load posts");
     } finally {
       setLoading(false);
     }
@@ -400,7 +400,7 @@ export default function TimelineTab({ showPopup }) {
     const state = getReadiness(post);
     if (state.ready) return true;
 
-    const message = `Lengkapi ${state.missing.join(", ")} sebelum postingan ditayangkan.`;
+    const message = `Complete ${state.missing.join(", ")} before publishing the post.`;
     setError(message);
     showPopup?.(message, "warning");
     return false;
@@ -412,7 +412,7 @@ export default function TimelineTab({ showPopup }) {
 
     const payload = buildPostPayload(form);
     if (!payload.title) {
-      setError("Judul kegiatan wajib diisi");
+      setError("Activity title is required");
       return;
     }
 
@@ -425,15 +425,15 @@ export default function TimelineTab({ showPopup }) {
     try {
       if (editingPost) {
         await sendJson(`/api/admin/timeline/posts/${editingPost.id}`, "PATCH", payload);
-        showPopup?.("Postingan berhasil diperbarui", "success");
+        showPopup?.("Post updated successfully", "success");
       } else {
         await sendJson("/api/admin/timeline/posts", "POST", { ...payload, published: false });
-        showPopup?.("Postingan dibuat sebagai draft", "success");
+        showPopup?.("Post created as draft", "success");
       }
       resetForm();
       await loadPosts();
     } catch (err) {
-      const message = err.message || "Gagal menyimpan postingan";
+      const message = err.message || "Failed to save post";
       setError(message);
       showPopup?.(message, "error");
     } finally {
@@ -452,11 +452,11 @@ export default function TimelineTab({ showPopup }) {
     setError("");
     try {
       await sendJson(`/api/admin/timeline/posts/${publishPost.id}`, "PATCH", { published: !publishPost.published });
-      showPopup?.(publishPost.published ? "Postingan disimpan sebagai draft" : "Postingan ditayangkan", "success");
+      showPopup?.(publishPost.published ? "Post saved as draft" : "Post published", "success");
       setPublishPost(null);
       await loadPosts();
     } catch (err) {
-      const message = err.message || "Gagal mengubah status postingan";
+      const message = err.message || "Failed to change post status";
       setError(message);
       showPopup?.(message, "error");
     } finally {
@@ -469,7 +469,7 @@ export default function TimelineTab({ showPopup }) {
     if (!photoPost) return;
 
     if (!imageFiles.length) {
-      setError("Pilih foto kegiatan terlebih dahulu");
+      setError("Select activity photos first");
       return;
     }
 
@@ -484,11 +484,11 @@ export default function TimelineTab({ showPopup }) {
       formData.append("sort_order", String(photoPost.images?.length || 0));
 
       await sendFormData("/api/admin/timeline/upload", "POST", formData);
-      showPopup?.(`${imageFiles.length} foto berhasil diunggah`, "success");
+      showPopup?.(`${imageFiles.length} photos uploaded successfully`, "success");
       resetPhotoState();
       await loadPosts();
     } catch (err) {
-      const message = err.message || "Gagal mengunggah foto";
+      const message = err.message || "Failed to upload photo";
       setError(message);
       showPopup?.(message, "error");
     } finally {
@@ -503,11 +503,11 @@ export default function TimelineTab({ showPopup }) {
     setError("");
     try {
       await sendJson(`/api/admin/timeline/images/${image.id}`, "PATCH", { set_as_cover: true });
-      showPopup?.("Cover berhasil diperbarui", "success");
+      showPopup?.("Cover updated successfully", "success");
       setPhotoPost((current) => current ? { ...current, cover_image_key: image.image_key, cover_image_url: image.image_url } : current);
       await loadPosts();
     } catch (err) {
-      const message = err.message || "Gagal mengubah cover";
+      const message = err.message || "Failed to update cover";
       setError(message);
       showPopup?.(message, "error");
     } finally {
@@ -534,7 +534,7 @@ export default function TimelineTab({ showPopup }) {
         });
       }
 
-      showPopup?.("Foto berhasil dihapus", "success");
+      showPopup?.("Photo deleted successfully", "success");
       setPhotoPost((current) => current ? {
         ...current,
         images: remainingImages,
@@ -543,7 +543,7 @@ export default function TimelineTab({ showPopup }) {
       } : current);
       await loadPosts();
     } catch (err) {
-      const message = err.message || "Gagal menghapus foto";
+      const message = err.message || "Failed to delete photo";
       setError(message);
       showPopup?.(message, "error");
     } finally {
@@ -558,11 +558,11 @@ export default function TimelineTab({ showPopup }) {
     setError("");
     try {
       await sendJson(`/api/admin/timeline/posts/${deletePost.id}`, "DELETE", {});
-      showPopup?.("Postingan berhasil dihapus", "success");
+      showPopup?.("Post deleted successfully", "success");
       setDeletePost(null);
       await loadPosts();
     } catch (err) {
-      const message = err.message || "Gagal menghapus postingan";
+      const message = err.message || "Failed to delete post";
       setError(message);
       showPopup?.(message, "error");
     } finally {
@@ -576,9 +576,9 @@ export default function TimelineTab({ showPopup }) {
       <div className="activity-panel">
         <div className="activity-header">
           <div>
-            <div className="activity-kicker">Dokumentasi Warga</div>
-            <h2 className="activity-title">Postingan Kegiatan</h2>
-            <p className="activity-subtitle">Kelola dokumentasi kegiatan warga sebelum ditampilkan di halaman utama.</p>
+            <div className="activity-kicker">Resident Documentation</div>
+            <h2 className="activity-title">Activity Posts</h2>
+            <p className="activity-subtitle">Manage resident activity documentation before displaying it on the main page.</p>
           </div>
           <button className="admin-small-btn" type="button" onClick={loadPosts} disabled={loading}>
             <LoadingButtonContent loading={loading}>Refresh</LoadingButtonContent>
@@ -591,30 +591,30 @@ export default function TimelineTab({ showPopup }) {
         <div className="admin-card">
           <div className="timeline-admin-form-header">
             <div>
-              <h3>{editingPost ? `Sedang Edit: ${editingPost.title}` : "Content Studio Timeline"}</h3>
-              <p>Buat postingan, lengkapi konten, tambah foto, preview, lalu tayangkan.</p>
+              <h3>{editingPost ? `Editing: ${editingPost.title}` : "Timeline Content Studio"}</h3>
+              <p>Create a post, complete the content, add photos, preview it, then publish.</p>
             </div>
             {showForm ? (
-              <button type="button" className="admin-small-btn" onClick={resetForm} disabled={saving}>Tutup Form</button>
+              <button type="button" className="admin-small-btn" onClick={resetForm} disabled={saving}>Close Form</button>
             ) : (
-              <button type="button" className="admin-small-btn" onClick={openCreateForm}>+ Buat Postingan</button>
+              <button type="button" className="admin-small-btn" onClick={openCreateForm}>+ Create Post</button>
             )}
           </div>
 
           {showForm ? (
             <form className="admin-form" onSubmit={handleSubmit}>
-              <input className="admin-input" placeholder="Judul kegiatan" value={form.title} onChange={(e) => setForm((current) => ({ ...current, title: e.target.value }))} />
-              <textarea className="admin-input timeline-admin-textarea" placeholder="Deskripsi kegiatan" value={form.description} onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))} />
+              <input className="admin-input" placeholder="Activity title" value={form.title} onChange={(e) => setForm((current) => ({ ...current, title: e.target.value }))} />
+              <textarea className="admin-input timeline-admin-textarea" placeholder="Activity description" value={form.description} onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))} />
               <div className="timeline-admin-grid">
-                <input className="admin-input" placeholder="Kategori, contoh: Kerja Bakti" value={form.category} onChange={(e) => setForm((current) => ({ ...current, category: e.target.value }))} />
+                <input className="admin-input" placeholder="Category, example: Community Cleanup" value={form.category} onChange={(e) => setForm((current) => ({ ...current, category: e.target.value }))} />
                 <input className="admin-input" type="date" value={form.event_date} onChange={(e) => setForm((current) => ({ ...current, event_date: e.target.value }))} />
               </div>
               <label className="timeline-admin-check">
                 <input type="checkbox" checked={form.published} onChange={(e) => setForm((current) => ({ ...current, published: e.target.checked }))} />
-                <span>Tayangkan ke halaman utama</span>
+                <span>Publish to main page</span>
               </label>
               <button className="admin-btn" disabled={saving}>
-                <LoadingButtonContent loading={saving} loadingText="Menyimpan...">{editingPost ? "Simpan Perubahan" : "Simpan Draft"}</LoadingButtonContent>
+                <LoadingButtonContent loading={saving} loadingText="Saving...">{editingPost ? "Save Changes" : "Save Draft"}</LoadingButtonContent>
               </button>
             </form>
           ) : null}
@@ -623,13 +623,13 @@ export default function TimelineTab({ showPopup }) {
         <div className="admin-card">
           <div className="timeline-admin-form-header">
             <div>
-              <h3>Daftar Postingan</h3>
-              <p>Menampilkan {filteredPosts.length} dari {posts.length} postingan.</p>
+              <h3>Post List</h3>
+              <p>Showing {filteredPosts.length} of {posts.length} posts.</p>
             </div>
           </div>
 
           <div className="timeline-admin-grid" style={{ marginBottom: 12 }}>
-            <input className="admin-input" placeholder="Cari judul, kategori, tanggal..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            <input className="admin-input" placeholder="Search title, category, date..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
             <div className="timeline-admin-actions">
               {statusFilters.map((item) => (
                 <button key={item.value} type="button" className={statusFilter === item.value ? "admin-small-btn active" : "admin-small-btn"} onClick={() => setStatusFilter(item.value)}>
@@ -640,21 +640,21 @@ export default function TimelineTab({ showPopup }) {
           </div>
 
           {loading ? (
-            <p>Loading postingan...</p>
+            <p>Loading posts...</p>
           ) : posts.length === 0 ? (
-            <div className="admin-empty-state">Belum ada postingan kegiatan warga.</div>
+            <div className="admin-empty-state">No resident activity posts yet.</div>
           ) : filteredPosts.length === 0 ? (
-            <div className="admin-empty-state">Tidak ada postingan yang sesuai filter.</div>
+            <div className="admin-empty-state">No posts match the selected filter.</div>
           ) : (
             <div className="admin-table-wrapper">
               <table className="admin-table timeline-admin-table">
                 <thead>
                   <tr>
-                    <th className="admin-th">Postingan</th>
+                    <th className="admin-th">Post</th>
                     <th className="admin-th">Status</th>
-                    <th className="admin-th">Foto</th>
-                    <th className="admin-th">Reaksi</th>
-                    <th className="admin-th">Aksi</th>
+                    <th className="admin-th">Photo</th>
+                    <th className="admin-th">Reaction</th>
+                    <th className="admin-th">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -672,21 +672,21 @@ export default function TimelineTab({ showPopup }) {
                             </div>
                             <div>
                               <strong>{post.title}</strong>
-                              <span>{post.category || "Tanpa kategori"} • {formatDate(post.event_date || post.created_at)}</span>
-                              {!state.ready && state.missing.length ? <span>Kurang: {state.missing.join(", ")}</span> : null}
+                              <span>{post.category || "Uncategorized"} • {formatDate(post.event_date || post.created_at)}</span>
+                              {!state.ready && state.missing.length ? <span>Missing: {state.missing.join(", ")}</span> : null}
                             </div>
                           </div>
                         </td>
                         <td className="admin-td"><StatusBadge state={state} /></td>
-                        <td className="admin-td"><span className={photoCount > 0 ? "timeline-admin-photo-badge ready" : "timeline-admin-photo-badge warning"}>{photoCount > 0 ? `${photoCount} foto` : "Belum ada foto"}</span></td>
+                        <td className="admin-td"><span className={photoCount > 0 ? "timeline-admin-photo-badge ready" : "timeline-admin-photo-badge warning"}>{photoCount > 0 ? `${photoCount} photos` : "No photos yet"}</span></td>
                         <td className="admin-td">{Number(post.reaction_total ?? post.like_count ?? 0).toLocaleString("id-ID")}</td>
                         <td className="admin-td">
                           <div className="timeline-admin-actions">
                             <button className="admin-small-btn" type="button" onClick={() => setPreviewPost(post)}>Preview</button>
                             <button className="admin-small-btn" type="button" onClick={() => openEdit(post)}>Edit</button>
-                            <button className="admin-small-btn" type="button" onClick={() => setPhotoPost(post)}>Kelola Foto</button>
-                            <button className="admin-small-btn" type="button" disabled={saving} onClick={() => setPublishPost(post)}>{post.published ? "Simpan sebagai Draft" : "Tayangkan"}</button>
-                            <button className="admin-small-btn timeline-danger-btn" type="button" onClick={() => setDeletePost(post)}>Hapus</button>
+                            <button className="admin-small-btn" type="button" onClick={() => setPhotoPost(post)}>Manage Photos</button>
+                            <button className="admin-small-btn" type="button" disabled={saving} onClick={() => setPublishPost(post)}>{post.published ? "Save as Draft" : "Publish"}</button>
+                            <button className="admin-small-btn timeline-danger-btn" type="button" onClick={() => setDeletePost(post)}>Delete</button>
                           </div>
                         </td>
                       </tr>
@@ -702,7 +702,7 @@ export default function TimelineTab({ showPopup }) {
       {photoPost ? (
         <div className={modalStyles.overlay} onClick={resetPhotoState}>
           <div className={`${modalStyles.box} timeline-admin-modal`} onClick={(e) => e.stopPropagation()}>
-            <h3>Kelola Foto Postingan</h3>
+            <h3>Manage Post Photos</h3>
             <p>{photoPost.title}</p>
 
             {photoPost.images?.length ? (
@@ -713,26 +713,26 @@ export default function TimelineTab({ showPopup }) {
                     <div key={image.id} className="timeline-admin-photo-item">
                       <img src={image.image_url} alt="" />
                       {isCover ? <span className="timeline-admin-photo-badge ready">Cover</span> : null}
-                      <button type="button" className="admin-small-btn" onClick={() => handleSetCover(image)} disabled={saving || isCover}>Jadikan Cover</button>
-                      <button type="button" className="admin-small-btn timeline-danger-btn" onClick={() => handleDeleteImage(image)} disabled={saving}>Hapus Foto</button>
+                      <button type="button" className="admin-small-btn" onClick={() => handleSetCover(image)} disabled={saving || isCover}>Set as Cover</button>
+                      <button type="button" className="admin-small-btn timeline-danger-btn" onClick={() => handleDeleteImage(image)} disabled={saving}>Delete Photo</button>
                     </div>
                   );
                 })}
               </div>
-            ) : <div className="admin-empty-state">Postingan ini belum memiliki foto.</div>}
+            ) : <div className="admin-empty-state">This post has no photos yet.</div>}
 
             <form className="admin-form" onSubmit={handleUpload}>
               <input ref={fileInputRef} className="admin-input" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setImageFiles(Array.from(e.target.files || []))} />
-              {imageFiles.length ? <div className="admin-deposit-meta">{imageFiles.length} foto dipilih.</div> : null}
-              <input className="admin-input" placeholder="Caption umum opsional" value={imageCaption} onChange={(e) => setImageCaption(e.target.value)} />
+              {imageFiles.length ? <div className="admin-deposit-meta">{imageFiles.length} photos selected.</div> : null}
+              <input className="admin-input" placeholder="Optional general caption" value={imageCaption} onChange={(e) => setImageCaption(e.target.value)} />
               <label className="timeline-admin-check">
                 <input type="checkbox" checked={setAsCover} onChange={(e) => setSetAsCover(e.target.checked)} />
-                <span>Jadikan foto pertama sebagai cover</span>
+                <span>Use the first photo as the cover</span>
               </label>
               <button className="admin-btn" disabled={uploading}>
-                <LoadingButtonContent loading={uploading} loadingText="Mengunggah...">Upload {imageFiles.length || ""} Foto</LoadingButtonContent>
+                <LoadingButtonContent loading={uploading} loadingText="Uploading...">Upload {imageFiles.length || ""} Photos</LoadingButtonContent>
               </button>
-              <button type="button" className="admin-small-btn" onClick={resetPhotoState} disabled={uploading}>Tutup</button>
+              <button type="button" className="admin-small-btn" onClick={resetPhotoState} disabled={uploading}>Close</button>
             </form>
           </div>
         </div>
@@ -741,14 +741,14 @@ export default function TimelineTab({ showPopup }) {
       {previewPost ? (
         <div className={modalStyles.overlay} onClick={() => setPreviewPost(null)}>
           <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
-            <h3>Preview Postingan</h3>
+            <h3>Post Preview</h3>
             {getPostCover(previewPost) ? <img className="timeline-admin-preview-image" src={getPostCover(previewPost).image_url} alt="" /> : null}
-            <p>{previewPost.category || "Tanpa kategori"} • {formatDate(previewPost.event_date || previewPost.created_at)}</p>
+            <p>{previewPost.category || "Uncategorized"} • {formatDate(previewPost.event_date || previewPost.created_at)}</p>
             <h2>{previewPost.title}</h2>
-            <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{previewPost.description || "Belum ada deskripsi."}</p>
+            <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{previewPost.description || "No description yet."}</p>
             <div className="timeline-admin-confirm-actions">
-              <button type="button" className="admin-small-btn" onClick={() => window.open(getPostPreviewUrl(previewPost.id), "_blank", "noopener,noreferrer")}>Buka Halaman Publik</button>
-              <button type="button" className="admin-small-btn" onClick={() => setPreviewPost(null)}>Tutup</button>
+              <button type="button" className="admin-small-btn" onClick={() => window.open(getPostPreviewUrl(previewPost.id), "_blank", "noopener,noreferrer")}>Open Public Page</button>
+              <button type="button" className="admin-small-btn" onClick={() => setPreviewPost(null)}>Close</button>
             </div>
           </div>
         </div>
@@ -757,12 +757,12 @@ export default function TimelineTab({ showPopup }) {
       {publishPost ? (
         <div className={modalStyles.overlay} onClick={() => setPublishPost(null)}>
           <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
-            <h3>{publishPost.published ? "Simpan sebagai Draft?" : "Tayangkan Postingan?"}</h3>
-            <p>{publishPost.published ? `Postingan "${publishPost.title}" akan disembunyikan dari halaman utama warga.` : `Postingan "${publishPost.title}" akan tampil di halaman utama warga.`}</p>
+            <h3>{publishPost.published ? "Save as Draft?" : "Publish Post?"}</h3>
+            <p>{publishPost.published ? `Post "${publishPost.title}" will be hidden from the residents' main page.` : `Post "${publishPost.title}" will appear on the residents' main page.`}</p>
             <div className="timeline-admin-confirm-actions">
-              <button type="button" className="admin-small-btn" onClick={() => setPublishPost(null)} disabled={saving}>Batal</button>
+              <button type="button" className="admin-small-btn" onClick={() => setPublishPost(null)} disabled={saving}>Cancel</button>
               <button type="button" className="admin-small-btn" onClick={handleTogglePublish} disabled={saving}>
-                <LoadingButtonContent loading={saving} loadingText="Menyimpan...">{publishPost.published ? "Simpan sebagai Draft" : "Tayangkan"}</LoadingButtonContent>
+                <LoadingButtonContent loading={saving} loadingText="Saving...">{publishPost.published ? "Save as Draft" : "Publish"}</LoadingButtonContent>
               </button>
             </div>
           </div>
@@ -772,12 +772,12 @@ export default function TimelineTab({ showPopup }) {
       {deletePost ? (
         <div className={modalStyles.overlay} onClick={() => setDeletePost(null)}>
           <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
-            <h3>Hapus Postingan?</h3>
-            <p>{`Postingan "${deletePost.title}" akan dihapus beserta foto dan reaksi yang terkait di database.`}</p>
+            <h3>Delete Post?</h3>
+            <p>{`Post "${deletePost.title}" will be deleted along with related photos and reactions in the database.`}</p>
             <div className="timeline-admin-confirm-actions">
-              <button type="button" className="admin-small-btn" onClick={() => setDeletePost(null)} disabled={!!deletingId}>Batal</button>
+              <button type="button" className="admin-small-btn" onClick={() => setDeletePost(null)} disabled={!!deletingId}>Cancel</button>
               <button type="button" className="admin-small-btn timeline-danger-btn" onClick={handleDelete} disabled={!!deletingId}>
-                <LoadingButtonContent loading={deletingId === deletePost.id} loadingText="Menghapus...">Hapus</LoadingButtonContent>
+                <LoadingButtonContent loading={deletingId === deletePost.id} loadingText="Deleting...">Delete</LoadingButtonContent>
               </button>
             </div>
           </div>
