@@ -1,4 +1,5 @@
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import { sendAlertEmail } from "@/lib/emailAlert";
 import { getWhatsAppWorkflowDefaults, triggerWhatsAppWorkflow } from "@/lib/whatsappWorkflow";
 
 export const runtime = "nodejs";
@@ -11,7 +12,7 @@ export async function POST(req) {
     }
 
     if (!validateCSRF(req)) {
-      return Response.json({ error: "CSRF tidak valid" }, { status: 403 });
+      return Response.json({ error: "Invalid CSRF token" }, { status: 403 });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -32,11 +33,28 @@ export async function POST(req) {
       source,
     });
 
+    let email = null;
+
+    try {
+      email = await sendAlertEmail({
+        message,
+        period,
+        source,
+        subject: body.emailSubject,
+      });
+    } catch (err) {
+      email = {
+        ok: false,
+        error: err.message || "Failed to send email alert",
+      };
+    }
+
     return Response.json({
       ok: true,
       queued: true,
       jobId: workflow.jobId,
       workflow,
+      email,
       chatId,
       session: sessionId,
       targetEnv,
