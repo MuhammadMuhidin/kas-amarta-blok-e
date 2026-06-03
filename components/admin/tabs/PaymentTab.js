@@ -16,7 +16,7 @@ function formatPeriod(period) {
 
   if (!isValidPeriod(normalized)) return period;
 
-  return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
+  return new Date(`${normalized}-01`).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
