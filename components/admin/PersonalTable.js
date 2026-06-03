@@ -95,14 +95,14 @@ export default function PersonalTable({
     <>
       <ConfirmModal
         open={!!confirmState}
-        title="Konfirmasi Perubahan"
+        title="Confirm Change"
         message={
           confirmState
-            ? `Ubah ${confirmState.field} menjadi ${confirmState.value} untuk ${confirmState.person.name}?`
+            ? `Change ${confirmState.field} to ${confirmState.value} for ${confirmState.person.name}?`
             : ""
         }
-        confirmText="Lanjutkan"
-        cancelText="Batal"
+        confirmText="Continue"
+        cancelText="Cancel"
         loading={confirmLoading}
         onCancel={() => {
           if (confirmLoading) return;
