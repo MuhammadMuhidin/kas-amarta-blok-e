@@ -1,1 +1,1 @@
-{"name":"amarta-wa-sender","private":true,"type":"module","scripts":{"send":"node send-wa-once.mjs"},"dependencies":{}}
+{"name":"amarta-wa-sender","private":true,"type":"module","scripts":{"send":"node send-wa-once.mjs"},"dependencies":{"@whiskeysockets/baileys":"^7.0.0-rc13","pg":"^8.21.0","qrcode-terminal":"^0.12.0"}}
