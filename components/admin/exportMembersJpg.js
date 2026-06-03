@@ -102,7 +102,7 @@ function canvasToBlob(canvas, type = "image/jpeg", quality = 0.98) {
   return new Promise((resolve, reject) => {
     canvas.toBlob((blob) => {
       if (blob) resolve(blob);
-      else reject(new Error("Gagal membuat file JPG."));
+      else reject(new Error("Failed to create JPG file."));
     }, type, quality);
   });
 }
@@ -135,21 +135,21 @@ async function shareOrDownloadBlob(blob, fileName, shareTitle) {
 }
 
 export async function shareMembersJpgReport({
-  title = "Pembayaran Bulan Ini",
+  title = "This Month Payment",
   subtitle = "AMARTA RESIDENCE 2 BLOK E",
   period = "",
   members = [],
   summaryItems = [],
-  badgeText = "LUNAS",
-  listTitle = "Daftar Rumah",
-  noteText = "Berikut ini daftar rumah sesuai status pembayaran bulan berjalan.",
-  footerText = "Data otomatis dari Sistem Kas Amarta Residence Blok E.",
-  footerNote = "Jika ada data kurang sesuai, silakan konfirmasi ke admin kas.",
-  fileName = "laporan-pembayaran.jpg",
+  badgeText = "PAID",
+  listTitle = "House List",
+  noteText = "The following houses match the selected payment status for this period.",
+  footerText = "Automatic data from the Amarta Residence Block E Cash System.",
+  footerNote = "If any data is inaccurate, please confirm with the cash admin.",
+  fileName = "payment-report.jpg",
   exportScale = DEFAULT_EXPORT_SCALE,
 } = {}) {
   if (typeof document === "undefined") {
-    throw new Error("Export JPG hanya tersedia di browser.");
+    throw new Error("JPG export is only available in the browser.");
   }
 
   const scale = clampExportScale(exportScale);
@@ -161,7 +161,7 @@ export async function shareMembersJpgReport({
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
 
-  if (!ctx) throw new Error("Browser tidak mendukung canvas export.");
+  if (!ctx) throw new Error("Browser does not support canvas export.");
 
   canvas.width = Math.round(width * scale);
   canvas.height = Math.round(height * scale);
@@ -207,9 +207,9 @@ export async function shareMembersJpgReport({
 
   drawText(ctx, subtitle, cardX + 39, cardY + 31, "700 21px Arial, sans-serif", colors.greenSoft);
   drawText(ctx, title, cardX + 39, cardY + 64, "700 43px Arial, sans-serif", "#ffffff");
-  drawText(ctx, `Periode ${formatPeriod(period)}`, cardX + 40, cardY + 119, "400 23px Arial, sans-serif", "#ecfdf5");
+  drawText(ctx, `Period ${formatPeriod(period)}`, cardX + 40, cardY + 119, "400 23px Arial, sans-serif", "#ecfdf5");
 
-  const badgeLabel = clean(badgeText) || "LUNAS";
+  const badgeLabel = clean(badgeText) || "PAID";
   const badgeFont = "700 23px Arial, sans-serif";
   ctx.font = badgeFont;
   const pillW = Math.max(165, Math.ceil(ctx.measureText(badgeLabel).width + 52));
@@ -223,8 +223,8 @@ export async function shareMembersJpgReport({
   const normalizedSummary = summaryItems.length
     ? summaryItems
     : [
-        ["Tercatat", `${members.length} rumah`, "Data terpilih"],
-        ["Export", formatDate(new Date().toISOString()), "Tanggal export"],
+        ["Recorded", `${members.length} houses`, "Selected data"],
+        ["Export", formatDate(new Date().toISOString()), "Export date"],
       ];
   const summaryTop = cardY + headerH + 27;
   const summaryGap = 13;
@@ -241,12 +241,12 @@ export async function shareMembersJpgReport({
 
   const noteTop = summaryTop + summaryH + 17;
   fillRoundedRect(ctx, cardX + 39, noteTop, cardW - 78, 52, 13, colors.note, colors.noteBorder, 1);
-  drawText(ctx, "Catatan:", cardX + 56, noteTop + 15, "700 17.5px Arial, sans-serif", colors.text);
-  drawText(ctx, noteText, cardX + 139, noteTop + 15, "400 17.5px Arial, sans-serif", colors.text);
+  drawText(ctx, "Note:", cardX + 56, noteTop + 15, "700 17.5px Arial, sans-serif", colors.text);
+  drawText(ctx, noteText, cardX + 126, noteTop + 15, "400 17.5px Arial, sans-serif", colors.text);
 
   const listTop = noteTop + 84;
   drawText(ctx, listTitle, cardX + 39, listTop, "700 26px Arial, sans-serif", colors.text);
-  drawText(ctx, `${members.length} rumah`, cardX + cardW - 39, listTop + 5, "400 18px Arial, sans-serif", colors.muted, "right");
+  drawText(ctx, `${members.length} houses`, cardX + cardW - 39, listTop + 5, "400 18px Arial, sans-serif", colors.muted, "right");
 
   ctx.strokeStyle = colors.border;
   ctx.lineWidth = 1.5;
@@ -264,8 +264,8 @@ export async function shareMembersJpgReport({
 
   function drawTableHeader(x, y) {
     drawText(ctx, "NO", x, y, "700 14.5px Arial, sans-serif", colors.soft);
-    drawText(ctx, "RUMAH", x + 45, y, "700 14.5px Arial, sans-serif", colors.soft);
-    drawText(ctx, "NAMA", x + 141, y, "700 14.5px Arial, sans-serif", colors.soft);
+    drawText(ctx, "HOUSE", x + 45, y, "700 14.5px Arial, sans-serif", colors.soft);
+    drawText(ctx, "NAME", x + 141, y, "700 14.5px Arial, sans-serif", colors.soft);
 
     ctx.strokeStyle = colors.border;
     ctx.lineWidth = 1;
