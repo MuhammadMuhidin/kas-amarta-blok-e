@@ -30,7 +30,7 @@ export default function PersonSearchBox({
   value,
   selectedPerson,
   onChange,
-  placeholder = "Cari nama atau nomor rumah",
+  placeholder = "Search name or house number",
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -88,9 +88,9 @@ export default function PersonSearchBox({
       {open && (
         <div style={suggestionBoxStyle}>
           {!keyword ? (
-            <div style={emptyStyle}>Ketik nama atau nomor rumah.</div>
+            <div style={emptyStyle}>Type a name or house number.</div>
           ) : suggestions.length === 0 ? (
-            <div style={emptyStyle}>Warga tidak ditemukan.</div>
+            <div style={emptyStyle}>Resident not found.</div>
           ) : (
             suggestions.map((person) => (
               <button
