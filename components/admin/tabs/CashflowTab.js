@@ -175,7 +175,7 @@ export default function CashflowTab({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Gagal mencatat transaksi");
+        throw new Error(data.error || "Failed to record transaction");
       }
 
       setCashflow({ type: "", amount: "", note: "" });
@@ -284,7 +284,7 @@ export default function CashflowTab({
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
           >
-            <option value="">All Transaction</option>
+            <option value="">All Transactions</option>
             <option value="income">Income</option>
             <option value="expense">Expense</option>
           </select>
