@@ -37,7 +37,7 @@ export default function useAdminMemberActions({
     e.preventDefault();
 
     if (!member.house.trim() || !member.name.trim() || !member.trash.trim() || !member.join_date.trim()) {
-      showPopup("Lengkapi semua data member terlebih dahulu", "error");
+      showPopup("Complete all member data first", "error");
       return;
     }
 
@@ -45,11 +45,11 @@ export default function useAdminMemberActions({
 
     try {
       await submitMember(member);
-      showPopup("Member berhasil ditambahkan", "success");
+      showPopup("Member added successfully", "success");
       setMember({ house: "", name: "", join_date: "", trash: "" });
       await loadPersonal();
     } catch (err) {
-      showPopup(err.message || "Gagal menambahkan member", "error");
+      showPopup(err.message || "Failed to add member", "error");
     } finally {
       setLoadingAdd(false);
     }
@@ -67,11 +67,11 @@ export default function useAdminMemberActions({
 
     try {
       await patchMember({ id: person.id, field, value: nextValue });
-      showPopup("Data member berhasil diperbarui", "success");
+      showPopup("Member data updated successfully", "success");
       await loadPersonal();
     } catch (err) {
       setPersonal(previousPersonal);
-      showPopup(err.message || "Gagal memperbarui data member", "error");
+      showPopup(err.message || "Failed to update member data", "error");
       throw err;
     }
   }
