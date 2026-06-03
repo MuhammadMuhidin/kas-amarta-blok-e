@@ -43,7 +43,7 @@ function getSettlement({cashflows,deposits,trashRecords}) {
 function fmtTime(value) {
   const d = new Date(value);
   if (!value || value==="unknown" || Number.isNaN(d.getTime())) return value || "unknown";
-  return d.toLocaleString("id-ID",{dateStyle:"medium",timeStyle:"short"});
+  return d.toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"});
 }
 
 function BuildBadge({loading,buildInfo}) {
