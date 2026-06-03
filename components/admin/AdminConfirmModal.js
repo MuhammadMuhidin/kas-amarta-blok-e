@@ -6,8 +6,8 @@ export default function AdminConfirmModal({
   open,
   title,
   description,
-  confirmText = "Konfirmasi",
-  cancelText = "Batal",
+  confirmText = "Confirm",
+  cancelText = "Cancel",
   loading = false,
   children,
   onCancel,
@@ -29,7 +29,7 @@ export default function AdminConfirmModal({
           <AdminActionButton onClick={onCancel} disabled={loading}>
             {cancelText}
           </AdminActionButton>
-          <AdminActionButton onClick={onConfirm} loading={loading} loadingText="Mengirim...">
+          <AdminActionButton onClick={onConfirm} loading={loading} loadingText="Sending...">
             {confirmText}
           </AdminActionButton>
         </div>
