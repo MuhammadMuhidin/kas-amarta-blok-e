@@ -134,7 +134,7 @@ export default function PersonalTab({
       {loading ? (
         <p>Loading member...</p>
       ) : personalRows.length === 0 ? (
-        <div className="admin-empty-state">Member tidak ditemukan.</div>
+        <div className="admin-empty-state">Member not found.</div>
       ) : (
         <>
           <PersonalTable
