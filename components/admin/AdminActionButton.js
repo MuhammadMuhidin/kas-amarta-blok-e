@@ -5,7 +5,7 @@ export default function AdminActionButton({
   className = "admin-small-btn",
   disabled = false,
   loading = false,
-  loadingText = "Memproses...",
+  loadingText = "Processing...",
   onClick,
   type = "button",
 }) {
