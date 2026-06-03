@@ -16,7 +16,7 @@ function timeAgo(date) {
 function formatDate(date) {
   if (!date) return "-";
 
-  return new Date(date).toLocaleString("id-ID", {
+  return new Date(date).toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   });
