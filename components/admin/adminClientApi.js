@@ -18,10 +18,10 @@ function buildRequestError({ path, method = "GET", res, data, rawText }) {
 
   const safeRawText = String(rawText || "").trim();
   if (safeRawText) {
-    return `${method} ${path} gagal (${res.status} ${res.statusText || "HTTP Error"}): ${safeRawText.slice(0, 180)}`;
+    return `${method} ${path} failed (${res.status} ${res.statusText || "HTTP Error"}): ${safeRawText.slice(0, 180)}`;
   }
 
-  return `${method} ${path} gagal tanpa response JSON (${res.status} ${res.statusText || "HTTP Error"})`;
+  return `${method} ${path} failed without JSON response (${res.status} ${res.statusText || "HTTP Error"})`;
 }
 
 function isRetryableHttpStatus(status) {
@@ -35,7 +35,7 @@ function isRetryableError(error) {
     message.includes("failed to fetch") ||
     message.includes("network") ||
     message.includes("timeout") ||
-    message.includes("response bukan json valid")
+    message.includes("response is not valid json")
   );
 }
 
@@ -51,7 +51,7 @@ async function parseResponsePayload({ path, method = "GET", res }) {
     return { data: JSON.parse(trimmedText), rawText };
   } catch {
     if (res.ok) {
-      throw new Error(`${method} ${path} berhasil tetapi response bukan JSON valid`);
+      throw new Error(`${method} ${path} succeeded but the response is not valid JSON`);
     }
 
     return { data: null, rawText };
@@ -91,7 +91,7 @@ async function requestJson({ path, method = "GET", fetchOptions = {}, retries = 
     await delay(350 * (attempt + 1));
   }
 
-  throw lastError || new Error(`${normalizedMethod} ${path} gagal`);
+  throw lastError || new Error(`${normalizedMethod} ${path} failed`);
 }
 
 export async function readJson(path) {
