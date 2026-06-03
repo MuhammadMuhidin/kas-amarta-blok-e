@@ -1,0 +1,1 @@
+{"name":"amarta-wa-sender","private":true,"type":"module","scripts":{"send":"node send-wa-once.mjs"},"dependencies":{}}
