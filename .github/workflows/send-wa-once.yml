@@ -62,9 +62,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
-      - name: Install WhatsApp sender dependencies
-        run: npm install --no-save --no-audit --no-fund @whiskeysockets/baileys pg qrcode-terminal
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
 
       - name: Run WhatsApp action
         env:
