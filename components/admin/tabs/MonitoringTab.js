@@ -249,7 +249,7 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
       <div className="admin-monitor-grid">
         <MonitoringCard label="Saldo Kas Terkini" value={loadingSettlement?"Checking...":rupiah(settlement.mainCash)} meta={["Income dikurangi expense dari semua cashflow."]} />
         <MonitoringCard label="Saldo Rekonsiliasi" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total booking payment yang belum paid."]} />
-        <MonitoringCard label="Trash Payment Monthly" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total trash.amount yang trash.date-nya masuk bulan berjalan."]} />
+        <MonitoringCard label="Trash Payment Monthly" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total pembayaran iuran sampah masuk bulan berjalan."]} />
       </div>
     </Section>
 
