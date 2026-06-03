@@ -26,7 +26,7 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
 
-  return date.toLocaleDateString("id-ID", {
+  return date.toLocaleDateString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -39,7 +39,7 @@ function formatPeriod(period) {
   const normalized = String(period).slice(0, 7);
   if (!/^\d{4}-\d{2}$/.test(normalized)) return period;
 
-  return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
+  return new Date(`${normalized}-01`).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
