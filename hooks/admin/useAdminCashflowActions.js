@@ -14,7 +14,7 @@ export default function useAdminCashflowActions({
     e.preventDefault();
 
     if (!cashflow.type.trim() || !String(cashflow.amount || "").trim() || !cashflow.note.trim()) {
-      showPopup("Lengkapi jenis, nominal dan catatan transaksi", "error");
+      showPopup("Complete the transaction type, amount, and note", "error");
       return;
     }
 
@@ -22,11 +22,11 @@ export default function useAdminCashflowActions({
 
     try {
       await createCashflow(cashflow);
-      showPopup("Transaksi berhasil dicatat", "success");
+      showPopup("Transaction recorded successfully", "success");
       setCashflow({ type: "", amount: "", note: "" });
       await loadCashflow();
     } catch (err) {
-      showPopup(err.message || "Gagal mencatat transaksi", "error");
+      showPopup(err.message || "Failed to record transaction", "error");
     } finally {
       setLoadingCashflow(false);
     }

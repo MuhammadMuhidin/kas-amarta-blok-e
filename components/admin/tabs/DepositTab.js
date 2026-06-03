@@ -14,7 +14,7 @@ const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 function formatDate(date) {
   if (!date) return "-";
 
-  return new Date(date).toLocaleDateString("id-ID", {
+  return new Date(date).toLocaleDateString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -28,7 +28,7 @@ function formatPeriod(period) {
 
   if (!/^\d{4}-\d{2}$/.test(normalized)) return period;
 
-  return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
+  return new Date(`${normalized}-01`).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
@@ -39,9 +39,9 @@ function WakeLockInfo({ wakeLock }) {
 
   const message = wakeLock.supported
     ? wakeLock.locked
-      ? "Layar dijaga tetap aktif selama proses. Jangan pindah aplikasi sampai selesai."
-      : "Sedang mencoba menjaga layar tetap aktif. Jangan kunci layar sampai proses selesai."
-    : "Perangkat/browser tidak mendukung jaga layar aktif. Jangan kunci layar sampai proses selesai.";
+      ? "The screen will stay active during the process. Do not switch apps until it finishes."
+      : "Trying to keep the screen active. Do not lock the screen until the process finishes."
+    : "This device/browser does not support screen wake lock. Do not lock the screen until the process finishes.";
 
   return <div style={wakeLockInfoStyle}>{message}</div>;
 }
@@ -50,7 +50,7 @@ function buildMultiPayFailureMessage({ success, recovered, failures }) {
   const recoveredLines = recovered.length
     ? [
         "",
-        "Terdeteksi sudah paid setelah response error:",
+        "Detected as paid after the error response:",
         ...recovered.map((item, index) => `${index + 1}. ${item.house || "-"} - ${item.name || "-"} (${formatPeriod(item.period)}): ${item.note}`),
       ]
     : [];
@@ -61,14 +61,14 @@ function buildMultiPayFailureMessage({ success, recovered, failures }) {
     : "-";
 
   return [
-    "[ADMIN ALERT] Multipay Booking Payment perlu pengecekan.",
+    "[ADMIN ALERT] Multipay Booking Payment needs review.",
     "",
-    `Berhasil: ${success} rumah`,
-    `Recovered: ${recovered.length} rumah`,
-    `Gagal: ${failures.length} rumah`,
+    `Success: ${success} houses`,
+    `Recovered: ${recovered.length} houses`,
+    `Failed: ${failures.length} houses`,
     ...recoveredLines,
     "",
-    "Detail gagal:",
+    "Failure details:",
     failureLines,
   ].join("\n");
 }
@@ -101,14 +101,14 @@ async function verifyBookingPaymentAfterFailure({ booking, normalize }) {
   if (normalize(latestDeposit?.status).toLowerCase() === "paid" && normalize(latestDeposit?.payment_id)) {
     return {
       recovered: true,
-      note: "Booking sudah marked paid setelah response error.",
+      note: "Booking was marked paid after the error response.",
     };
   }
 
   if (recordedPayment?.id) {
     return {
       recovered: false,
-      error: "Payment ditemukan, tetapi booking belum marked paid. Perlu cek manual agar tidak double payment.",
+      error: "Payment was found, but the booking has not been marked paid. Manual review is needed to prevent double payment.",
     };
   }
 
@@ -211,7 +211,7 @@ export default function DepositTab({
 
   const isMultiPayDisabled = readyPayBookings.length === 0 || loading || loadingMore || multiPayLoading;
   const multiPayLoadingText = multiPayProgress.total
-    ? `Membayar booking ${multiPayProgress.current}/${multiPayProgress.total}...`
+    ? `Paying booking ${multiPayProgress.current}/${multiPayProgress.total}...`
     : "Paying...";
   const bookingAmount = Number(selectedBooking?.amount || 0);
   const trashAmount = Number(selectedBooking?.trash_amount || 0);
@@ -295,7 +295,7 @@ export default function DepositTab({
             house: booking.house,
             name: booking.name,
             period: booking.period,
-            error: verification?.error || result?.error || "Gagal membayarkan booking",
+            error: verification?.error || result?.error || "Failed to pay booking",
           });
         } catch (verifyErr) {
           failures.push({
@@ -303,7 +303,7 @@ export default function DepositTab({
             house: booking.house,
             name: booking.name,
             period: booking.period,
-            error: `${result?.error || "Gagal membayarkan booking"}. Verifikasi gagal: ${verifyErr.message || "unknown"}`,
+            error: `${result?.error || "Failed to pay booking"}. Verification failed: ${verifyErr.message || "unknown"}`,
           });
         }
       }
@@ -314,19 +314,19 @@ export default function DepositTab({
         try {
           await notifyMultiPayFailures({ success, recovered, failures });
         } catch (notifyErr) {
-          showToast(notifyErr.message || "Gagal trigger WhatsApp workflow", "error");
+          showToast(notifyErr.message || "Failed to trigger WhatsApp workflow", "error");
         }
       }
 
       if (failures.length === 0) {
-        const recoveredText = recovered.length ? `, ${recovered.length} recovery` : "";
+        const recoveredText = recovered.length ? `, ${recovered.length} recovered` : "";
         setShowMultiPayModal(false);
-        showToast(`Multipay selesai: ${success} sukses${recoveredText}, 0 gagal`, "success");
+        showToast(`Multipay completed: ${success} successful${recoveredText}, 0 failed`, "success");
       } else if (success > 0) {
-        const recoveredText = recovered.length ? `, ${recovered.length} recovery` : "";
-        showToast(`Multipay selesai: ${success} sukses${recoveredText}, ${failures.length} gagal`, "warning");
+        const recoveredText = recovered.length ? `, ${recovered.length} recovered` : "";
+        showToast(`Multipay completed: ${success} successful${recoveredText}, ${failures.length} failed`, "warning");
       } else {
-        showToast(`Multipay selesai: 0 sukses, ${failures.length} gagal`, "error");
+        showToast(`Multipay completed: 0 successful, ${failures.length} failed`, "error");
       }
     } finally {
       setMultiPayLoading(false);
@@ -348,8 +348,8 @@ export default function DepositTab({
       !Number.isFinite(nextTrashAmount) ||
       nextTrashAmount < 0
     ) {
-      setSnapshotError("Nominal booking tidak valid");
-      showToast("Nominal booking tidak valid", "error");
+      setSnapshotError("Invalid booking amount");
+      showToast("Invalid booking amount", "error");
       return;
     }
 
@@ -374,9 +374,9 @@ export default function DepositTab({
       setSelectedBooking(updatedBooking);
       setEditingSnapshot(false);
       await Promise.all([refresh(), onBatchComplete?.()]);
-      showToast("Booking snapshot berhasil diperbarui", "success");
+      showToast("Booking snapshot updated successfully", "success");
     } catch (err) {
-      const message = err.message || "Gagal memperbarui booking snapshot";
+      const message = err.message || "Failed to update booking snapshot";
       setSnapshotError(message);
       showToast(message, "error");
     } finally {
@@ -393,19 +393,19 @@ export default function DepositTab({
           <div>
             <h3 style={{ margin: 0 }}>Booking Payment</h3>
             <div className="admin-deposit-meta" style={{ marginTop: 8 }}>
-              Snapshot tarif pembayaran akan disimpan saat booking dibuat.
+              Payment fee snapshot will be saved when the booking is created.
             </div>
           </div>
 
-<button
-  type="button"
-  style={collapseButtonStyle}
-  aria-label={showCreateBooking ? "Collapse booking payment form" : "Expand booking payment form"}
-  aria-expanded={showCreateBooking}
-  onClick={() => setShowCreateBooking((prev) => !prev)}
->
-  {showCreateBooking ? "▴" : "▾"}
-</button>
+          <button
+            type="button"
+            style={collapseButtonStyle}
+            aria-label={showCreateBooking ? "Collapse booking payment form" : "Expand booking payment form"}
+            aria-expanded={showCreateBooking}
+            onClick={() => setShowCreateBooking((prev) => !prev)}
+          >
+            {showCreateBooking ? "▴" : "▾"}
+          </button>
         </div>
 
         {showCreateBooking && (
@@ -421,17 +421,17 @@ export default function DepositTab({
 
             {selectedDepositPerson && (
               <div style={previewBoxStyle}>
-                <InfoRow label="Tarif Kas Saat Ini" value={money(currentMonthlyFee)} />
+                <InfoRow label="Current Cash Fee" value={money(currentMonthlyFee)} />
                 <InfoRow
-                  label="Tarif Sampah Saat Ini"
-                  value={trashEnabled ? money(currentTrashFee) : "Not include"}
+                  label="Current Trash Fee"
+                  value={trashEnabled ? money(currentTrashFee) : "Not included"}
                 />
                 <InfoRow label="Total Booking" value={money(bookingPreviewTotal)} strong />
               </div>
             )}
 
             <div className="admin-deposit-meta">
-              Snapshot dapat diubah jika terjadi penyesuaian tarif kas atau sampah sebelum pembayaran dilakukan.
+              Snapshot can be changed if cash or trash fees are adjusted before payment is made.
             </div>
 
             <div className="admin-deposit-chips">
@@ -463,7 +463,7 @@ export default function DepositTab({
         <h4>Booking List ({money(activeDepositTotal)})</h4>
         <div style={readyPaySummaryStyle}>
           <span style={readyPaySummaryTextStyle}>
-            Ready to pay: <strong>{readyPayBookings.length} rumah</strong>
+            Ready to pay: <strong>{readyPayBookings.length} houses</strong>
           </span>
 
           <button
@@ -561,7 +561,7 @@ function BookingList({
   openBookingModal,
 }) {
   if (loading) return <p>Loading booking...</p>;
-  if (deposits.length === 0) return <div className="admin-empty-state">Booking payment belum tersedia.</div>;
+  if (deposits.length === 0) return <div className="admin-empty-state">Booking payment is not available yet.</div>;
 
   return (
     <div className="admin-table-wrapper">
@@ -621,9 +621,9 @@ function MultiPayModal({ bookings, total, loading, loadingText, wakeLock, onClos
   return (
     <div className={modalStyles.overlay} onClick={loading ? undefined : onClose}>
       <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
-        <div style={modalTitleStyle}>Konfirmasi Multi Pay Booking</div>
+        <div style={modalTitleStyle}>Confirm Multi Pay Booking</div>
         <div style={modalNoteStyle}>
-          Pastikan data booking sudah benar. Semua booking di bawah akan langsung ditandai paid.
+          Make sure the booking data is correct. All bookings below will be marked paid immediately.
         </div>
 
         <div style={multiPayListStyle}>
@@ -636,7 +636,7 @@ function MultiPayModal({ bookings, total, loading, loadingText, wakeLock, onClos
         </div>
 
         <div style={multiPayTotalStyle}>
-          <span>Total rumah: {bookings.length}</span>
+          <span>Total houses: {bookings.length}</span>
           <strong>{money(total)}</strong>
         </div>
 
@@ -687,7 +687,7 @@ function BookingModal({
         {editingSnapshot ? (
           <form onSubmit={updateBookingSnapshot} style={{ display: "grid", gap: 12 }}>
             <SnapshotInput
-              label="Kas Booking"
+              label="Cash Booking"
               value={snapshotDraft.amount}
               onChange={(value) => setSnapshotDraft((prev) => ({ ...prev, amount: value }))}
             />
@@ -719,12 +719,12 @@ function BookingModal({
           </form>
         ) : (
           <div style={{ display: "grid", gap: 12 }}>
-            <InfoRow label="Kas Booking" value={money(bookingAmount)} />
-            <InfoRow label="Trash Booking" value={trashAmount > 0 ? money(trashAmount) : "Not include"} />
+            <InfoRow label="Cash Booking" value={money(bookingAmount)} />
+            <InfoRow label="Trash Booking" value={trashAmount > 0 ? money(trashAmount) : "Not included"} />
             <InfoRow label="Total Payment" value={money(totalBookingPayment)} strong />
             <InfoRow label="Created At" value={formatDate(booking.created_at)} />
             <InfoRow label="Paid At" value={formatDate(booking.paid_at)} />
-            <div style={modalNoteStyle}>Snapshot mengikuti tarif saat booking dibuat.</div>
+            <div style={modalNoteStyle}>Snapshot follows the fee when the booking was created.</div>
             {canEditSnapshot && (
               <button type="button" className="admin-small-btn" onClick={() => setEditingSnapshot(true)}>
                 Edit Snapshot

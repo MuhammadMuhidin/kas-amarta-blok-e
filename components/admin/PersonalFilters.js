@@ -32,7 +32,7 @@ export default function PersonalFilters({
         />
 
         <StatsCard
-          label="Non Trash"
+          label="Non-Trash"
           value={stats.trashInactive}
           active={memberFilter === "TRASH_INACTIVE"}
           onClick={() => toggleMemberFilter("TRASH_INACTIVE")}

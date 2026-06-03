@@ -30,7 +30,7 @@ export default function useAdminDepositActions({
     e.preventDefault();
 
     if (!selectedDepositPerson || selectedDepositPeriods.length === 0) {
-      showPopup("Pilih rumah dan periode booking terlebih dahulu", "error");
+      showPopup("Select a house and booking period first", "error");
       return;
     }
 
@@ -44,11 +44,11 @@ export default function useAdminDepositActions({
         periods: selectedDepositPeriods,
         amount: depositAmount,
       });
-      showPopup("Booking payment berhasil disimpan", "success");
+      showPopup("Booking payment saved successfully", "success");
       setDepositForm({ person_id: "", end_period: "" });
       await loadDeposit();
     } catch (err) {
-      showPopup(err.message || "Gagal menyimpan data booking", "error");
+      showPopup(err.message || "Failed to save booking data", "error");
     } finally {
       setSavingDeposit(false);
     }
@@ -62,13 +62,13 @@ export default function useAdminDepositActions({
       await payDepositBooking({ id, action: "PAY_NOW" });
 
       if (!silent) {
-        showPopup("Booking payment berhasil dibayarkan", "success");
+        showPopup("Booking payment paid successfully", "success");
         await Promise.all([loadDeposit(), loadPayment(), loadTrash(), loadCashflow()]);
       }
 
       return { ok: true };
     } catch (err) {
-      const message = err.message || "Gagal membayarkan data booking";
+      const message = err.message || "Failed to pay booking data";
 
       if (!silent) {
         showPopup(message, "error");

@@ -12,7 +12,7 @@ const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 function formatDate(date) {
   if (!date) return "-";
 
-  return new Date(date).toLocaleDateString("id-ID", {
+  return new Date(date).toLocaleDateString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -26,7 +26,7 @@ function formatPeriod(period) {
 
   if (!/^\d{4}-\d{2}$/.test(normalized)) return period;
 
-  return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
+  return new Date(`${normalized}-01`).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
@@ -140,12 +140,12 @@ export default function CashflowTab({
     setFormError("");
 
     if (!cashflow.type.trim() || !String(cashflow.amount || "").trim() || !cashflow.note.trim()) {
-      setFormError("Lengkapi jenis, nominal dan catatan transaksi");
+      setFormError("Complete the type, nominal and transaction notes");
       return;
     }
 
     if (isExpense && !receiptFile) {
-      setFormError("Expense wajib melampirkan struk/nota/bukti pembelian");
+      setFormError("Expenses must include receipts/notes/proof of purchase");
       return;
     }
 
@@ -175,16 +175,16 @@ export default function CashflowTab({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Gagal mencatat transaksi");
+        throw new Error(data.error || "Failed to record transaction");
       }
 
       setCashflow({ type: "", amount: "", note: "" });
       resetReceiptFile();
       await refresh();
       setShowRecordForm(false);
-      showToast("Transaksi berhasil dicatat", "success");
+      showToast("Transaction successfully recorded", "success");
     } catch (err) {
-      const message = err.message || "Gagal mencatat transaksi";
+      const message = err.message || "Failed to record transaction";
       setFormError(message);
       showToast(message, "error");
     } finally {
@@ -201,7 +201,7 @@ export default function CashflowTab({
           <div>
             <h3 style={styles.title}>Direct Cashflow</h3>
             <div style={styles.helperText}>
-              Catat pemasukan atau pengeluaran langsung di luar pembayaran warga.
+              Record direct income or expenses outside of resident payments.
             </div>
           </div>
 
@@ -251,7 +251,7 @@ export default function CashflowTab({
 
             {isExpense && (
               <label style={styles.fileLabel}>
-                <span>Struk / nota / bukti pembelian</span>
+                <span>Receipt / note / proof of purchase</span>
                 <input
                   ref={fileInputRef}
                   className="admin-input"
@@ -259,7 +259,7 @@ export default function CashflowTab({
                   accept="image/jpeg,image/png,image/webp,application/pdf"
                   onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
                 />
-                <small style={styles.helperText}>Wajib untuk expense. Format JPG, PNG, WEBP, atau PDF. Maksimal 5MB.</small>
+                <small style={styles.helperText}>Required for expenses. JPG, PNG, WEBP, or PDF format. Maximum 5MB.</small>
               </label>
             )}
 
@@ -284,7 +284,7 @@ export default function CashflowTab({
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
           >
-            <option value="">All Transaction</option>
+            <option value="">All Transactions</option>
             <option value="income">Income</option>
             <option value="expense">Expense</option>
           </select>
@@ -296,7 +296,7 @@ export default function CashflowTab({
         {loading ? (
           <p>Loading cashflow...</p>
         ) : items.length === 0 ? (
-          <div className="admin-empty-state">Direct cashflow belum tersedia.</div>
+          <div className="admin-empty-state">Direct cashflow is not yet available.</div>
         ) : (
           <>
             <div className="admin-table-wrapper">

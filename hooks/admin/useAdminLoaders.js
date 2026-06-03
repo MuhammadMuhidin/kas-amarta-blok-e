@@ -22,7 +22,7 @@ export default function useAdminLoaders({ setPayment }) {
       setPayment((prev) => ({ ...prev, amount: data.config.monthly_fee }));
     } catch (err) {
       setAppConfig(null);
-      setConfigError(err.message || "Failed load a configuration");
+      setConfigError(err.message || "Failed to load configuration");
     }
   }
 

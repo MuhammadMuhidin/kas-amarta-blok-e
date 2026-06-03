@@ -7,7 +7,7 @@ function buildBulkPaymentFailureMessage({ period, success, recovered, failures }
   const recoveredLines = recovered.length
     ? [
         "",
-        "Terdeteksi sudah masuk setelah response error:",
+        "Detected as recorded after the error response:",
         ...recovered.map((item, index) => `${index + 1}. ${item.house || "-"} - ${item.name || "-"}: ${item.note}`),
       ]
     : [];
@@ -17,15 +17,15 @@ function buildBulkPaymentFailureMessage({ period, success, recovered, failures }
     : "-";
 
   return [
-    "[ADMIN ALERT] Bulk Record Payment perlu pengecekan.",
+    "[ADMIN ALERT] Bulk Record Payment needs review.",
     "",
-    `Periode: ${period || "-"}`,
-    `Berhasil: ${success} rumah`,
-    `Recovered: ${recovered.length} rumah`,
-    `Gagal: ${failures.length} rumah`,
+    `Period: ${period || "-"}`,
+    `Success: ${success} houses`,
+    `Recovered: ${recovered.length} houses`,
+    `Failed: ${failures.length} houses`,
     ...recoveredLines,
     "",
-    "Detail gagal:",
+    "Failure details:",
     failureLines,
   ].join("\n");
 }
@@ -54,14 +54,14 @@ async function findRecordedPayment({ person, period, normalize }) {
 
 async function ensureTrashPayment({ person, paymentId, appConfig, createTrashPayment }) {
   if ((person.trash || "").toUpperCase() !== "Y") {
-    return "Payment ditemukan setelah response error.";
+    return "Payment found after the error response.";
   }
 
   const trashRecords = await readJson("/api/sheets/trash");
   const alreadyRecorded = trashRecords.some((item) => String(item.payment_id || "").trim() === String(paymentId || "").trim());
 
   if (alreadyRecorded) {
-    return "Payment dan trash ditemukan setelah response error.";
+    return "Payment and trash record found after the error response.";
   }
 
   await createTrashPayment({
@@ -73,7 +73,7 @@ async function ensureTrashPayment({ person, paymentId, appConfig, createTrashPay
     source: "payment-recovery",
   });
 
-  return "Payment ditemukan setelah response error, trash berhasil dilengkapi.";
+  return "Payment found after the error response, and the trash record was completed.";
 }
 
 function createBulkBatchId(period) {
@@ -127,17 +127,17 @@ export default function useAdminPaymentActions({
     e.preventDefault();
 
     if (!appConfig) {
-      showPopup("Konfigurasi kas belum tersedia. Pembayaran tidak bisa dicatat.", "error");
+      showPopup("Cash configuration is not available. Payment cannot be recorded.", "error");
       return;
     }
 
     if (!payment.period) {
-      showPopup("Masukkan periode pembayaran terlebih dahulu", "error");
+      showPopup("Enter the payment period first", "error");
       return;
     }
 
     if (selected.length === 0) {
-      showPopup("Pilih minimal 1 rumah yang belum dibayar", "error");
+      showPopup("Select at least 1 unpaid house", "error");
       return;
     }
 
@@ -205,7 +205,7 @@ export default function useAdminPaymentActions({
               id: person.id,
               house: person.house,
               name: person.name,
-              error: `${err.message || "Gagal mencatat pembayaran"}. Verifikasi gagal: ${verifyErr.message || "unknown"}`,
+              error: `${err.message || "Failed to record payment"}. Verification failed: ${verifyErr.message || "unknown"}`,
             });
             continue;
           }
@@ -214,7 +214,7 @@ export default function useAdminPaymentActions({
             id: person.id,
             house: person.house,
             name: person.name,
-            error: err.message || "Gagal mencatat pembayaran",
+            error: err.message || "Failed to record payment",
           });
         }
       }
@@ -225,7 +225,7 @@ export default function useAdminPaymentActions({
         try {
           await notifyBulkPaymentFailures({ period: payment.period, success, recovered, failures });
         } catch (notifyErr) {
-          showPopup(notifyErr.message || "Gagal trigger WhatsApp workflow", "error");
+          showPopup(notifyErr.message || "Failed to trigger WhatsApp workflow", "error");
         }
       }
 
@@ -234,15 +234,15 @@ export default function useAdminPaymentActions({
       }
 
       if (failures.length === 0) {
-        const recoveredText = recovered.length ? `, ${recovered.length} recovery` : "";
-        showPopup(`Pembayaran selesai: ${success} sukses${recoveredText}, 0 gagal`, "success");
+        const recoveredText = recovered.length ? `, ${recovered.length} recovered` : "";
+        showPopup(`Payment completed: ${success} successful${recoveredText}, 0 failed`, "success");
         setSelected([]);
         setPayment({ period: "", amount: appConfig.monthly_fee });
       } else if (success > 0) {
-        const recoveredText = recovered.length ? `, ${recovered.length} recovery` : "";
-        showPopup(`Pembayaran selesai: ${success} sukses${recoveredText}, ${failures.length} gagal`, "warning");
+        const recoveredText = recovered.length ? `, ${recovered.length} recovered` : "";
+        showPopup(`Payment completed: ${success} successful${recoveredText}, ${failures.length} failed`, "warning");
       } else {
-        showPopup(`Pembayaran selesai: 0 sukses, ${failures.length} gagal`, "error");
+        showPopup(`Payment completed: 0 successful, ${failures.length} failed`, "error");
       }
     } finally {
       setLoadingPayment(false);

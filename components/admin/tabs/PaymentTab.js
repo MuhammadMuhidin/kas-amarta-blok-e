@@ -16,7 +16,7 @@ function formatPeriod(period) {
 
   if (!isValidPeriod(normalized)) return period;
 
-  return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
+  return new Date(`${normalized}-01`).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
@@ -66,9 +66,9 @@ function WakeLockInfo({ wakeLock }) {
 
   const message = wakeLock.supported
     ? wakeLock.locked
-      ? "Layar dijaga tetap aktif selama proses. Jangan pindah aplikasi sampai selesai."
-      : "Sedang mencoba menjaga layar tetap aktif. Jangan kunci layar sampai proses selesai."
-    : "Perangkat/browser tidak mendukung jaga layar aktif. Jangan kunci layar sampai proses selesai.";
+      ? "The screen will stay active during the process. Do not switch apps until it finishes."
+      : "Trying to keep the screen active. Do not lock the screen until the process finishes."
+    : "This device/browser does not support screen wake lock. Do not lock the screen until the process finishes.";
 
   return <div style={wakeLockInfoStyle}>{message}</div>;
 }
@@ -122,7 +122,7 @@ export default function PaymentTab({
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
   const disableRecordPayment = loadingPayment || hasPendingCurrentDeposit;
   const loadingText = paymentProgress?.total
-    ? `Mencatat pembayaran ${paymentProgress.current}/${paymentProgress.total}...`
+    ? `Recording payment ${paymentProgress.current}/${paymentProgress.total}...`
     : "Recording...";
 
   function isPaidForPeriod(person, period) {
@@ -165,7 +165,7 @@ export default function PaymentTab({
       {configError && <div className="admin-error-box">{configError}</div>}
       {hasPendingCurrentDeposit && (
         <div className="admin-error-box">
-          Selesaikan {pendingCurrentDeposits.length} deposit bulan berjalan lewat Pay Now sebelum mencatat payment manual.
+          Complete {pendingCurrentDeposits.length} current-month booking payments with Pay Now before recording manual payments.
         </div>
       )}
       <div className="admin-card">
@@ -177,7 +177,7 @@ export default function PaymentTab({
             disabled={loadingPayment}
             onChange={(e) => setPayment({ ...payment, period: e.target.value })}
           >
-            <option value="">Pilih periode tunggakan</option>
+            <option value="">Select unpaid period</option>
 
             {availablePaymentPeriods.map((period) => (
               <option key={period} value={period}>
@@ -209,7 +209,7 @@ export default function PaymentTab({
                   disabledChip ? "admin-checkbox-chip-disabled" : "",
                 ].filter(Boolean).join(" ");
                 const title = loadingPayment
-                  ? "Bulk payment sedang diproses"
+                  ? "Bulk payment is being processed"
                   : alreadyPaid
                     ? "Already paid for this period"
                     : notJoined
@@ -232,7 +232,7 @@ export default function PaymentTab({
                     <div className="admin-house-chip-content">
                       <div className="admin-house-chip-house">{p.house}</div>
                       {alreadyPaid && <div className="admin-house-chip-paid">Paid</div>}
-                      {notJoined && <div className="admin-house-chip-paid">Not join</div>}
+                      {notJoined && <div className="admin-house-chip-paid">Not joined</div>}
                     </div>
                   </label>
                 );

@@ -26,7 +26,7 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  return date.toLocaleString("id-ID", {
+  return date.toLocaleString("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   });
@@ -115,7 +115,7 @@ export default function AdminActivityPanel() {
       <div className="activity-header">
         <div>
           <h3 className="activity-title">Activity Log</h3>
-          <p className="activity-subtitle">Riwayat aktivitas admin dan perubahan data.</p>
+          <p className="activity-subtitle">Admin activity history and data change records.</p>
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
