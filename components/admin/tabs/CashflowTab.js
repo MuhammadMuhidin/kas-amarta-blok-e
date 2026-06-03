@@ -12,7 +12,7 @@ const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 function formatDate(date) {
   if (!date) return "-";
 
-  return new Date(date).toLocaleDateString("id-ID", {
+  return new Date(date).toLocaleDateString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -26,7 +26,7 @@ function formatPeriod(period) {
 
   if (!/^\d{4}-\d{2}$/.test(normalized)) return period;
 
-  return new Date(`${normalized}-01`).toLocaleDateString("id-ID", {
+  return new Date(`${normalized}-01`).toLocaleDateString("en-US", {
     month: "long",
     year: "numeric",
   });
