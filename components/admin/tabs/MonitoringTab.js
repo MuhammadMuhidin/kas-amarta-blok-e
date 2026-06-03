@@ -56,6 +56,22 @@ function BuildBadge({loading,buildInfo}) {
   </div>;
 }
 
+function AlertTestCard({loading,result,onSend}) {
+  const resultText = result?.message || "";
+  const resultColor = result?.type === "error" ? "#dc2626" : result?.type === "success" ? "#16a34a" : "var(--admin-muted)";
+
+  return <div style={{marginBottom:20,padding:16,borderRadius:16,border:"1px solid var(--admin-border)",background:"var(--admin-row)",display:"grid",gap:12}}>
+    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
+      <div style={{minWidth:220,flex:"1 1 260px"}}>
+        <h3 style={{margin:"0 0 4px"}}>Alert Channel Test</h3>
+        <div style={{fontSize:13,color:"var(--admin-muted)",fontWeight:600,lineHeight:1.5}}>Send a test alert to WhatsApp and email to verify alert delivery.</div>
+      </div>
+      <button type="button" className="admin-small-btn" disabled={loading} onClick={onSend} style={{minWidth:140}}>{loading ? "Sending..." : "Send Test Alert"}</button>
+    </div>
+    {resultText && <div style={{fontSize:12,fontWeight:800,color:resultColor,lineHeight:1.5}}>{resultText}</div>}
+  </div>;
+}
+
 function getHealthStatus({loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData}) {
   const sheetOk = !loadingSettlement && (rows.cashflows.length + rows.deposits.length + rows.trashRecords.length) > 0;
   const buildOk = Boolean(buildInfo);
@@ -84,6 +100,8 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
   const [receiptStorage,setReceiptStorage] = useState(null);
   const [repairingPaymentId,setRepairingPaymentId] = useState("");
   const [repairedPaymentIds,setRepairedPaymentIds] = useState([]);
+  const [sendingTestAlert,setSendingTestAlert] = useState(false);
+  const [testAlertResult,setTestAlertResult] = useState(null);
   const [rows,setRows] = useState({cashflows:[],deposits:[],trashRecords:[]});
   const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
@@ -99,6 +117,28 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
       await onRepairComplete?.();
     } finally {
       setRepairingPaymentId("");
+    }
+  }
+
+  async function handleSendTestAlert() {
+    if (sendingTestAlert) return;
+    setSendingTestAlert(true);
+    setTestAlertResult(null);
+
+    try {
+      const period = getCurrentPeriod();
+      const data = await sendJson("/api/waha/workflow", "POST", {
+        period,
+        source: "admin-test-alert",
+        message: `[TEST] Admin alert channel test for ${period}. WhatsApp and email alert delivery should be verified from Monitoring.`,
+        emailSubject: `[TEST] Amarta Admin Alert - ${period}`,
+      });
+      const emailStatus = data?.email?.ok ? " Email sent." : data?.email?.skipped ? ` Email skipped: ${data.email.reason}.` : data?.email?.error ? ` Email failed: ${data.email.error}.` : "";
+      setTestAlertResult({type:data?.email?.error ? "error" : "success",message:`Test alert sent to WhatsApp.${emailStatus}`});
+    } catch (error) {
+      setTestAlertResult({type:"error",message:error.message || "Failed to send test alert"});
+    } finally {
+      setSendingTestAlert(false);
     }
   }
 
@@ -165,6 +205,8 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
       </div>
       <BuildBadge loading={loadingBuildInfo} buildInfo={buildInfo} />
     </div>
+
+    <AlertTestCard loading={sendingTestAlert} result={testAlertResult} onSend={handleSendTestAlert} />
 
     <Section title="Operational Health Check">
       <div className="admin-monitor-grid">

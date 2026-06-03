@@ -62,9 +62,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
+          cache-dependency-path: scripts/wa-sender/package-lock.json
 
       - name: Install WhatsApp sender dependencies
-        run: npm install --no-save --no-audit --no-fund @whiskeysockets/baileys pg qrcode-terminal
+        run: npm ci --prefix scripts/wa-sender --no-audit --no-fund
 
       - name: Run WhatsApp action
         env:
@@ -79,4 +81,4 @@ jobs:
           WA_PERIOD: ${{ inputs.period }}
           WA_SOURCE: ${{ inputs.source }}
           WA_CONNECT_TIMEOUT_MS: 180000
-        run: node scripts/send-wa-once.mjs
+        run: node scripts/wa-sender/send-wa-once.mjs
