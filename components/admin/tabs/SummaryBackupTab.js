@@ -127,7 +127,7 @@ export default function SummaryBackupTab() {
         <p>Loading summary...</p>
       ) : !summaryBackup?.length ? (
         <div className="admin-empty-state">
-          Backup summary belum tersedia.
+          Backup summary is not available yet.
         </div>
       ) : (
         <>
@@ -173,7 +173,7 @@ export default function SummaryBackupTab() {
             />
 
             <SummaryCard
-              label="Active Personal"
+              label="Active Members"
               value={latest?.total_personal_active || 0}
               delta={activeDelta}
             />
@@ -181,7 +181,7 @@ export default function SummaryBackupTab() {
 
           <div style={styles.metaBar}>
             <span>{summaryBackup.length} / {total} loaded</span>
-            <span>Scroll untuk memuat data berikutnya</span>
+            <span>Scroll to load more data</span>
           </div>
 
           <div className="admin-table-wrapper">
@@ -190,7 +190,7 @@ export default function SummaryBackupTab() {
                 <tr>
                   <th className="admin-th">Date</th>
                   <th className="admin-th">Net</th>
-                  <th className="admin-th">Personal Active</th>
+                  <th className="admin-th">Active Members</th>
                 </tr>
               </thead>
 
@@ -247,7 +247,7 @@ export default function SummaryBackupTab() {
               ? "Loading more..."
               : hasMore
                 ? "Scroll to load more"
-                : "All summary loaded"}
+                : "All summaries loaded"}
           </div>
         </>
       )}
@@ -303,7 +303,7 @@ export default function SummaryBackupTab() {
               />
 
               <DetailRow
-                label="Member Active"
+                label="Active Members"
                 value={selectedBackup.total_personal_active}
               />
             </div>
