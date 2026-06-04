@@ -24,20 +24,14 @@ function Section({title,children}) {
 const rupiah = (v) => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v||0));
 const n = (v) => Number.isFinite(Number(v||0)) ? Number(v||0) : 0;
 
-function getSettlement({cashflows,deposits,trashRecords}) {
+function getSettlement({deposits,trashRecords}) {
   const periodNow = getCurrentPeriod();
-  const mainCash = cashflows.reduce((t,c)=>{
-    const type = String(c.type||"").toLowerCase();
-    if (type==="income") return t+n(c.amount);
-    if (type==="expense") return t-n(c.amount);
-    return t;
-  },0);
   const recon = deposits.filter((d)=>String(d.status||"").toLowerCase()!=="paid").reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
   const trashMonthly = trashRecords.reduce((t,r)=>{
     const period = String(r.date||"").slice(0,7);
     return period===periodNow ? t+n(r.amount) : t;
   },0);
-  return {mainCash,recon,trashMonthly};
+  return {recon,trashMonthly};
 }
 
 function fmtTime(value) {
@@ -211,8 +205,6 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     <Section title="Operational Health Check">
       <div className="admin-monitor-grid">
         <MonitoringCard label="Sheets API" value={loadingSettlement?"Checking...":health.sheetOk?"Connected":"Need check"} meta={[health.sheetOk?`${rows.cashflows.length} cashflow, ${rows.deposits.length} booking, ${rows.trashRecords.length} trash rows loaded.`:"Operational data has not been read yet."]} error={!loadingSettlement&&!health.sheetOk} />
-        <MonitoringCard label="Build Metadata" value={loadingBuildInfo?"Checking...":health.buildOk?"Ready":"Missing"} meta={buildInfo?[`${String(buildInfo.platform||"unknown").toUpperCase()} - ${buildInfo.branch}`,`Commit: ${buildInfo.commitShort}`]:["Build info is not available."]} error={!loadingBuildInfo&&!health.buildOk} />
-        <MonitoringCard label="Backup Health" value={loadingDailyBackup?"Checking...":health.backupOk?"Healthy":"Need check"} meta={health.backupOk?[`Last file: ${dailyBackup.name}`,`Retention: ${dailyBackup.count} backup files`]:["Daily backup is not valid yet."]} error={!loadingDailyBackup&&!health.backupOk} />
         <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"There are issues that need review."]} error={!health.integrityOk} />
         <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data and build metadata are available for reports.":"Reports may fail if data/build status is unhealthy."]} error={!health.reportReady} />
         <MonitoringCard label="Receipt Storage" value={receiptStorageView.value} meta={receiptStorageView.meta} error={receiptStorageView.error} />
@@ -221,7 +213,6 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
 
     <Section title="Settlement">
       <div className="admin-monitor-grid">
-        <MonitoringCard label="Current Cash Balance" value={loadingSettlement?"Checking...":rupiah(settlement.mainCash)} meta={["Income minus expenses from all cashflow records."]} />
         <MonitoringCard label="Reconciliation Balance" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total unpaid booking payments."]} />
         <MonitoringCard label="Monthly Trash Payment" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total trash fee payments received in the current month."]} />
       </div>
