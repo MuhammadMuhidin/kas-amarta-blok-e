@@ -127,7 +127,7 @@ function AlertItem({ tone = "info", title, detail, action, onClick }) {
   );
 }
 
-function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
+function useModalScrollLock(open) {
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
 
@@ -142,6 +142,10 @@ function DetailMembersModal({ open, title, members, statusText, emptyText, share
       document.documentElement.style.overflow = previousDocumentOverflow;
     };
   }, [open]);
+}
+
+function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
+  useModalScrollLock(open);
 
   if (!open) return null;
 
@@ -174,6 +178,75 @@ function DetailMembersModal({ open, title, members, statusText, emptyText, share
                 <td>{index + 1}</td>
                 <td>{person.house || "-"}</td>
                 <td>{person.name || "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function TrashAllMembersModal({
+  open,
+  periodLabel,
+  members,
+  paidCount,
+  advancedCount,
+  totalAdvanced,
+  sharing,
+  advancing,
+  onShareJpg,
+  onAdvance,
+  onClose,
+}) {
+  useModalScrollLock(open);
+
+  if (!open) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <div className="modal-title">All Trash Payment Details</div>
+            <div className="modal-section">{members.length} trash members for {periodLabel}.</div>
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0 || advancing} onClick={onShareJpg}>Share JPG</AdminActionButton>
+            <AdminActionButton loading={advancing} loadingText="Advancing..." disabled={advancedCount === 0 || sharing} onClick={onAdvance}>Advance Unpaid Trash</AdminActionButton>
+          </div>
+        </div>
+
+        <div style={styles.trashSummaryGrid}>
+          <div style={styles.trashSummaryItem}><span>Total Trash Members</span><strong>{members.length}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Paid</span><strong style={{ color: "#16a34a" }}>{paidCount}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Advanced by Cash</span><strong style={{ color: "#dc2626" }}>{advancedCount}</strong></div>
+        </div>
+        <div style={styles.trashAdvanceNote}>Total to collect from advanced trash: <strong>{money(totalAdvanced)}</strong></div>
+
+        <table className="detail-table">
+          <thead>
+            <tr>
+              <th>No</th>
+              <th>House</th>
+              <th>Name</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {members.length === 0 ? (
+              <tr><td colSpan={4}>No trash member data.</td></tr>
+            ) : members.map((person, index) => (
+              <tr key={person.id || `${person.house}-${index}`}>
+                <td>{index + 1}</td>
+                <td>{person.house || "-"}</td>
+                <td>{person.name || "-"}</td>
+                <td>
+                  <span style={{ ...styles.trashStatusBadge, ...(person.trashPaid ? styles.trashStatusPaid : styles.trashStatusAdvanced) }}>
+                    {person.trashPaid ? "Paid" : "Advanced by Cash"}
+                  </span>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -251,6 +324,7 @@ export default function OverviewTab({
   monitoringIssueCount,
   getDepositStatus,
   onNavigate,
+  onTrashAdvanceComplete,
 }) {
   const [sendingReport, setSendingReport] = useState(false);
   const [loadingReportPreview, setLoadingReportPreview] = useState(false);
@@ -258,23 +332,12 @@ export default function OverviewTab({
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [unpaidDetail, setUnpaidDetail] = useState(null);
   const [showPaidTrashDetail, setShowPaidTrashDetail] = useState(false);
+  const [showAllTrashDetail, setShowAllTrashDetail] = useState(false);
+  const [advancingTrash, setAdvancingTrash] = useState(false);
   const [exportingDetailJpg, setExportingDetailJpg] = useState("");
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
 
-  useEffect(() => {
-    if (!showReportConfirm || typeof document === "undefined") return undefined;
-
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousDocumentOverflow = document.documentElement.style.overflow;
-
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousDocumentOverflow;
-    };
-  }, [showReportConfirm]);
+  useModalScrollLock(showReportConfirm);
 
   function showToast(type, message) {
     setToast({ show: true, type, message });
@@ -328,6 +391,8 @@ export default function OverviewTab({
   const paidCurrentTrashCount = paidCurrentTrashMembers.length;
   const unpaidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => !trashPaidPersonIds.has(normalize(person.id))));
   const unpaidCurrentTrashCount = unpaidCurrentTrashMembers.length;
+  const allTrashMembers = sortMembers(activeCurrentTrashMembers).map((person) => ({ ...person, trashPaid: trashPaidPersonIds.has(normalize(person.id)) }));
+  const totalAdvancedTrash = unpaidCurrentTrashCount * Number(appConfig?.trash_fee || 0);
   const allIncome = cashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const allExpense = cashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const currentBalance = allIncome - allExpense;
@@ -366,6 +431,51 @@ export default function OverviewTab({
       showToast("error", err.message || "Failed to create JPG.");
     } finally {
       setExportingDetailJpg("");
+    }
+  }
+
+  async function handleShareAllTrashJpg() {
+    if (exportingDetailJpg) return;
+    setExportingDetailJpg("sampah-all");
+    try {
+      const reportMembers = allTrashMembers.map((person) => ({
+        ...person,
+        name: `${person.name || "-"} - ${person.trashPaid ? "Paid" : "Advanced by Cash"}`,
+      }));
+      const result = await shareMembersJpgReport({
+        title: "Trash Payment Report",
+        period: currentPeriod,
+        members: reportMembers,
+        summaryItems: [
+          ["Members", `${allTrashMembers.length} houses`, "Trash registered"],
+          ["Paid", `${paidCurrentTrashCount} houses`, "Already paid"],
+          ["Advanced", money(totalAdvancedTrash), `${unpaidCurrentTrashCount} houses`],
+        ],
+        badgeText: "TRASH REPORT",
+        listTitle: "Trash Member Status",
+        noteText: "Paid = already paid. Advanced by Cash = temporarily paid by cash and needs collection.",
+        footerNote: "Use this report to collect trash advances from unpaid members.",
+        fileName: `trash-payment-all-${currentPeriod}.jpg`,
+      });
+      showToast("success", result === "shared" ? "JPG is ready to share." : "JPG downloaded successfully.");
+    } catch (err) {
+      showToast("error", err.message || "Failed to create JPG.");
+    } finally {
+      setExportingDetailJpg("");
+    }
+  }
+
+  async function handleAdvanceUnpaidTrash() {
+    if (advancingTrash || unpaidCurrentTrashCount === 0) return;
+    setAdvancingTrash(true);
+    try {
+      const data = await sendJson("/api/sheets/trash/advance-bulk", "POST", { period: currentPeriod });
+      await onTrashAdvanceComplete?.();
+      showToast("success", `Advanced ${data.advanced || 0} trash expenses. Total ${money(data.total || 0)}.`);
+    } catch (err) {
+      showToast("error", err.message || "Failed to advance unpaid trash.");
+    } finally {
+      setAdvancingTrash(false);
     }
   }
 
@@ -413,6 +523,7 @@ export default function OverviewTab({
               metaActions={[
                 unpaidCurrentTrashCount > 0 ? { label: "View Unpaid", onClick: () => setUnpaidDetail({ type: "sampah-unpaid", title: "Unpaid Trash Details", members: unpaidCurrentTrashMembers }) } : null,
                 { label: "View Paid", onClick: () => setShowPaidTrashDetail(true) },
+                { label: "View All", onClick: () => setShowAllTrashDetail(true) },
               ]}
               error={unpaidCurrentTrashCount > 0}
             />
@@ -493,6 +604,19 @@ export default function OverviewTab({
         })}
         onClose={() => setShowPaidTrashDetail(false)}
       />
+      <TrashAllMembersModal
+        open={showAllTrashDetail}
+        periodLabel={periodLabel}
+        members={allTrashMembers}
+        paidCount={paidCurrentTrashCount}
+        advancedCount={unpaidCurrentTrashCount}
+        totalAdvanced={totalAdvancedTrash}
+        sharing={exportingDetailJpg === "sampah-all"}
+        advancing={advancingTrash}
+        onShareJpg={handleShareAllTrashJpg}
+        onAdvance={handleAdvanceUnpaidTrash}
+        onClose={() => setShowAllTrashDetail(false)}
+      />
 
       <AdminConfirmModal open={showReportConfirm} title="Confirm resident report delivery" description="Make sure the message content is correct before sending it to the WhatsApp group." confirmText="Send to Group" cancelText="Check Again" loading={sendingReport} onCancel={closeReportConfirm} onConfirm={sendResidentReport}>
         <pre style={styles.previewBox}>{reportPreview}</pre>
@@ -533,6 +657,12 @@ const styles = {
   alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
   alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
   alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
+  trashSummaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, margin: "12px 0" },
+  trashSummaryItem: { display: "grid", gap: 6, padding: 12, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
+  trashAdvanceNote: { margin: "6px 0 12px", padding: 12, borderRadius: 14, border: "1px solid #fed7aa", background: "#fff7ed", color: "#9a3412", fontSize: 13, fontWeight: 800 },
+  trashStatusBadge: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "5px 9px", borderRadius: 999, fontSize: 12, fontWeight: 900 },
+  trashStatusPaid: { background: "#dcfce7", color: "#16a34a" },
+  trashStatusAdvanced: { background: "#fee2e2", color: "#dc2626" },
   cashflowList: { display: "grid", gap: 0, padding: "6px 14px", borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
   cashflowItem: { display: "grid", gridTemplateColumns: "72px minmax(0, 1fr)", alignItems: "center", columnGap: 10, rowGap: 4, padding: "12px 0", borderBottom: "1px solid var(--admin-border)" },
   cashflowBadge: { fontSize: 12, fontWeight: 950, alignSelf: "start", paddingTop: 1 },
