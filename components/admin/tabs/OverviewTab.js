@@ -6,6 +6,7 @@ import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
+import usePagedSwipe from "@/hooks/usePagedSwipe";
 import { useEffect, useState } from "react";
 
 const DETAIL_MODAL_PAGE_SIZE = 15;
@@ -187,40 +188,6 @@ function useModalScrollLock(open) {
   }, [open]);
 }
 
-function usePagedItems(items, open, pageSize) {
-  const [page, setPage] = useState(0);
-  const [touchStartX, setTouchStartX] = useState(null);
-  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageItems = items.slice(safePage * pageSize, safePage * pageSize + pageSize);
-
-  useEffect(() => {
-    if (open) setPage(0);
-  }, [open, items.length]);
-
-  function goToPage(nextPage) {
-    setPage(Math.min(Math.max(nextPage, 0), totalPages - 1));
-  }
-
-  function handleTouchStart(event) {
-    setTouchStartX(event.touches?.[0]?.clientX ?? null);
-  }
-
-  function handleTouchEnd(event) {
-    if (touchStartX === null) return;
-    const endX = event.changedTouches?.[0]?.clientX ?? touchStartX;
-    const deltaX = touchStartX - endX;
-
-    if (Math.abs(deltaX) > 45) {
-      goToPage(safePage + (deltaX > 0 ? 1 : -1));
-    }
-
-    setTouchStartX(null);
-  }
-
-  return { page: safePage, pageItems, pageSize, totalPages, goToPage, handleTouchStart, handleTouchEnd };
-}
-
 function ModalCloseButton({ onClose }) {
   return <button type="button" style={styles.modalCloseButton} onClick={onClose} aria-label="Close modal">×</button>;
 }
@@ -245,7 +212,7 @@ function ModalDots({ totalPages, page, onChange }) {
 
 function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
   useModalScrollLock(open);
-  const pager = usePagedItems(members, open, DETAIL_MODAL_PAGE_SIZE);
+  const pager = usePagedSwipe(members, open, DETAIL_MODAL_PAGE_SIZE);
 
   if (!open) return null;
 
@@ -309,7 +276,7 @@ function TrashAllMembersModal({
   onClose,
 }) {
   useModalScrollLock(open);
-  const pager = usePagedItems(members, open, TRASH_MODAL_PAGE_SIZE);
+  const pager = usePagedSwipe(members, open, TRASH_MODAL_PAGE_SIZE);
 
   if (!open) return null;
 
