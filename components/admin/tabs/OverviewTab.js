@@ -232,16 +232,12 @@ export default function OverviewTab({
   const paidCurrentTrashCount = paidCurrentTrashMembers.length;
   const unpaidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => !trashPaidPersonIds.has(normalize(person.id))));
   const unpaidCurrentTrashCount = unpaidCurrentTrashMembers.length;
-  const currentMonthCashflows = cashflows.filter((item) => String(item.date || "").slice(0, 7) === currentPeriod);
-  const currentIncome = currentMonthCashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const currentExpense = currentMonthCashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const allIncome = cashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const allExpense = cashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const currentBalance = allIncome - allExpense;
   const readyBookings = sortedDeposits.filter((deposit) => getDepositStatus(deposit) === "pending");
   const waitingBookings = sortedDeposits.filter((deposit) => getDepositStatus(deposit) === "waiting");
   const backupOk = Boolean(dailyBackup?.ok);
-  const configOk = Boolean(appConfig);
   const recentCashflows = [...cashflows].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).slice(0, 5);
   const periodLabel = formatPeriod(currentPeriod);
 
@@ -301,8 +297,6 @@ export default function OverviewTab({
         <Section title="Quick Summary">
           <div className="admin-monitor-grid">
             <MonitoringCard label="Cash Balance" value={money(currentBalance)} meta={["Income minus expenses across all periods."]} error={currentBalance < 0} />
-            <MonitoringCard label="This Month Income" value={money(currentIncome)} meta={[`Period ${periodLabel}`]} />
-            <MonitoringCard label="This Month Expense" value={money(currentExpense)} meta={[`Period ${periodLabel}`]} />
             <MonitoringCard label="This Month Payment (Cash)" value={`${paidCurrentCount}/${activeCurrentMembers.length} houses`} meta={[`${unpaidCurrentCount} houses unpaid.`, `${paidCurrentCount} houses paid.`]} metaActions={[unpaidCurrentCount > 0 ? { label: "View details", onClick: () => setUnpaidDetail({ type: "kas-unpaid", title: "Unpaid Cash Details", members: unpaidCurrentMembers }) } : null, paidCurrentCount > 0 ? { label: "View details", onClick: () => setUnpaidDetail({ type: "kas-paid", title: "Paid Cash Details", members: paidCurrentMembers }) } : null]} error={unpaidCurrentCount > 0} />
             <MonitoringCard label="This Month Payment (Trash)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} houses`} meta={[`${unpaidCurrentTrashCount} houses unpaid.`, `${paidCurrentTrashCount} houses paid.`]} metaActions={[unpaidCurrentTrashCount > 0 ? { label: "View details", onClick: () => setUnpaidDetail({ type: "sampah-unpaid", title: "Unpaid Trash Details", members: unpaidCurrentTrashMembers }) } : null, { label: "View details", onClick: () => setShowPaidTrashDetail(true) }]} error={unpaidCurrentTrashCount > 0} />
             <MonitoringCard label="Ready Booking" value={`${readyBookings.length} houses`} meta={[`${waitingBookings.length} bookings waiting for the payment period.`]} error={readyBookings.length > 0} />
@@ -332,14 +326,6 @@ export default function OverviewTab({
 
         <Section title="Attention Needed">
           {alerts.length === 0 ? <div className="admin-empty-state">No special attention needed. The system looks stable.</div> : <div style={styles.alertList}>{alerts.map((alert) => <AlertItem key={alert.title} tone={alert.tone} title={alert.title} detail={alert.detail} action={alert.action} onClick={() => onNavigate(alert.tab)} />)}</div>}
-        </Section>
-
-        <Section title="Operational Snapshot">
-          <div className="admin-monitor-grid">
-            <MonitoringCard label="App Config" value={configOk ? "Ready" : "Not ready"} meta={configOk ? [`Cash: ${money(appConfig.monthly_fee)}`, `Trash: ${money(appConfig.trash_fee)}`] : ["Configuration is not available yet."]} error={!configOk} />
-            <MonitoringCard label="Daily Backup" value={backupOk ? "Healthy" : "Need check"} meta={backupOk ? [`File: ${dailyBackup.name}`, `Retention: ${dailyBackup.count} backup files`] : ["Daily backup is not valid yet."]} error={!backupOk} />
-            <MonitoringCard label="Active Members" value={`${activeMembers.length} houses`} meta={[`${activeCurrentMembers.length} houses active in this period.`]} />
-          </div>
         </Section>
 
         <Section title="Recent Cashflow">
