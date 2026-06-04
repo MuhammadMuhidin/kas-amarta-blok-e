@@ -8,7 +8,8 @@ import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
 import { useEffect, useState } from "react";
 
-const MODAL_PAGE_SIZE = 5;
+const DETAIL_MODAL_PAGE_SIZE = 15;
+const TRASH_MODAL_PAGE_SIZE = 5;
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
 const normalizeUpper = (value) => normalize(value).toUpperCase();
@@ -50,6 +51,7 @@ const overviewAdminCss = `
     transform-origin: center;
     max-height: calc(100dvh - 36px);
     overflow-y: auto;
+    position: relative;
   }
 
   .admin-wrapper .detail-table {
@@ -84,6 +86,7 @@ const overviewAdminCss = `
       max-height: calc(100dvh - 24px);
       border-radius: 18px;
       padding: 16px;
+      padding-top: 48px;
     }
 
     .admin-wrapper .modal-header {
@@ -184,12 +187,12 @@ function useModalScrollLock(open) {
   }, [open]);
 }
 
-function usePagedItems(items, open) {
+function usePagedItems(items, open, pageSize) {
   const [page, setPage] = useState(0);
   const [touchStartX, setTouchStartX] = useState(null);
-  const totalPages = Math.max(1, Math.ceil(items.length / MODAL_PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
-  const pageItems = items.slice(safePage * MODAL_PAGE_SIZE, safePage * MODAL_PAGE_SIZE + MODAL_PAGE_SIZE);
+  const pageItems = items.slice(safePage * pageSize, safePage * pageSize + pageSize);
 
   useEffect(() => {
     if (open) setPage(0);
@@ -215,7 +218,7 @@ function usePagedItems(items, open) {
     setTouchStartX(null);
   }
 
-  return { page: safePage, pageItems, totalPages, goToPage, handleTouchStart, handleTouchEnd };
+  return { page: safePage, pageItems, pageSize, totalPages, goToPage, handleTouchStart, handleTouchEnd };
 }
 
 function ModalCloseButton({ onClose }) {
@@ -242,13 +245,14 @@ function ModalDots({ totalPages, page, onChange }) {
 
 function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
   useModalScrollLock(open);
-  const pager = usePagedItems(members, open);
+  const pager = usePagedItems(members, open, DETAIL_MODAL_PAGE_SIZE);
 
   if (!open) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+        <ModalCloseButton onClose={onClose} />
         <div className="modal-header">
           <div style={styles.modalTitleGroup}>
             <div className="modal-title">{title}</div>
@@ -258,7 +262,6 @@ function DetailMembersModal({ open, title, members, statusText, emptyText, share
             {onShareJpg && (
               <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0} onClick={onShareJpg}>{shareLabel}</AdminActionButton>
             )}
-            <ModalCloseButton onClose={onClose} />
           </div>
         </div>
 
@@ -276,7 +279,7 @@ function DetailMembersModal({ open, title, members, statusText, emptyText, share
                 <tr><td colSpan={3}>{emptyText}</td></tr>
               ) : pager.pageItems.map((person, index) => (
                 <tr key={person.id || `${person.house}-${index}`}>
-                  <td>{pager.page * MODAL_PAGE_SIZE + index + 1}</td>
+                  <td>{pager.page * pager.pageSize + index + 1}</td>
                   <td>{person.house || "-"}</td>
                   <td>{person.name || "-"}</td>
                 </tr>
@@ -306,13 +309,14 @@ function TrashAllMembersModal({
   onClose,
 }) {
   useModalScrollLock(open);
-  const pager = usePagedItems(members, open);
+  const pager = usePagedItems(members, open, TRASH_MODAL_PAGE_SIZE);
 
   if (!open) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+        <ModalCloseButton onClose={onClose} />
         <div className="modal-header">
           <div style={styles.modalTitleGroup}>
             <div className="modal-title">All Trash Payment Details</div>
@@ -321,7 +325,6 @@ function TrashAllMembersModal({
           <div style={styles.trashModalActions}>
             <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0 || advancing} onClick={onShareJpg}>Share JPG</AdminActionButton>
             <AdminActionButton loading={advancing} loadingText="Advancing..." disabled={needAdvanceCount === 0 || sharing} onClick={onAdvance}>Advance Unpaid Trash</AdminActionButton>
-            <ModalCloseButton onClose={onClose} />
           </div>
         </div>
 
@@ -342,7 +345,7 @@ function TrashAllMembersModal({
               <div className="admin-empty-state">No trash member data.</div>
             ) : pager.pageItems.map((person, index) => (
               <div key={person.id || `${person.house}-${index}`} style={styles.trashMemberItem}>
-                <div style={styles.trashMemberNo}>{pager.page * MODAL_PAGE_SIZE + index + 1}</div>
+                <div style={styles.trashMemberNo}>{pager.page * pager.pageSize + index + 1}</div>
                 <div style={styles.trashMemberMain}>
                   <div style={styles.trashMemberHouse}>{person.house || "-"}</div>
                   <div style={styles.trashMemberName}>{person.name || "-"}</div>
@@ -741,9 +744,9 @@ const styles = {
   header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
   muted: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 600, lineHeight: 1.6 },
   periodBadge: { padding: "8px 12px", borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-muted)", fontSize: 12, fontWeight: 800 },
-  modalTitleGroup: { minWidth: 0, flex: "1 1 220px" },
-  modalActions: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" },
-  modalCloseButton: { width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  modalTitleGroup: { minWidth: 0, flex: "1 1 220px", paddingRight: 46 },
+  modalActions: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap", paddingRight: 46 },
+  modalCloseButton: { position: "absolute", top: 12, right: 12, zIndex: 3, width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   modalPager: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, paddingTop: 12 },
   modalDot: { width: 8, height: 8, borderRadius: 999, border: "none", background: "var(--admin-border)", padding: 0, cursor: "pointer" },
   modalDotActive: { width: 20, background: "var(--admin-primary)" },
@@ -775,7 +778,7 @@ const styles = {
   alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
   alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
   alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
-  trashModalActions: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" },
+  trashModalActions: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", paddingRight: 46 },
   trashSummaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, margin: "12px 0" },
   trashSummaryItem: { display: "grid", gap: 6, padding: 12, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", minWidth: 0 },
   trashAdvanceNote: { margin: "6px 0 12px", padding: 12, borderRadius: 14, border: "1px solid #fed7aa", background: "#fff7ed", color: "#9a3412", fontSize: 13, fontWeight: 800, lineHeight: 1.5 },
