@@ -214,14 +214,12 @@ function CompactCashflowItem({ item }) {
   const label = isIncome ? "Income" : "Expense";
   return (
     <div style={styles.cashflowItem}>
-      <div style={styles.cashflowLeft}>
-        <div style={styles.cashflowTopLine}>
-          <span style={{ ...styles.cashflowBadge, color: isIncome ? "#16a34a" : "#dc2626" }}>{label}</span>
-          <span style={styles.cashflowNote}>{item.note || "-"}</span>
-        </div>
-        <div style={styles.cashflowDate}>{formatDate(item.date)}</div>
-      </div>
-      <div style={{ ...styles.cashflowAmount, color: isIncome ? "#16a34a" : "#dc2626" }}>{money(item.amount)}</div>
+      <span style={{ ...styles.cashflowBadge, color: isIncome ? "#16a34a" : "#dc2626" }}>{label}</span>
+      <span style={styles.cashflowNote}>{item.note || "-"}</span>
+      <span aria-hidden="true" />
+      <span style={styles.cashflowAmount}>{money(item.amount)}</span>
+      <span aria-hidden="true" />
+      <span style={styles.cashflowDate}>{formatDate(item.date)}</span>
     </div>
   );
 }
@@ -506,11 +504,9 @@ const styles = {
   alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
   alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
   cashflowList: { display: "grid", gap: 0, padding: "6px 14px", borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
-  cashflowItem: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid var(--admin-border)" },
-  cashflowLeft: { display: "grid", gap: 4, minWidth: 0 },
-  cashflowTopLine: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 },
-  cashflowBadge: { flex: "0 0 auto", minWidth: 58, fontSize: 12, fontWeight: 950 },
-  cashflowNote: { color: "var(--admin-text)", fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  cashflowAmount: { fontSize: 13, fontWeight: 950, whiteSpace: "nowrap", textAlign: "right" },
+  cashflowItem: { display: "grid", gridTemplateColumns: "72px minmax(0, 1fr)", alignItems: "center", columnGap: 10, rowGap: 4, padding: "12px 0", borderBottom: "1px solid var(--admin-border)" },
+  cashflowBadge: { fontSize: 12, fontWeight: 950, alignSelf: "start", paddingTop: 1 },
+  cashflowNote: { color: "var(--admin-text)", fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
+  cashflowAmount: { color: "var(--admin-text)", fontSize: 13, fontWeight: 950, whiteSpace: "nowrap" },
   cashflowDate: { color: "var(--admin-muted)", fontSize: 11, fontWeight: 700 },
 };
