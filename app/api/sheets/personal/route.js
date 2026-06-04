@@ -63,6 +63,10 @@ function filterRows(rows, filter, search) {
 }
 
 export async function GET(req) {
+  if (!(await isAdmin(req))) {
+    return unauthorized();
+  }
+
   const sheets = await getSheets();
 
   const res = await sheets.spreadsheets.values.get({

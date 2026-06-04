@@ -71,6 +71,10 @@ function buildSummary(rows) {
 }
 
 export async function GET(req) {
+  if (!(await isAdmin(req))) {
+    return unauthorized();
+  }
+
   const sheets = await getSheets();
 
   const res = await sheets.spreadsheets.values.get({

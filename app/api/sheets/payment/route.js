@@ -76,7 +76,11 @@ async function ensurePaymentTrash({ sheets, paymentId, member, date }) {
   return true;
 }
 
-export async function GET() {
+export async function GET(req) {
+  if (!(await isAdmin(req))) {
+    return unauthorized();
+  }
+
   const sheets = await getSheets();
 
   const res = await sheets.spreadsheets.values.get({

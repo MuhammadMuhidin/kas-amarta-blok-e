@@ -1,11 +1,16 @@
 import { NextResponse } from "next/server";
 import { getDrive } from "@/lib/google";
+import { isAdmin, unauthorized } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req) {
   try {
+    if (!(await isAdmin(req))) {
+      return unauthorized();
+    }
+
     const drive = await getDrive();
 
     const folderId = process.env.GOOGLE_DAILY_BACKUP_FOLDER_ID;
