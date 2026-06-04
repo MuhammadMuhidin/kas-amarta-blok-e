@@ -66,14 +66,13 @@ function AlertTestCard({loading,result,onSend}) {
   </div>;
 }
 
-function getHealthStatus({loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData}) {
+function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,suspiciousData}) {
   const sheetOk = !loadingSettlement && (rows.cashflows.length + rows.deposits.length + rows.trashRecords.length) > 0;
   const buildOk = Boolean(buildInfo);
-  const backupOk = Boolean(dailyBackup?.ok);
   const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + suspiciousData.length;
   const integrityOk = integrityIssueCount === 0;
   const reportReady = sheetOk && buildOk;
-  return { sheetOk, buildOk, backupOk, integrityOk, reportReady, integrityIssueCount };
+  return { sheetOk, buildOk, integrityOk, reportReady, integrityIssueCount };
 }
 
 function getReceiptStorageView(loading, data) {
@@ -99,7 +98,7 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
   const [rows,setRows] = useState({cashflows:[],deposits:[],trashRecords:[]});
   const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
-  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,suspiciousData}),[loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,displayedTrashMismatch,suspiciousData]);
+  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,suspiciousData]);
   const receiptStorageView = useMemo(()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),[loadingReceiptStorage,receiptStorage]);
 
   async function handleRepairTrash(row) {
