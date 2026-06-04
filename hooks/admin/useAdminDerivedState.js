@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import {
+  buildDepositPaymentIntegrity,
   buildPaymentCashflowIntegrity,
   buildSuspiciousData,
   buildTrashMismatch,
@@ -70,14 +71,19 @@ export default function useAdminDerivedState({
     [payments, cashflows, appConfig, monitoringStartPeriod, normalize],
   );
 
+  const depositPaymentIntegrity = useMemo(
+    () => buildDepositPaymentIntegrity({ deposits, personal, payments, monitoringStartPeriod, normalize }),
+    [deposits, personal, payments, monitoringStartPeriod, normalize],
+  );
+
   const suspiciousData = useMemo(
-    () => buildSuspiciousData({ personal, payments, cashflows, trashRecords, normalize }),
-    [personal, payments, cashflows, trashRecords, normalize],
+    () => buildSuspiciousData({ personal, payments, cashflows, trashRecords, deposits, normalize }),
+    [personal, payments, cashflows, trashRecords, deposits, normalize],
   );
 
   const monitoringIssueCount = useMemo(
-    () => trashMismatch.length + paymentCashflowIntegrity.length + suspiciousData.length,
-    [trashMismatch, paymentCashflowIntegrity, suspiciousData],
+    () => trashMismatch.length + paymentCashflowIntegrity.length + depositPaymentIntegrity.length + suspiciousData.length,
+    [trashMismatch, paymentCashflowIntegrity, depositPaymentIntegrity, suspiciousData],
   );
 
   const filteredPersonal = useMemo(
@@ -105,6 +111,7 @@ export default function useAdminDerivedState({
     stats,
     trashMismatch,
     paymentCashflowIntegrity,
+    depositPaymentIntegrity,
     suspiciousData,
     monitoringIssueCount,
     filteredPersonal,
