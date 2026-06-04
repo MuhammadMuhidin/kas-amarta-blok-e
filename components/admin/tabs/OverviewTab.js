@@ -261,6 +261,21 @@ export default function OverviewTab({
   const [exportingDetailJpg, setExportingDetailJpg] = useState("");
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
 
+  useEffect(() => {
+    if (!showReportConfirm || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [showReportConfirm]);
+
   function showToast(type, message) {
     setToast({ show: true, type, message });
     setTimeout(() => setToast((current) => (current.message === message ? { ...current, show: false } : current)), 2800);
