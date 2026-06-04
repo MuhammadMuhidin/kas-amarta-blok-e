@@ -8,7 +8,7 @@ import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
 import { useEffect, useRef, useState } from "react";
 
-const DETAIL_MODAL_PAGE_SIZE = 10;
+const DETAIL_MODAL_PAGE_SIZE = 13;
 const TRASH_MODAL_PAGE_SIZE = 5;
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
@@ -41,7 +41,8 @@ const overviewAdminCss = `
 
   .admin-wrapper .modal-overlay {
     animation: adminModalOverlayIn 0.18s ease-out;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: center;
     overflow-y: auto;
     padding: 18px 12px;
   }
@@ -52,6 +53,10 @@ const overviewAdminCss = `
     max-height: calc(100dvh - 36px);
     overflow-y: auto;
     position: relative;
+  }
+
+  .admin-wrapper .overview-modal-close {
+    display: none;
   }
 
   .admin-wrapper .detail-table {
@@ -133,6 +138,8 @@ const overviewAdminCss = `
 
   @media (max-width: 640px) {
     .admin-wrapper .modal-overlay {
+      align-items: center;
+      justify-content: center;
       padding: 12px 8px;
     }
 
@@ -147,6 +154,10 @@ const overviewAdminCss = `
       align-items: stretch;
       flex-direction: column;
       gap: 12px;
+    }
+
+    .admin-wrapper .overview-modal-close {
+      display: inline-flex;
     }
   }
 
@@ -262,7 +273,7 @@ function useModalScrollLock(open) {
 }
 
 function ModalCloseButton({ onClose }) {
-  return <button type="button" style={styles.modalCloseButton} onClick={onClose} aria-label="Close modal">×</button>;
+  return <button type="button" className="overview-modal-close" style={styles.modalCloseButton} onClick={onClose} aria-label="Close modal">×</button>;
 }
 
 function PaymentDots({ totalPages, page, onChange }) {
@@ -846,7 +857,7 @@ const styles = {
   modalHeaderTop: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, width: "100%" },
   modalTitleGroup: { minWidth: 0, flex: "1 1 auto" },
   modalActions: { display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 8, flexWrap: "wrap", paddingRight: 0 },
-  modalCloseButton: { width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  modalCloseButton: { width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   heroCard: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, padding: 22, borderRadius: 20, border: "1px solid var(--admin-border)", background: "linear-gradient(135deg, var(--admin-card), var(--admin-row))", flexWrap: "wrap" },
   heroLabel: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 900, letterSpacing: "0.02em", textTransform: "uppercase" },
   heroValue: { fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 950, lineHeight: 1.1, marginTop: 8 },
