@@ -39,11 +39,16 @@ const overviewAdminCss = `
 
   .admin-wrapper .modal-overlay {
     animation: adminModalOverlayIn 0.18s ease-out;
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 18px 12px;
   }
 
   .admin-wrapper .modal-box {
     animation: adminModalContentIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     transform-origin: center;
+    max-height: calc(100dvh - 36px);
+    overflow-y: auto;
   }
 
   .admin-wrapper .detail-table {
@@ -66,6 +71,24 @@ const overviewAdminCss = `
   @keyframes adminModalContentIn {
     from { opacity: 0; transform: translateY(8px) scale(0.98); }
     to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @media (max-width: 640px) {
+    .admin-wrapper .modal-overlay {
+      padding: 12px 8px;
+    }
+
+    .admin-wrapper .modal-box {
+      width: min(100%, calc(100vw - 16px));
+      max-height: calc(100dvh - 24px);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .admin-wrapper .modal-header {
+      align-items: stretch;
+      gap: 12px;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -99,6 +122,22 @@ function isPaidDetailType(type) {
 function getPercent(value, total) {
   if (!total) return 0;
   return Math.min(100, Math.max(0, Math.round((Number(value || 0) / Number(total || 0)) * 100)));
+}
+
+function getTrashAdvanceRefId(personId, period) {
+  return `TRASHADV-${normalize(personId)}-${normalize(period)}`;
+}
+
+function getTrashStatusLabel(person) {
+  if (person.trashPaid) return "Paid";
+  if (person.trashAdvanced) return "Advanced";
+  return "Need Advance";
+}
+
+function getTrashStatusStyle(person) {
+  if (person.trashPaid) return styles.trashStatusPaid;
+  if (person.trashAdvanced) return styles.trashStatusAdvanced;
+  return styles.trashStatusNeedAdvance;
 }
 
 function Section({ title, children }) {
@@ -192,7 +231,9 @@ function TrashAllMembersModal({
   periodLabel,
   members,
   paidCount,
+  needAdvanceCount,
   advancedCount,
+  totalNeedAdvance,
   totalAdvanced,
   sharing,
   advancing,
@@ -212,45 +253,39 @@ function TrashAllMembersModal({
             <div className="modal-title">All Trash Payment Details</div>
             <div className="modal-section">{members.length} trash members for {periodLabel}.</div>
           </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          <div style={styles.trashModalActions}>
             <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0 || advancing} onClick={onShareJpg}>Share JPG</AdminActionButton>
-            <AdminActionButton loading={advancing} loadingText="Advancing..." disabled={advancedCount === 0 || sharing} onClick={onAdvance}>Advance Unpaid Trash</AdminActionButton>
+            <AdminActionButton loading={advancing} loadingText="Advancing..." disabled={needAdvanceCount === 0 || sharing} onClick={onAdvance}>Advance Unpaid Trash</AdminActionButton>
           </div>
         </div>
 
         <div style={styles.trashSummaryGrid}>
-          <div style={styles.trashSummaryItem}><span>Total Trash Members</span><strong>{members.length}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Total Members</span><strong>{members.length}</strong></div>
           <div style={styles.trashSummaryItem}><span>Paid</span><strong style={{ color: "#16a34a" }}>{paidCount}</strong></div>
-          <div style={styles.trashSummaryItem}><span>Advanced by Cash</span><strong style={{ color: "#dc2626" }}>{advancedCount}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Need Advance</span><strong style={{ color: "#d97706" }}>{needAdvanceCount}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Advanced</span><strong style={{ color: "#dc2626" }}>{advancedCount}</strong></div>
         </div>
-        <div style={styles.trashAdvanceNote}>Total to collect from advanced trash: <strong>{money(totalAdvanced)}</strong></div>
+        <div style={styles.trashAdvanceNote}>
+          Need to advance: <strong>{money(totalNeedAdvance)}</strong><br />
+          Already advanced by cash: <strong>{money(totalAdvanced)}</strong>
+        </div>
 
-        <table className="detail-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>House</th>
-              <th>Name</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.length === 0 ? (
-              <tr><td colSpan={4}>No trash member data.</td></tr>
-            ) : members.map((person, index) => (
-              <tr key={person.id || `${person.house}-${index}`}>
-                <td>{index + 1}</td>
-                <td>{person.house || "-"}</td>
-                <td>{person.name || "-"}</td>
-                <td>
-                  <span style={{ ...styles.trashStatusBadge, ...(person.trashPaid ? styles.trashStatusPaid : styles.trashStatusAdvanced) }}>
-                    {person.trashPaid ? "Paid" : "Advanced by Cash"}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div style={styles.trashMemberList}>
+          {members.length === 0 ? (
+            <div className="admin-empty-state">No trash member data.</div>
+          ) : members.map((person, index) => (
+            <div key={person.id || `${person.house}-${index}`} style={styles.trashMemberItem}>
+              <div style={styles.trashMemberNo}>{index + 1}</div>
+              <div style={styles.trashMemberMain}>
+                <div style={styles.trashMemberHouse}>{person.house || "-"}</div>
+                <div style={styles.trashMemberName}>{person.name || "-"}</div>
+              </div>
+              <span style={{ ...styles.trashStatusBadge, ...getTrashStatusStyle(person) }}>
+                {getTrashStatusLabel(person)}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -387,12 +422,22 @@ export default function OverviewTab({
   const unpaidCurrentMembers = sortMembers(activeCurrentMembers.filter((person) => !paidCurrentKeys.has(normalize(person.house))));
   const unpaidCurrentCount = unpaidCurrentMembers.length;
   const trashPaidPersonIds = new Set(trashRecords.map((trash) => paymentById.get(normalize(trash.payment_id))).filter((payment) => payment && String(payment.date || "").slice(0, 7) === currentPeriod).map((payment) => normalize(payment.person_id)).filter(Boolean));
+  const trashAdvanceRefIds = new Set(cashflows.map((item) => normalize(item.ref_id)).filter((refId) => refId.startsWith("TRASHADV-") && refId.endsWith(`-${currentPeriod}`)));
   const paidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => trashPaidPersonIds.has(normalize(person.id))));
   const paidCurrentTrashCount = paidCurrentTrashMembers.length;
   const unpaidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => !trashPaidPersonIds.has(normalize(person.id))));
   const unpaidCurrentTrashCount = unpaidCurrentTrashMembers.length;
-  const allTrashMembers = sortMembers(activeCurrentTrashMembers).map((person) => ({ ...person, trashPaid: trashPaidPersonIds.has(normalize(person.id)) }));
-  const totalAdvancedTrash = unpaidCurrentTrashCount * Number(appConfig?.trash_fee || 0);
+  const allTrashMembers = sortMembers(activeCurrentTrashMembers).map((person) => {
+    const personId = normalize(person.id);
+    const trashPaid = trashPaidPersonIds.has(personId);
+    const trashAdvanced = !trashPaid && trashAdvanceRefIds.has(getTrashAdvanceRefId(personId, currentPeriod));
+
+    return { ...person, trashPaid, trashAdvanced, status: trashPaid ? "Paid" : trashAdvanced ? "Advanced" : "Need Advance" };
+  });
+  const needAdvanceTrashCount = allTrashMembers.filter((person) => !person.trashPaid && !person.trashAdvanced).length;
+  const advancedTrashCount = allTrashMembers.filter((person) => person.trashAdvanced).length;
+  const totalNeedAdvanceTrash = needAdvanceTrashCount * Number(appConfig?.trash_fee || 0);
+  const totalAdvancedTrash = advancedTrashCount * Number(appConfig?.trash_fee || 0);
   const allIncome = cashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const allExpense = cashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const currentBalance = allIncome - allExpense;
@@ -438,23 +483,19 @@ export default function OverviewTab({
     if (exportingDetailJpg) return;
     setExportingDetailJpg("sampah-all");
     try {
-      const reportMembers = allTrashMembers.map((person) => ({
-        ...person,
-        name: `${person.name || "-"} - ${person.trashPaid ? "Paid" : "Advanced by Cash"}`,
-      }));
       const result = await shareMembersJpgReport({
         title: "Trash Payment Report",
         period: currentPeriod,
-        members: reportMembers,
+        members: allTrashMembers,
         summaryItems: [
           ["Members", `${allTrashMembers.length} houses`, "Trash registered"],
           ["Paid", `${paidCurrentTrashCount} houses`, "Already paid"],
-          ["Advanced", money(totalAdvancedTrash), `${unpaidCurrentTrashCount} houses`],
+          ["Need", money(totalNeedAdvanceTrash), `${needAdvanceTrashCount} houses`],
         ],
         badgeText: "TRASH REPORT",
         listTitle: "Trash Member Status",
-        noteText: "Paid = already paid. Advanced by Cash = temporarily paid by cash and needs collection.",
-        footerNote: "Use this report to collect trash advances from unpaid members.",
+        noteText: "Paid = already paid. Need Advance = not yet advanced. Advanced = temporarily paid by cash.",
+        footerNote: `Already advanced by cash: ${money(totalAdvancedTrash)} from ${advancedTrashCount} houses.`,
         fileName: `trash-payment-all-${currentPeriod}.jpg`,
       });
       showToast("success", result === "shared" ? "JPG is ready to share." : "JPG downloaded successfully.");
@@ -466,7 +507,7 @@ export default function OverviewTab({
   }
 
   async function handleAdvanceUnpaidTrash() {
-    if (advancingTrash || unpaidCurrentTrashCount === 0) return;
+    if (advancingTrash || needAdvanceTrashCount === 0) return;
     setAdvancingTrash(true);
     try {
       const data = await sendJson("/api/sheets/trash/advance-bulk", "POST", { period: currentPeriod });
@@ -609,7 +650,9 @@ export default function OverviewTab({
         periodLabel={periodLabel}
         members={allTrashMembers}
         paidCount={paidCurrentTrashCount}
-        advancedCount={unpaidCurrentTrashCount}
+        needAdvanceCount={needAdvanceTrashCount}
+        advancedCount={advancedTrashCount}
+        totalNeedAdvance={totalNeedAdvanceTrash}
         totalAdvanced={totalAdvancedTrash}
         sharing={exportingDetailJpg === "sampah-all"}
         advancing={advancingTrash}
@@ -657,12 +700,20 @@ const styles = {
   alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
   alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
   alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
-  trashSummaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10, margin: "12px 0" },
-  trashSummaryItem: { display: "grid", gap: 6, padding: 12, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
-  trashAdvanceNote: { margin: "6px 0 12px", padding: 12, borderRadius: 14, border: "1px solid #fed7aa", background: "#fff7ed", color: "#9a3412", fontSize: 13, fontWeight: 800 },
-  trashStatusBadge: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "5px 9px", borderRadius: 999, fontSize: 12, fontWeight: 900 },
+  trashModalActions: { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" },
+  trashSummaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, margin: "12px 0" },
+  trashSummaryItem: { display: "grid", gap: 6, padding: 12, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", minWidth: 0 },
+  trashAdvanceNote: { margin: "6px 0 12px", padding: 12, borderRadius: 14, border: "1px solid #fed7aa", background: "#fff7ed", color: "#9a3412", fontSize: 13, fontWeight: 800, lineHeight: 1.5 },
+  trashMemberList: { display: "grid", gap: 8, marginTop: 10 },
+  trashMemberItem: { display: "grid", gridTemplateColumns: "32px minmax(0, 1fr) auto", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
+  trashMemberNo: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 900, textAlign: "center" },
+  trashMemberMain: { minWidth: 0, display: "grid", gap: 2 },
+  trashMemberHouse: { color: "var(--admin-text)", fontSize: 14, fontWeight: 950, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  trashMemberName: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  trashStatusBadge: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "5px 9px", borderRadius: 999, fontSize: 11, fontWeight: 900, whiteSpace: "nowrap" },
   trashStatusPaid: { background: "#dcfce7", color: "#16a34a" },
   trashStatusAdvanced: { background: "#fee2e2", color: "#dc2626" },
+  trashStatusNeedAdvance: { background: "#fef3c7", color: "#d97706" },
   cashflowList: { display: "grid", gap: 0, padding: "6px 14px", borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
   cashflowItem: { display: "grid", gridTemplateColumns: "72px minmax(0, 1fr)", alignItems: "center", columnGap: 10, rowGap: 4, padding: "12px 0", borderBottom: "1px solid var(--admin-border)" },
   cashflowBadge: { fontSize: 12, fontWeight: 950, alignSelf: "start", paddingTop: 1 },
