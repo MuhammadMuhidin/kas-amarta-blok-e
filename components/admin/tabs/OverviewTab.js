@@ -211,16 +211,17 @@ function ProgressCard({ label, paid, total, unpaid, metaActions = [], error = fa
 
 function CompactCashflowItem({ item }) {
   const isIncome = item.type === "income";
+  const label = isIncome ? "Income" : "Expense";
   return (
     <div style={styles.cashflowItem}>
-      <div style={styles.cashflowMain}>
-        <span style={{ ...styles.cashflowType, color: isIncome ? "#16a34a" : "#dc2626" }}>{isIncome ? "+" : "-"}</span>
-        <span style={styles.cashflowNote}>{item.note || "-"}</span>
+      <div style={styles.cashflowLeft}>
+        <div style={styles.cashflowTopLine}>
+          <span style={{ ...styles.cashflowBadge, color: isIncome ? "#16a34a" : "#dc2626" }}>{label}</span>
+          <span style={styles.cashflowNote}>{item.note || "-"}</span>
+        </div>
+        <div style={styles.cashflowDate}>{formatDate(item.date)}</div>
       </div>
-      <div style={styles.cashflowRight}>
-        <span style={{ ...styles.cashflowAmount, color: isIncome ? "#16a34a" : "#dc2626" }}>{money(item.amount)}</span>
-        <span style={styles.cashflowDate}>{formatDate(item.date)}</span>
-      </div>
+      <div style={{ ...styles.cashflowAmount, color: isIncome ? "#16a34a" : "#dc2626" }}>{money(item.amount)}</div>
     </div>
   );
 }
@@ -504,12 +505,12 @@ const styles = {
   alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
   alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
   alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
-  cashflowList: { display: "grid", gap: 10 },
-  cashflowItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 13, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
-  cashflowMain: { display: "flex", alignItems: "center", gap: 10, minWidth: 0 },
-  cashflowType: { fontSize: 18, fontWeight: 950, lineHeight: 1 },
-  cashflowNote: { color: "var(--admin-text)", fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 360 },
-  cashflowRight: { display: "grid", gap: 2, textAlign: "right" },
-  cashflowAmount: { fontSize: 13, fontWeight: 950 },
+  cashflowList: { display: "grid", gap: 0, padding: "6px 14px", borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
+  cashflowItem: { display: "grid", gridTemplateColumns: "minmax(0, 1fr) auto", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "1px solid var(--admin-border)" },
+  cashflowLeft: { display: "grid", gap: 4, minWidth: 0 },
+  cashflowTopLine: { display: "flex", alignItems: "center", gap: 8, minWidth: 0 },
+  cashflowBadge: { flex: "0 0 auto", minWidth: 58, fontSize: 12, fontWeight: 950 },
+  cashflowNote: { color: "var(--admin-text)", fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  cashflowAmount: { fontSize: 13, fontWeight: 950, whiteSpace: "nowrap", textAlign: "right" },
   cashflowDate: { color: "var(--admin-muted)", fontSize: 11, fontWeight: 700 },
 };
