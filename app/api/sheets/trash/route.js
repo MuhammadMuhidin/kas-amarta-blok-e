@@ -12,7 +12,11 @@ function normalize(value) {
   return String(value || "").trim();
 }
 
-export async function GET() {
+export async function GET(req) {
+  if (!(await isAdmin(req))) {
+    return unauthorized();
+  }
+
   const sheets = await getSheets();
 
   const res = await sheets.spreadsheets.values.get({
