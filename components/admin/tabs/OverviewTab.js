@@ -8,7 +8,7 @@ import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
 import { useEffect, useRef, useState } from "react";
 
-const DETAIL_MODAL_PAGE_SIZE = 15;
+const DETAIL_MODAL_PAGE_SIZE = 10;
 const TRASH_MODAL_PAGE_SIZE = 5;
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
@@ -141,7 +141,6 @@ const overviewAdminCss = `
       max-height: calc(100dvh - 24px);
       border-radius: 18px;
       padding: 16px;
-      padding-top: 48px;
     }
 
     .admin-wrapper .modal-header {
@@ -313,11 +312,13 @@ function DetailMembersModal({ open, title, members, statusText, emptyText, share
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-        <ModalCloseButton onClose={onClose} />
         <div className="modal-header">
-          <div style={styles.modalTitleGroup}>
-            <div className="modal-title">{title}</div>
-            <div className="modal-section">{members.length} houses {statusText}.</div>
+          <div style={styles.modalHeaderTop}>
+            <div style={styles.modalTitleGroup}>
+              <div className="modal-title">{title}</div>
+              <div className="modal-section">{members.length} houses {statusText}.</div>
+            </div>
+            <ModalCloseButton onClose={onClose} />
           </div>
           <div style={styles.modalActions}>
             {onShareJpg && (
@@ -371,6 +372,7 @@ function TrashAllMembersModal({
   advancedCount,
   totalNeedAdvance,
   totalAdvanced,
+  currentBalance,
   sharing,
   advancing,
   onShareJpg,
@@ -381,6 +383,8 @@ function TrashAllMembersModal({
   const [page, setPage] = useState(0);
   const sliderRef = useRef(null);
   const pages = chunkItems(members, TRASH_MODAL_PAGE_SIZE);
+  const balanceAfterAdvance = Number(currentBalance || 0) - Number(totalNeedAdvance || 0);
+  const hasEnoughCash = balanceAfterAdvance >= 0;
 
   useEffect(() => {
     if (!open) return;
@@ -398,11 +402,13 @@ function TrashAllMembersModal({
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-        <ModalCloseButton onClose={onClose} />
         <div className="modal-header">
-          <div style={styles.modalTitleGroup}>
-            <div className="modal-title">All Trash Payment Details</div>
-            <div className="modal-section">{members.length} trash members for {periodLabel}.</div>
+          <div style={styles.modalHeaderTop}>
+            <div style={styles.modalTitleGroup}>
+              <div className="modal-title">All Trash Payment Details</div>
+              <div className="modal-section">{members.length} trash members for {periodLabel}.</div>
+            </div>
+            <ModalCloseButton onClose={onClose} />
           </div>
           <div style={styles.trashModalActions}>
             <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0 || advancing} onClick={onShareJpg}>Share JPG</AdminActionButton>
@@ -416,9 +422,11 @@ function TrashAllMembersModal({
           <div style={styles.trashSummaryItem}><span>Need Advance</span><strong style={{ color: "#d97706" }}>{needAdvanceCount}</strong></div>
           <div style={styles.trashSummaryItem}><span>Advanced</span><strong style={{ color: "#dc2626" }}>{advancedCount}</strong></div>
         </div>
-        <div style={styles.trashAdvanceNote}>
+        <div style={{ ...styles.trashAdvanceNote, ...(hasEnoughCash ? styles.trashAdvanceSafe : styles.trashAdvanceDanger) }}>
           Need to advance: <strong>{money(totalNeedAdvance)}</strong><br />
-          Already advanced by cash: <strong>{money(totalAdvanced)}</strong>
+          Already advanced by cash: <strong>{money(totalAdvanced)}</strong><br />
+          Cash balance after advance: <strong>{money(balanceAfterAdvance)}</strong><br />
+          Status: <strong>{hasEnoughCash ? "Safe" : "Not enough cash"}</strong>
         </div>
 
         <div
@@ -816,6 +824,7 @@ export default function OverviewTab({
         advancedCount={advancedTrashCount}
         totalNeedAdvance={totalNeedAdvanceTrash}
         totalAdvanced={totalAdvancedTrash}
+        currentBalance={currentBalance}
         sharing={exportingDetailJpg === "sampah-all"}
         advancing={advancingTrash}
         onShareJpg={handleShareAllTrashJpg}
@@ -834,9 +843,10 @@ const styles = {
   header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
   muted: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 600, lineHeight: 1.6 },
   periodBadge: { padding: "8px 12px", borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-muted)", fontSize: 12, fontWeight: 800 },
-  modalTitleGroup: { minWidth: 0, flex: "1 1 100%", paddingRight: 46 },
+  modalHeaderTop: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, width: "100%" },
+  modalTitleGroup: { minWidth: 0, flex: "1 1 auto" },
   modalActions: { display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 8, flexWrap: "wrap", paddingRight: 0 },
-  modalCloseButton: { position: "absolute", top: 12, right: 12, zIndex: 3, width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  modalCloseButton: { width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   heroCard: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, padding: 22, borderRadius: 20, border: "1px solid var(--admin-border)", background: "linear-gradient(135deg, var(--admin-card), var(--admin-row))", flexWrap: "wrap" },
   heroLabel: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 900, letterSpacing: "0.02em", textTransform: "uppercase" },
   heroValue: { fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 950, lineHeight: 1.1, marginTop: 8 },
@@ -869,6 +879,8 @@ const styles = {
   trashSummaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, margin: "12px 0" },
   trashSummaryItem: { display: "grid", gap: 6, padding: 12, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", minWidth: 0 },
   trashAdvanceNote: { margin: "6px 0 12px", padding: 12, borderRadius: 14, border: "1px solid #fed7aa", background: "#fff7ed", color: "#9a3412", fontSize: 13, fontWeight: 800, lineHeight: 1.5 },
+  trashAdvanceSafe: { borderColor: "#bbf7d0", background: "#f0fdf4", color: "#166534" },
+  trashAdvanceDanger: { borderColor: "#fecaca", background: "#fef2f2", color: "#b91c1c" },
   trashMemberList: { display: "grid", alignContent: "start", gap: 8, marginTop: 10, minHeight: 0 },
   trashMemberItem: { display: "grid", gridTemplateColumns: "32px minmax(0, 1fr) auto", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
   trashMemberNo: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 900, textAlign: "center" },
