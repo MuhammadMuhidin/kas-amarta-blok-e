@@ -265,12 +265,18 @@ export async function shareMembersJpgReport({
   const tableHeaderY = listTop + 56;
   const firstColumnCount = Math.ceil(members.length / 2);
 
+  function getStatusX(x) {
+    return x + columnWidth - 112;
+  }
+
   function drawTableHeader(x, y) {
+    const statusX = getStatusX(x);
+
     drawText(ctx, "NO", x, y, "700 14.5px Arial, sans-serif", colors.soft);
     drawText(ctx, "HOUSE", x + 45, y, "700 14.5px Arial, sans-serif", colors.soft);
     drawText(ctx, "NAME", x + 121, y, "700 14.5px Arial, sans-serif", colors.soft);
     if (hasStatusColumn) {
-      drawText(ctx, "STATUS", x + columnWidth - 4, y, "700 14.5px Arial, sans-serif", colors.soft, "right");
+      drawText(ctx, "STATUS", statusX, y, "700 14.5px Arial, sans-serif", colors.soft, "left");
     }
 
     ctx.strokeStyle = colors.border;
@@ -291,14 +297,15 @@ export async function shareMembersJpgReport({
 
     const status = clean(member.status || member.statusText);
     const statusColor = status === "Paid" ? colors.green : status === "Advanced" ? colors.red : colors.orange;
-    const nameMaxWidth = hasStatusColumn ? columnWidth - 260 : columnWidth - 175;
+    const statusX = getStatusX(x);
+    const nameMaxWidth = hasStatusColumn ? statusX - (x + 121) - 10 : columnWidth - 175;
 
     drawText(ctx, String(index).padStart(2, "0"), x, y + 1, "700 19px Arial, sans-serif", colors.blue);
     drawText(ctx, clean(member.house) || "-", x + 45, y - 2, "700 23.5px Arial, sans-serif", colors.text);
     drawText(ctx, truncateText(ctx, clean(member.name) || "-", nameMaxWidth), x + 121, y + 2, "400 20px Arial, sans-serif", colors.muted);
 
     if (hasStatusColumn) {
-      drawText(ctx, truncateText(ctx, status || "-", 92), x + columnWidth - 4, y + 2, "700 18px Arial, sans-serif", statusColor, "right");
+      drawText(ctx, status || "-", statusX, y + 2, "700 17px Arial, sans-serif", statusColor, "left");
     }
   }
 
