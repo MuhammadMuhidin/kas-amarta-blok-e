@@ -10,7 +10,7 @@ function IssueTable({title,rows,columns}) {
 
 function TrashIssueTable({rows,repairingPaymentId,onRepair}) {
   if (!rows?.length) return null;
-  return <div className="admin-monitor-detail"><h3>Trash Payment Integrity</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th className="admin-th">house</th><th className="admin-th">name</th><th className="admin-th">period</th><th className="admin-th">Issue</th><th className="admin-th">Action</th></tr></thead><tbody>{rows.map((row,i)=>{
+  return <div className="admin-monitor-detail"><h3>Payment ⇄ Trash Integrity</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th className="admin-th">house</th><th className="admin-th">name</th><th className="admin-th">period</th><th className="admin-th">Issue</th><th className="admin-th">Action</th></tr></thead><tbody>{rows.map((row,i)=>{
     const canRepair = row.type === "PAYMENT_WITHOUT_TRASH" && row.payment_id;
     const repairing = repairingPaymentId === row.payment_id;
     return <tr key={`${row.type}-${row.payment_id || row.house}-${row.period}-${i}`} className={i%2?"admin-row-alt":""}><td className="admin-td admin-issue-text">{row.house}</td><td className="admin-td admin-issue-text">{row.name}</td><td className="admin-td admin-issue-text">{row.period}</td><td className="admin-td admin-issue-text">{row.detail}</td><td className="admin-td admin-issue-text">{canRepair ? <button type="button" className="admin-small-btn" disabled={repairing || Boolean(repairingPaymentId)} onClick={()=>onRepair(row)}>{repairing ? "Repairing..." : "Repair"}</button> : <span style={{color:"var(--admin-muted)",fontSize:12}}>Manual review</span>}</td></tr>;
@@ -24,20 +24,14 @@ function Section({title,children}) {
 const rupiah = (v) => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v||0));
 const n = (v) => Number.isFinite(Number(v||0)) ? Number(v||0) : 0;
 
-function getSettlement({cashflows,deposits,trashRecords}) {
+function getSettlement({deposits,trashRecords}) {
   const periodNow = getCurrentPeriod();
-  const mainCash = cashflows.reduce((t,c)=>{
-    const type = String(c.type||"").toLowerCase();
-    if (type==="income") return t+n(c.amount);
-    if (type==="expense") return t-n(c.amount);
-    return t;
-  },0);
   const recon = deposits.filter((d)=>String(d.status||"").toLowerCase()!=="paid").reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
   const trashMonthly = trashRecords.reduce((t,r)=>{
     const period = String(r.date||"").slice(0,7);
     return period===periodNow ? t+n(r.amount) : t;
   },0);
-  return {mainCash,recon,trashMonthly};
+  return {recon,trashMonthly};
 }
 
 function fmtTime(value) {
@@ -72,14 +66,13 @@ function AlertTestCard({loading,result,onSend}) {
   </div>;
 }
 
-function getHealthStatus({loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData}) {
+function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity,suspiciousData}) {
   const sheetOk = !loadingSettlement && (rows.cashflows.length + rows.deposits.length + rows.trashRecords.length) > 0;
   const buildOk = Boolean(buildInfo);
-  const backupOk = Boolean(dailyBackup?.ok);
-  const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + suspiciousData.length;
+  const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + depositPaymentIntegrity.length + suspiciousData.length;
   const integrityOk = integrityIssueCount === 0;
   const reportReady = sheetOk && buildOk;
-  return { sheetOk, buildOk, backupOk, integrityOk, reportReady, integrityIssueCount };
+  return { sheetOk, buildOk, integrityOk, reportReady, integrityIssueCount };
 }
 
 function getReceiptStorageView(loading, data) {
@@ -92,7 +85,7 @@ function getReceiptStorageView(loading, data) {
   return { value: "Unreachable", meta: [data.message || "R2 public receipts are not reachable.", data.status_code ? `HTTP ${data.status_code}` : "Residents may not be able to open receipts."], error: true };
 }
 
-export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCashflowIntegrity,trashMismatch,suspiciousData,onRepairComplete}) {
+export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity = [],suspiciousData,onRepairComplete}) {
   const [buildInfo,setBuildInfo] = useState(null);
   const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
   const [loadingSettlement,setLoadingSettlement] = useState(false);
@@ -105,7 +98,7 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
   const [rows,setRows] = useState({cashflows:[],deposits:[],trashRecords:[]});
   const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
-  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,suspiciousData}),[loadingSettlement,rows,buildInfo,dailyBackup,paymentCashflowIntegrity,displayedTrashMismatch,suspiciousData]);
+  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,depositPaymentIntegrity,suspiciousData]);
   const receiptStorageView = useMemo(()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),[loadingReceiptStorage,receiptStorage]);
 
   async function handleRepairTrash(row) {
@@ -211,8 +204,6 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     <Section title="Operational Health Check">
       <div className="admin-monitor-grid">
         <MonitoringCard label="Sheets API" value={loadingSettlement?"Checking...":health.sheetOk?"Connected":"Need check"} meta={[health.sheetOk?`${rows.cashflows.length} cashflow, ${rows.deposits.length} booking, ${rows.trashRecords.length} trash rows loaded.`:"Operational data has not been read yet."]} error={!loadingSettlement&&!health.sheetOk} />
-        <MonitoringCard label="Build Metadata" value={loadingBuildInfo?"Checking...":health.buildOk?"Ready":"Missing"} meta={buildInfo?[`${String(buildInfo.platform||"unknown").toUpperCase()} - ${buildInfo.branch}`,`Commit: ${buildInfo.commitShort}`]:["Build info is not available."]} error={!loadingBuildInfo&&!health.buildOk} />
-        <MonitoringCard label="Backup Health" value={loadingDailyBackup?"Checking...":health.backupOk?"Healthy":"Need check"} meta={health.backupOk?[`Last file: ${dailyBackup.name}`,`Retention: ${dailyBackup.count} backup files`]:["Daily backup is not valid yet."]} error={!loadingDailyBackup&&!health.backupOk} />
         <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"There are issues that need review."]} error={!health.integrityOk} />
         <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data and build metadata are available for reports.":"Reports may fail if data/build status is unhealthy."]} error={!health.reportReady} />
         <MonitoringCard label="Receipt Storage" value={receiptStorageView.value} meta={receiptStorageView.meta} error={receiptStorageView.error} />
@@ -221,7 +212,6 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
 
     <Section title="Settlement">
       <div className="admin-monitor-grid">
-        <MonitoringCard label="Current Cash Balance" value={loadingSettlement?"Checking...":rupiah(settlement.mainCash)} meta={["Income minus expenses from all cashflow records."]} />
         <MonitoringCard label="Reconciliation Balance" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total unpaid booking payments."]} />
         <MonitoringCard label="Monthly Trash Payment" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total trash fee payments received in the current month."]} />
       </div>
@@ -236,14 +226,16 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
 
     <Section title="Integrity & Data Quality">
       <div className="admin-monitor-grid">
-        <MonitoringCard label="Payment Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length===0?"No issue detected":"Need review"]} />
-        <MonitoringCard label="Trash Payment Integrity" value={`${displayedTrashMismatch.length} issue`} meta={[displayedTrashMismatch.length===0?"No issue detected":"Need review"]} />
+        <MonitoringCard label="Payment ⇄ Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length===0?"No issue detected":"Need review"]} />
+        <MonitoringCard label="Payment ⇄ Trash Integrity" value={`${displayedTrashMismatch.length} issue`} meta={[displayedTrashMismatch.length===0?"No issue detected":"Need review"]} />
+        <MonitoringCard label="Payment ⇄ Deposit Integrity" value={`${depositPaymentIntegrity.length} issue`} meta={[depositPaymentIntegrity.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Data Quality Check" value={`${suspiciousData.length} issue`} meta={[suspiciousData.length===0?"No suspicious data":"Need review"]} />
       </div>
     </Section>
 
-    <IssueTable title="Payment Cashflow Integrity" rows={paymentCashflowIntegrity} columns={["house","name","period","type","detail"]} />
-    <TrashIssueTable title="Trash Payment Integrity" rows={displayedTrashMismatch} repairingPaymentId={repairingPaymentId} onRepair={handleRepairTrash} />
+    <IssueTable title="Payment ⇄ Cashflow Integrity" rows={paymentCashflowIntegrity} columns={["house","name","period","type","detail"]} />
+    <TrashIssueTable rows={displayedTrashMismatch} repairingPaymentId={repairingPaymentId} onRepair={handleRepairTrash} />
+    <IssueTable title="Payment ⇄ Deposit Integrity" rows={depositPaymentIntegrity} columns={["house","name","period","type","detail"]} />
     <IssueTable title="Suspicious Data" rows={suspiciousData} columns={["sheet","row","type","detail"]} />
   </div>;
 }

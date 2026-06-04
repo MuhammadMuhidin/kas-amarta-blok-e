@@ -96,12 +96,22 @@ function isPaidDetailType(type) {
   return String(type || "").endsWith("-paid");
 }
 
+function getPercent(value, total) {
+  if (!total) return 0;
+  return Math.min(100, Math.max(0, Math.round((Number(value || 0) / Number(total || 0)) * 100)));
+}
+
 function Section({ title, children }) {
   return <section style={{ display: "grid", gap: 12 }}><h3 style={{ margin: 0 }}>{title}</h3>{children}</section>;
 }
 
-function QuickAction({ children, onClick }) {
-  return <AdminActionButton onClick={onClick}>{children}</AdminActionButton>;
+function QuickAction({ title, subtitle, onClick }) {
+  return (
+    <button type="button" onClick={onClick} style={styles.quickActionCard}>
+      <span style={styles.quickActionTitle}>{title}</span>
+      <span style={styles.quickActionSubtitle}>{subtitle}</span>
+    </button>
+  );
 }
 
 function AlertItem({ tone = "info", title, detail, action, onClick }) {
@@ -154,6 +164,62 @@ function DetailMembersModal({ open, title, members, statusText, emptyText, share
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function CashBalanceHero({ value }) {
+  const negative = Number(value || 0) < 0;
+  return (
+    <section style={{ ...styles.heroCard, borderColor: negative ? "#dc2626" : "var(--admin-border)" }}>
+      <div>
+        <div style={styles.heroLabel}>Cash Balance</div>
+        <div style={{ ...styles.heroValue, color: negative ? "#dc2626" : "var(--admin-text)" }}>{money(value)}</div>
+        <div style={styles.heroMeta}>Income minus expenses across all periods.</div>
+      </div>
+      <div style={{ ...styles.heroBadge, color: negative ? "#dc2626" : "#16a34a" }}>{negative ? "Need Review" : "Healthy"}</div>
+    </section>
+  );
+}
+
+function ProgressCard({ label, paid, total, unpaid, metaActions = [], error = false }) {
+  const percent = getPercent(paid, total);
+  return (
+    <div style={{ ...styles.progressCard, borderColor: error ? "#d97706" : "var(--admin-border)" }}>
+      <div style={styles.progressHeader}>
+        <div>
+          <div style={styles.progressLabel}>{label}</div>
+          <div style={styles.progressValue}>{paid}/{total} houses</div>
+        </div>
+        <div style={{ ...styles.progressPercent, color: error ? "#d97706" : "#16a34a" }}>{percent}%</div>
+      </div>
+      <div style={styles.progressTrack}>
+        <div style={{ ...styles.progressFill, width: `${percent}%` }} />
+      </div>
+      <div style={styles.progressMetaRow}>
+        <span>{unpaid} houses unpaid.</span>
+        <span>{paid} houses paid.</span>
+      </div>
+      <div style={styles.progressActions}>
+        {metaActions.filter(Boolean).map((action) => (
+          <button key={action.label} type="button" style={styles.progressActionButton} onClick={action.onClick}>{action.label}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CompactCashflowItem({ item }) {
+  const isIncome = item.type === "income";
+  const label = isIncome ? "Income" : "Expense";
+  return (
+    <div style={styles.cashflowItem}>
+      <span style={{ ...styles.cashflowBadge, color: isIncome ? "#16a34a" : "#dc2626" }}>{label}</span>
+      <span style={styles.cashflowNote}>{item.note || "-"}</span>
+      <span aria-hidden="true" />
+      <span style={styles.cashflowAmount}>{money(item.amount)}</span>
+      <span aria-hidden="true" />
+      <span style={styles.cashflowDate}>{formatDate(item.date)}</span>
     </div>
   );
 }
@@ -232,16 +298,12 @@ export default function OverviewTab({
   const paidCurrentTrashCount = paidCurrentTrashMembers.length;
   const unpaidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => !trashPaidPersonIds.has(normalize(person.id))));
   const unpaidCurrentTrashCount = unpaidCurrentTrashMembers.length;
-  const currentMonthCashflows = cashflows.filter((item) => String(item.date || "").slice(0, 7) === currentPeriod);
-  const currentIncome = currentMonthCashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const currentExpense = currentMonthCashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const allIncome = cashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const allExpense = cashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const currentBalance = allIncome - allExpense;
   const readyBookings = sortedDeposits.filter((deposit) => getDepositStatus(deposit) === "pending");
   const waitingBookings = sortedDeposits.filter((deposit) => getDepositStatus(deposit) === "waiting");
   const backupOk = Boolean(dailyBackup?.ok);
-  const configOk = Boolean(appConfig);
   const recentCashflows = [...cashflows].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).slice(0, 5);
   const periodLabel = formatPeriod(currentPeriod);
 
@@ -298,13 +360,37 @@ export default function OverviewTab({
           <div style={styles.periodBadge}>{periodLabel}</div>
         </div>
 
-        <Section title="Quick Summary">
+        <CashBalanceHero value={currentBalance} />
+
+        <Section title="Payment Progress">
+          <div style={styles.twoColumnGrid}>
+            <ProgressCard
+              label="Cash Payment"
+              paid={paidCurrentCount}
+              total={activeCurrentMembers.length}
+              unpaid={unpaidCurrentCount}
+              metaActions={[
+                unpaidCurrentCount > 0 ? { label: "View Unpaid", onClick: () => setUnpaidDetail({ type: "kas-unpaid", title: "Unpaid Cash Details", members: unpaidCurrentMembers }) } : null,
+                paidCurrentCount > 0 ? { label: "View Paid", onClick: () => setUnpaidDetail({ type: "kas-paid", title: "Paid Cash Details", members: paidCurrentMembers }) } : null,
+              ]}
+              error={unpaidCurrentCount > 0}
+            />
+            <ProgressCard
+              label="Trash Payment"
+              paid={paidCurrentTrashCount}
+              total={activeCurrentTrashMembers.length}
+              unpaid={unpaidCurrentTrashCount}
+              metaActions={[
+                unpaidCurrentTrashCount > 0 ? { label: "View Unpaid", onClick: () => setUnpaidDetail({ type: "sampah-unpaid", title: "Unpaid Trash Details", members: unpaidCurrentTrashMembers }) } : null,
+                { label: "View Paid", onClick: () => setShowPaidTrashDetail(true) },
+              ]}
+              error={unpaidCurrentTrashCount > 0}
+            />
+          </div>
+        </Section>
+
+        <Section title="Action Status">
           <div className="admin-monitor-grid">
-            <MonitoringCard label="Cash Balance" value={money(currentBalance)} meta={["Income minus expenses across all periods."]} error={currentBalance < 0} />
-            <MonitoringCard label="This Month Income" value={money(currentIncome)} meta={[`Period ${periodLabel}`]} />
-            <MonitoringCard label="This Month Expense" value={money(currentExpense)} meta={[`Period ${periodLabel}`]} />
-            <MonitoringCard label="This Month Payment (Cash)" value={`${paidCurrentCount}/${activeCurrentMembers.length} houses`} meta={[`${unpaidCurrentCount} houses unpaid.`, `${paidCurrentCount} houses paid.`]} metaActions={[unpaidCurrentCount > 0 ? { label: "View details", onClick: () => setUnpaidDetail({ type: "kas-unpaid", title: "Unpaid Cash Details", members: unpaidCurrentMembers }) } : null, paidCurrentCount > 0 ? { label: "View details", onClick: () => setUnpaidDetail({ type: "kas-paid", title: "Paid Cash Details", members: paidCurrentMembers }) } : null]} error={unpaidCurrentCount > 0} />
-            <MonitoringCard label="This Month Payment (Trash)" value={`${paidCurrentTrashCount}/${activeCurrentTrashMembers.length} houses`} meta={[`${unpaidCurrentTrashCount} houses unpaid.`, `${paidCurrentTrashCount} houses paid.`]} metaActions={[unpaidCurrentTrashCount > 0 ? { label: "View details", onClick: () => setUnpaidDetail({ type: "sampah-unpaid", title: "Unpaid Trash Details", members: unpaidCurrentTrashMembers }) } : null, { label: "View details", onClick: () => setShowPaidTrashDetail(true) }]} error={unpaidCurrentTrashCount > 0} />
             <MonitoringCard label="Ready Booking" value={`${readyBookings.length} houses`} meta={[`${waitingBookings.length} bookings waiting for the payment period.`]} error={readyBookings.length > 0} />
             <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
           </div>
@@ -313,20 +399,20 @@ export default function OverviewTab({
         <Section title="Resident Report">
           <div style={styles.reportCard}>
             <div>
-              <div style={styles.reportTitle}>Send cash report to WhatsApp group</div>
-              <div style={styles.reportDetail}>Review the message content before sending it to the resident group.</div>
+              <div style={styles.reportTitle}>WhatsApp Cash Report</div>
+              <div style={styles.reportDetail}>Preview the monthly cash report before sending it to the resident group.</div>
             </div>
-            <AdminActionButton onClick={openResidentReportConfirm} loading={loadingReportPreview} loadingText="Loading preview..." disabled={sendingReport}>Send Report to WhatsApp Group</AdminActionButton>
+            <AdminActionButton onClick={openResidentReportConfirm} loading={loadingReportPreview} loadingText="Loading preview..." disabled={sendingReport}>Preview & Send WhatsApp Report</AdminActionButton>
           </div>
         </Section>
 
         <Section title="Quick Actions">
           <div style={styles.quickActions}>
-            <QuickAction onClick={() => onNavigate("payment")}>Record Payment</QuickAction>
-            <QuickAction onClick={() => onNavigate("deposit")}>Booking Payment</QuickAction>
-            <QuickAction onClick={() => onNavigate("cashflow")}>Record Cashflow</QuickAction>
-            <QuickAction onClick={() => onNavigate("monitoring")}>Open Monitoring</QuickAction>
-            <QuickAction onClick={() => onNavigate("summary")}>Backup Summary</QuickAction>
+            <QuickAction title="Payment" subtitle="Record dues" onClick={() => onNavigate("payment")} />
+            <QuickAction title="Booking" subtitle="Process booking" onClick={() => onNavigate("deposit")} />
+            <QuickAction title="Cashflow" subtitle="Add transaction" onClick={() => onNavigate("cashflow")} />
+            <QuickAction title="Monitoring" subtitle="Review issues" onClick={() => onNavigate("monitoring")} />
+            <QuickAction title="Backup" subtitle="Open summary" onClick={() => onNavigate("summary")} />
           </div>
         </Section>
 
@@ -334,22 +420,9 @@ export default function OverviewTab({
           {alerts.length === 0 ? <div className="admin-empty-state">No special attention needed. The system looks stable.</div> : <div style={styles.alertList}>{alerts.map((alert) => <AlertItem key={alert.title} tone={alert.tone} title={alert.title} detail={alert.detail} action={alert.action} onClick={() => onNavigate(alert.tab)} />)}</div>}
         </Section>
 
-        <Section title="Operational Snapshot">
-          <div className="admin-monitor-grid">
-            <MonitoringCard label="App Config" value={configOk ? "Ready" : "Not ready"} meta={configOk ? [`Cash: ${money(appConfig.monthly_fee)}`, `Trash: ${money(appConfig.trash_fee)}`] : ["Configuration is not available yet."]} error={!configOk} />
-            <MonitoringCard label="Daily Backup" value={backupOk ? "Healthy" : "Need check"} meta={backupOk ? [`File: ${dailyBackup.name}`, `Retention: ${dailyBackup.count} backup files`] : ["Daily backup is not valid yet."]} error={!backupOk} />
-            <MonitoringCard label="Active Members" value={`${activeMembers.length} houses`} meta={[`${activeCurrentMembers.length} houses active in this period.`]} />
-          </div>
-        </Section>
-
         <Section title="Recent Cashflow">
           {recentCashflows.length === 0 ? <div className="admin-empty-state">No cashflow transactions yet.</div> : (
-            <div className="admin-table-wrapper">
-              <table className="admin-table">
-                <thead><tr><th className="admin-th">Date</th><th className="admin-th">Type</th><th className="admin-th">Amount</th><th className="admin-th">Note</th></tr></thead>
-                <tbody>{recentCashflows.map((item, index) => <tr key={item.id || index} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{formatDate(item.date)}</td><td className="admin-td">{item.type}</td><td className="admin-td">{money(item.amount)}</td><td className="admin-td">{item.note || "-"}</td></tr>)}</tbody>
-              </table>
-            </div>
+            <div style={styles.cashflowList}>{recentCashflows.map((item) => <CompactCashflowItem key={item.id || `${item.date}-${item.note}-${item.amount}`} item={item} />)}</div>
           )}
         </Section>
       </div>
@@ -402,13 +475,38 @@ const styles = {
   header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
   muted: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 600, lineHeight: 1.6 },
   periodBadge: { padding: "8px 12px", borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-muted)", fontSize: 12, fontWeight: 800 },
-  quickActions: { display: "flex", gap: 10, flexWrap: "wrap" },
+  heroCard: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, padding: 22, borderRadius: 20, border: "1px solid var(--admin-border)", background: "linear-gradient(135deg, var(--admin-card), var(--admin-row))", flexWrap: "wrap" },
+  heroLabel: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 900, letterSpacing: "0.02em", textTransform: "uppercase" },
+  heroValue: { fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 950, lineHeight: 1.1, marginTop: 8 },
+  heroMeta: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 650, lineHeight: 1.55, marginTop: 8 },
+  heroBadge: { padding: "8px 12px", borderRadius: 999, background: "var(--admin-row)", border: "1px solid var(--admin-border)", fontSize: 12, fontWeight: 900 },
+  twoColumnGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 },
+  progressCard: { padding: 16, borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)", display: "grid", gap: 12 },
+  progressHeader: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
+  progressLabel: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.02em" },
+  progressValue: { color: "var(--admin-text)", fontSize: 22, fontWeight: 950, marginTop: 4 },
+  progressPercent: { fontSize: 18, fontWeight: 950 },
+  progressTrack: { height: 9, borderRadius: 999, background: "var(--admin-card)", overflow: "hidden", border: "1px solid var(--admin-border)" },
+  progressFill: { height: "100%", borderRadius: 999, background: "var(--admin-primary)", transition: "width 0.2s ease" },
+  progressMetaRow: { display: "flex", justifyContent: "space-between", gap: 8, color: "var(--admin-muted)", fontSize: 12, fontWeight: 700, flexWrap: "wrap" },
+  progressActions: { display: "flex", gap: 10, flexWrap: "wrap" },
+  progressActionButton: { border: "none", background: "none", color: "var(--admin-primary)", cursor: "pointer", font: "inherit", fontSize: 13, fontWeight: 800, padding: 0 },
+  quickActions: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 },
+  quickActionCard: { display: "grid", gap: 4, textAlign: "left", padding: 14, borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer" },
+  quickActionTitle: { fontSize: 14, fontWeight: 950 },
+  quickActionSubtitle: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 650 },
   reportCard: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, padding: 16, borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
   reportTitle: { fontSize: 15, fontWeight: 900, marginBottom: 4 },
   reportDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
   previewBox: { margin: 0, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", fontFamily: "inherit", fontSize: 13, fontWeight: 600, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word" },
   alertList: { display: "grid", gap: 10 },
-  alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
+  alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
   alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
   alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
+  cashflowList: { display: "grid", gap: 0, padding: "6px 14px", borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
+  cashflowItem: { display: "grid", gridTemplateColumns: "72px minmax(0, 1fr)", alignItems: "center", columnGap: 10, rowGap: 4, padding: "12px 0", borderBottom: "1px solid var(--admin-border)" },
+  cashflowBadge: { fontSize: 12, fontWeight: 950, alignSelf: "start", paddingTop: 1 },
+  cashflowNote: { color: "var(--admin-text)", fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
+  cashflowAmount: { color: "var(--admin-text)", fontSize: 13, fontWeight: 950, whiteSpace: "nowrap" },
+  cashflowDate: { color: "var(--admin-muted)", fontSize: 11, fontWeight: 700 },
 };
