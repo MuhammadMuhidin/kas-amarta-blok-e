@@ -8,6 +8,7 @@ import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
 import { useEffect, useState } from "react";
 
+const MODAL_PAGE_SIZE = 5;
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
 const normalizeUpper = (value) => normalize(value).toUpperCase();
@@ -183,8 +184,65 @@ function useModalScrollLock(open) {
   }, [open]);
 }
 
+function usePagedItems(items, open) {
+  const [page, setPage] = useState(0);
+  const [touchStartX, setTouchStartX] = useState(null);
+  const totalPages = Math.max(1, Math.ceil(items.length / MODAL_PAGE_SIZE));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageItems = items.slice(safePage * MODAL_PAGE_SIZE, safePage * MODAL_PAGE_SIZE + MODAL_PAGE_SIZE);
+
+  useEffect(() => {
+    if (open) setPage(0);
+  }, [open, items.length]);
+
+  function goToPage(nextPage) {
+    setPage(Math.min(Math.max(nextPage, 0), totalPages - 1));
+  }
+
+  function handleTouchStart(event) {
+    setTouchStartX(event.touches?.[0]?.clientX ?? null);
+  }
+
+  function handleTouchEnd(event) {
+    if (touchStartX === null) return;
+    const endX = event.changedTouches?.[0]?.clientX ?? touchStartX;
+    const deltaX = touchStartX - endX;
+
+    if (Math.abs(deltaX) > 45) {
+      goToPage(safePage + (deltaX > 0 ? 1 : -1));
+    }
+
+    setTouchStartX(null);
+  }
+
+  return { page: safePage, pageItems, totalPages, goToPage, handleTouchStart, handleTouchEnd };
+}
+
+function ModalCloseButton({ onClose }) {
+  return <button type="button" style={styles.modalCloseButton} onClick={onClose} aria-label="Close modal">×</button>;
+}
+
+function ModalDots({ totalPages, page, onChange }) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div style={styles.modalPager}>
+      {Array.from({ length: totalPages }).map((_, index) => (
+        <button
+          key={index}
+          type="button"
+          aria-label={`Go to page ${index + 1}`}
+          style={{ ...styles.modalDot, ...(index === page ? styles.modalDotActive : {}) }}
+          onClick={() => onChange(index)}
+        />
+      ))}
+    </div>
+  );
+}
+
 function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
   useModalScrollLock(open);
+  const pager = usePagedItems(members, open);
 
   if (!open) return null;
 
@@ -192,35 +250,41 @@ function DetailMembersModal({ open, title, members, statusText, emptyText, share
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
-          <div>
+          <div style={styles.modalTitleGroup}>
             <div className="modal-title">{title}</div>
             <div className="modal-section">{members.length} houses {statusText}.</div>
           </div>
-          {onShareJpg && (
-            <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0} onClick={onShareJpg}>{shareLabel}</AdminActionButton>
-          )}
+          <div style={styles.modalActions}>
+            {onShareJpg && (
+              <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0} onClick={onShareJpg}>{shareLabel}</AdminActionButton>
+            )}
+            <ModalCloseButton onClose={onClose} />
+          </div>
         </div>
 
-        <table className="detail-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>House</th>
-              <th>Name</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.length === 0 ? (
-              <tr><td colSpan={3}>{emptyText}</td></tr>
-            ) : members.map((person, index) => (
-              <tr key={person.id || `${person.house}-${index}`}>
-                <td>{index + 1}</td>
-                <td>{person.house || "-"}</td>
-                <td>{person.name || "-"}</td>
+        <div onTouchStart={pager.handleTouchStart} onTouchEnd={pager.handleTouchEnd}>
+          <table className="detail-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>House</th>
+                <th>Name</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {members.length === 0 ? (
+                <tr><td colSpan={3}>{emptyText}</td></tr>
+              ) : pager.pageItems.map((person, index) => (
+                <tr key={person.id || `${person.house}-${index}`}>
+                  <td>{pager.page * MODAL_PAGE_SIZE + index + 1}</td>
+                  <td>{person.house || "-"}</td>
+                  <td>{person.name || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <ModalDots totalPages={pager.totalPages} page={pager.page} onChange={pager.goToPage} />
+        </div>
       </div>
     </div>
   );
@@ -242,6 +306,7 @@ function TrashAllMembersModal({
   onClose,
 }) {
   useModalScrollLock(open);
+  const pager = usePagedItems(members, open);
 
   if (!open) return null;
 
@@ -249,13 +314,14 @@ function TrashAllMembersModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
-          <div>
+          <div style={styles.modalTitleGroup}>
             <div className="modal-title">All Trash Payment Details</div>
             <div className="modal-section">{members.length} trash members for {periodLabel}.</div>
           </div>
           <div style={styles.trashModalActions}>
             <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0 || advancing} onClick={onShareJpg}>Share JPG</AdminActionButton>
             <AdminActionButton loading={advancing} loadingText="Advancing..." disabled={needAdvanceCount === 0 || sharing} onClick={onAdvance}>Advance Unpaid Trash</AdminActionButton>
+            <ModalCloseButton onClose={onClose} />
           </div>
         </div>
 
@@ -270,21 +336,24 @@ function TrashAllMembersModal({
           Already advanced by cash: <strong>{money(totalAdvanced)}</strong>
         </div>
 
-        <div style={styles.trashMemberList}>
-          {members.length === 0 ? (
-            <div className="admin-empty-state">No trash member data.</div>
-          ) : members.map((person, index) => (
-            <div key={person.id || `${person.house}-${index}`} style={styles.trashMemberItem}>
-              <div style={styles.trashMemberNo}>{index + 1}</div>
-              <div style={styles.trashMemberMain}>
-                <div style={styles.trashMemberHouse}>{person.house || "-"}</div>
-                <div style={styles.trashMemberName}>{person.name || "-"}</div>
+        <div onTouchStart={pager.handleTouchStart} onTouchEnd={pager.handleTouchEnd}>
+          <div style={styles.trashMemberList}>
+            {members.length === 0 ? (
+              <div className="admin-empty-state">No trash member data.</div>
+            ) : pager.pageItems.map((person, index) => (
+              <div key={person.id || `${person.house}-${index}`} style={styles.trashMemberItem}>
+                <div style={styles.trashMemberNo}>{pager.page * MODAL_PAGE_SIZE + index + 1}</div>
+                <div style={styles.trashMemberMain}>
+                  <div style={styles.trashMemberHouse}>{person.house || "-"}</div>
+                  <div style={styles.trashMemberName}>{person.name || "-"}</div>
+                </div>
+                <span style={{ ...styles.trashStatusBadge, ...getTrashStatusStyle(person) }}>
+                  {getTrashStatusLabel(person)}
+                </span>
               </div>
-              <span style={{ ...styles.trashStatusBadge, ...getTrashStatusStyle(person) }}>
-                {getTrashStatusLabel(person)}
-              </span>
-            </div>
-          ))}
+            ))}
+          </div>
+          <ModalDots totalPages={pager.totalPages} page={pager.page} onChange={pager.goToPage} />
         </div>
       </div>
     </div>
@@ -672,6 +741,12 @@ const styles = {
   header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
   muted: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 600, lineHeight: 1.6 },
   periodBadge: { padding: "8px 12px", borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-muted)", fontSize: 12, fontWeight: 800 },
+  modalTitleGroup: { minWidth: 0, flex: "1 1 220px" },
+  modalActions: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" },
+  modalCloseButton: { width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
+  modalPager: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, paddingTop: 12 },
+  modalDot: { width: 8, height: 8, borderRadius: 999, border: "none", background: "var(--admin-border)", padding: 0, cursor: "pointer" },
+  modalDotActive: { width: 20, background: "var(--admin-primary)" },
   heroCard: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, padding: 22, borderRadius: 20, border: "1px solid var(--admin-border)", background: "linear-gradient(135deg, var(--admin-card), var(--admin-row))", flexWrap: "wrap" },
   heroLabel: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 900, letterSpacing: "0.02em", textTransform: "uppercase" },
   heroValue: { fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 950, lineHeight: 1.1, marginTop: 8 },
@@ -700,11 +775,11 @@ const styles = {
   alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
   alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
   alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
-  trashModalActions: { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" },
+  trashModalActions: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" },
   trashSummaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, margin: "12px 0" },
   trashSummaryItem: { display: "grid", gap: 6, padding: 12, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", minWidth: 0 },
   trashAdvanceNote: { margin: "6px 0 12px", padding: 12, borderRadius: 14, border: "1px solid #fed7aa", background: "#fff7ed", color: "#9a3412", fontSize: 13, fontWeight: 800, lineHeight: 1.5 },
-  trashMemberList: { display: "grid", gap: 8, marginTop: 10 },
+  trashMemberList: { display: "grid", gap: 8, marginTop: 10, minHeight: 310 },
   trashMemberItem: { display: "grid", gridTemplateColumns: "32px minmax(0, 1fr) auto", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
   trashMemberNo: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 900, textAlign: "center" },
   trashMemberMain: { minWidth: 0, display: "grid", gap: 2 },
