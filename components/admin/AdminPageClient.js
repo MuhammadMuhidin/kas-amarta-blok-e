@@ -102,6 +102,7 @@ export default function AdminPageClient() {
     stats,
     trashMismatch,
     paymentCashflowIntegrity,
+    depositPaymentIntegrity,
     suspiciousData,
     monitoringIssueCount,
     searchedPersonal,
@@ -249,7 +250,7 @@ export default function AdminPageClient() {
         {tab === "cashflow" && <CashflowTab key={`cashflow-${tabRefreshKey}`} addCashflow={addCashflow} cashflow={cashflow} setCashflow={setCashflow} loadingCashflow={loadingCashflow} />}
         {tab === "timeline" && <TimelineTab key={`timeline-${tabRefreshKey}`} showPopup={showPopup} />}
         {tab === "summary" && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
-        {tab === "monitoring" && <MonitoringTab key={`monitoring-${tabRefreshKey}`} loadingDailyBackup={loadingDailyBackup} dailyBackup={dailyBackup} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
+        {tab === "monitoring" && <MonitoringTab key={`monitoring-${tabRefreshKey}`} loadingDailyBackup={loadingDailyBackup} dailyBackup={dailyBackup} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} depositPaymentIntegrity={depositPaymentIntegrity} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
         {tab === "activity" && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
         {tab === "settings" && <SettingsTab key={`settings-${tabRefreshKey}`} />}
       </div>
