@@ -153,6 +153,7 @@ export async function shareMembersJpgReport({
   }
 
   const scale = clampExportScale(exportScale);
+  const hasStatusColumn = members.some((member) => clean(member.status || member.statusText));
   const rowsPerColumn = Math.max(MIN_ROWS_PER_COLUMN, Math.ceil(members.length / 2));
   const width = DEFAULT_WIDTH;
   const dynamicHeight = 44 + 180 + 27 + 115 + 17 + 52 + 84 + 38 + rowsPerColumn * ROW_HEIGHT + 32 + 135 + 80;
@@ -186,6 +187,8 @@ export async function shareMembersJpgReport({
     greenPanel: "#f4fdf7",
     greenBorder: "#bbf7d0",
     blue: "#2563eb",
+    red: "#dc2626",
+    orange: "#d97706",
     note: "#fef9c3",
     noteBorder: "#facc15",
   };
@@ -265,7 +268,10 @@ export async function shareMembersJpgReport({
   function drawTableHeader(x, y) {
     drawText(ctx, "NO", x, y, "700 14.5px Arial, sans-serif", colors.soft);
     drawText(ctx, "HOUSE", x + 45, y, "700 14.5px Arial, sans-serif", colors.soft);
-    drawText(ctx, "NAME", x + 141, y, "700 14.5px Arial, sans-serif", colors.soft);
+    drawText(ctx, "NAME", x + 121, y, "700 14.5px Arial, sans-serif", colors.soft);
+    if (hasStatusColumn) {
+      drawText(ctx, "STATUS", x + columnWidth - 4, y, "700 14.5px Arial, sans-serif", colors.soft, "right");
+    }
 
     ctx.strokeStyle = colors.border;
     ctx.lineWidth = 1;
@@ -283,9 +289,17 @@ export async function shareMembersJpgReport({
       fillRoundedRect(ctx, x - 7, y - 5, columnWidth + 7, ROW_HEIGHT - 5, 9, colors.row);
     }
 
+    const status = clean(member.status || member.statusText);
+    const statusColor = status === "Paid" ? colors.green : status === "Advanced" ? colors.red : colors.orange;
+    const nameMaxWidth = hasStatusColumn ? columnWidth - 260 : columnWidth - 175;
+
     drawText(ctx, String(index).padStart(2, "0"), x, y + 1, "700 19px Arial, sans-serif", colors.blue);
     drawText(ctx, clean(member.house) || "-", x + 45, y - 2, "700 23.5px Arial, sans-serif", colors.text);
-    drawText(ctx, truncateText(ctx, clean(member.name) || "-", columnWidth - 175), x + 141, y + 2, "400 20px Arial, sans-serif", colors.muted);
+    drawText(ctx, truncateText(ctx, clean(member.name) || "-", nameMaxWidth), x + 121, y + 2, "400 20px Arial, sans-serif", colors.muted);
+
+    if (hasStatusColumn) {
+      drawText(ctx, truncateText(ctx, status || "-", 92), x + columnWidth - 4, y + 2, "700 18px Arial, sans-serif", statusColor, "right");
+    }
   }
 
   const rowsY = tableHeaderY + 38;
