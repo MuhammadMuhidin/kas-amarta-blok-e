@@ -6,8 +6,7 @@ import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
-import usePagedSwipe from "@/hooks/usePagedSwipe";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const DETAIL_MODAL_PAGE_SIZE = 15;
 const TRASH_MODAL_PAGE_SIZE = 5;
@@ -65,6 +64,55 @@ const overviewAdminCss = `
   .admin-wrapper .detail-table th,
   .admin-wrapper .detail-table td {
     white-space: nowrap;
+  }
+
+  .admin-wrapper .pay-slider {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scroll-snap-stop: always;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    padding-bottom: 8px;
+    padding-inline: 1px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .admin-wrapper .pay-slider::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-wrapper .pay-slide-page {
+    flex: 0 0 100%;
+    min-width: 100%;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+  }
+
+  .admin-wrapper .pay-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .admin-wrapper .pay-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--admin-border);
+    transition: all .25s ease;
+    cursor: pointer;
+  }
+
+  .admin-wrapper .pay-dots span.active {
+    width: 22px;
+    background: var(--admin-primary);
   }
 
   @keyframes adminModalOverlayIn {
@@ -127,6 +175,25 @@ function isPaidDetailType(type) {
 function getPercent(value, total) {
   if (!total) return 0;
   return Math.min(100, Math.max(0, Math.round((Number(value || 0) / Number(total || 0)) * 100)));
+}
+
+function chunkItems(items, pageSize) {
+  const chunks = [];
+  for (let index = 0; index < items.length; index += pageSize) {
+    chunks.push(items.slice(index, index + pageSize));
+  }
+  return chunks.length ? chunks : [[]];
+}
+
+function getSnapPage(event, totalPages) {
+  const width = event.currentTarget.clientWidth || 1;
+  return Math.min(totalPages - 1, Math.max(0, Math.round(event.currentTarget.scrollLeft / width)));
+}
+
+function scrollToSnapPage(ref, page) {
+  const slider = ref.current;
+  if (!slider) return;
+  slider.scrollTo({ left: slider.clientWidth * page, behavior: "smooth" });
 }
 
 function getTrashAdvanceRefId(personId, period) {
@@ -192,18 +259,25 @@ function ModalCloseButton({ onClose }) {
   return <button type="button" style={styles.modalCloseButton} onClick={onClose} aria-label="Close modal">×</button>;
 }
 
-function ModalDots({ totalPages, page, onChange }) {
+function PaymentDots({ totalPages, page, onChange }) {
   if (totalPages <= 1) return null;
 
   return (
-    <div style={styles.modalPager}>
+    <div className="pay-dots">
       {Array.from({ length: totalPages }).map((_, index) => (
-        <button
+        <span
           key={index}
-          type="button"
+          className={index === page ? "active" : ""}
+          role="button"
+          tabIndex={0}
           aria-label={`Go to page ${index + 1}`}
-          style={{ ...styles.modalDot, ...(index === page ? styles.modalDotActive : {}) }}
           onClick={() => onChange(index)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onChange(index);
+            }
+          }}
         />
       ))}
     </div>
@@ -212,9 +286,22 @@ function ModalDots({ totalPages, page, onChange }) {
 
 function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
   useModalScrollLock(open);
-  const pager = usePagedSwipe(members, open, DETAIL_MODAL_PAGE_SIZE);
+  const [page, setPage] = useState(0);
+  const sliderRef = useRef(null);
+  const pages = chunkItems(members, DETAIL_MODAL_PAGE_SIZE);
+
+  useEffect(() => {
+    if (!open) return;
+    setPage(0);
+    sliderRef.current?.scrollTo({ left: 0, behavior: "auto" });
+  }, [open, members.length]);
 
   if (!open) return null;
+
+  function handleDotChange(nextPage) {
+    setPage(nextPage);
+    scrollToSnapPage(sliderRef, nextPage);
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -232,29 +319,37 @@ function DetailMembersModal({ open, title, members, statusText, emptyText, share
           </div>
         </div>
 
-        <div onTouchStart={pager.handleTouchStart} onTouchEnd={pager.handleTouchEnd}>
-          <table className="detail-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>House</th>
-                <th>Name</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.length === 0 ? (
-                <tr><td colSpan={3}>{emptyText}</td></tr>
-              ) : pager.pageItems.map((person, index) => (
-                <tr key={person.id || `${person.house}-${index}`}>
-                  <td>{pager.page * pager.pageSize + index + 1}</td>
-                  <td>{person.house || "-"}</td>
-                  <td>{person.name || "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <ModalDots totalPages={pager.totalPages} page={pager.page} onChange={pager.goToPage} />
+        <div
+          ref={sliderRef}
+          className="pay-slider"
+          onScroll={(event) => setPage(getSnapPage(event, pages.length))}
+        >
+          {pages.map((pageItems, pageIndex) => (
+            <div className="pay-slide-page" key={pageIndex}>
+              <table className="detail-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>House</th>
+                    <th>Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.length === 0 ? (
+                    <tr><td colSpan={3}>{emptyText}</td></tr>
+                  ) : pageItems.map((person, index) => (
+                    <tr key={person.id || `${person.house}-${pageIndex}-${index}`}>
+                      <td>{pageIndex * DETAIL_MODAL_PAGE_SIZE + index + 1}</td>
+                      <td>{person.house || "-"}</td>
+                      <td>{person.name || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
         </div>
+        <PaymentDots totalPages={pages.length} page={page} onChange={handleDotChange} />
       </div>
     </div>
   );
@@ -276,9 +371,22 @@ function TrashAllMembersModal({
   onClose,
 }) {
   useModalScrollLock(open);
-  const pager = usePagedSwipe(members, open, TRASH_MODAL_PAGE_SIZE);
+  const [page, setPage] = useState(0);
+  const sliderRef = useRef(null);
+  const pages = chunkItems(members, TRASH_MODAL_PAGE_SIZE);
+
+  useEffect(() => {
+    if (!open) return;
+    setPage(0);
+    sliderRef.current?.scrollTo({ left: 0, behavior: "auto" });
+  }, [open, members.length]);
 
   if (!open) return null;
+
+  function handleDotChange(nextPage) {
+    setPage(nextPage);
+    scrollToSnapPage(sliderRef, nextPage);
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -306,25 +414,33 @@ function TrashAllMembersModal({
           Already advanced by cash: <strong>{money(totalAdvanced)}</strong>
         </div>
 
-        <div onTouchStart={pager.handleTouchStart} onTouchEnd={pager.handleTouchEnd}>
-          <div style={styles.trashMemberList}>
-            {members.length === 0 ? (
-              <div className="admin-empty-state">No trash member data.</div>
-            ) : pager.pageItems.map((person, index) => (
-              <div key={person.id || `${person.house}-${index}`} style={styles.trashMemberItem}>
-                <div style={styles.trashMemberNo}>{pager.page * pager.pageSize + index + 1}</div>
-                <div style={styles.trashMemberMain}>
-                  <div style={styles.trashMemberHouse}>{person.house || "-"}</div>
-                  <div style={styles.trashMemberName}>{person.name || "-"}</div>
-                </div>
-                <span style={{ ...styles.trashStatusBadge, ...getTrashStatusStyle(person) }}>
-                  {getTrashStatusLabel(person)}
-                </span>
+        <div
+          ref={sliderRef}
+          className="pay-slider"
+          onScroll={(event) => setPage(getSnapPage(event, pages.length))}
+        >
+          {pages.map((pageItems, pageIndex) => (
+            <div className="pay-slide-page" key={pageIndex}>
+              <div style={styles.trashMemberList}>
+                {members.length === 0 ? (
+                  <div className="admin-empty-state">No trash member data.</div>
+                ) : pageItems.map((person, index) => (
+                  <div key={person.id || `${person.house}-${pageIndex}-${index}`} style={styles.trashMemberItem}>
+                    <div style={styles.trashMemberNo}>{pageIndex * TRASH_MODAL_PAGE_SIZE + index + 1}</div>
+                    <div style={styles.trashMemberMain}>
+                      <div style={styles.trashMemberHouse}>{person.house || "-"}</div>
+                      <div style={styles.trashMemberName}>{person.name || "-"}</div>
+                    </div>
+                    <span style={{ ...styles.trashStatusBadge, ...getTrashStatusStyle(person) }}>
+                      {getTrashStatusLabel(person)}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <ModalDots totalPages={pager.totalPages} page={pager.page} onChange={pager.goToPage} />
+            </div>
+          ))}
         </div>
+        <PaymentDots totalPages={pages.length} page={page} onChange={handleDotChange} />
       </div>
     </div>
   );
@@ -714,9 +830,6 @@ const styles = {
   modalTitleGroup: { minWidth: 0, flex: "1 1 220px", paddingRight: 46 },
   modalActions: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap", paddingRight: 46 },
   modalCloseButton: { position: "absolute", top: 12, right: 12, zIndex: 3, width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  modalPager: { display: "flex", alignItems: "center", justifyContent: "center", gap: 8, paddingTop: 12 },
-  modalDot: { width: 8, height: 8, borderRadius: 999, border: "none", background: "var(--admin-border)", padding: 0, cursor: "pointer" },
-  modalDotActive: { width: 20, background: "var(--admin-primary)" },
   heroCard: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, padding: 22, borderRadius: 20, border: "1px solid var(--admin-border)", background: "linear-gradient(135deg, var(--admin-card), var(--admin-row))", flexWrap: "wrap" },
   heroLabel: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 900, letterSpacing: "0.02em", textTransform: "uppercase" },
   heroValue: { fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 950, lineHeight: 1.1, marginTop: 8 },
