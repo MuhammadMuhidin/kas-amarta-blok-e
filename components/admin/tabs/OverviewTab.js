@@ -68,7 +68,7 @@ const overviewAdminCss = `
 
   .admin-wrapper .pay-slider {
     display: flex;
-    gap: 14px;
+    gap: 0;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
@@ -77,7 +77,7 @@ const overviewAdminCss = `
     overscroll-behavior-x: contain;
     touch-action: pan-x;
     padding-bottom: 8px;
-    padding-inline: 1px;
+    padding-inline: 0;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
@@ -87,10 +87,16 @@ const overviewAdminCss = `
   }
 
   .admin-wrapper .pay-slide-page {
+    display: block;
+    box-sizing: border-box;
     flex: 0 0 100%;
     min-width: 100%;
-    scroll-snap-align: center;
+    scroll-snap-align: start;
     scroll-snap-stop: always;
+  }
+
+  .admin-wrapper .pay-slide-page > * {
+    width: 100%;
   }
 
   .admin-wrapper .pay-dots {
@@ -140,6 +146,7 @@ const overviewAdminCss = `
 
     .admin-wrapper .modal-header {
       align-items: stretch;
+      flex-direction: column;
       gap: 12px;
     }
   }
@@ -827,8 +834,8 @@ const styles = {
   header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
   muted: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 600, lineHeight: 1.6 },
   periodBadge: { padding: "8px 12px", borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-muted)", fontSize: 12, fontWeight: 800 },
-  modalTitleGroup: { minWidth: 0, flex: "1 1 220px", paddingRight: 46 },
-  modalActions: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap", paddingRight: 46 },
+  modalTitleGroup: { minWidth: 0, flex: "1 1 100%", paddingRight: 46 },
+  modalActions: { display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 8, flexWrap: "wrap", paddingRight: 0 },
   modalCloseButton: { position: "absolute", top: 12, right: 12, zIndex: 3, width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 },
   heroCard: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, padding: 22, borderRadius: 20, border: "1px solid var(--admin-border)", background: "linear-gradient(135deg, var(--admin-card), var(--admin-row))", flexWrap: "wrap" },
   heroLabel: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 900, letterSpacing: "0.02em", textTransform: "uppercase" },
@@ -858,11 +865,11 @@ const styles = {
   alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
   alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
   alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
-  trashModalActions: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", paddingRight: 46 },
+  trashModalActions: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", paddingRight: 0 },
   trashSummaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, margin: "12px 0" },
   trashSummaryItem: { display: "grid", gap: 6, padding: 12, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", minWidth: 0 },
   trashAdvanceNote: { margin: "6px 0 12px", padding: 12, borderRadius: 14, border: "1px solid #fed7aa", background: "#fff7ed", color: "#9a3412", fontSize: 13, fontWeight: 800, lineHeight: 1.5 },
-  trashMemberList: { display: "grid", gap: 8, marginTop: 10, minHeight: 310 },
+  trashMemberList: { display: "grid", alignContent: "start", gap: 8, marginTop: 10, minHeight: 0 },
   trashMemberItem: { display: "grid", gridTemplateColumns: "32px minmax(0, 1fr) auto", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
   trashMemberNo: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 900, textAlign: "center" },
   trashMemberMain: { minWidth: 0, display: "grid", gap: 2 },
