@@ -6,7 +6,7 @@ import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
@@ -128,6 +128,21 @@ function AlertItem({ tone = "info", title, detail, action, onClick }) {
 }
 
 function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [open]);
+
   if (!open) return null;
 
   return (
