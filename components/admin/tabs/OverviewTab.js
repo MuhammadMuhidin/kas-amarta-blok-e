@@ -442,7 +442,7 @@ function TrashAllMembersModal({
           Need to advance: <strong>{money(totalNeedAdvance)}</strong><br />
           Outstanding advance: <strong>{money(totalAdvanced)}</strong><br />
           Reimbursed advance: <strong>{money(totalReimbursed)}</strong><br />
-          Cash balance after remaining advance: <strong>{money(balanceAfterAdvance)}</strong><br />
+          Projected balance: <strong>{money(balanceAfterAdvance)}</strong><br />
           Status: <strong>{hasEnoughCash ? "Safe" : "Not enough cash"}</strong>
         </div>
 
