@@ -205,11 +205,11 @@ export default function PaymentTab({
 
     try {
       setSendingReminder(true);
-      await sendJson("/api/whatsapp/payment-reminder", "POST", {
+      await sendJson("/api/waha/payment-reminder", "POST", {
         message: PAYMENT_REMINDER_MESSAGE,
       });
       setShowReminderPreview(false);
-      alert("WhatsApp payment reminder sent successfully.");
+      alert("WhatsApp payment reminder queued successfully.");
     } catch (err) {
       alert(err.message || "Failed to send WhatsApp payment reminder.");
     } finally {
