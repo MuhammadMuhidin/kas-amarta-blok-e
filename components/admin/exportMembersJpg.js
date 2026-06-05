@@ -14,40 +14,26 @@ function clean(value) {
 
 function clampExportScale(value) {
   const scale = Number(value || DEFAULT_EXPORT_SCALE);
-
   if (!Number.isFinite(scale)) return DEFAULT_EXPORT_SCALE;
-
   return Math.min(Math.max(scale, 1), 3);
 }
 
 function formatDate(value) {
   if (!value) return "-";
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-
-  return date.toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  return date.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
 }
 
 function formatPeriod(period) {
   if (!period || period === "-") return "-";
-
   const normalized = String(period).slice(0, 7);
   if (!/^\d{4}-\d{2}$/.test(normalized)) return period;
-
-  return new Date(`${normalized}-01`).toLocaleDateString("en-US", {
-    month: "long",
-    year: "numeric",
-  });
+  return new Date(`${normalized}-01`).toLocaleDateString("en-US", { month: "long", year: "numeric" });
 }
 
 function drawRoundedRect(ctx, x, y, width, height, radius) {
   const r = Math.min(radius, width / 2, height / 2);
-
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + width, y, x + width, y + height, r);
@@ -61,7 +47,6 @@ function fillRoundedRect(ctx, x, y, width, height, radius, fillStyle, strokeStyl
   drawRoundedRect(ctx, x, y, width, height, radius);
   ctx.fillStyle = fillStyle;
   ctx.fill();
-
   if (strokeStyle) {
     ctx.lineWidth = strokeWidth;
     ctx.strokeStyle = strokeStyle;
@@ -89,13 +74,44 @@ function drawCenteredText(ctx, text, x, y, font, fillStyle) {
 function truncateText(ctx, value, maxWidth) {
   const text = clean(value) || "-";
   if (ctx.measureText(text).width <= maxWidth) return text;
-
   let next = text;
   while (next.length > 1 && ctx.measureText(`${next}…`).width > maxWidth) {
     next = next.slice(0, -1);
   }
-
   return `${next}…`;
+}
+
+function getWrappedLines(ctx, value, maxWidth, maxLines = 2) {
+  const words = clean(value).split(/\s+/).filter(Boolean);
+  const lines = [];
+  let current = "";
+
+  words.forEach((word) => {
+    const next = current ? `${current} ${word}` : word;
+    if (ctx.measureText(next).width <= maxWidth) {
+      current = next;
+      return;
+    }
+    if (current) lines.push(current);
+    current = word;
+  });
+
+  if (current) lines.push(current);
+  if (lines.length <= maxLines) return lines;
+
+  const visible = lines.slice(0, maxLines);
+  visible[maxLines - 1] = truncateText(ctx, visible.slice(maxLines - 1).concat(lines.slice(maxLines)).join(" "), maxWidth);
+  return visible;
+}
+
+function drawWrappedText(ctx, text, x, y, font, fillStyle, maxWidth, lineHeight = 20, maxLines = 2) {
+  ctx.font = font;
+  ctx.fillStyle = fillStyle;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  getWrappedLines(ctx, text, maxWidth, maxLines).forEach((line, index) => {
+    ctx.fillText(line, x, y + index * lineHeight);
+  });
 }
 
 function canvasToBlob(canvas, type = "image/jpeg", quality = 0.98) {
@@ -110,7 +126,6 @@ function canvasToBlob(canvas, type = "image/jpeg", quality = 0.98) {
 function downloadBlob(blob, fileName) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-
   link.href = url;
   link.download = fileName;
   document.body.appendChild(link);
@@ -121,15 +136,10 @@ function downloadBlob(blob, fileName) {
 
 async function shareOrDownloadBlob(blob, fileName, shareTitle) {
   const file = new File([blob], fileName, { type: "image/jpeg" });
-
   if (navigator.canShare?.({ files: [file] })) {
-    await navigator.share({
-      title: shareTitle,
-      files: [file],
-    });
+    await navigator.share({ title: shareTitle, files: [file] });
     return "shared";
   }
-
   downloadBlob(blob, fileName);
   return "downloaded";
 }
@@ -148,9 +158,7 @@ export async function shareMembersJpgReport({
   fileName = "payment-report.jpg",
   exportScale = DEFAULT_EXPORT_SCALE,
 } = {}) {
-  if (typeof document === "undefined") {
-    throw new Error("JPG export is only available in the browser.");
-  }
+  if (typeof document === "undefined") throw new Error("JPG export is only available in the browser.");
 
   const scale = clampExportScale(exportScale);
   const hasStatusColumn = members.some((member) => clean(member.status || member.statusText));
@@ -168,7 +176,6 @@ export async function shareMembersJpgReport({
   canvas.height = Math.round(height * scale);
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
-
   ctx.scale(scale, scale);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
@@ -223,12 +230,7 @@ export async function shareMembersJpgReport({
   drawCenteredText(ctx, badgeLabel, pillX + pillW / 2, pillY + pillH / 2, badgeFont, colors.greenDark);
   drawText(ctx, `Export: ${formatDate(new Date().toISOString())}`, cardX + cardW - 39, cardY + 113, "400 18px Arial, sans-serif", colors.greenSoft, "right");
 
-  const normalizedSummary = summaryItems.length
-    ? summaryItems
-    : [
-        ["Recorded", `${members.length} houses`, "Selected data"],
-        ["Export", formatDate(new Date().toISOString()), "Export date"],
-      ];
+  const normalizedSummary = summaryItems.length ? summaryItems : [["Recorded", `${members.length} houses`, "Selected data"], ["Export", formatDate(new Date().toISOString()), "Export date"]];
   const summaryTop = cardY + headerH + 27;
   const summaryGap = 13;
   const summaryH = 115;
@@ -245,7 +247,7 @@ export async function shareMembersJpgReport({
   const noteTop = summaryTop + summaryH + 17;
   fillRoundedRect(ctx, cardX + 39, noteTop, cardW - 78, 52, 13, colors.note, colors.noteBorder, 1);
   drawText(ctx, "Note:", cardX + 56, noteTop + 15, "700 17.5px Arial, sans-serif", colors.text);
-  drawText(ctx, noteText, cardX + 126, noteTop + 15, "400 17.5px Arial, sans-serif", colors.text);
+  drawWrappedText(ctx, noteText, cardX + 126, noteTop + 10, "400 16.5px Arial, sans-serif", colors.text, cardW - 78 - 90, 19, 2);
 
   const listTop = noteTop + 84;
   drawText(ctx, listTitle, cardX + 39, listTop, "700 26px Arial, sans-serif", colors.text);
@@ -271,14 +273,10 @@ export async function shareMembersJpgReport({
 
   function drawTableHeader(x, y) {
     const statusX = getStatusX(x);
-
     drawText(ctx, "NO", x, y, "700 14.5px Arial, sans-serif", colors.soft);
     drawText(ctx, "HOUSE", x + 45, y, "700 14.5px Arial, sans-serif", colors.soft);
     drawText(ctx, "NAME", x + 121, y, "700 14.5px Arial, sans-serif", colors.soft);
-    if (hasStatusColumn) {
-      drawText(ctx, "STATUS", statusX, y, "700 14.5px Arial, sans-serif", colors.soft, "left");
-    }
-
+    if (hasStatusColumn) drawText(ctx, "STATUS", statusX, y, "700 14.5px Arial, sans-serif", colors.soft, "left");
     ctx.strokeStyle = colors.border;
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -291,9 +289,7 @@ export async function shareMembersJpgReport({
   drawTableHeader(columnRight, tableHeaderY);
 
   function drawRow(index, member, x, y) {
-    if (index % 2 === 1) {
-      fillRoundedRect(ctx, x - 7, y - 5, columnWidth + 7, ROW_HEIGHT - 5, 9, colors.row);
-    }
+    if (index % 2 === 1) fillRoundedRect(ctx, x - 7, y - 5, columnWidth + 7, ROW_HEIGHT - 5, 9, colors.row);
 
     const status = clean(member.status || member.statusText);
     const statusColor = status === "Paid" ? colors.green : status === "Reimbursed" ? colors.blue : status === "Advanced" ? colors.red : colors.orange;
@@ -303,10 +299,7 @@ export async function shareMembersJpgReport({
     drawText(ctx, String(index).padStart(2, "0"), x, y + 1, "700 19px Arial, sans-serif", colors.blue);
     drawText(ctx, clean(member.house) || "-", x + 45, y - 2, "700 23.5px Arial, sans-serif", colors.text);
     drawText(ctx, truncateText(ctx, clean(member.name) || "-", nameMaxWidth), x + 121, y + 2, "400 20px Arial, sans-serif", colors.muted);
-
-    if (hasStatusColumn) {
-      drawText(ctx, status || "-", statusX, y + 2, "700 17px Arial, sans-serif", statusColor, "left");
-    }
+    if (hasStatusColumn) drawText(ctx, status || "-", statusX, y + 2, "700 17px Arial, sans-serif", statusColor, "left");
   }
 
   const rowsY = tableHeaderY + 38;
@@ -316,7 +309,6 @@ export async function shareMembersJpgReport({
     const columnIndex = inFirstColumn ? index : index - firstColumnCount;
     const x = inFirstColumn ? columnLeft : columnRight;
     const y = rowsY + columnIndex * ROW_HEIGHT;
-
     drawRow(rowNumber, member, x, y);
   });
 
