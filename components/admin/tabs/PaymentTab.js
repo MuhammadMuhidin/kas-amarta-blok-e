@@ -140,7 +140,7 @@ function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sen
     <div className="admin-card" style={reminderCardStyle}>
       <h3 style={reminderTitleStyle}>WhatsApp Monthly Reminder</h3>
       <p style={reminderDescriptionStyle}>
-        Preview reminder bulanan pembayaran kas dan sampah sebelum dikirim ke grup warga.
+        Preview the monthly cash and trash payment reminder before sending it to the resident group.
       </p>
       <button
         type="button"
@@ -166,7 +166,7 @@ function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sen
               <div style={modalHeaderTopStyle}>
                 <div>
                   <div id="payment-reminder-title" className="modal-title">Preview WhatsApp Reminder</div>
-                  <div className="modal-section">Pesan ini akan dikirim ke grup warga.</div>
+                  <div className="modal-section">This message will be sent to the resident group.</div>
                 </div>
                 <ModalCloseButton disabled={sendingReminder} onClose={closePreview} />
               </div>
