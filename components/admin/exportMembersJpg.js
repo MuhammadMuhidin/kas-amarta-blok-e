@@ -39,7 +39,7 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
   ctx.arcTo(x + width, y, x + width, y + height, r);
   ctx.arcTo(x + width, y + height, x, y + height, r);
   ctx.arcTo(x, y + height, x, y, r);
-  ctx.arcTo(x, y, x + width, y, r);
+  ctx.arcTo(x, y, x + r, y, r);
   ctx.closePath();
 }
 
@@ -104,13 +104,15 @@ function getWrappedLines(ctx, value, maxWidth, maxLines = 2) {
   return visible;
 }
 
-function drawWrappedText(ctx, text, x, y, font, fillStyle, maxWidth, lineHeight = 20, maxLines = 2) {
+function drawWrappedText(ctx, text, x, y, font, fillStyle, maxWidth, lineHeight = 20, maxLines = 2, singleLineOffsetY = 0) {
   ctx.font = font;
   ctx.fillStyle = fillStyle;
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  getWrappedLines(ctx, text, maxWidth, maxLines).forEach((line, index) => {
-    ctx.fillText(line, x, y + index * lineHeight);
+  const lines = getWrappedLines(ctx, text, maxWidth, maxLines);
+  const offsetY = lines.length === 1 ? singleLineOffsetY : 0;
+  lines.forEach((line, index) => {
+    ctx.fillText(line, x, y + offsetY + index * lineHeight);
   });
 }
 
@@ -247,7 +249,7 @@ export async function shareMembersJpgReport({
   const noteTop = summaryTop + summaryH + 17;
   fillRoundedRect(ctx, cardX + 39, noteTop, cardW - 78, 52, 13, colors.note, colors.noteBorder, 1);
   drawText(ctx, "Note:", cardX + 56, noteTop + 15, "700 17.5px Arial, sans-serif", colors.text);
-  drawWrappedText(ctx, noteText, cardX + 126, noteTop + 10, "400 16.5px Arial, sans-serif", colors.text, cardW - 78 - 90, 19, 2);
+  drawWrappedText(ctx, noteText, cardX + 126, noteTop + 10, "400 16.5px Arial, sans-serif", colors.text, cardW - 78 - 90, 19, 2, 5);
 
   const listTop = noteTop + 84;
   drawText(ctx, listTitle, cardX + 39, listTop, "700 26px Arial, sans-serif", colors.text);
