@@ -1,9 +1,17 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
-import { readJson } from "@/components/admin/adminClientApi";
+import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod } from "@/lib/depositUtils";
 import { useEffect, useMemo, useState } from "react";
 
 const START_PAYMENT_PERIOD = "2026-02";
+const PAYMENT_REMINDER_MESSAGE = [
+  "Assalamu’alaikum bapak/ibu warga Amarta Residence 2 Blok E.",
+  "",
+  "Izin mengingatkan bahwa pembayaran kas dan sampah bulan ini jatuh tempo hari ini. Bagi bapak/ibu yang belum melakukan pembayaran, mohon dapat segera melakukan pembayaran.",
+  "",
+  "Terima kasih 🙏",
+  "@semua",
+].join("\n");
 
 function isValidPeriod(period) {
   return /^\d{4}-\d{2}$/.test(period);
@@ -73,6 +81,71 @@ function WakeLockInfo({ wakeLock }) {
   return <div style={wakeLockInfoStyle}>{message}</div>;
 }
 
+function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sendReminder }) {
+  return (
+    <div className="admin-card" style={reminderCardStyle}>
+      <h3 style={reminderTitleStyle}>WhatsApp Monthly Reminder</h3>
+      <p style={reminderDescriptionStyle}>
+        Preview reminder bulanan pembayaran kas dan sampah sebelum dikirim ke grup warga.
+      </p>
+      <button
+        type="button"
+        className="admin-btn"
+        disabled={sendingReminder}
+        onClick={() => setShowPreview(true)}
+      >
+        <LoadingButtonContent loading={sendingReminder} loadingText="Sending reminder...">
+          Preview & Send Monthly Reminder
+        </LoadingButtonContent>
+      </button>
+
+      {showPreview && (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="payment-reminder-title">
+          <div className="modal-box" style={reminderModalStyle}>
+            <div className="modal-header">
+              <div>
+                <div id="payment-reminder-title" className="modal-title">Preview WhatsApp Reminder</div>
+                <div className="modal-section">Pesan ini akan dikirim ke grup warga.</div>
+              </div>
+              <button
+                type="button"
+                className="admin-small-btn"
+                disabled={sendingReminder}
+                onClick={() => setShowPreview(false)}
+              >
+                Close
+              </button>
+            </div>
+            <pre style={reminderPreviewStyle}>{PAYMENT_REMINDER_MESSAGE}</pre>
+            <div style={reminderActionsStyle}>
+              <button
+                type="button"
+                className="admin-small-btn"
+                disabled={sendingReminder}
+                onClick={() => setShowPreview(false)}
+                style={secondaryButtonStyle}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn"
+                disabled={sendingReminder}
+                onClick={sendReminder}
+                style={sendButtonStyle}
+              >
+                <LoadingButtonContent loading={sendingReminder} loadingText="Sending...">
+                  Send Reminder
+                </LoadingButtonContent>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PaymentTab({
   configError,
   recordPayment,
@@ -89,6 +162,8 @@ export default function PaymentTab({
   wakeLock,
 }) {
   const [deposits, setDeposits] = useState([]);
+  const [showReminderPreview, setShowReminderPreview] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
   const currentPeriod = getCurrentPeriod();
 
   useEffect(() => {
@@ -124,6 +199,23 @@ export default function PaymentTab({
   const loadingText = paymentProgress?.total
     ? `Recording payment ${paymentProgress.current}/${paymentProgress.total}...`
     : "Recording...";
+
+  async function sendPaymentReminder() {
+    if (sendingReminder) return;
+
+    try {
+      setSendingReminder(true);
+      await sendJson("/api/whatsapp/payment-reminder", "POST", {
+        message: PAYMENT_REMINDER_MESSAGE,
+      });
+      setShowReminderPreview(false);
+      alert("WhatsApp payment reminder sent successfully.");
+    } catch (err) {
+      alert(err.message || "Failed to send WhatsApp payment reminder.");
+    } finally {
+      setSendingReminder(false);
+    }
+  }
 
   function isPaidForPeriod(person, period) {
     return payments.some((pay) => {
@@ -168,6 +260,12 @@ export default function PaymentTab({
           Complete {pendingCurrentDeposits.length} current-month booking payments with Pay Now before recording manual payments.
         </div>
       )}
+      <PaymentReminderCard
+        sendingReminder={sendingReminder}
+        showPreview={showReminderPreview}
+        setShowPreview={setShowReminderPreview}
+        sendReminder={sendPaymentReminder}
+      />
       <div className="admin-card">
         <h3>Bulk Payment</h3>
         <form onSubmit={recordPayment} className="admin-form">
@@ -258,6 +356,55 @@ const wakeLockInfoStyle = {
   background: "var(--admin-row)",
   color: "var(--admin-muted)",
   fontSize: 12,
-  fontWeight: 700,
-  lineHeight: 1.45,
+};
+
+const reminderCardStyle = {
+  marginBottom: 16,
+};
+
+const reminderTitleStyle = {
+  marginTop: 0,
+  marginBottom: 8,
+};
+
+const reminderDescriptionStyle = {
+  margin: "0 0 14px",
+  color: "var(--admin-muted)",
+  fontSize: 14,
+  lineHeight: 1.5,
+};
+
+const reminderModalStyle = {
+  width: "min(100%, 560px)",
+};
+
+const reminderPreviewStyle = {
+  margin: "12px 0 16px",
+  padding: 14,
+  borderRadius: 12,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  color: "var(--admin-text)",
+  whiteSpace: "pre-wrap",
+  lineHeight: 1.6,
+  fontFamily: "inherit",
+  fontSize: 14,
+};
+
+const reminderActionsStyle = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: 10,
+  flexWrap: "wrap",
+};
+
+const secondaryButtonStyle = {
+  background: "var(--admin-row)",
+  color: "var(--admin-text)",
+  border: "1px solid var(--admin-border)",
+};
+
+const sendButtonStyle = {
+  width: "auto",
+  minWidth: 150,
 };
