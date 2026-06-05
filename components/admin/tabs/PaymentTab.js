@@ -1,5 +1,6 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
+import Toast from "@/components/Toast";
 import { getCurrentPeriod } from "@/lib/depositUtils";
 import { useEffect, useMemo, useState } from "react";
 
@@ -10,7 +11,6 @@ const PAYMENT_REMINDER_MESSAGE = [
   "Izin mengingatkan bahwa pembayaran kas dan sampah bulan ini jatuh tempo hari ini. Bagi bapak/ibu yang belum melakukan pembayaran, mohon dapat segera melakukan pembayaran.",
   "",
   "Terima kasih 🙏",
-  "@semua",
   "",
   "_Pesan ini dikirim secara otomatis._",
 ].join("\n");
@@ -83,7 +83,59 @@ function WakeLockInfo({ wakeLock }) {
   return <div style={wakeLockInfoStyle}>{message}</div>;
 }
 
+function useModalScrollLock(open) {
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [open]);
+}
+
+function usePaymentToast() {
+  const [toast, setToast] = useState({ show: false, type: "info", message: "" });
+
+  function showToast(type, message) {
+    setToast({ show: true, type, message });
+    setTimeout(() => {
+      setToast((current) => (
+        current.message === message ? { ...current, show: false } : current
+      ));
+    }, 2800);
+  }
+
+  return { toast, showToast };
+}
+
+function ModalCloseButton({ disabled, onClose }) {
+  return (
+    <button
+      type="button"
+      style={modalCloseButtonStyle}
+      disabled={disabled}
+      onClick={onClose}
+      aria-label="Close modal"
+    >
+      ×
+    </button>
+  );
+}
+
 function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sendReminder }) {
+  useModalScrollLock(showPreview);
+
+  function closePreview() {
+    if (!sendingReminder) setShowPreview(false);
+  }
+
   return (
     <div className="admin-card" style={reminderCardStyle}>
       <h3 style={reminderTitleStyle}>WhatsApp Monthly Reminder</h3>
@@ -102,21 +154,22 @@ function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sen
       </button>
 
       {showPreview && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="payment-reminder-title">
-          <div className="modal-box" style={reminderModalStyle}>
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payment-reminder-title"
+          onClick={closePreview}
+        >
+          <div className="modal-box" style={reminderModalStyle} onClick={(event) => event.stopPropagation()}>
             <div className="modal-header">
-              <div>
-                <div id="payment-reminder-title" className="modal-title">Preview WhatsApp Reminder</div>
-                <div className="modal-section">Pesan ini akan dikirim ke grup warga.</div>
+              <div style={modalHeaderTopStyle}>
+                <div>
+                  <div id="payment-reminder-title" className="modal-title">Preview WhatsApp Reminder</div>
+                  <div className="modal-section">Pesan ini akan dikirim ke grup warga.</div>
+                </div>
+                <ModalCloseButton disabled={sendingReminder} onClose={closePreview} />
               </div>
-              <button
-                type="button"
-                className="admin-small-btn"
-                disabled={sendingReminder}
-                onClick={() => setShowPreview(false)}
-              >
-                Close
-              </button>
             </div>
             <pre style={reminderPreviewStyle}>{PAYMENT_REMINDER_MESSAGE}</pre>
             <div style={reminderActionsStyle}>
@@ -124,7 +177,7 @@ function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sen
                 type="button"
                 className="admin-small-btn"
                 disabled={sendingReminder}
-                onClick={() => setShowPreview(false)}
+                onClick={closePreview}
                 style={secondaryButtonStyle}
               >
                 Cancel
@@ -166,6 +219,7 @@ export default function PaymentTab({
   const [deposits, setDeposits] = useState([]);
   const [showReminderPreview, setShowReminderPreview] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
+  const { toast, showToast } = usePaymentToast();
   const currentPeriod = getCurrentPeriod();
 
   useEffect(() => {
@@ -211,9 +265,9 @@ export default function PaymentTab({
         message: PAYMENT_REMINDER_MESSAGE,
       });
       setShowReminderPreview(false);
-      alert("WhatsApp payment reminder queued successfully.");
+      showToast("success", "WhatsApp payment reminder queued successfully.");
     } catch (err) {
-      alert(err.message || "Failed to send WhatsApp payment reminder.");
+      showToast("error", err.message || "Failed to send WhatsApp payment reminder.");
     } finally {
       setSendingReminder(false);
     }
@@ -256,6 +310,7 @@ export default function PaymentTab({
 
   return (
     <>
+      <Toast show={toast.show} type={toast.type} message={toast.message} />
       {configError && <div className="admin-error-box">{configError}</div>}
       {hasPendingCurrentDeposit && (
         <div className="admin-error-box">
@@ -378,6 +433,28 @@ const reminderDescriptionStyle = {
 
 const reminderModalStyle = {
   width: "min(100%, 560px)",
+};
+
+const modalHeaderTopStyle = {
+  width: "100%",
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 14,
+};
+
+const modalCloseButtonStyle = {
+  width: 34,
+  height: 34,
+  borderRadius: 999,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  color: "var(--admin-text)",
+  fontSize: 22,
+  lineHeight: 1,
+  fontWeight: 800,
+  cursor: "pointer",
+  flexShrink: 0,
 };
 
 const reminderPreviewStyle = {
