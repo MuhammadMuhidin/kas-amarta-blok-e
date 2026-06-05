@@ -1,9 +1,19 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
-import { readJson } from "@/components/admin/adminClientApi";
+import { readJson, sendJson } from "@/components/admin/adminClientApi";
+import Toast from "@/components/Toast";
 import { getCurrentPeriod } from "@/lib/depositUtils";
 import { useEffect, useMemo, useState } from "react";
 
 const START_PAYMENT_PERIOD = "2026-02";
+const PAYMENT_REMINDER_MESSAGE = [
+  "Assalamu’alaikum bapak/ibu warga Amarta Residence 2 Blok E.",
+  "",
+  "Izin mengingatkan bahwa pembayaran kas dan sampah bulan ini jatuh tempo hari ini. Bagi bapak/ibu yang belum melakukan pembayaran, mohon dapat segera melakukan pembayaran.",
+  "",
+  "Terima kasih 🙏",
+  "",
+  "_Pesan ini dikirim secara otomatis._",
+].join("\n");
 
 function isValidPeriod(period) {
   return /^\d{4}-\d{2}$/.test(period);
@@ -73,6 +83,124 @@ function WakeLockInfo({ wakeLock }) {
   return <div style={wakeLockInfoStyle}>{message}</div>;
 }
 
+function useModalScrollLock(open) {
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [open]);
+}
+
+function usePaymentToast() {
+  const [toast, setToast] = useState({ show: false, type: "info", message: "" });
+
+  function showToast(type, message) {
+    setToast({ show: true, type, message });
+    setTimeout(() => {
+      setToast((current) => (
+        current.message === message ? { ...current, show: false } : current
+      ));
+    }, 2800);
+  }
+
+  return { toast, showToast };
+}
+
+function ModalCloseButton({ disabled, onClose }) {
+  return (
+    <button
+      type="button"
+      style={modalCloseButtonStyle}
+      disabled={disabled}
+      onClick={onClose}
+      aria-label="Close modal"
+    >
+      ×
+    </button>
+  );
+}
+
+function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sendReminder }) {
+  useModalScrollLock(showPreview);
+
+  function closePreview() {
+    if (!sendingReminder) setShowPreview(false);
+  }
+
+  return (
+    <div className="admin-card" style={reminderCardStyle}>
+      <h3 style={reminderTitleStyle}>WhatsApp Monthly Reminder</h3>
+      <p style={reminderDescriptionStyle}>
+        Preview the monthly cash and trash payment reminder before sending it to the resident group.
+      </p>
+      <button
+        type="button"
+        className="admin-btn"
+        disabled={sendingReminder}
+        onClick={() => setShowPreview(true)}
+      >
+        <LoadingButtonContent loading={sendingReminder} loadingText="Sending reminder...">
+          Preview & Send Monthly Reminder
+        </LoadingButtonContent>
+      </button>
+
+      {showPreview && (
+        <div
+          className="modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payment-reminder-title"
+          onClick={closePreview}
+        >
+          <div className="modal-box" style={reminderModalStyle} onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header">
+              <div style={modalHeaderTopStyle}>
+                <div>
+                  <div id="payment-reminder-title" className="modal-title">Preview WhatsApp Reminder</div>
+                  <div className="modal-section">This message will be sent to the resident group.</div>
+                </div>
+                <ModalCloseButton disabled={sendingReminder} onClose={closePreview} />
+              </div>
+            </div>
+            <pre style={reminderPreviewStyle}>{PAYMENT_REMINDER_MESSAGE}</pre>
+            <div style={reminderActionsStyle}>
+              <button
+                type="button"
+                className="admin-small-btn"
+                disabled={sendingReminder}
+                onClick={closePreview}
+                style={secondaryButtonStyle}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="admin-btn"
+                disabled={sendingReminder}
+                onClick={sendReminder}
+                style={sendButtonStyle}
+              >
+                <LoadingButtonContent loading={sendingReminder} loadingText="Sending...">
+                  Send Reminder
+                </LoadingButtonContent>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PaymentTab({
   configError,
   recordPayment,
@@ -89,6 +217,9 @@ export default function PaymentTab({
   wakeLock,
 }) {
   const [deposits, setDeposits] = useState([]);
+  const [showReminderPreview, setShowReminderPreview] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState(false);
+  const { toast, showToast } = usePaymentToast();
   const currentPeriod = getCurrentPeriod();
 
   useEffect(() => {
@@ -124,6 +255,23 @@ export default function PaymentTab({
   const loadingText = paymentProgress?.total
     ? `Recording payment ${paymentProgress.current}/${paymentProgress.total}...`
     : "Recording...";
+
+  async function sendPaymentReminder() {
+    if (sendingReminder) return;
+
+    try {
+      setSendingReminder(true);
+      await sendJson("/api/waha/payment-reminder", "POST", {
+        message: PAYMENT_REMINDER_MESSAGE,
+      });
+      setShowReminderPreview(false);
+      showToast("success", "WhatsApp payment reminder queued successfully.");
+    } catch (err) {
+      showToast("error", err.message || "Failed to send WhatsApp payment reminder.");
+    } finally {
+      setSendingReminder(false);
+    }
+  }
 
   function isPaidForPeriod(person, period) {
     return payments.some((pay) => {
@@ -162,12 +310,19 @@ export default function PaymentTab({
 
   return (
     <>
+      <Toast show={toast.show} type={toast.type} message={toast.message} />
       {configError && <div className="admin-error-box">{configError}</div>}
       {hasPendingCurrentDeposit && (
         <div className="admin-error-box">
           Complete {pendingCurrentDeposits.length} current-month booking payments with Pay Now before recording manual payments.
         </div>
       )}
+      <PaymentReminderCard
+        sendingReminder={sendingReminder}
+        showPreview={showReminderPreview}
+        setShowPreview={setShowReminderPreview}
+        sendReminder={sendPaymentReminder}
+      />
       <div className="admin-card">
         <h3>Bulk Payment</h3>
         <form onSubmit={recordPayment} className="admin-form">
@@ -258,6 +413,77 @@ const wakeLockInfoStyle = {
   background: "var(--admin-row)",
   color: "var(--admin-muted)",
   fontSize: 12,
-  fontWeight: 700,
-  lineHeight: 1.45,
+};
+
+const reminderCardStyle = {
+  marginBottom: 16,
+};
+
+const reminderTitleStyle = {
+  marginTop: 0,
+  marginBottom: 8,
+};
+
+const reminderDescriptionStyle = {
+  margin: "0 0 14px",
+  color: "var(--admin-muted)",
+  fontSize: 14,
+  lineHeight: 1.5,
+};
+
+const reminderModalStyle = {
+  width: "min(100%, 560px)",
+};
+
+const modalHeaderTopStyle = {
+  width: "100%",
+  display: "flex",
+  alignItems: "flex-start",
+  justifyContent: "space-between",
+  gap: 14,
+};
+
+const modalCloseButtonStyle = {
+  width: 34,
+  height: 34,
+  borderRadius: 999,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  color: "var(--admin-text)",
+  fontSize: 22,
+  lineHeight: 1,
+  fontWeight: 800,
+  cursor: "pointer",
+  flexShrink: 0,
+};
+
+const reminderPreviewStyle = {
+  margin: "12px 0 16px",
+  padding: 14,
+  borderRadius: 12,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+  color: "var(--admin-text)",
+  whiteSpace: "pre-wrap",
+  lineHeight: 1.6,
+  fontFamily: "inherit",
+  fontSize: 14,
+};
+
+const reminderActionsStyle = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: 10,
+  flexWrap: "wrap",
+};
+
+const secondaryButtonStyle = {
+  background: "var(--admin-row)",
+  color: "var(--admin-text)",
+  border: "1px solid var(--admin-border)",
+};
+
+const sendButtonStyle = {
+  width: "auto",
+  minWidth: 150,
 };
