@@ -15,29 +15,70 @@ const DEFAULT_PAYMENT_REMINDER_MESSAGE = [
   "Izin mengingatkan bahwa pembayaran kas dan sampah bulan ini jatuh tempo hari ini. Bagi bapak/ibu yang belum melakukan pembayaran, mohon dapat segera melakukan pembayaran.",
   "",
   "Terima kasih 🙏",
+  "@semua",
 ].join("\n");
 
 function clean(value) {
   return String(value || "").trim();
 }
 
+function firstEnv(...keys) {
+  for (const key of keys) {
+    const value = clean(process.env[key]);
+    if (value) return value;
+  }
+
+  return "";
+}
+
 function readConfig() {
-  const endpoint = clean(process.env.WHATSAPP_REMINDER_ENDPOINT);
-  const groupId = clean(process.env.WHATSAPP_REMINDER_GROUP_ID);
-  const session = clean(process.env.WHATSAPP_REMINDER_SESSION || "default");
+  const endpoint = firstEnv(
+    "WHATSAPP_REPORT_ENDPOINT",
+    "WHATSAPP_API_URL",
+    "WHATSAPP_REMINDER_ENDPOINT",
+  );
+  const groupId = firstEnv(
+    "WHATSAPP_REPORT_GROUP_ID",
+    "WHATSAPP_GROUP_ID",
+    "WHATSAPP_REMINDER_GROUP_ID",
+  );
+  const session = firstEnv(
+    "WHATSAPP_REPORT_SESSION",
+    "WHATSAPP_SESSION",
+    "WHATSAPP_REMINDER_SESSION",
+  ) || "default";
+  const token = firstEnv(
+    "WHATSAPP_REPORT_TOKEN",
+    "WHATSAPP_API_TOKEN",
+  );
 
-  if (!endpoint) throw new Error("WHATSAPP_REMINDER_ENDPOINT belum dikonfigurasi.");
-  if (!groupId) throw new Error("WHATSAPP_REMINDER_GROUP_ID belum dikonfigurasi.");
+  if (!endpoint) {
+    throw new Error("Endpoint WhatsApp report belum dikonfigurasi.");
+  }
 
-  return { endpoint, groupId, session };
+  if (!groupId) {
+    throw new Error("Group ID WhatsApp report belum dikonfigurasi.");
+  }
+
+  return { endpoint, groupId, session, token };
+}
+
+function buildHeaders(token) {
+  const headers = { "Content-Type": "application/json" };
+
+  if (token) {
+    headers.Authorization = token;
+  }
+
+  return headers;
 }
 
 async function deliverReminder(message) {
-  const { endpoint, groupId, session } = readConfig();
+  const { endpoint, groupId, session, token } = readConfig();
   const response = await fetch(endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ chatId: groupId, text: message, session }),
+    headers: buildHeaders(token),
+    body: JSON.stringify({ chatId: groupId, text: message, message, session }),
   });
   const responseText = await response.text();
 
