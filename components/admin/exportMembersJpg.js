@@ -296,7 +296,7 @@ export async function shareMembersJpgReport({
     }
 
     const status = clean(member.status || member.statusText);
-    const statusColor = status === "Paid" ? colors.green : status === "Advanced" ? colors.red : colors.orange;
+    const statusColor = status === "Paid" ? colors.green : status === "Reimbursed" ? colors.blue : status === "Advanced" ? colors.red : colors.orange;
     const statusX = getStatusX(x);
     const nameMaxWidth = hasStatusColumn ? statusX - (x + 121) - 10 : columnWidth - 175;
 
