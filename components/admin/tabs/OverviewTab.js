@@ -9,7 +9,8 @@ import Toast from "@/components/Toast";
 import { useEffect, useRef, useState } from "react";
 
 const DETAIL_MODAL_PAGE_SIZE = 13;
-const TRASH_MODAL_PAGE_SIZE = 5;
+const TRASH_MODAL_DESKTOP_PAGE_SIZE = 13;
+const TRASH_MODAL_MOBILE_PAGE_SIZE = 3;
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
 const normalizeUpper = (value) => normalize(value).toUpperCase();
@@ -200,6 +201,11 @@ function chunkItems(items, pageSize) {
     chunks.push(items.slice(index, index + pageSize));
   }
   return chunks.length ? chunks : [[]];
+}
+
+function getTrashModalPageSize() {
+  if (typeof window === "undefined") return TRASH_MODAL_DESKTOP_PAGE_SIZE;
+  return window.matchMedia("(max-width: 640px)").matches ? TRASH_MODAL_MOBILE_PAGE_SIZE : TRASH_MODAL_DESKTOP_PAGE_SIZE;
 }
 
 function getSnapPage(event, totalPages) {
@@ -396,16 +402,30 @@ function TrashAllMembersModal({
 }) {
   useModalScrollLock(open);
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(getTrashModalPageSize);
   const sliderRef = useRef(null);
-  const pages = chunkItems(members, TRASH_MODAL_PAGE_SIZE);
+  const pages = chunkItems(members, pageSize);
   const balanceAfterAdvance = Number(currentBalance || 0) - Number(totalNeedAdvance || 0);
   const hasEnoughCash = balanceAfterAdvance >= 0;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const media = window.matchMedia("(max-width: 640px)");
+    const updatePageSize = () => {
+      setPageSize(media.matches ? TRASH_MODAL_MOBILE_PAGE_SIZE : TRASH_MODAL_DESKTOP_PAGE_SIZE);
+    };
+
+    updatePageSize();
+    media.addEventListener?.("change", updatePageSize);
+    return () => media.removeEventListener?.("change", updatePageSize);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
     setPage(0);
     sliderRef.current?.scrollTo({ left: 0, behavior: "auto" });
-  }, [open, members.length]);
+  }, [open, members.length, pageSize]);
 
   if (!open) return null;
 
@@ -458,7 +478,7 @@ function TrashAllMembersModal({
                   <div className="admin-empty-state">No trash member data.</div>
                 ) : pageItems.map((person, index) => (
                   <div key={person.id || `${person.house}-${pageIndex}-${index}`} style={styles.trashMemberItem}>
-                    <div style={styles.trashMemberNo}>{pageIndex * TRASH_MODAL_PAGE_SIZE + index + 1}</div>
+                    <div style={styles.trashMemberNo}>{pageIndex * pageSize + index + 1}</div>
                     <div style={styles.trashMemberMain}>
                       <div style={styles.trashMemberHouse}>{person.house || "-"}</div>
                       <div style={styles.trashMemberName}>{person.name || "-"}</div>
