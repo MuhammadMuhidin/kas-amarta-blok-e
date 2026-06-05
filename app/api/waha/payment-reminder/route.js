@@ -15,7 +15,6 @@ const DEFAULT_PAYMENT_REMINDER_MESSAGE = [
   "Izin mengingatkan bahwa pembayaran kas dan sampah bulan ini jatuh tempo hari ini. Bagi bapak/ibu yang belum melakukan pembayaran, mohon dapat segera melakukan pembayaran.",
   "",
   "Terima kasih 🙏",
-  "@semua",
   "",
   "_Pesan ini dikirim secara otomatis._",
 ].join("\n");
