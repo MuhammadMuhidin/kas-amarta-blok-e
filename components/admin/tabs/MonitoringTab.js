@@ -23,15 +23,45 @@ function Section({title,children}) {
 
 const rupiah = (v) => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v||0));
 const n = (v) => Number.isFinite(Number(v||0)) ? Number(v||0) : 0;
+const normalize = (v) => String(v || "").trim();
+const keyOf = (personId, period) => `${normalize(personId)}|${normalize(period)}`;
 
-function getSettlement({deposits,trashRecords}) {
+function parseTrashAdvanceRefId(refId) {
+  const parts = normalize(refId).split("-");
+  if (parts.length < 4 || parts[0].toUpperCase() !== "TRASHADV") return null;
+
+  const period = `${parts.at(-2)}-${parts.at(-1)}`;
+  if (!/^\d{4}-\d{2}$/.test(period)) return null;
+
+  const personId = parts.slice(1, -2).join("-");
+  if (!personId) return null;
+
+  return { personId, period };
+}
+
+function getSettlement({cashflows,deposits,trashRecords,payments}) {
   const periodNow = getCurrentPeriod();
   const recon = deposits.filter((d)=>String(d.status||"").toLowerCase()!=="paid").reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
-  const trashMonthly = trashRecords.reduce((t,r)=>{
+  const paymentById = new Map(payments.map((payment)=>[normalize(payment.id),payment]));
+  const trashPayments = trashRecords.map((trash)=>{
+    const payment = paymentById.get(normalize(trash.payment_id));
+    return { trash, payment };
+  }).filter(({payment})=>payment && normalize(payment.period) === periodNow);
+  const trashPaymentKeys = new Set(trashPayments.map(({payment})=>keyOf(payment.person_id, payment.period)));
+  const advanceRecords = cashflows.map((cashflow)=>{
+    const parsed = parseTrashAdvanceRefId(cashflow.ref_id);
+    return parsed ? { cashflow, ...parsed } : null;
+  }).filter((item)=>item && normalize(item.cashflow.type).toLowerCase()==="expense" && item.period === periodNow);
+  const advanceKeys = new Set(advanceRecords.map((item)=>keyOf(item.personId,item.period)));
+  const trashMonthlyReceived = trashRecords.reduce((t,r)=>{
     const period = String(r.date||"").slice(0,7);
     return period===periodNow ? t+n(r.amount) : t;
   },0);
-  return {recon,trashMonthly};
+  const trashAdvanceOutstanding = advanceRecords.reduce((total,item)=>trashPaymentKeys.has(keyOf(item.personId,item.period)) ? total : total+n(item.cashflow.amount),0);
+  const trashReimbursed = advanceRecords.reduce((total,item)=>trashPaymentKeys.has(keyOf(item.personId,item.period)) ? total+n(item.cashflow.amount) : total,0);
+  const trashPaidDirect = trashPayments.reduce((total,{trash,payment})=>advanceKeys.has(keyOf(payment.person_id,payment.period)) ? total : total+n(trash.amount),0);
+
+  return {recon,trashMonthlyReceived,trashAdvanceOutstanding,trashReimbursed,trashPaidDirect};
 }
 
 function fmtTime(value) {
@@ -67,7 +97,7 @@ function AlertTestCard({loading,result,onSend}) {
 }
 
 function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity,suspiciousData}) {
-  const sheetOk = !loadingSettlement && (rows.cashflows.length + rows.deposits.length + rows.trashRecords.length) > 0;
+  const sheetOk = !loadingSettlement && (rows.cashflows.length + rows.deposits.length + rows.payments.length + rows.trashRecords.length) > 0;
   const buildOk = Boolean(buildInfo);
   const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + depositPaymentIntegrity.length + suspiciousData.length;
   const integrityOk = integrityIssueCount === 0;
@@ -95,7 +125,7 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
   const [repairedPaymentIds,setRepairedPaymentIds] = useState([]);
   const [sendingTestAlert,setSendingTestAlert] = useState(false);
   const [testAlertResult,setTestAlertResult] = useState(null);
-  const [rows,setRows] = useState({cashflows:[],deposits:[],trashRecords:[]});
+  const [rows,setRows] = useState({cashflows:[],deposits:[],payments:[],trashRecords:[]});
   const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
   const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,depositPaymentIntegrity,suspiciousData]);
@@ -140,12 +170,12 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     async function loadSettlement() {
       setLoadingSettlement(true);
       try {
-        const endpoints = ["cashflow","deposit","trash"];
+        const endpoints = ["cashflow","deposit","trash","payment"];
         const res = await Promise.all(endpoints.map((x)=>fetch(`/api/sheets/${x}`,{cache:"no-store"})));
         const data = await Promise.all(res.map((r)=>r.json()));
-        if (active) setRows({cashflows:Array.isArray(data[0])?data[0]:[],deposits:Array.isArray(data[1])?data[1]:[],trashRecords:Array.isArray(data[2])?data[2]:[]});
+        if (active) setRows({cashflows:Array.isArray(data[0])?data[0]:[],deposits:Array.isArray(data[1])?data[1]:[],trashRecords:Array.isArray(data[2])?data[2]:[],payments:Array.isArray(data[3])?data[3]:[]});
       } catch {
-        if (active) setRows({cashflows:[],deposits:[],trashRecords:[]});
+        if (active) setRows({cashflows:[],deposits:[],payments:[],trashRecords:[]});
       } finally {
         if (active) setLoadingSettlement(false);
       }
@@ -203,7 +233,7 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
 
     <Section title="Operational Health Check">
       <div className="admin-monitor-grid">
-        <MonitoringCard label="Sheets API" value={loadingSettlement?"Checking...":health.sheetOk?"Connected":"Need check"} meta={[health.sheetOk?`${rows.cashflows.length} cashflow, ${rows.deposits.length} booking, ${rows.trashRecords.length} trash rows loaded.`:"Operational data has not been read yet."]} error={!loadingSettlement&&!health.sheetOk} />
+        <MonitoringCard label="Sheets API" value={loadingSettlement?"Checking...":health.sheetOk?"Connected":"Need check"} meta={[health.sheetOk?`${rows.cashflows.length} cashflow, ${rows.deposits.length} booking, ${rows.payments.length} payment, ${rows.trashRecords.length} trash rows loaded.`:"Operational data has not been read yet."]} error={!loadingSettlement&&!health.sheetOk} />
         <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"There are issues that need review."]} error={!health.integrityOk} />
         <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data and build metadata are available for reports.":"Reports may fail if data/build status is unhealthy."]} error={!health.reportReady} />
         <MonitoringCard label="Receipt Storage" value={receiptStorageView.value} meta={receiptStorageView.meta} error={receiptStorageView.error} />
@@ -213,7 +243,10 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     <Section title="Settlement">
       <div className="admin-monitor-grid">
         <MonitoringCard label="Reconciliation Balance" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total unpaid booking payments."]} />
-        <MonitoringCard label="Monthly Trash Payment" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthly)} meta={["Total trash fee payments received in the current month."]} />
+        <MonitoringCard label="Monthly Trash Received" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthlyReceived)} meta={["Trash fee payments received from residents this month."]} />
+        <MonitoringCard label="Trash Advance Outstanding" value={loadingSettlement?"Checking...":rupiah(settlement.trashAdvanceOutstanding)} meta={["Advanced trash fees not reimbursed by residents yet."]} error={!loadingSettlement && settlement.trashAdvanceOutstanding > 0} />
+        <MonitoringCard label="Trash Reimbursed" value={loadingSettlement?"Checking...":rupiah(settlement.trashReimbursed)} meta={["Previously advanced trash fees already paid back by residents."]} />
+        <MonitoringCard label="Trash Paid Direct" value={loadingSettlement?"Checking...":rupiah(settlement.trashPaidDirect)} meta={["Trash fees paid without prior cash advance."]} />
       </div>
     </Section>
 
