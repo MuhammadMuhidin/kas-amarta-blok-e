@@ -11,6 +11,8 @@ const PAYMENT_REMINDER_MESSAGE = [
   "",
   "Terima kasih 🙏",
   "@semua",
+  "",
+  "_Pesan ini dikirim secara otomatis._",
 ].join("\n");
 
 function isValidPeriod(period) {
