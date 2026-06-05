@@ -218,12 +218,14 @@ function getTrashAdvanceRefId(personId, period) {
 }
 
 function getTrashStatusLabel(person) {
+  if (person.trashReimbursed) return "Reimbursed";
   if (person.trashPaid) return "Paid";
   if (person.trashAdvanced) return "Advanced";
   return "Need Advance";
 }
 
 function getTrashStatusStyle(person) {
+  if (person.trashReimbursed) return styles.trashStatusReimbursed;
   if (person.trashPaid) return styles.trashStatusPaid;
   if (person.trashAdvanced) return styles.trashStatusAdvanced;
   return styles.trashStatusNeedAdvance;
@@ -378,11 +380,13 @@ function TrashAllMembersModal({
   open,
   periodLabel,
   members,
-  paidCount,
+  paidDirectCount,
+  reimbursedCount,
   needAdvanceCount,
   advancedCount,
   totalNeedAdvance,
   totalAdvanced,
+  totalReimbursed,
   currentBalance,
   sharing,
   advancing,
@@ -429,14 +433,16 @@ function TrashAllMembersModal({
 
         <div style={styles.trashSummaryGrid}>
           <div style={styles.trashSummaryItem}><span>Total Members</span><strong>{members.length}</strong></div>
-          <div style={styles.trashSummaryItem}><span>Paid</span><strong style={{ color: "#16a34a" }}>{paidCount}</strong></div>
-          <div style={styles.trashSummaryItem}><span>Need Advance</span><strong style={{ color: "#d97706" }}>{needAdvanceCount}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Paid Direct</span><strong style={{ color: "#16a34a" }}>{paidDirectCount}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Reimbursed</span><strong style={{ color: "#2563eb" }}>{reimbursedCount}</strong></div>
           <div style={styles.trashSummaryItem}><span>Advanced</span><strong style={{ color: "#dc2626" }}>{advancedCount}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Need Advance</span><strong style={{ color: "#d97706" }}>{needAdvanceCount}</strong></div>
         </div>
         <div style={{ ...styles.trashAdvanceNote, ...(hasEnoughCash ? styles.trashAdvanceSafe : styles.trashAdvanceDanger) }}>
           Need to advance: <strong>{money(totalNeedAdvance)}</strong><br />
-          Already advanced by cash: <strong>{money(totalAdvanced)}</strong><br />
-          Cash balance after advance: <strong>{money(balanceAfterAdvance)}</strong><br />
+          Outstanding advance: <strong>{money(totalAdvanced)}</strong><br />
+          Reimbursed advance: <strong>{money(totalReimbursed)}</strong><br />
+          Cash balance after remaining advance: <strong>{money(balanceAfterAdvance)}</strong><br />
           Status: <strong>{hasEnoughCash ? "Safe" : "Not enough cash"}</strong>
         </div>
 
@@ -611,14 +617,25 @@ export default function OverviewTab({
   const allTrashMembers = sortMembers(activeCurrentTrashMembers).map((person) => {
     const personId = normalize(person.id);
     const trashPaid = trashPaidPersonIds.has(personId);
-    const trashAdvanced = !trashPaid && trashAdvanceRefIds.has(getTrashAdvanceRefId(personId, currentPeriod));
+    const hasTrashAdvance = trashAdvanceRefIds.has(getTrashAdvanceRefId(personId, currentPeriod));
+    const trashReimbursed = trashPaid && hasTrashAdvance;
+    const trashAdvanced = !trashPaid && hasTrashAdvance;
 
-    return { ...person, trashPaid, trashAdvanced, status: trashPaid ? "Paid" : trashAdvanced ? "Advanced" : "Need Advance" };
+    return {
+      ...person,
+      trashPaid,
+      trashAdvanced,
+      trashReimbursed,
+      status: trashReimbursed ? "Reimbursed" : trashPaid ? "Paid" : trashAdvanced ? "Advanced" : "Need Advance",
+    };
   });
   const needAdvanceTrashCount = allTrashMembers.filter((person) => !person.trashPaid && !person.trashAdvanced).length;
   const advancedTrashCount = allTrashMembers.filter((person) => person.trashAdvanced).length;
+  const reimbursedTrashCount = allTrashMembers.filter((person) => person.trashReimbursed).length;
+  const paidDirectTrashCount = allTrashMembers.filter((person) => person.trashPaid && !person.trashReimbursed).length;
   const totalNeedAdvanceTrash = needAdvanceTrashCount * Number(appConfig?.trash_fee || 0);
   const totalAdvancedTrash = advancedTrashCount * Number(appConfig?.trash_fee || 0);
+  const totalReimbursedTrash = reimbursedTrashCount * Number(appConfig?.trash_fee || 0);
   const allIncome = cashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const allExpense = cashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const currentBalance = allIncome - allExpense;
@@ -670,13 +687,13 @@ export default function OverviewTab({
         members: allTrashMembers,
         summaryItems: [
           ["Members", `${allTrashMembers.length} houses`, "Trash registered"],
-          ["Paid", `${paidCurrentTrashCount} houses`, "Already paid"],
-          ["Need", money(totalNeedAdvanceTrash), `${needAdvanceTrashCount} houses`],
+          ["Outstanding", money(totalAdvancedTrash + totalNeedAdvanceTrash), `${advancedTrashCount + needAdvanceTrashCount} houses`],
+          ["Reimbursed", money(totalReimbursedTrash), `${reimbursedTrashCount} houses`],
         ],
         badgeText: "TRASH REPORT",
         listTitle: "Trash Member Status",
-        noteText: "Paid = already paid. Need Advance = not yet advanced. Advanced = temporarily paid by cash.",
-        footerNote: `Already advanced by cash: ${money(totalAdvancedTrash)} from ${advancedTrashCount} houses.`,
+        noteText: "Paid = paid without prior advance. Reimbursed = previously advanced and already paid. Advanced = temporarily paid by cash. Need Advance = not yet advanced.",
+        footerNote: `Paid direct: ${paidDirectTrashCount} houses. Advanced outstanding: ${money(totalAdvancedTrash)} from ${advancedTrashCount} houses.`,
         fileName: `trash-payment-all-${currentPeriod}.jpg`,
       });
       showToast("success", result === "shared" ? "JPG is ready to share." : "JPG downloaded successfully.");
@@ -830,11 +847,13 @@ export default function OverviewTab({
         open={showAllTrashDetail}
         periodLabel={periodLabel}
         members={allTrashMembers}
-        paidCount={paidCurrentTrashCount}
+        paidDirectCount={paidDirectTrashCount}
+        reimbursedCount={reimbursedTrashCount}
         needAdvanceCount={needAdvanceTrashCount}
         advancedCount={advancedTrashCount}
         totalNeedAdvance={totalNeedAdvanceTrash}
         totalAdvanced={totalAdvancedTrash}
+        totalReimbursed={totalReimbursedTrash}
         currentBalance={currentBalance}
         sharing={exportingDetailJpg === "sampah-all"}
         advancing={advancingTrash}
@@ -900,6 +919,7 @@ const styles = {
   trashMemberName: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   trashStatusBadge: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "5px 9px", borderRadius: 999, fontSize: 11, fontWeight: 900, whiteSpace: "nowrap" },
   trashStatusPaid: { background: "#dcfce7", color: "#16a34a" },
+  trashStatusReimbursed: { background: "#dbeafe", color: "#2563eb" },
   trashStatusAdvanced: { background: "#fee2e2", color: "#dc2626" },
   trashStatusNeedAdvance: { background: "#fef3c7", color: "#d97706" },
   cashflowList: { display: "grid", gap: 0, padding: "6px 14px", borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
