@@ -45,6 +45,7 @@
   max-width: 520px;
   max-height: 88vh;
   overflow: auto;
+  padding: 0 !important;
   border: 1px solid var(--admin-border);
   border-radius: 22px;
   background: var(--admin-card);
@@ -295,8 +296,8 @@
   }
 
   .activity-modal {
-    max-height: 86vh;
-    border-radius: 20px 20px 16px 16px;
+    max-height: calc(100dvh - 24px);
+    border-radius: 20px;
   }
 
   .activity-modal-row {
