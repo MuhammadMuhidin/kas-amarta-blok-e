@@ -2,7 +2,7 @@
 
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./AdminActivityPanel.css";
 
 const modules = [
@@ -41,6 +41,23 @@ function titleCase(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function useModalScrollLock(open) {
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [open]);
+}
+
 function DetailRow({ label, value }) {
   return (
     <div className="activity-modal-row">
@@ -59,6 +76,8 @@ export default function AdminActivityPanel() {
   const [dateTo, setDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+
+  useModalScrollLock(Boolean(selectedActivity));
 
   const queryBase = useMemo(() => {
     const params = new URLSearchParams();
