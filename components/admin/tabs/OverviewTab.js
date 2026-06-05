@@ -6,8 +6,11 @@ import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+const DETAIL_MODAL_PAGE_SIZE = 13;
+const TRASH_MODAL_DESKTOP_PAGE_SIZE = 13;
+const TRASH_MODAL_MOBILE_PAGE_SIZE = 3;
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
 const normalizeUpper = (value) => normalize(value).toUpperCase();
@@ -39,11 +42,22 @@ const overviewAdminCss = `
 
   .admin-wrapper .modal-overlay {
     animation: adminModalOverlayIn 0.18s ease-out;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 18px 12px;
   }
 
   .admin-wrapper .modal-box {
     animation: adminModalContentIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     transform-origin: center;
+    max-height: calc(100dvh - 36px);
+    overflow-y: auto;
+    position: relative;
+  }
+
+  .admin-wrapper .overview-modal-close {
+    display: none;
   }
 
   .admin-wrapper .detail-table {
@@ -58,6 +72,61 @@ const overviewAdminCss = `
     white-space: nowrap;
   }
 
+  .admin-wrapper .pay-slider {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    scroll-snap-stop: always;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    padding-bottom: 8px;
+    padding-inline: 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .admin-wrapper .pay-slider::-webkit-scrollbar {
+    display: none;
+  }
+
+  .admin-wrapper .pay-slide-page {
+    display: block;
+    box-sizing: border-box;
+    flex: 0 0 100%;
+    min-width: 100%;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+
+  .admin-wrapper .pay-slide-page > * {
+    width: 100%;
+  }
+
+  .admin-wrapper .pay-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .admin-wrapper .pay-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--admin-border);
+    transition: all .25s ease;
+    cursor: pointer;
+  }
+
+  .admin-wrapper .pay-dots span.active {
+    width: 22px;
+    background: var(--admin-primary);
+  }
+
   @keyframes adminModalOverlayIn {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -66,6 +135,31 @@ const overviewAdminCss = `
   @keyframes adminModalContentIn {
     from { opacity: 0; transform: translateY(8px) scale(0.98); }
     to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @media (max-width: 640px) {
+    .admin-wrapper .modal-overlay {
+      align-items: center;
+      justify-content: center;
+      padding: 12px 8px;
+    }
+
+    .admin-wrapper .modal-box {
+      width: min(100%, calc(100vw - 16px));
+      max-height: calc(100dvh - 24px);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .admin-wrapper .modal-header {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .admin-wrapper .overview-modal-close {
+      display: inline-flex;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -101,6 +195,48 @@ function getPercent(value, total) {
   return Math.min(100, Math.max(0, Math.round((Number(value || 0) / Number(total || 0)) * 100)));
 }
 
+function chunkItems(items, pageSize) {
+  const chunks = [];
+  for (let index = 0; index < items.length; index += pageSize) {
+    chunks.push(items.slice(index, index + pageSize));
+  }
+  return chunks.length ? chunks : [[]];
+}
+
+function getTrashModalPageSize() {
+  if (typeof window === "undefined") return TRASH_MODAL_DESKTOP_PAGE_SIZE;
+  return window.matchMedia("(max-width: 640px)").matches ? TRASH_MODAL_MOBILE_PAGE_SIZE : TRASH_MODAL_DESKTOP_PAGE_SIZE;
+}
+
+function getSnapPage(event, totalPages) {
+  const width = event.currentTarget.clientWidth || 1;
+  return Math.min(totalPages - 1, Math.max(0, Math.round(event.currentTarget.scrollLeft / width)));
+}
+
+function scrollToSnapPage(ref, page) {
+  const slider = ref.current;
+  if (!slider) return;
+  slider.scrollTo({ left: slider.clientWidth * page, behavior: "smooth" });
+}
+
+function getTrashAdvanceRefId(personId, period) {
+  return `TRASHADV-${normalize(personId)}-${normalize(period)}`;
+}
+
+function getTrashStatusLabel(person) {
+  if (person.trashReimbursed) return "Reimbursed";
+  if (person.trashPaid) return "Paid";
+  if (person.trashAdvanced) return "Advanced";
+  return "Need Advance";
+}
+
+function getTrashStatusStyle(person) {
+  if (person.trashReimbursed) return styles.trashStatusReimbursed;
+  if (person.trashPaid) return styles.trashStatusPaid;
+  if (person.trashAdvanced) return styles.trashStatusAdvanced;
+  return styles.trashStatusNeedAdvance;
+}
+
 function Section({ title, children }) {
   return <section style={{ display: "grid", gap: 12 }}><h3 style={{ margin: 0 }}>{title}</h3>{children}</section>;
 }
@@ -127,7 +263,7 @@ function AlertItem({ tone = "info", title, detail, action, onClick }) {
   );
 }
 
-function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
+function useModalScrollLock(open) {
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
 
@@ -142,42 +278,221 @@ function DetailMembersModal({ open, title, members, statusText, emptyText, share
       document.documentElement.style.overflow = previousDocumentOverflow;
     };
   }, [open]);
+}
+
+function ModalCloseButton({ onClose }) {
+  return <button type="button" className="overview-modal-close" style={styles.modalCloseButton} onClick={onClose} aria-label="Close modal">×</button>;
+}
+
+function PaymentDots({ totalPages, page, onChange }) {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="pay-dots">
+      {Array.from({ length: totalPages }).map((_, index) => (
+        <span
+          key={index}
+          className={index === page ? "active" : ""}
+          role="button"
+          tabIndex={0}
+          aria-label={`Go to page ${index + 1}`}
+          onClick={() => onChange(index)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onChange(index);
+            }
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
+  useModalScrollLock(open);
+  const [page, setPage] = useState(0);
+  const sliderRef = useRef(null);
+  const pages = chunkItems(members, DETAIL_MODAL_PAGE_SIZE);
+
+  useEffect(() => {
+    if (!open) return;
+    setPage(0);
+    sliderRef.current?.scrollTo({ left: 0, behavior: "auto" });
+  }, [open, members.length]);
 
   if (!open) return null;
+
+  function handleDotChange(nextPage) {
+    setPage(nextPage);
+    scrollToSnapPage(sliderRef, nextPage);
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
-          <div>
-            <div className="modal-title">{title}</div>
-            <div className="modal-section">{members.length} houses {statusText}.</div>
+          <div style={styles.modalHeaderTop}>
+            <div style={styles.modalTitleGroup}>
+              <div className="modal-title">{title}</div>
+              <div className="modal-section">{members.length} houses {statusText}.</div>
+            </div>
+            <ModalCloseButton onClose={onClose} />
           </div>
-          {onShareJpg && (
-            <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0} onClick={onShareJpg}>{shareLabel}</AdminActionButton>
-          )}
+          <div style={styles.modalActions}>
+            {onShareJpg && (
+              <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0} onClick={onShareJpg}>{shareLabel}</AdminActionButton>
+            )}
+          </div>
         </div>
 
-        <table className="detail-table">
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>House</th>
-              <th>Name</th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.length === 0 ? (
-              <tr><td colSpan={3}>{emptyText}</td></tr>
-            ) : members.map((person, index) => (
-              <tr key={person.id || `${person.house}-${index}`}>
-                <td>{index + 1}</td>
-                <td>{person.house || "-"}</td>
-                <td>{person.name || "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div
+          ref={sliderRef}
+          className="pay-slider"
+          onScroll={(event) => setPage(getSnapPage(event, pages.length))}
+        >
+          {pages.map((pageItems, pageIndex) => (
+            <div className="pay-slide-page" key={pageIndex}>
+              <table className="detail-table">
+                <thead>
+                  <tr>
+                    <th>No</th>
+                    <th>House</th>
+                    <th>Name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members.length === 0 ? (
+                    <tr><td colSpan={3}>{emptyText}</td></tr>
+                  ) : pageItems.map((person, index) => (
+                    <tr key={person.id || `${person.house}-${pageIndex}-${index}`}>
+                      <td>{pageIndex * DETAIL_MODAL_PAGE_SIZE + index + 1}</td>
+                      <td>{person.house || "-"}</td>
+                      <td>{person.name || "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+        </div>
+        <PaymentDots totalPages={pages.length} page={page} onChange={handleDotChange} />
+      </div>
+    </div>
+  );
+}
+
+function TrashAllMembersModal({
+  open,
+  periodLabel,
+  members,
+  paidDirectCount,
+  reimbursedCount,
+  needAdvanceCount,
+  advancedCount,
+  totalNeedAdvance,
+  totalAdvanced,
+  totalReimbursed,
+  currentBalance,
+  sharing,
+  advancing,
+  onShareJpg,
+  onAdvance,
+  onClose,
+}) {
+  useModalScrollLock(open);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(getTrashModalPageSize);
+  const sliderRef = useRef(null);
+  const pages = chunkItems(members, pageSize);
+  const balanceAfterAdvance = Number(currentBalance || 0) - Number(totalNeedAdvance || 0);
+  const hasEnoughCash = balanceAfterAdvance >= 0;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const media = window.matchMedia("(max-width: 640px)");
+    const updatePageSize = () => {
+      setPageSize(media.matches ? TRASH_MODAL_MOBILE_PAGE_SIZE : TRASH_MODAL_DESKTOP_PAGE_SIZE);
+    };
+
+    updatePageSize();
+    media.addEventListener?.("change", updatePageSize);
+    return () => media.removeEventListener?.("change", updatePageSize);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    setPage(0);
+    sliderRef.current?.scrollTo({ left: 0, behavior: "auto" });
+  }, [open, members.length, pageSize]);
+
+  if (!open) return null;
+
+  function handleDotChange(nextPage) {
+    setPage(nextPage);
+    scrollToSnapPage(sliderRef, nextPage);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div style={styles.modalHeaderTop}>
+            <div style={styles.modalTitleGroup}>
+              <div className="modal-title">All Trash Payment Details</div>
+              <div className="modal-section">{members.length} trash members for {periodLabel}.</div>
+            </div>
+            <ModalCloseButton onClose={onClose} />
+          </div>
+          <div style={styles.trashModalActions}>
+            <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0 || advancing} onClick={onShareJpg}>Share JPG</AdminActionButton>
+            <AdminActionButton loading={advancing} loadingText="Advancing..." disabled={needAdvanceCount === 0 || sharing} onClick={onAdvance}>Advance Unpaid Trash</AdminActionButton>
+          </div>
+        </div>
+
+        <div style={styles.trashSummaryGrid}>
+          <div style={styles.trashSummaryItem}><span>Total Members</span><strong>{members.length}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Paid Direct</span><strong style={{ color: "#16a34a" }}>{paidDirectCount}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Reimbursed</span><strong style={{ color: "#2563eb" }}>{reimbursedCount}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Advanced</span><strong style={{ color: "#dc2626" }}>{advancedCount}</strong></div>
+          <div style={styles.trashSummaryItem}><span>Need Advance</span><strong style={{ color: "#d97706" }}>{needAdvanceCount}</strong></div>
+        </div>
+        <div style={{ ...styles.trashAdvanceNote, ...(hasEnoughCash ? styles.trashAdvanceSafe : styles.trashAdvanceDanger) }}>
+          Need to advance: <strong>{money(totalNeedAdvance)}</strong><br />
+          Outstanding advance: <strong>{money(totalAdvanced)}</strong><br />
+          Reimbursed advance: <strong>{money(totalReimbursed)}</strong><br />
+          Projected balance: <strong>{money(balanceAfterAdvance)}</strong><br />
+          Status: <strong>{hasEnoughCash ? "Safe" : "Not enough cash"}</strong>
+        </div>
+
+        <div
+          ref={sliderRef}
+          className="pay-slider"
+          onScroll={(event) => setPage(getSnapPage(event, pages.length))}
+        >
+          {pages.map((pageItems, pageIndex) => (
+            <div className="pay-slide-page" key={pageIndex}>
+              <div style={styles.trashMemberList}>
+                {members.length === 0 ? (
+                  <div className="admin-empty-state">No trash member data.</div>
+                ) : pageItems.map((person, index) => (
+                  <div key={person.id || `${person.house}-${pageIndex}-${index}`} style={styles.trashMemberItem}>
+                    <div style={styles.trashMemberNo}>{pageIndex * pageSize + index + 1}</div>
+                    <div style={styles.trashMemberMain}>
+                      <div style={styles.trashMemberHouse}>{person.house || "-"}</div>
+                      <div style={styles.trashMemberName}>{person.name || "-"}</div>
+                    </div>
+                    <span style={{ ...styles.trashStatusBadge, ...getTrashStatusStyle(person) }}>
+                      {getTrashStatusLabel(person)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <PaymentDots totalPages={pages.length} page={page} onChange={handleDotChange} />
       </div>
     </div>
   );
@@ -251,6 +566,7 @@ export default function OverviewTab({
   monitoringIssueCount,
   getDepositStatus,
   onNavigate,
+  onTrashAdvanceComplete,
 }) {
   const [sendingReport, setSendingReport] = useState(false);
   const [loadingReportPreview, setLoadingReportPreview] = useState(false);
@@ -258,23 +574,12 @@ export default function OverviewTab({
   const [showReportConfirm, setShowReportConfirm] = useState(false);
   const [unpaidDetail, setUnpaidDetail] = useState(null);
   const [showPaidTrashDetail, setShowPaidTrashDetail] = useState(false);
+  const [showAllTrashDetail, setShowAllTrashDetail] = useState(false);
+  const [advancingTrash, setAdvancingTrash] = useState(false);
   const [exportingDetailJpg, setExportingDetailJpg] = useState("");
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
 
-  useEffect(() => {
-    if (!showReportConfirm || typeof document === "undefined") return undefined;
-
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousDocumentOverflow = document.documentElement.style.overflow;
-
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousDocumentOverflow;
-    };
-  }, [showReportConfirm]);
+  useModalScrollLock(showReportConfirm);
 
   function showToast(type, message) {
     setToast({ show: true, type, message });
@@ -324,10 +629,33 @@ export default function OverviewTab({
   const unpaidCurrentMembers = sortMembers(activeCurrentMembers.filter((person) => !paidCurrentKeys.has(normalize(person.house))));
   const unpaidCurrentCount = unpaidCurrentMembers.length;
   const trashPaidPersonIds = new Set(trashRecords.map((trash) => paymentById.get(normalize(trash.payment_id))).filter((payment) => payment && String(payment.date || "").slice(0, 7) === currentPeriod).map((payment) => normalize(payment.person_id)).filter(Boolean));
+  const trashAdvanceRefIds = new Set(cashflows.map((item) => normalize(item.ref_id)).filter((refId) => refId.startsWith("TRASHADV-") && refId.endsWith(`-${currentPeriod}`)));
   const paidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => trashPaidPersonIds.has(normalize(person.id))));
   const paidCurrentTrashCount = paidCurrentTrashMembers.length;
   const unpaidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => !trashPaidPersonIds.has(normalize(person.id))));
   const unpaidCurrentTrashCount = unpaidCurrentTrashMembers.length;
+  const allTrashMembers = sortMembers(activeCurrentTrashMembers).map((person) => {
+    const personId = normalize(person.id);
+    const trashPaid = trashPaidPersonIds.has(personId);
+    const hasTrashAdvance = trashAdvanceRefIds.has(getTrashAdvanceRefId(personId, currentPeriod));
+    const trashReimbursed = trashPaid && hasTrashAdvance;
+    const trashAdvanced = !trashPaid && hasTrashAdvance;
+
+    return {
+      ...person,
+      trashPaid,
+      trashAdvanced,
+      trashReimbursed,
+      status: trashReimbursed ? "Reimbursed" : trashPaid ? "Paid" : trashAdvanced ? "Advanced" : "Need Advance",
+    };
+  });
+  const needAdvanceTrashCount = allTrashMembers.filter((person) => !person.trashPaid && !person.trashAdvanced).length;
+  const advancedTrashCount = allTrashMembers.filter((person) => person.trashAdvanced).length;
+  const reimbursedTrashCount = allTrashMembers.filter((person) => person.trashReimbursed).length;
+  const paidDirectTrashCount = allTrashMembers.filter((person) => person.trashPaid && !person.trashReimbursed).length;
+  const totalNeedAdvanceTrash = needAdvanceTrashCount * Number(appConfig?.trash_fee || 0);
+  const totalAdvancedTrash = advancedTrashCount * Number(appConfig?.trash_fee || 0);
+  const totalReimbursedTrash = reimbursedTrashCount * Number(appConfig?.trash_fee || 0);
   const allIncome = cashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const allExpense = cashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const currentBalance = allIncome - allExpense;
@@ -366,6 +694,47 @@ export default function OverviewTab({
       showToast("error", err.message || "Failed to create JPG.");
     } finally {
       setExportingDetailJpg("");
+    }
+  }
+
+  async function handleShareAllTrashJpg() {
+    if (exportingDetailJpg) return;
+    setExportingDetailJpg("sampah-all");
+    try {
+      const result = await shareMembersJpgReport({
+        title: "Trash Payment Report",
+        period: currentPeriod,
+        members: allTrashMembers,
+        summaryItems: [
+          ["Members", `${allTrashMembers.length} houses`, "Trash registered"],
+          ["Outstanding", money(totalAdvancedTrash + totalNeedAdvanceTrash), `${advancedTrashCount + needAdvanceTrashCount} houses`],
+          ["Reimbursed", money(totalReimbursedTrash), `${reimbursedTrashCount} houses`],
+        ],
+        badgeText: "TRASH REPORT",
+        listTitle: "Trash Member Status",
+        noteText: "Paid = paid without prior advance. Reimbursed = previously advanced and already paid. Advanced = temporarily paid by cash. Need Advance = not yet advanced.",
+        footerNote: `Paid direct: ${paidDirectTrashCount} houses. Advanced outstanding: ${money(totalAdvancedTrash)} from ${advancedTrashCount} houses.`,
+        fileName: `trash-payment-all-${currentPeriod}.jpg`,
+      });
+      showToast("success", result === "shared" ? "JPG is ready to share." : "JPG downloaded successfully.");
+    } catch (err) {
+      showToast("error", err.message || "Failed to create JPG.");
+    } finally {
+      setExportingDetailJpg("");
+    }
+  }
+
+  async function handleAdvanceUnpaidTrash() {
+    if (advancingTrash || needAdvanceTrashCount === 0) return;
+    setAdvancingTrash(true);
+    try {
+      const data = await sendJson("/api/sheets/trash/advance-bulk", "POST", { period: currentPeriod });
+      await onTrashAdvanceComplete?.();
+      showToast("success", `Advanced ${data.advanced || 0} trash expenses. Total ${money(data.total || 0)}.`);
+    } catch (err) {
+      showToast("error", err.message || "Failed to advance unpaid trash.");
+    } finally {
+      setAdvancingTrash(false);
     }
   }
 
@@ -413,6 +782,7 @@ export default function OverviewTab({
               metaActions={[
                 unpaidCurrentTrashCount > 0 ? { label: "View Unpaid", onClick: () => setUnpaidDetail({ type: "sampah-unpaid", title: "Unpaid Trash Details", members: unpaidCurrentTrashMembers }) } : null,
                 { label: "View Paid", onClick: () => setShowPaidTrashDetail(true) },
+                { label: "View All", onClick: () => setShowAllTrashDetail(true) },
               ]}
               error={unpaidCurrentTrashCount > 0}
             />
@@ -493,6 +863,24 @@ export default function OverviewTab({
         })}
         onClose={() => setShowPaidTrashDetail(false)}
       />
+      <TrashAllMembersModal
+        open={showAllTrashDetail}
+        periodLabel={periodLabel}
+        members={allTrashMembers}
+        paidDirectCount={paidDirectTrashCount}
+        reimbursedCount={reimbursedTrashCount}
+        needAdvanceCount={needAdvanceTrashCount}
+        advancedCount={advancedTrashCount}
+        totalNeedAdvance={totalNeedAdvanceTrash}
+        totalAdvanced={totalAdvancedTrash}
+        totalReimbursed={totalReimbursedTrash}
+        currentBalance={currentBalance}
+        sharing={exportingDetailJpg === "sampah-all"}
+        advancing={advancingTrash}
+        onShareJpg={handleShareAllTrashJpg}
+        onAdvance={handleAdvanceUnpaidTrash}
+        onClose={() => setShowAllTrashDetail(false)}
+      />
 
       <AdminConfirmModal open={showReportConfirm} title="Confirm resident report delivery" description="Make sure the message content is correct before sending it to the WhatsApp group." confirmText="Send to Group" cancelText="Check Again" loading={sendingReport} onCancel={closeReportConfirm} onConfirm={sendResidentReport}>
         <pre style={styles.previewBox}>{reportPreview}</pre>
@@ -505,6 +893,10 @@ const styles = {
   header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
   muted: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 600, lineHeight: 1.6 },
   periodBadge: { padding: "8px 12px", borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-muted)", fontSize: 12, fontWeight: 800 },
+  modalHeaderTop: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, width: "100%" },
+  modalTitleGroup: { minWidth: 0, flex: "1 1 auto" },
+  modalActions: { display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 8, flexWrap: "wrap", paddingRight: 0 },
+  modalCloseButton: { width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   heroCard: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, padding: 22, borderRadius: 20, border: "1px solid var(--admin-border)", background: "linear-gradient(135deg, var(--admin-card), var(--admin-row))", flexWrap: "wrap" },
   heroLabel: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 900, letterSpacing: "0.02em", textTransform: "uppercase" },
   heroValue: { fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 950, lineHeight: 1.1, marginTop: 8 },
@@ -533,6 +925,23 @@ const styles = {
   alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
   alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
   alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
+  trashModalActions: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", paddingRight: 0 },
+  trashSummaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, margin: "12px 0" },
+  trashSummaryItem: { display: "grid", gap: 6, padding: 12, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", minWidth: 0 },
+  trashAdvanceNote: { margin: "6px 0 12px", padding: 12, borderRadius: 14, border: "1px solid #fed7aa", background: "#fff7ed", color: "#9a3412", fontSize: 13, fontWeight: 800, lineHeight: 1.5 },
+  trashAdvanceSafe: { borderColor: "#bbf7d0", background: "#f0fdf4", color: "#166534" },
+  trashAdvanceDanger: { borderColor: "#fecaca", background: "#fef2f2", color: "#b91c1c" },
+  trashMemberList: { display: "grid", alignContent: "start", gap: 8, marginTop: 10, minHeight: 0 },
+  trashMemberItem: { display: "grid", gridTemplateColumns: "32px minmax(0, 1fr) auto", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
+  trashMemberNo: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 900, textAlign: "center" },
+  trashMemberMain: { minWidth: 0, display: "grid", gap: 2 },
+  trashMemberHouse: { color: "var(--admin-text)", fontSize: 14, fontWeight: 950, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  trashMemberName: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  trashStatusBadge: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "5px 9px", borderRadius: 999, fontSize: 11, fontWeight: 900, whiteSpace: "nowrap" },
+  trashStatusPaid: { background: "#dcfce7", color: "#16a34a" },
+  trashStatusReimbursed: { background: "#dbeafe", color: "#2563eb" },
+  trashStatusAdvanced: { background: "#fee2e2", color: "#dc2626" },
+  trashStatusNeedAdvance: { background: "#fef3c7", color: "#d97706" },
   cashflowList: { display: "grid", gap: 0, padding: "6px 14px", borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
   cashflowItem: { display: "grid", gridTemplateColumns: "72px minmax(0, 1fr)", alignItems: "center", columnGap: 10, rowGap: 4, padding: "12px 0", borderBottom: "1px solid var(--admin-border)" },
   cashflowBadge: { fontSize: 12, fontWeight: 950, alignSelf: "start", paddingTop: 1 },
