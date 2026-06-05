@@ -35,18 +35,13 @@ function buildAdvanceRefId(personId, period) {
 }
 
 function buildAdvanceNote(house, period) {
-  return `Talangan Sampah ${house} Periode ${period}`;
+  return `Talangan Iuran Sampah ${house} Periode ${period}`;
 }
 
 export async function POST(req) {
   try {
-    if (!(await isAdmin(req))) {
-      return unauthorized();
-    }
-
-    if (!validateCSRF(req)) {
-      return NextResponse.json({ error: "Invalid CSRF" }, { status: 403 });
-    }
+    if (!(await isAdmin(req))) return unauthorized();
+    if (!validateCSRF(req)) return NextResponse.json({ error: "Invalid CSRF" }, { status: 403 });
 
     const body = await req.json();
     const period = normalize(body.period);
@@ -55,12 +50,7 @@ export async function POST(req) {
       return NextResponse.json({ error: "Valid period is required" }, { status: 400 });
     }
 
-    const rateLimit = await enforceRateLimit(
-      req,
-      RATE_LIMIT_SCOPES.cashflowCreate,
-      { identity: "session", targetId: `trash-advance-${period}` },
-    );
-
+    const rateLimit = await enforceRateLimit(req, RATE_LIMIT_SCOPES.cashflowCreate, { identity: "session", targetId: `trash-advance-${period}` });
     if (rateLimit) return rateLimit;
 
     const appConfig = await getAppConfig();
@@ -87,26 +77,11 @@ export async function POST(req) {
 
     const paymentMap = new Map(paymentRows.slice(1).map((row) => [normalize(row[0]), row]));
     const paidPersonIds = new Set(
-      trashRows
-        .slice(1)
-        .map((row) => paymentMap.get(normalize(row[1])))
-        .filter((payment) => payment && normalize(payment[4]) === period)
-        .map((payment) => normalize(payment[1]))
-        .filter(Boolean),
+      trashRows.slice(1).map((row) => paymentMap.get(normalize(row[1]))).filter((payment) => payment && normalize(payment[4]) === period).map((payment) => normalize(payment[1])).filter(Boolean),
     );
-    const existingAdvanceRefs = new Set(
-      cashflowRows
-        .slice(1)
-        .map((row) => normalize(row[1]))
-        .filter((refId) => refId.startsWith("TRASHADV-")),
-    );
+    const existingAdvanceRefs = new Set(cashflowRows.slice(1).map((row) => normalize(row[1])).filter((refId) => refId.startsWith("TRASHADV-")));
 
-    const trashMembers = personalRows
-      .slice(1)
-      .filter((row) => isActiveMember(row))
-      .filter((row) => normalizeUpper(row[3]) === "Y")
-      .filter((row) => isJoinedByPeriod(row, period));
-
+    const trashMembers = personalRows.slice(1).filter((row) => isActiveMember(row)).filter((row) => normalizeUpper(row[3]) === "Y").filter((row) => isJoinedByPeriod(row, period));
     const unpaidMembers = trashMembers.filter((row) => !paidPersonIds.has(normalize(row[0])));
     const values = [];
     const advancedMembers = [];
@@ -124,25 +99,12 @@ export async function POST(req) {
       }
 
       const cashflowId = generateId("CSFLOW-");
-      values.push([
-        cashflowId,
-        refId,
-        "expense",
-        trashFee,
-        buildAdvanceNote(house, period),
-        today,
-        "",
-      ]);
+      values.push([cashflowId, refId, "expense", trashFee, buildAdvanceNote(house, period), today, ""]);
       advancedMembers.push({ person_id: personId, house, name, ref_id: refId, cashflow_id: cashflowId });
     });
 
     if (values.length > 0) {
-      await sheets.spreadsheets.values.append({
-        spreadsheetId,
-        range: "Cashflow!A:G",
-        valueInputOption: "USER_ENTERED",
-        requestBody: { values },
-      });
+      await sheets.spreadsheets.values.append({ spreadsheetId, range: "Cashflow!A:G", valueInputOption: "USER_ENTERED", requestBody: { values } });
     }
 
     await recordAdminActivity(req, {
@@ -150,31 +112,11 @@ export async function POST(req) {
       module: "trash",
       severity: values.length > 0 ? "warning" : "info",
       message: `Advance unpaid trash ${period}: ${values.length} cashflow expense`,
-      metadata: {
-        period,
-        trash_fee: trashFee,
-        advanced: values.length,
-        skipped: skippedMembers.length,
-        total_amount: values.length * trashFee,
-        advanced_members: advancedMembers,
-        skipped_members: skippedMembers,
-      },
+      metadata: { period, trash_fee: trashFee, advanced: values.length, skipped: skippedMembers.length, total_amount: values.length * trashFee, advanced_members: advancedMembers, skipped_members: skippedMembers },
     });
 
-    return NextResponse.json({
-      success: true,
-      period,
-      advanced: values.length,
-      skipped: skippedMembers.length,
-      total: values.length * trashFee,
-      trash_fee: trashFee,
-      advanced_members: advancedMembers,
-      skipped_members: skippedMembers,
-    });
+    return NextResponse.json({ success: true, period, advanced: values.length, skipped: skippedMembers.length, total: values.length * trashFee, trash_fee: trashFee, advanced_members: advancedMembers, skipped_members: skippedMembers });
   } catch (err) {
-    return NextResponse.json(
-      { success: false, error: err.message },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
