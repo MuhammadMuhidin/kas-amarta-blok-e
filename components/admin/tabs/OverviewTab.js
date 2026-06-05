@@ -575,11 +575,12 @@ export default function OverviewTab({
   const [unpaidDetail, setUnpaidDetail] = useState(null);
   const [showPaidTrashDetail, setShowPaidTrashDetail] = useState(false);
   const [showAllTrashDetail, setShowAllTrashDetail] = useState(false);
+  const [showTrashAdvanceConfirm, setShowTrashAdvanceConfirm] = useState(false);
   const [advancingTrash, setAdvancingTrash] = useState(false);
   const [exportingDetailJpg, setExportingDetailJpg] = useState("");
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
 
-  useModalScrollLock(showReportConfirm);
+  useModalScrollLock(showReportConfirm || showTrashAdvanceConfirm);
 
   function showToast(type, message) {
     setToast({ show: true, type, message });
@@ -730,6 +731,7 @@ export default function OverviewTab({
     try {
       const data = await sendJson("/api/sheets/trash/advance-bulk", "POST", { period: currentPeriod });
       await onTrashAdvanceComplete?.();
+      setShowTrashAdvanceConfirm(false);
       showToast("success", `Advanced ${data.advanced || 0} trash expenses. Total ${money(data.total || 0)}.`);
     } catch (err) {
       showToast("error", err.message || "Failed to advance unpaid trash.");
@@ -878,9 +880,29 @@ export default function OverviewTab({
         sharing={exportingDetailJpg === "sampah-all"}
         advancing={advancingTrash}
         onShareJpg={handleShareAllTrashJpg}
-        onAdvance={handleAdvanceUnpaidTrash}
+        onAdvance={() => setShowTrashAdvanceConfirm(true)}
         onClose={() => setShowAllTrashDetail(false)}
       />
+
+      <AdminConfirmModal
+        open={showTrashAdvanceConfirm}
+        title="Confirm Trash Advance"
+        description={`This will create cashflow expense for ${needAdvanceTrashCount} unpaid trash members.`}
+        confirmText="Yes, Advance Trash"
+        cancelText="Cancel"
+        loading={advancingTrash}
+        onCancel={() => {
+          if (!advancingTrash) setShowTrashAdvanceConfirm(false);
+        }}
+        onConfirm={handleAdvanceUnpaidTrash}
+      >
+        <div style={styles.confirmSummaryBox}>
+          <div style={styles.confirmSummaryRow}><span>Period</span><strong>{periodLabel}</strong></div>
+          <div style={styles.confirmSummaryRow}><span>Members to advance</span><strong>{needAdvanceTrashCount} houses</strong></div>
+          <div style={styles.confirmSummaryRow}><span>Total advance</span><strong>{money(totalNeedAdvanceTrash)}</strong></div>
+          <div style={styles.confirmSummaryRow}><span>Projected balance</span><strong>{money(currentBalance - totalNeedAdvanceTrash)}</strong></div>
+        </div>
+      </AdminConfirmModal>
 
       <AdminConfirmModal open={showReportConfirm} title="Confirm resident report delivery" description="Make sure the message content is correct before sending it to the WhatsApp group." confirmText="Send to Group" cancelText="Check Again" loading={sendingReport} onCancel={closeReportConfirm} onConfirm={sendResidentReport}>
         <pre style={styles.previewBox}>{reportPreview}</pre>
@@ -921,6 +943,8 @@ const styles = {
   reportTitle: { fontSize: 15, fontWeight: 900, marginBottom: 4 },
   reportDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
   previewBox: { margin: 0, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", fontFamily: "inherit", fontSize: 13, fontWeight: 600, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word" },
+  confirmSummaryBox: { display: "grid", gap: 10 },
+  confirmSummaryRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 12px", borderRadius: 12, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", fontSize: 13, fontWeight: 700 },
   alertList: { display: "grid", gap: 10 },
   alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
   alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },

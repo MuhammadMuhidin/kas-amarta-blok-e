@@ -11,19 +11,20 @@ export default function AdminConfirmModal({
   loading = false,
   children,
   onCancel,
-  onConfirm,
+  onConfirm
 }) {
   if (!open) return null;
 
   return (
     <div style={styles.overlay} onClick={onCancel}>
+      <style>{confirmModalCss}</style>
       <div style={styles.modal} onClick={(event) => event.stopPropagation()}>
         <div style={styles.header}>
           <div style={styles.title}>{title}</div>
           {description && <div style={styles.description}>{description}</div>}
         </div>
 
-        {children && <div style={styles.body}>{children}</div>}
+        {children && <div className="admin-confirm-body" style={styles.body}>{children}</div>}
 
         <div style={styles.footer}>
           <AdminActionButton onClick={onCancel} disabled={loading}>
@@ -38,11 +39,34 @@ export default function AdminConfirmModal({
   );
 }
 
+const confirmModalCss = `
+  .admin-confirm-body > div {
+    display: grid !important;
+    gap: 0 !important;
+    padding: 4px 12px !important;
+    border: 1px solid var(--admin-border) !important;
+    border-radius: 14px !important;
+    background: var(--admin-row) !important;
+  }
+
+  .admin-confirm-body > div > div {
+    padding: 11px 0 !important;
+    border: 0 !important;
+    border-bottom: 1px solid var(--admin-border) !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
+  .admin-confirm-body > div > div:last-child {
+    border-bottom: 0 !important;
+  }
+`;
+
 const styles = {
   overlay: {
     position: "fixed",
     inset: 0,
-    zIndex: 1000,
+    zIndex: 50000,
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
