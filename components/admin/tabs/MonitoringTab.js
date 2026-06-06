@@ -5,7 +5,7 @@ import { getCurrentPeriod } from "@/lib/depositUtils";
 
 function IssueTable({title,rows,columns}) {
   if (!rows?.length) return null;
-  return <div className="admin-monitor-detail"><h3>{title}</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr>{columns.map((c)=><th key={c} className="admin-th">{c==="detail"?"Issue":c}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i} className={i%2?"admin-row-alt":""}>{columns.map((c)=><td key={c} className="admin-td admin-issue-text">{r[c]}</td>)}</tr>)}</tbody></table></div></div>;
+  return <div className="admin-monitor-detail"><h3>{title}</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr>{columns.map((c)=><th key={c} className="admin-th">{c==="detail"?"Issue":c}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i} className={i%2?"admin-row-alt admin-clickable-row":"admin-clickable-row"}>{columns.map((c)=><td key={c} className="admin-td admin-issue-text">{r[c]}</td>)}</tr>)}</tbody></table></div></div>;
 }
 
 function TrashIssueTable({rows,repairingPaymentId,onRepair}) {
@@ -13,7 +13,8 @@ function TrashIssueTable({rows,repairingPaymentId,onRepair}) {
   return <div className="admin-monitor-detail"><h3>Payment ⇄ Trash Integrity</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th className="admin-th">house</th><th className="admin-th">name</th><th className="admin-th">period</th><th className="admin-th">Issue</th><th className="admin-th">Action</th></tr></thead><tbody>{rows.map((row,i)=>{
     const canRepair = row.type === "PAYMENT_WITHOUT_TRASH" && row.payment_id;
     const repairing = repairingPaymentId === row.payment_id;
-    return <tr key={`${row.type}-${row.payment_id || row.house}-${row.period}-${i}`} className={i%2?"admin-row-alt":""}><td className="admin-td admin-issue-text">{row.house}</td><td className="admin-td admin-issue-text">{row.name}</td><td className="admin-td admin-issue-text">{row.period}</td><td className="admin-td admin-issue-text">{row.detail}</td><td className="admin-td admin-issue-text">{canRepair ? <button type="button" className="admin-small-btn" disabled={repairing || Boolean(repairingPaymentId)} onClick={()=>onRepair(row)}>{repairing ? "Repairing..." : "Repair"}</button> : <span style={{color:"var(--admin-muted)",fontSize:12}}>Manual review</span>}</td></tr>;
+    const rowClassName = [i%2?"admin-row-alt":"","admin-clickable-row",repairing?"monitoring-row-repairing":""].filter(Boolean).join(" ");
+    return <tr key={`${row.type}-${row.payment_id || row.house}-${row.period}-${i}`} className={rowClassName}><td className="admin-td admin-issue-text">{row.house}</td><td className="admin-td admin-issue-text">{row.name}</td><td className="admin-td admin-issue-text">{row.period}</td><td className="admin-td admin-issue-text">{row.detail}</td><td className="admin-td admin-issue-text">{canRepair ? <button type="button" className="admin-small-btn monitoring-repair-btn" disabled={repairing || Boolean(repairingPaymentId)} onClick={()=>onRepair(row)}>{repairing ? "Repairing..." : "Repair"}</button> : <span style={{color:"var(--admin-muted)",fontSize:12}}>Manual review</span>}</td></tr>;
   })}</tbody></table></div></div>;
 }
 
@@ -71,8 +72,9 @@ function BuildBadge({loading,buildInfo}) {
   const ok = Boolean(buildInfo);
   const text = loading ? "Checking build..." : ok ? `${String(buildInfo.platform||"UNKNOWN").toUpperCase()} - ${buildInfo.branch}` : "Build info not found";
   const title = ok ? `Commit: ${buildInfo.commitShort}\nMessage: ${buildInfo.commitMessage||"unknown"}\nEnv: ${buildInfo.environment}\nBuilt: ${fmtTime(buildInfo.buildTime)}` : "";
-  return <div title={title} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:999,border:"1px solid var(--admin-border)",background:"var(--admin-row)",color:"var(--admin-muted)",fontSize:12,fontWeight:700,lineHeight:1.2,whiteSpace:"nowrap",position:"static",alignSelf:"flex-start",flexShrink:0}}>
-    <span style={{width:7,height:7,borderRadius:999,background:ok?"#16a34a":"#dc2626",display:"inline-block",flexShrink:0}} />
+  const dotClassName = loading ? "monitoring-build-dot monitoring-build-dot-loading" : ok ? "monitoring-build-dot monitoring-build-dot-ok" : "monitoring-build-dot monitoring-build-dot-error";
+  return <div className="monitoring-build-badge" title={title} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:999,border:"1px solid var(--admin-border)",background:"var(--admin-row)",color:"var(--admin-muted)",fontSize:12,fontWeight:700,lineHeight:1.2,whiteSpace:"nowrap",position:"static",alignSelf:"flex-start",flexShrink:0}}>
+    <span className={dotClassName} />
     <span>{text}</span>
   </div>;
 }
@@ -81,15 +83,15 @@ function AlertTestCard({loading,result,onSend}) {
   const resultText = result?.message || "";
   const resultColor = result?.type === "error" ? "#dc2626" : result?.type === "success" ? "#16a34a" : "var(--admin-muted)";
 
-  return <div style={{marginBottom:20,padding:16,borderRadius:16,border:"1px solid var(--admin-border)",background:"var(--admin-row)",display:"grid",gap:12}}>
+  return <div className={loading ? "monitoring-alert-test-card monitoring-alert-test-card-loading" : "monitoring-alert-test-card"} style={{marginBottom:20,padding:16,borderRadius:16,border:"1px solid var(--admin-border)",background:"var(--admin-row)",display:"grid",gap:12}}>
     <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
       <div style={{minWidth:220,flex:"1 1 260px"}}>
         <h3 style={{margin:"0 0 4px"}}>Alert Channel Test</h3>
         <div style={{fontSize:13,color:"var(--admin-muted)",fontWeight:600,lineHeight:1.5}}>Send a test alert to WhatsApp and email to verify alert delivery.</div>
       </div>
-      <button type="button" className="admin-small-btn" disabled={loading} onClick={onSend} style={{minWidth:140}}>{loading ? "Sending..." : "Send Test Alert"}</button>
+      <button type="button" className="admin-small-btn admin-refresh-btn" disabled={loading} onClick={onSend} style={{minWidth:140}}>{loading ? "Sending..." : "Send Test Alert"}</button>
     </div>
-    {resultText && <div style={{fontSize:12,fontWeight:800,color:resultColor,lineHeight:1.5}}>{resultText}</div>}
+    {resultText && <div className="monitoring-alert-result" style={{fontSize:12,fontWeight:800,color:resultColor,lineHeight:1.5}}>{resultText}</div>}
   </div>;
 }
 

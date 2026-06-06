@@ -141,7 +141,7 @@ export default function AdminActivityPanel() {
           <button
             type="button"
             onClick={() => setShowFilters((prev) => !prev)}
-            className="admin-small-btn"
+            className={showFilters ? "admin-small-btn activity-filter-toggle activity-filter-toggle-open" : "admin-small-btn activity-filter-toggle"}
           >
             {showFilters ? "▴ Hide Filters" : "▾ Filters"}
           </button>
@@ -149,7 +149,7 @@ export default function AdminActivityPanel() {
           <button
             type="button"
             onClick={refresh}
-            className="admin-small-btn activity-refresh-btn"
+            className="admin-small-btn activity-refresh-btn admin-refresh-btn"
             disabled={loading || loadingMore}
           >
             {loading ? "Refreshing..." : "Refresh"}
@@ -161,13 +161,13 @@ export default function AdminActivityPanel() {
         <div><b>{activities.length}</b> / {total || 0} records</div>
         <span>{activeFilterLabel}</span>
         <span>{sort === "desc" ? "Newest first" : "Oldest first"}</span>
-        <span className={error ? "activity-status-error" : "activity-status-ready"}>
+        <span className={error ? "activity-status-error activity-status-pulse" : loading ? "activity-status-ready activity-status-pulse" : "activity-status-ready"}>
           {error ? "Error" : loading ? "Loading" : "Ready"}
         </span>
       </div>
 
       {showFilters && (
-        <div className="activity-toolbar">
+        <div className="activity-toolbar admin-collapsible-panel">
           <input
             type="search"
             value={search}
@@ -251,10 +251,10 @@ export default function AdminActivityPanel() {
         ))}
       </div>
 
-      <div ref={loaderRef} className="activity-pagination">
+      <div ref={loaderRef} className={loadingMore ? "activity-pagination admin-loader-sentinel admin-loader-sentinel-loading" : "activity-pagination admin-loader-sentinel"}>
         <span className="activity-page-info">
           {loadingMore
-            ? "Loading more..."
+            ? "Loading more"
             : hasMore
               ? "Scroll to load more"
               : "All activity loaded"}

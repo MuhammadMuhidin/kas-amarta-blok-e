@@ -123,6 +123,11 @@ export default function useAdminPaymentActions({
     setSelected((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   }
 
+  function resetSelected() {
+    if (loadingPayment) return;
+    setSelected([]);
+  }
+
   async function recordPayment(e) {
     e.preventDefault();
 
@@ -264,6 +269,7 @@ export default function useAdminPaymentActions({
     loadingPayment,
     paymentProgress,
     toggleHouse,
+    resetSelected,
     isHousePaidForPeriod,
     recordPayment,
   };

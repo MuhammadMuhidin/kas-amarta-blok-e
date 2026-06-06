@@ -67,6 +67,7 @@ export default function PersonalTab({
 
         <button
           type="button"
+          className={showAddMember ? "admin-collapse-toggle admin-collapse-toggle-open" : "admin-collapse-toggle"}
           style={styles.collapseButton}
           aria-label={showAddMember ? "Collapse add member form" : "Expand add member form"}
           aria-expanded={showAddMember}
@@ -77,7 +78,7 @@ export default function PersonalTab({
       </div>
 
       {showAddMember && (
-        <form onSubmit={handleAddMember} className="admin-form">
+        <form onSubmit={handleAddMember} className="admin-form admin-collapsible-panel">
           <input
             className="admin-input"
             placeholder="House"
@@ -143,9 +144,13 @@ export default function PersonalTab({
             onUpdateMember={handleUpdateMember}
           />
 
-          <div ref={loaderRef} style={styles.loaderSentinel}>
+          <div
+            ref={loaderRef}
+            className={loadingMore ? "admin-loader-sentinel admin-loader-sentinel-loading" : "admin-loader-sentinel"}
+            style={styles.loaderSentinel}
+          >
             {loadingMore
-              ? "Loading more..."
+              ? "Loading more"
               : hasMore
                 ? "Scroll to load more"
                 : "All members loaded"}

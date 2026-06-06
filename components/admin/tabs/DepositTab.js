@@ -399,6 +399,7 @@ export default function DepositTab({
 
           <button
             type="button"
+            className={showCreateBooking ? "admin-collapse-toggle admin-collapse-toggle-open" : "admin-collapse-toggle"}
             style={collapseButtonStyle}
             aria-label={showCreateBooking ? "Collapse booking payment form" : "Expand booking payment form"}
             aria-expanded={showCreateBooking}
@@ -409,7 +410,7 @@ export default function DepositTab({
         </div>
 
         {showCreateBooking && (
-          <form onSubmit={handleSaveDeposit} className="admin-form">
+          <form onSubmit={handleSaveDeposit} className="admin-form admin-collapsible-panel">
             <PersonSearchBox
               persons={activePersons}
               value={depositForm.person_id}
@@ -420,7 +421,7 @@ export default function DepositTab({
             />
 
             {selectedDepositPerson && (
-              <div style={previewBoxStyle}>
+              <div className="booking-preview-box" style={previewBoxStyle}>
                 <InfoRow label="Current Cash Fee" value={money(currentMonthlyFee)} />
                 <InfoRow
                   label="Current Trash Fee"
@@ -461,13 +462,14 @@ export default function DepositTab({
         )}
 
         <h4>Booking List ({money(activeDepositTotal)})</h4>
-        <div style={readyPaySummaryStyle}>
+        <div className="booking-ready-pay-summary" style={readyPaySummaryStyle}>
           <span style={readyPaySummaryTextStyle}>
             Ready to pay: <strong>{readyPayBookings.length} houses</strong>
           </span>
 
           <button
             type="button"
+            className="admin-refresh-btn"
             style={isMultiPayDisabled ? multiPayButtonMutedStyle : multiPayButtonStyle}
             disabled={isMultiPayDisabled}
             onClick={() => setShowMultiPayModal(true)}
@@ -481,7 +483,7 @@ export default function DepositTab({
           <span>{effectiveDeposits.length} / {total} loaded</span>
           <button
             type="button"
-            className="admin-small-btn"
+            className="admin-small-btn admin-refresh-btn"
             disabled={loading || loadingMore || multiPayLoading}
             onClick={refresh}
           >
@@ -501,8 +503,12 @@ export default function DepositTab({
         />
 
         {effectiveDeposits.length > 0 && (
-          <div ref={loaderRef} style={loaderSentinelStyle}>
-            {loadingMore ? "Loading more..." : hasMore ? "Scroll to load more" : "All bookings loaded"}
+          <div
+            ref={loaderRef}
+            className={loadingMore ? "admin-loader-sentinel admin-loader-sentinel-loading" : "admin-loader-sentinel"}
+            style={loaderSentinelStyle}
+          >
+            {loadingMore ? "Loading more" : hasMore ? "Scroll to load more" : "All bookings loaded"}
           </div>
         )}
 
@@ -531,6 +537,7 @@ export default function DepositTab({
             total={readyPayTotal}
             loading={multiPayLoading}
             loadingText={multiPayLoadingText}
+            progress={multiPayProgress}
             wakeLock={wakeLock}
             onClose={() => setShowMultiPayModal(false)}
             onConfirm={handleMultiPayBookings}
@@ -587,9 +594,8 @@ function BookingList({
             return (
               <tr
                 key={deposit.id || index}
-                className={index % 2 ? "admin-row-alt" : ""}
+                className={index % 2 ? "admin-row-alt admin-clickable-row" : "admin-clickable-row"}
                 onClick={() => openBookingModal(deposit)}
-                style={{ cursor: "pointer" }}
               >
                 <td className="admin-td">{deposit.house}</td>
                 <td className="admin-td">{deposit.name}</td>
@@ -617,7 +623,11 @@ function BookingList({
   );
 }
 
-function MultiPayModal({ bookings, total, loading, loadingText, wakeLock, onClose, onConfirm }) {
+function MultiPayModal({ bookings, total, loading, loadingText, progress, wakeLock, onClose, onConfirm }) {
+  const progressPercent = progress?.total
+    ? Math.min(100, Math.max(0, Math.round((progress.current / progress.total) * 100)))
+    : 0;
+
   return (
     <div className={modalStyles.overlay} onClick={loading ? undefined : onClose}>
       <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
@@ -639,6 +649,17 @@ function MultiPayModal({ bookings, total, loading, loadingText, wakeLock, onClos
           <span>Total houses: {bookings.length}</span>
           <strong>{money(total)}</strong>
         </div>
+
+        {loading && progress?.total > 0 && (
+          <div style={{ display: "grid", gap: 8, marginBottom: 14 }}>
+            <div className="booking-multipay-progress-track">
+              <div className="booking-multipay-progress-fill" style={{ width: `${progressPercent}%` }} />
+            </div>
+            <div style={modalNoteStyle}>
+              Processing {progress.current} of {progress.total} bookings.
+            </div>
+          </div>
+        )}
 
         <div style={modalButtonGridStyle}>
           <button type="button" className="admin-small-btn" disabled={loading} onClick={onClose}>
