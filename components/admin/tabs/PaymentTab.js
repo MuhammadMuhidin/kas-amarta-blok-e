@@ -201,6 +201,49 @@ function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sen
   );
 }
 
+function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset }) {
+  const selectedCount = selectedResidents.length;
+
+  return (
+    <section
+      style={selectedResidentsBoxStyle}
+      aria-live="polite"
+      aria-label="Selected houses summary"
+    >
+      <div style={selectedResidentsHeaderStyle}>
+        <strong>Selected houses:</strong>
+        <span>{selectedCount} {selectedCount === 1 ? "house" : "houses"}</span>
+      </div>
+
+      {selectedCount > 0 ? (
+        <ul style={selectedResidentsListStyle}>
+          {selectedResidents.map((person) => (
+            <li key={person.id} style={selectedResidentsItemStyle}>
+              {person.house} — {person.name}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p style={selectedResidentsEmptyStyle}>
+          The names of the selected citizens will appear here.
+        </p>
+      )}
+
+      {selectedCount > 0 && (
+        <button
+          type="button"
+          className="admin-small-btn"
+          disabled={loadingPayment}
+          onClick={onReset}
+          style={resetSelectionButtonStyle}
+        >
+          Reset Selection
+        </button>
+      )}
+    </section>
+  );
+}
+
 export default function PaymentTab({
   configError,
   recordPayment,
@@ -250,11 +293,22 @@ export default function PaymentTab({
     });
   }, [deposits, currentPeriod, normalize]);
 
+  const selectedResidents = useMemo(() => {
+    return personal
+      .filter((person) => selected.includes(person.id))
+      .sort((a, b) => a.house.localeCompare(b.house, undefined, { numeric: true }));
+  }, [personal, selected]);
+
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
   const disableRecordPayment = loadingPayment || hasPendingCurrentDeposit;
   const loadingText = paymentProgress?.total
     ? `Recording payment ${paymentProgress.current}/${paymentProgress.total}...`
     : "Recording...";
+
+  function resetSelectedResidents() {
+    if (loadingPayment) return;
+    selectedResidents.forEach((person) => toggleHouse(person.id));
+  }
 
   async function sendPaymentReminder() {
     if (sendingReminder) return;
@@ -393,6 +447,11 @@ export default function PaymentTab({
                 );
               })}
           </div>
+          <SelectedResidentsPanel
+            selectedResidents={selectedResidents}
+            loadingPayment={loadingPayment}
+            onReset={resetSelectedResidents}
+          />
           <button className="admin-btn" disabled={disableRecordPayment}>
             <LoadingButtonContent loading={loadingPayment} loadingText={loadingText}>
               Record Payment
@@ -429,6 +488,47 @@ const reminderDescriptionStyle = {
   color: "var(--admin-muted)",
   fontSize: 14,
   lineHeight: 1.5,
+};
+
+const selectedResidentsBoxStyle = {
+  padding: 12,
+  borderRadius: 12,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+};
+
+const selectedResidentsHeaderStyle = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: 12,
+  marginBottom: 8,
+  color: "var(--admin-text)",
+};
+
+const selectedResidentsListStyle = {
+  margin: 0,
+  paddingLeft: 18,
+  maxHeight: 180,
+  overflowY: "auto",
+  color: "var(--admin-text)",
+};
+
+const selectedResidentsItemStyle = {
+  marginBottom: 4,
+  fontSize: 14,
+  lineHeight: 1.4,
+};
+
+const selectedResidentsEmptyStyle = {
+  margin: 0,
+  color: "var(--admin-muted)",
+  fontSize: 13,
+  lineHeight: 1.5,
+};
+
+const resetSelectionButtonStyle = {
+  marginTop: 10,
 };
 
 const reminderModalStyle = {
