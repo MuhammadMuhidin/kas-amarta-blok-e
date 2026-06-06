@@ -228,16 +228,19 @@
   background: var(--admin-primary);
 }
 
+.overview-progress-track,
 .admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] {
   position: relative;
 }
 
+.overview-progress-fill,
 .admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"] {
   position: relative;
   overflow: hidden;
   transition: width 0.45s ease;
 }
 
+.overview-progress-fill::after,
 .admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"]::after {
   content: "";
   position: absolute;
@@ -245,6 +248,33 @@
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
   animation: overviewProgressSweep 1.4s linear infinite;
   transform: translateX(-100%);
+}
+
+.overview-progress-card-actionable {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.overview-progress-card-actionable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.overview-progress-action-btn {
+  transition:
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.overview-progress-action-btn:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.overview-progress-action-btn:active {
+  transform: translateY(1px);
 }
 
 @keyframes adminModalOverlayIn {
@@ -296,6 +326,9 @@
   .admin-deposit-chip,
   .admin-wrapper .admin-insight-link,
   .admin-wrapper .pay-dots span,
+  .overview-progress-fill,
+  .overview-progress-card-actionable,
+  .overview-progress-action-btn,
   .admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"] {
     transition: none;
   }
@@ -308,12 +341,15 @@
   .admin-deposit-chip:not(:disabled):active,
   .admin-wrapper .admin-insight-link:active,
   .admin-wrapper .pay-dots span:hover,
-  .admin-wrapper .pay-dots span:active {
+  .admin-wrapper .pay-dots span:active,
+  .overview-progress-card-actionable:hover,
+  .overview-progress-action-btn:active {
     transform: none;
   }
 
   .admin-wrapper .modal-overlay,
   .admin-wrapper .modal-box,
+  .overview-progress-fill::after,
   .admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"]::after {
     animation: none;
   }
