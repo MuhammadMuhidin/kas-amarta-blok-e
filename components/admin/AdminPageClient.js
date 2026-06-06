@@ -78,7 +78,6 @@ export default function AdminPageClient() {
     setMemberSearch,
     loadingAdd,
     toggleMemberFilter,
-    rowClassName,
     addMember,
     updateMemberInline,
   } = useAdminMemberActions({
@@ -86,27 +85,25 @@ export default function AdminPageClient() {
     setPersonal,
     loadPersonal,
     showPopup,
-    submitMember: (payload) => sendJson("/api/sheets/personal", "POST", payload),
-    patchMember: (payload) => sendJson("/api/sheets/personal", "PATCH", payload),
     normalize,
-    currentPeriod,
   });
 
   const {
-    nextSixPeriods,
-    selectedDepositPeriods,
     activePersons,
-    selectedDepositPerson,
-    depositAmount,
-    pendingCurrentDeposits,
     stats,
-    trashMismatch,
+    searchedPersonal,
+    rowClassName,
+    sortedDeposits,
+    pendingCurrentDeposits,
+    nextSixPeriods,
+    selectedDepositPerson,
+    selectedDepositPeriods,
+    depositAmount,
     paymentCashflowIntegrity,
+    trashMismatch,
     depositPaymentIntegrity,
     suspiciousData,
     monitoringIssueCount,
-    searchedPersonal,
-    sortedDeposits,
   } = useAdminDerivedState({
     personal,
     payments,
@@ -114,9 +111,9 @@ export default function AdminPageClient() {
     deposits,
     cashflows,
     appConfig,
-    depositForm,
     memberFilter,
     memberSearch,
+    depositForm,
     currentPeriod,
     normalize,
   });
@@ -126,6 +123,7 @@ export default function AdminPageClient() {
     loadingPayment,
     paymentProgress,
     toggleHouse,
+    resetSelected,
     isHousePaidForPeriod,
     recordPayment,
   } = useAdminPaymentActions({
@@ -249,7 +247,7 @@ export default function AdminPageClient() {
         </div>
         {tab === "overview" && <OverviewTab key={`overview-${tabRefreshKey}`} personal={personal} payments={payments} trashRecords={trashRecords} cashflows={cashflows} sortedDeposits={sortedDeposits} currentPeriod={currentPeriod} appConfig={appConfig} dailyBackup={dailyBackup} monitoringIssueCount={monitoringIssueCount} getDepositStatus={getDepositStatus} onNavigate={handleTabClick} onTrashAdvanceComplete={refreshOverviewState} />}
         {tab === "personal" && <PersonalTab key={`personal-${tabRefreshKey}`} member={member} setMember={setMember} addMember={addMember} loadingAdd={loadingAdd} memberFilter={memberFilter} toggleMemberFilter={toggleMemberFilter} stats={stats} memberSearch={memberSearch} setMemberSearch={setMemberSearch} searchedPersonal={searchedPersonal} rowClassName={rowClassName} onUpdateMember={updateMemberInline} />}
-        {tab === "payment" && <PaymentTab key={`payment-${tabRefreshKey}`} configError={configError} recordPayment={recordPayment} payment={payment} setPayment={setPayment} personal={personal} payments={payments} selected={selected} toggleHouse={toggleHouse} normalize={normalize} isHousePaidForPeriod={isHousePaidForPeriod} loadingPayment={loadingPayment} paymentProgress={paymentProgress} wakeLock={wakeLock} />}
+        {tab === "payment" && <PaymentTab key={`payment-${tabRefreshKey}`} configError={configError} recordPayment={recordPayment} payment={payment} setPayment={setPayment} personal={personal} payments={payments} selected={selected} toggleHouse={toggleHouse} resetSelected={resetSelected} normalize={normalize} isHousePaidForPeriod={isHousePaidForPeriod} loadingPayment={loadingPayment} paymentProgress={paymentProgress} wakeLock={wakeLock} />}
         {tab === "deposit" && <DepositTab key={`deposit-${tabRefreshKey}`} saveDeposit={saveDeposit} depositForm={depositForm} setDepositForm={setDepositForm} activePersons={activePersons} depositAmount={depositAmount} selectedDepositPerson={selectedDepositPerson} appConfig={appConfig} nextSixPeriods={nextSixPeriods} selectedDepositPeriods={selectedDepositPeriods} savingDeposit={savingDeposit} sortedDeposits={sortedDeposits} getDepositStatus={getDepositStatus} payingDepositId={payingDepositId} payments={payments} normalize={normalize} payDeposit={payDeposit} onBatchComplete={refreshBookingState} onBatchStatusChange={setBookingBatchLoading} wakeLock={wakeLock} />}
         {tab === "cashflow" && <CashflowTab key={`cashflow-${tabRefreshKey}`} addCashflow={addCashflow} cashflow={cashflow} setCashflow={setCashflow} loadingCashflow={loadingCashflow} />}
         {tab === "timeline" && <TimelineTab key={`timeline-${tabRefreshKey}`} showPopup={showPopup} />}
