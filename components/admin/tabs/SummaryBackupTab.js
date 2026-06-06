@@ -21,6 +21,7 @@ function getDelta(current, previous, { increaseIsGood = true } = {}) {
       value: 0,
       label: "Stable",
       color: "var(--admin-muted)",
+      tone: "stable",
     };
   }
 
@@ -31,19 +32,24 @@ function getDelta(current, previous, { increaseIsGood = true } = {}) {
     value: Math.abs(diff),
     label: isIncrease ? "↑" : "↓",
     color: isGood ? successColor : expenseColor,
+    tone: isGood ? "good" : "bad",
   };
 }
 
 function SummaryCard({ label, value, delta, valueColor }) {
+  const deltaClassName = delta?.tone
+    ? `summary-backup-delta summary-backup-delta-${delta.tone}`
+    : "summary-backup-delta";
+
   return (
-    <div style={styles.summaryCard}>
+    <div className="summary-backup-card" style={styles.summaryCard}>
       <div style={styles.summaryLabel}>{label}</div>
       <div style={{ ...styles.summaryValue, color: valueColor || "var(--admin-text)" }}>
         {value}
       </div>
 
       {delta && (
-        <div style={{ ...styles.summaryDelta, color: delta.color }}>
+        <div className={deltaClassName} style={{ ...styles.summaryDelta, color: delta.color }}>
           {delta.label === "Stable"
             ? "Stable from previous backup"
             : `${delta.label} ${delta.value}`}
@@ -55,7 +61,7 @@ function SummaryCard({ label, value, delta, valueColor }) {
 
 function DetailRow({ label, value, valueStyle }) {
   return (
-    <div style={styles.modalRow}>
+    <div className="summary-backup-modal-row" style={styles.modalRow}>
       <span style={styles.modalLabel}>{label}</span>
       <b style={{ ...styles.modalValue, ...valueStyle }}>{value || "-"}</b>
     </div>
@@ -113,7 +119,7 @@ export default function SummaryBackupTab() {
 
         <button
           type="button"
-          className="admin-small-btn"
+          className="admin-small-btn admin-refresh-btn"
           disabled={loading || loadingMore}
           onClick={refresh}
         >
@@ -195,56 +201,60 @@ export default function SummaryBackupTab() {
               </thead>
 
               <tbody>
-                {summaryBackup.map((x, i) => (
-                  <tr
-                    key={`${x.created_at || "summary"}-${i}`}
-                    className={i % 2 ? "admin-row-alt" : ""}
-                    onClick={() => setSelectedBackup(x)}
-                    style={{
-                      cursor: "pointer",
-                      ...(i === 0
-                        ? {
-                            borderLeft: "4px solid var(--admin-primary)",
-                          }
-                        : {}),
-                    }}
-                  >
-                    <td className="admin-td">
-                      <div style={styles.dateCell}>
-                        <span>{x.created_at}</span>
+                {summaryBackup.map((x, i) => {
+                  const rowClassName = [
+                    i % 2 ? "admin-row-alt" : "",
+                    "admin-clickable-row",
+                    i === 0 ? "summary-backup-latest-row" : "",
+                  ].filter(Boolean).join(" ");
 
-                        {i === 0 && (
-                          <span style={styles.latestBadge}>Latest</span>
-                        )}
-                      </div>
-                    </td>
+                  return (
+                    <tr
+                      key={`${x.created_at || "summary"}-${i}`}
+                      className={rowClassName}
+                      onClick={() => setSelectedBackup(x)}
+                    >
+                      <td className="admin-td">
+                        <div style={styles.dateCell}>
+                          <span>{x.created_at}</span>
 
-                    <td className="admin-td">
-                      <span
-                        style={{
-                          color:
-                            Number(x.net_saldo || 0) >= 0
-                              ? successColor
-                              : expenseColor,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {formatRupiah(x.net_saldo)}
-                      </span>
-                    </td>
+                          {i === 0 && (
+                            <span style={styles.latestBadge}>Latest</span>
+                          )}
+                        </div>
+                      </td>
 
-                    <td className="admin-td">
-                      {x.total_personal_active}
-                    </td>
-                  </tr>
-                ))}
+                      <td className="admin-td">
+                        <span
+                          style={{
+                            color:
+                              Number(x.net_saldo || 0) >= 0
+                                ? successColor
+                                : expenseColor,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {formatRupiah(x.net_saldo)}
+                        </span>
+                      </td>
+
+                      <td className="admin-td">
+                        {x.total_personal_active}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
 
-          <div ref={loaderRef} style={styles.loaderSentinel}>
+          <div
+            ref={loaderRef}
+            className={loadingMore ? "admin-loader-sentinel admin-loader-sentinel-loading" : "admin-loader-sentinel"}
+            style={styles.loaderSentinel}
+          >
             {loadingMore
-              ? "Loading more..."
+              ? "Loading more"
               : hasMore
                 ? "Scroll to load more"
                 : "All summaries loaded"}
@@ -271,6 +281,7 @@ export default function SummaryBackupTab() {
 
               <button
                 type="button"
+                className="admin-refresh-btn"
                 style={styles.closeButton}
                 onClick={() => setSelectedBackup(null)}
               >
