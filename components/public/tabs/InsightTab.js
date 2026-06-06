@@ -3,89 +3,6 @@
 import { useEffect } from "react";
 import { formatCashflowNote, formatDate, formatMoney, formatPeriod } from "@/lib/public/publicFormatters";
 
-const insightDetailModalCss = `
-  .insight-detail-modal-overlay {
-    align-items: center;
-    justify-content: center;
-    overflow-y: auto;
-    padding: 18px 12px;
-  }
-
-  .insight-detail-modal-box {
-    max-height: calc(100dvh - 36px);
-    overflow-y: auto;
-    overflow-x: auto;
-    position: relative;
-    transform-origin: center;
-  }
-
-  .insight-detail-modal-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 12px;
-  }
-
-  .insight-detail-modal-title-group {
-    min-width: 0;
-  }
-
-  .insight-detail-modal-subtitle {
-    margin: 6px 0 0;
-    color: var(--muted);
-    font-size: var(--font-base);
-    font-weight: 700;
-    line-height: 1.5;
-  }
-
-  .insight-detail-modal-close {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    width: 36px;
-    height: 36px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--surface-soft);
-    color: var(--text);
-    cursor: pointer;
-    font-size: 24px;
-    font-weight: 900;
-    line-height: 1;
-  }
-
-  .insight-detail-modal-section {
-    margin-bottom: 0;
-  }
-
-  .insight-detail-table {
-    margin: 10px auto 0;
-    table-layout: auto;
-  }
-
-  @media (max-width: 640px) {
-    .insight-detail-modal-overlay {
-      align-items: center;
-      justify-content: center;
-      padding: 12px 8px;
-    }
-
-    .insight-detail-modal-box {
-      width: min(100%, calc(100vw - 16px));
-      max-height: calc(100dvh - 24px);
-      border-radius: 18px;
-      padding: 16px;
-    }
-
-    .insight-detail-modal-header {
-      align-items: stretch;
-      flex-direction: row;
-      gap: 12px;
-    }
-  }
-`;
-
 export default function InsightTab({
   active,
   insight,
@@ -155,7 +72,6 @@ export default function InsightTab({
 
   return (
     <div className={!active ? "hidden" : ""}>
-      <style>{insightDetailModalCss}</style>
       <div
         style={{
           display: "flex",
