@@ -205,28 +205,24 @@ function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset }) 
   const selectedCount = selectedResidents.length;
 
   return (
-    <section
-      style={selectedResidentsBoxStyle}
-      aria-live="polite"
-      aria-label="Selected houses summary"
-    >
-      <div style={selectedResidentsHeaderStyle}>
-        <strong>Selected houses:</strong>
-        <span>{selectedCount} {selectedCount === 1 ? "house" : "houses"}</span>
+    <section className="admin-status-card" aria-live="polite" aria-label="Selected houses summary">
+      <div className="admin-status-label">Selected houses:</div>
+      <div className="admin-status-value">
+        {selectedCount} {selectedCount === 1 ? "house" : "houses"}
       </div>
 
       {selectedCount > 0 ? (
-        <ul style={selectedResidentsListStyle}>
+        <ul className="admin-status-meta">
           {selectedResidents.map((person) => (
-            <li key={person.id} style={selectedResidentsItemStyle}>
+            <li key={person.id}>
               {person.house} — {person.name}
             </li>
           ))}
         </ul>
       ) : (
-        <p style={selectedResidentsEmptyStyle}>
+        <div className="admin-status-meta">
           The names of the selected citizens will appear here.
-        </p>
+        </div>
       )}
 
       {selectedCount > 0 && (
@@ -235,7 +231,6 @@ function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset }) 
           className="admin-small-btn"
           disabled={loadingPayment}
           onClick={onReset}
-          style={resetSelectionButtonStyle}
         >
           Reset Selection
         </button>
@@ -488,47 +483,6 @@ const reminderDescriptionStyle = {
   color: "var(--admin-muted)",
   fontSize: 14,
   lineHeight: 1.5,
-};
-
-const selectedResidentsBoxStyle = {
-  padding: 12,
-  borderRadius: 12,
-  border: "1px solid var(--admin-border)",
-  background: "var(--admin-row)",
-};
-
-const selectedResidentsHeaderStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 12,
-  marginBottom: 8,
-  color: "var(--admin-text)",
-};
-
-const selectedResidentsListStyle = {
-  margin: 0,
-  paddingLeft: 18,
-  maxHeight: 180,
-  overflowY: "auto",
-  color: "var(--admin-text)",
-};
-
-const selectedResidentsItemStyle = {
-  marginBottom: 4,
-  fontSize: 14,
-  lineHeight: 1.4,
-};
-
-const selectedResidentsEmptyStyle = {
-  margin: 0,
-  color: "var(--admin-muted)",
-  fontSize: 13,
-  lineHeight: 1.5,
-};
-
-const resetSelectionButtonStyle = {
-  marginTop: 10,
 };
 
 const reminderModalStyle = {
