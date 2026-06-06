@@ -1,0 +1,120 @@
+.admin-checkbox-chip {
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.admin-checkbox-chip:not(.admin-checkbox-chip-disabled):active {
+  transform: scale(0.97);
+}
+
+.admin-checkbox-chip-active {
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.22);
+}
+
+.admin-btn,
+.admin-small-btn,
+.admin-home-btn,
+.admin-tab,
+.admin-deposit-chip {
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.admin-btn:not(:disabled):active,
+.admin-small-btn:not(:disabled):active,
+.admin-home-btn:not(:disabled):active,
+.admin-tab:not(:disabled):active,
+.admin-deposit-chip:not(:disabled):active {
+  transform: translateY(1px);
+}
+
+.admin-selected-residents-card {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-row);
+  color: var(--admin-text);
+}
+
+.admin-selected-residents-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.admin-selected-residents-header span {
+  color: var(--admin-muted);
+  font-weight: 700;
+}
+
+.admin-selected-residents-header strong {
+  font-size: 16px;
+  color: var(--admin-text);
+}
+
+.admin-selected-residents-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  max-height: 180px;
+  overflow-y: auto;
+  color: var(--admin-text);
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-selected-residents-item {
+  margin-bottom: 4px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.admin-selected-residents-empty {
+  margin-top: 8px;
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.admin-selected-residents-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.admin-reset-confirm-btn {
+  background: #f59e0b;
+  color: #111827;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-checkbox-chip,
+  .admin-btn,
+  .admin-small-btn,
+  .admin-home-btn,
+  .admin-tab,
+  .admin-deposit-chip {
+    transition: none;
+  }
+
+  .admin-checkbox-chip:not(.admin-checkbox-chip-disabled):active,
+  .admin-btn:not(:disabled):active,
+  .admin-small-btn:not(:disabled):active,
+  .admin-home-btn:not(:disabled):active,
+  .admin-tab:not(:disabled):active,
+  .admin-deposit-chip:not(:disabled):active {
+    transform: none;
+  }
+}
