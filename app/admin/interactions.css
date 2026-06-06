@@ -277,6 +277,29 @@
   transform: translateY(1px);
 }
 
+.admin-monitor-grid .admin-status-card {
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.admin-monitor-grid .admin-status-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.admin-empty-state {
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.admin-empty-state:hover {
+  border-color: var(--admin-primary);
+}
+
 @keyframes adminModalOverlayIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -329,6 +352,8 @@
   .overview-progress-fill,
   .overview-progress-card-actionable,
   .overview-progress-action-btn,
+  .admin-monitor-grid .admin-status-card,
+  .admin-empty-state,
   .admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"] {
     transition: none;
   }
@@ -343,7 +368,8 @@
   .admin-wrapper .pay-dots span:hover,
   .admin-wrapper .pay-dots span:active,
   .overview-progress-card-actionable:hover,
-  .overview-progress-action-btn:active {
+  .overview-progress-action-btn:active,
+  .admin-monitor-grid .admin-status-card:hover {
     transform: none;
   }
 
