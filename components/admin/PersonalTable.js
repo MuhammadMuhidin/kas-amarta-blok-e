@@ -29,9 +29,13 @@ function formatDate(date) {
   });
 }
 
+function defaultRowClassName(_, index) {
+  return index % 2 ? "admin-row-alt" : "";
+}
+
 export default function PersonalTable({
   rows,
-  rowClassName,
+  rowClassName = defaultRowClassName,
   onUpdateMember,
 }) {
   const [savingKey, setSavingKey] = useState("");
