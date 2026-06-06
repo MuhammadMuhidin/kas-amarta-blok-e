@@ -78,6 +78,7 @@ export default function AdminPageClient() {
     setMemberSearch,
     loadingAdd,
     toggleMemberFilter,
+    rowClassName,
     addMember,
     updateMemberInline,
   } = useAdminMemberActions({
@@ -85,14 +86,16 @@ export default function AdminPageClient() {
     setPersonal,
     loadPersonal,
     showPopup,
+    submitMember: (payload) => sendJson("/api/sheets/personal", "POST", payload),
+    patchMember: (payload) => sendJson("/api/sheets/personal", "PATCH", payload),
     normalize,
+    currentPeriod,
   });
 
   const {
     activePersons,
     stats,
     searchedPersonal,
-    rowClassName,
     sortedDeposits,
     pendingCurrentDeposits,
     nextSixPeriods,
