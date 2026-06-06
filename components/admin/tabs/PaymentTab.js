@@ -202,38 +202,65 @@ function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sen
 }
 
 function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset }) {
+  const [confirmingReset, setConfirmingReset] = useState(false);
   const selectedCount = selectedResidents.length;
 
+  useEffect(() => {
+    if (!confirmingReset) return undefined;
+
+    const timeoutId = setTimeout(() => setConfirmingReset(false), 3000);
+
+    return () => clearTimeout(timeoutId);
+  }, [confirmingReset]);
+
+  useEffect(() => {
+    if (selectedCount === 0 || loadingPayment) setConfirmingReset(false);
+  }, [selectedCount, loadingPayment]);
+
+  function handleResetClick() {
+    if (loadingPayment) return;
+
+    if (!confirmingReset) {
+      setConfirmingReset(true);
+      return;
+    }
+
+    onReset();
+    setConfirmingReset(false);
+  }
+
   return (
-    <section className="admin-status-card" aria-live="polite" aria-label="Selected houses summary">
-      <div className="admin-status-label">Selected houses:</div>
-      <div className="admin-status-value">
-        {selectedCount} {selectedCount === 1 ? "house" : "houses"}
+    <section className="admin-selected-residents-card" aria-live="polite" aria-label="Selected houses summary">
+      <div className="admin-selected-residents-header">
+        <span>Selected houses:</span>
+        <strong>{selectedCount} {selectedCount === 1 ? "house" : "houses"}</strong>
       </div>
 
       {selectedCount > 0 ? (
-        <ul className="admin-status-meta">
+        <ul className="admin-selected-residents-list">
           {selectedResidents.map((person) => (
-            <li key={person.id}>
+            <li key={person.id} className="admin-selected-residents-item">
               {person.house} — {person.name}
             </li>
           ))}
         </ul>
       ) : (
-        <div className="admin-status-meta">
+        <div className="admin-selected-residents-empty">
           The names of the selected citizens will appear here.
         </div>
       )}
 
       {selectedCount > 0 && (
-        <button
-          type="button"
-          className="admin-small-btn"
-          disabled={loadingPayment}
-          onClick={onReset}
-        >
-          Reset Selection
-        </button>
+        <div className="admin-selected-residents-actions">
+          <button
+            type="button"
+            className={confirmingReset ? "admin-small-btn admin-reset-confirm-btn" : "admin-small-btn"}
+            disabled={loadingPayment}
+            onClick={handleResetClick}
+          >
+            {confirmingReset ? "Click again to confirm reset" : "Reset Selection"}
+          </button>
+        </div>
       )}
     </section>
   );
@@ -248,6 +275,7 @@ export default function PaymentTab({
   payments = [],
   selected,
   toggleHouse,
+  resetSelected,
   normalize,
   isHousePaidForPeriod,
   loadingPayment,
@@ -294,16 +322,15 @@ export default function PaymentTab({
       .sort((a, b) => a.house.localeCompare(b.house, undefined, { numeric: true }));
   }, [personal, selected]);
 
+  const selectedCount = selectedResidents.length;
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
-  const disableRecordPayment = loadingPayment || hasPendingCurrentDeposit;
+  const disableRecordPayment = loadingPayment || hasPendingCurrentDeposit || selectedCount === 0;
   const loadingText = paymentProgress?.total
     ? `Recording payment ${paymentProgress.current}/${paymentProgress.total}...`
     : "Recording...";
-
-  function resetSelectedResidents() {
-    if (loadingPayment) return;
-    selectedResidents.forEach((person) => toggleHouse(person.id));
-  }
+  const recordPaymentLabel = selectedCount === 0
+    ? "Select houses first"
+    : `Record ${selectedCount} ${selectedCount === 1 ? "Payment" : "Payments"}`;
 
   async function sendPaymentReminder() {
     if (sendingReminder) return;
@@ -445,11 +472,11 @@ export default function PaymentTab({
           <SelectedResidentsPanel
             selectedResidents={selectedResidents}
             loadingPayment={loadingPayment}
-            onReset={resetSelectedResidents}
+            onReset={resetSelected}
           />
           <button className="admin-btn" disabled={disableRecordPayment}>
             <LoadingButtonContent loading={loadingPayment} loadingText={loadingText}>
-              Record Payment
+              {recordPaymentLabel}
             </LoadingButtonContent>
           </button>
           {loadingPayment && <WakeLockInfo wakeLock={wakeLock} />}
