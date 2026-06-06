@@ -21,7 +21,8 @@
 .admin-tab,
 .admin-deposit-chip,
 .admin-collapse-toggle,
-.admin-refresh-btn {
+.admin-refresh-btn,
+.activity-filter-toggle {
   transition:
     transform 0.15s ease,
     background 0.15s ease,
@@ -36,16 +37,19 @@
 .admin-tab:not(:disabled):active,
 .admin-deposit-chip:not(:disabled):active,
 .admin-collapse-toggle:not(:disabled):active,
-.admin-refresh-btn:not(:disabled):active {
+.admin-refresh-btn:not(:disabled):active,
+.activity-filter-toggle:not(:disabled):active {
   transform: translateY(1px);
 }
 
-.admin-collapse-toggle:hover {
+.admin-collapse-toggle:hover,
+.activity-filter-toggle:hover {
   background: var(--admin-row);
   box-shadow: 0 0 0 1px var(--admin-border);
 }
 
-.admin-collapse-toggle-open {
+.admin-collapse-toggle-open,
+.activity-filter-toggle-open {
   background: var(--admin-row);
   box-shadow: 0 0 0 1px var(--admin-border);
 }
@@ -294,7 +298,9 @@
 
 .overview-quick-action,
 .booking-ready-pay-summary,
-.cashflow-summary-card {
+.cashflow-summary-card,
+.summary-backup-card,
+.monitoring-alert-test-card {
   transition:
     transform 0.15s ease,
     border-color 0.15s ease,
@@ -303,7 +309,9 @@
 
 .overview-quick-action:hover,
 .booking-ready-pay-summary:hover,
-.cashflow-summary-card:hover {
+.cashflow-summary-card:hover,
+.summary-backup-card:hover,
+.monitoring-alert-test-card:hover {
   transform: translateY(-1px);
   border-color: var(--admin-primary);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
@@ -338,6 +346,181 @@
   font-size: 12px;
   font-weight: 800;
   animation: adminPanelIn 0.18s ease-out;
+}
+
+.summary-backup-latest-row {
+  box-shadow: inset 4px 0 0 var(--admin-primary);
+}
+
+.summary-backup-delta {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--admin-card);
+}
+
+.summary-backup-delta-good {
+  animation: adminSoftSuccessPulse 1.6s ease-in-out 1;
+}
+
+.summary-backup-delta-bad {
+  animation: adminSoftDangerPulse 1.6s ease-in-out 1;
+}
+
+.summary-backup-modal-row {
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.summary-backup-modal-row:hover {
+  transform: translateY(-1px);
+  border-color: var(--admin-primary);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.monitoring-build-badge {
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.monitoring-build-badge:hover {
+  transform: translateY(-1px);
+  border-color: var(--admin-primary);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+.monitoring-build-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.monitoring-build-dot-ok {
+  background: #16a34a;
+}
+
+.monitoring-build-dot-error {
+  background: #dc2626;
+  animation: adminSoftDangerPulse 1.6s ease-in-out infinite;
+}
+
+.monitoring-build-dot-loading {
+  background: var(--admin-primary);
+  animation: adminSoftPrimaryPulse 1.2s ease-in-out infinite;
+}
+
+.monitoring-alert-test-card-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.monitoring-alert-test-card-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent);
+  animation: adminProgressSweep 1.2s linear infinite;
+  pointer-events: none;
+}
+
+.monitoring-alert-result {
+  animation: adminPanelIn 0.18s ease-out;
+}
+
+.monitoring-row-repairing {
+  opacity: 0.72;
+  animation: adminSoftPrimaryPulse 1.2s ease-in-out infinite;
+}
+
+.monitoring-repair-btn:not(:disabled):hover {
+  border-color: var(--admin-primary);
+}
+
+.activity-filter-toggle-open {
+  border-color: var(--admin-primary);
+  color: var(--admin-primary);
+}
+
+.activity-status-pulse {
+  animation: adminSoftPrimaryPulse 1.2s ease-in-out infinite;
+}
+
+.activity-status-error.activity-status-pulse {
+  animation-name: adminSoftDangerPulse;
+}
+
+.activity-row {
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.activity-row:hover {
+  background: var(--admin-row);
+  box-shadow: inset 3px 0 0 var(--admin-primary);
+}
+
+.activity-mobile-card {
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.activity-mobile-card:hover,
+.activity-mobile-card:focus-visible {
+  transform: translateY(-1px);
+  border-color: var(--admin-primary);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.activity-mobile-card:active {
+  transform: translateY(1px);
+}
+
+.timeline-admin-actions .admin-small-btn.active {
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.22);
+}
+
+.timeline-admin-thumb,
+.timeline-admin-photo-item,
+.timeline-admin-preview-image {
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.timeline-admin-thumb:hover,
+.timeline-admin-photo-item:hover,
+.timeline-admin-preview-image:hover {
+  transform: translateY(-1px);
+  border-color: var(--admin-primary);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.timeline-admin-thumb img {
+  transition: transform 0.18s ease;
+}
+
+.timeline-admin-thumb:hover img {
+  transform: scale(1.04);
+}
+
+.timeline-admin-photo-badge.warning {
+  animation: adminSoftWarningPulse 1.8s ease-in-out infinite;
+}
+
+.timeline-danger-btn:not(:disabled):hover {
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.18);
 }
 
 .overview-progress-track {
@@ -444,9 +627,34 @@
   to { transform: translateX(100%); }
 }
 
+@keyframes adminProgressSweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
 @keyframes overviewSoftPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
   50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12); }
+}
+
+@keyframes adminSoftPrimaryPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(96, 165, 250, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.16); }
+}
+
+@keyframes adminSoftSuccessPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.14); }
+}
+
+@keyframes adminSoftDangerPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.14); }
+}
+
+@keyframes adminSoftWarningPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 119, 6, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.14); }
 }
 
 @media (max-width: 640px) {
@@ -483,6 +691,7 @@
   .admin-deposit-chip,
   .admin-collapse-toggle,
   .admin-refresh-btn,
+  .activity-filter-toggle,
   .admin-clickable-row,
   .admin-loader-sentinel,
   .admin-wrapper .admin-insight-link,
@@ -492,6 +701,16 @@
   .booking-ready-pay-summary,
   .booking-multipay-progress-fill,
   .cashflow-summary-card,
+  .summary-backup-card,
+  .summary-backup-modal-row,
+  .monitoring-build-badge,
+  .monitoring-alert-test-card,
+  .activity-row,
+  .activity-mobile-card,
+  .timeline-admin-thumb,
+  .timeline-admin-photo-item,
+  .timeline-admin-preview-image,
+  .timeline-admin-thumb img,
   .overview-progress-fill,
   .overview-progress-percent,
   .overview-progress-card-actionable,
@@ -509,6 +728,7 @@
   .admin-deposit-chip:not(:disabled):active,
   .admin-collapse-toggle:not(:disabled):active,
   .admin-refresh-btn:not(:disabled):active,
+  .activity-filter-toggle:not(:disabled):active,
   .admin-wrapper .admin-insight-link:active,
   .admin-wrapper .pay-dots span:hover,
   .admin-wrapper .pay-dots span:active,
@@ -517,6 +737,16 @@
   .overview-quick-action:active,
   .booking-ready-pay-summary:hover,
   .cashflow-summary-card:hover,
+  .summary-backup-card:hover,
+  .summary-backup-modal-row:hover,
+  .monitoring-build-badge:hover,
+  .activity-mobile-card:hover,
+  .activity-mobile-card:focus-visible,
+  .activity-mobile-card:active,
+  .timeline-admin-thumb:hover,
+  .timeline-admin-photo-item:hover,
+  .timeline-admin-preview-image:hover,
+  .timeline-admin-thumb:hover img,
   .overview-progress-card-actionable:hover,
   .overview-progress-card-actionable:hover .overview-progress-percent,
   .overview-progress-action-btn:active,
@@ -530,6 +760,15 @@
   .booking-preview-box,
   .cashflow-receipt-panel,
   .cashflow-receipt-file-name,
+  .summary-backup-delta-good,
+  .summary-backup-delta-bad,
+  .monitoring-build-dot-error,
+  .monitoring-build-dot-loading,
+  .monitoring-alert-test-card-loading::after,
+  .monitoring-alert-result,
+  .monitoring-row-repairing,
+  .activity-status-pulse,
+  .timeline-admin-photo-badge.warning,
   .overview-hero-card-danger,
   .overview-progress-fill::after {
     animation: none;
