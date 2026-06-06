@@ -15,159 +15,6 @@ const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
 const normalizeUpper = (value) => normalize(value).toUpperCase();
 
-const overviewAdminCss = `
-  .admin-wrapper .admin-status-meta-action-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .admin-wrapper .admin-insight-link {
-    border: none;
-    background: none;
-    color: var(--admin-primary);
-    cursor: pointer;
-    font: inherit;
-    font-size: 13px;
-    font-weight: 700;
-    padding: 0;
-    white-space: nowrap;
-  }
-
-  .admin-wrapper .admin-insight-link:hover {
-    text-decoration: underline;
-    text-underline-offset: 3px;
-  }
-
-  .admin-wrapper .modal-overlay {
-    animation: adminModalOverlayIn 0.18s ease-out;
-    align-items: center;
-    justify-content: center;
-    overflow-y: auto;
-    padding: 18px 12px;
-  }
-
-  .admin-wrapper .modal-box {
-    animation: adminModalContentIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
-    transform-origin: center;
-    max-height: calc(100dvh - 36px);
-    overflow-y: auto;
-    position: relative;
-  }
-
-  .admin-wrapper .overview-modal-close {
-    display: none;
-  }
-
-  .admin-wrapper .detail-table {
-    width: 100%;
-    min-width: 0;
-    margin: 10px auto 0;
-    table-layout: auto;
-  }
-
-  .admin-wrapper .detail-table th,
-  .admin-wrapper .detail-table td {
-    white-space: nowrap;
-  }
-
-  .admin-wrapper .pay-slider {
-    display: flex;
-    gap: 0;
-    overflow-x: auto;
-    overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    scroll-behavior: smooth;
-    scroll-snap-stop: always;
-    overscroll-behavior-x: contain;
-    touch-action: pan-x;
-    padding-bottom: 8px;
-    padding-inline: 0;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .admin-wrapper .pay-slider::-webkit-scrollbar {
-    display: none;
-  }
-
-  .admin-wrapper .pay-slide-page {
-    display: block;
-    box-sizing: border-box;
-    flex: 0 0 100%;
-    min-width: 100%;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-  }
-
-  .admin-wrapper .pay-slide-page > * {
-    width: 100%;
-  }
-
-  .admin-wrapper .pay-dots {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    margin-top: 14px;
-  }
-
-  .admin-wrapper .pay-dots span {
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--admin-border);
-    transition: all .25s ease;
-    cursor: pointer;
-  }
-
-  .admin-wrapper .pay-dots span.active {
-    width: 22px;
-    background: var(--admin-primary);
-  }
-
-  @keyframes adminModalOverlayIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes adminModalContentIn {
-    from { opacity: 0; transform: translateY(8px) scale(0.98); }
-    to { opacity: 1; transform: translateY(0) scale(1); }
-  }
-
-  @media (max-width: 640px) {
-    .admin-wrapper .modal-overlay {
-      align-items: center;
-      justify-content: center;
-      padding: 12px 8px;
-    }
-
-    .admin-wrapper .modal-box {
-      width: min(100%, calc(100vw - 16px));
-      max-height: calc(100dvh - 24px);
-      border-radius: 18px;
-      padding: 16px;
-    }
-
-    .admin-wrapper .modal-header {
-      align-items: stretch;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .admin-wrapper .overview-modal-close {
-      display: inline-flex;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .admin-wrapper .modal-overlay,
-    .admin-wrapper .modal-box { animation: none; }
-  }
-`;
-
 function formatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -243,7 +90,7 @@ function Section({ title, children }) {
 
 function QuickAction({ title, subtitle, onClick }) {
   return (
-    <button type="button" onClick={onClick} style={styles.quickActionCard}>
+    <button type="button" className="overview-quick-action" onClick={onClick} style={styles.quickActionCard}>
       <span style={styles.quickActionTitle}>{title}</span>
       <span style={styles.quickActionSubtitle}>{subtitle}</span>
     </button>
@@ -501,7 +348,7 @@ function TrashAllMembersModal({
 function CashBalanceHero({ value }) {
   const negative = Number(value || 0) < 0;
   return (
-    <section style={{ ...styles.heroCard, borderColor: negative ? "#dc2626" : "var(--admin-border)" }}>
+    <section className={negative ? "overview-hero-card overview-hero-card-danger" : "overview-hero-card overview-hero-card-healthy"} style={{ ...styles.heroCard, borderColor: negative ? "#dc2626" : "var(--admin-border)" }}>
       <div>
         <div style={styles.heroLabel}>Cash Balance</div>
         <div style={{ ...styles.heroValue, color: negative ? "#dc2626" : "var(--admin-text)" }}>{money(value)}</div>
@@ -514,25 +361,30 @@ function CashBalanceHero({ value }) {
 
 function ProgressCard({ label, paid, total, unpaid, metaActions = [], error = false }) {
   const percent = getPercent(paid, total);
+  const actions = metaActions.filter(Boolean);
+  const cardClassName = actions.length
+    ? "overview-progress-card overview-progress-card-actionable"
+    : "overview-progress-card";
+
   return (
-    <div style={{ ...styles.progressCard, borderColor: error ? "#d97706" : "var(--admin-border)" }}>
+    <div className={cardClassName} style={{ ...styles.progressCard, borderColor: error ? "#d97706" : "var(--admin-border)" }}>
       <div style={styles.progressHeader}>
         <div>
           <div style={styles.progressLabel}>{label}</div>
           <div style={styles.progressValue}>{paid}/{total} houses</div>
         </div>
-        <div style={{ ...styles.progressPercent, color: error ? "#d97706" : "#16a34a" }}>{percent}%</div>
+        <div className="overview-progress-percent" style={{ ...styles.progressPercent, color: error ? "#d97706" : "#16a34a" }}>{percent}%</div>
       </div>
-      <div style={styles.progressTrack}>
-        <div style={{ ...styles.progressFill, width: `${percent}%` }} />
+      <div className="overview-progress-track" style={styles.progressTrack}>
+        <div className="overview-progress-fill" style={{ ...styles.progressFill, width: `${percent}%` }} />
       </div>
       <div style={styles.progressMetaRow}>
         <span>{unpaid} houses unpaid.</span>
         <span>{paid} houses paid.</span>
       </div>
       <div style={styles.progressActions}>
-        {metaActions.filter(Boolean).map((action) => (
-          <button key={action.label} type="button" style={styles.progressActionButton} onClick={action.onClick}>{action.label}</button>
+        {actions.map((action) => (
+          <button key={action.label} type="button" className="overview-progress-action-btn" style={styles.progressActionButton} onClick={action.onClick}>{action.label}</button>
         ))}
       </div>
     </div>
@@ -750,7 +602,6 @@ export default function OverviewTab({
 
   return (
     <>
-      <style>{overviewAdminCss}</style>
       <Toast show={toast.show} type={toast.type} message={toast.message} />
       <div className="admin-card" style={{ display: "grid", gap: 22 }}>
         <div style={styles.header}>
