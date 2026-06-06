@@ -53,7 +53,7 @@ function TypeLabel({ type }) {
 
 function SummaryCard({ label, value, type }) {
   return (
-    <div style={styles.card}>
+    <div className="cashflow-summary-card" style={styles.card}>
       <div style={styles.label}>{label}</div>
       <div style={type === "income" ? styles.incomeValue : styles.expenseValue}>
         {money(value)}
@@ -207,6 +207,7 @@ export default function CashflowTab({
 
           <button
             type="button"
+            className={showRecordForm ? "admin-collapse-toggle admin-collapse-toggle-open" : "admin-collapse-toggle"}
             style={styles.collapseButton}
             aria-label={showRecordForm ? "Collapse cashflow form" : "Expand cashflow form"}
             aria-expanded={showRecordForm}
@@ -217,7 +218,7 @@ export default function CashflowTab({
         </div>
 
         {showRecordForm && (
-          <form onSubmit={handleAddCashflow} className="admin-form">
+          <form onSubmit={handleAddCashflow} className="admin-form admin-collapsible-panel">
             <select
               className="admin-input"
               value={cashflow.type}
@@ -250,7 +251,7 @@ export default function CashflowTab({
             />
 
             {isExpense && (
-              <label style={styles.fileLabel}>
+              <label className="cashflow-receipt-panel" style={styles.fileLabel}>
                 <span>Receipt / note / proof of purchase</span>
                 <input
                   ref={fileInputRef}
@@ -259,6 +260,11 @@ export default function CashflowTab({
                   accept="image/jpeg,image/png,image/webp,application/pdf"
                   onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
                 />
+                {receiptFile && (
+                  <small className="cashflow-receipt-file-name">
+                    Selected file: {receiptFile.name}
+                  </small>
+                )}
                 <small style={styles.helperText}>Required for expenses. JPG, PNG, WEBP, or PDF format. Maximum 5MB.</small>
               </label>
             )}
@@ -317,9 +323,8 @@ export default function CashflowTab({
                     return (
                       <tr
                         key={item.id || index}
-                        className={index % 2 ? "admin-row-alt" : ""}
+                        className={index % 2 ? "admin-row-alt admin-clickable-row" : "admin-clickable-row"}
                         onClick={() => setSelectedItem(item)}
-                        style={{ cursor: "pointer" }}
                       >
                         <td className="admin-td">{formatDate(item.date)}</td>
                         <td className="admin-td"><TypeLabel type={item.type} /></td>
@@ -334,8 +339,12 @@ export default function CashflowTab({
               </table>
             </div>
 
-            <div ref={loaderRef} style={styles.loaderSentinel}>
-              {loadingMore ? "Loading more..." : hasMore ? "Scroll to load more" : "All transactions loaded"}
+            <div
+              ref={loaderRef}
+              className={loadingMore ? "admin-loader-sentinel admin-loader-sentinel-loading" : "admin-loader-sentinel"}
+              style={styles.loaderSentinel}
+            >
+              {loadingMore ? "Loading more" : hasMore ? "Scroll to load more" : "All transactions loaded"}
             </div>
           </>
         )}
