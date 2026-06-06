@@ -99,13 +99,204 @@
   color: #111827;
 }
 
+.admin-wrapper .admin-status-meta-action-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-wrapper .admin-insight-link {
+  border: none;
+  background: none;
+  color: var(--admin-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0;
+  white-space: nowrap;
+  transition:
+    color 0.15s ease,
+    transform 0.15s ease;
+}
+
+.admin-wrapper .admin-insight-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.admin-wrapper .admin-insight-link:active {
+  transform: translateY(1px);
+}
+
+.admin-wrapper .modal-overlay {
+  animation: adminModalOverlayIn 0.18s ease-out;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 18px 12px;
+}
+
+.admin-wrapper .modal-box {
+  animation: adminModalContentIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: center;
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  position: relative;
+}
+
+.admin-wrapper .overview-modal-close {
+  display: none;
+}
+
+.admin-wrapper .detail-table {
+  width: 100%;
+  min-width: 0;
+  margin: 10px auto 0;
+  table-layout: auto;
+}
+
+.admin-wrapper .detail-table th,
+.admin-wrapper .detail-table td {
+  white-space: nowrap;
+}
+
+.admin-wrapper .pay-slider {
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scroll-snap-stop: always;
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  padding-bottom: 8px;
+  padding-inline: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.admin-wrapper .pay-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.admin-wrapper .pay-slide-page {
+  display: block;
+  box-sizing: border-box;
+  flex: 0 0 100%;
+  min-width: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+.admin-wrapper .pay-slide-page > * {
+  width: 100%;
+}
+
+.admin-wrapper .pay-dots {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.admin-wrapper .pay-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--admin-border);
+  transition:
+    width 0.25s ease,
+    background 0.25s ease,
+    transform 0.15s ease;
+  cursor: pointer;
+}
+
+.admin-wrapper .pay-dots span:hover {
+  transform: scale(1.15);
+}
+
+.admin-wrapper .pay-dots span:active {
+  transform: scale(0.95);
+}
+
+.admin-wrapper .pay-dots span.active {
+  width: 22px;
+  background: var(--admin-primary);
+}
+
+.admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] {
+  position: relative;
+}
+
+.admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"] {
+  position: relative;
+  overflow: hidden;
+  transition: width 0.45s ease;
+}
+
+.admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: overviewProgressSweep 1.4s linear infinite;
+  transform: translateX(-100%);
+}
+
+@keyframes adminModalOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes adminModalContentIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes overviewProgressSweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+@media (max-width: 640px) {
+  .admin-wrapper .modal-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: 12px 8px;
+  }
+
+  .admin-wrapper .modal-box {
+    width: min(100%, calc(100vw - 16px));
+    max-height: calc(100dvh - 24px);
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .admin-wrapper .modal-header {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .admin-wrapper .overview-modal-close {
+    display: inline-flex;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .admin-checkbox-chip,
   .admin-btn,
   .admin-small-btn,
   .admin-home-btn,
   .admin-tab,
-  .admin-deposit-chip {
+  .admin-deposit-chip,
+  .admin-wrapper .admin-insight-link,
+  .admin-wrapper .pay-dots span,
+  .admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"] {
     transition: none;
   }
 
@@ -114,7 +305,16 @@
   .admin-small-btn:not(:disabled):active,
   .admin-home-btn:not(:disabled):active,
   .admin-tab:not(:disabled):active,
-  .admin-deposit-chip:not(:disabled):active {
+  .admin-deposit-chip:not(:disabled):active,
+  .admin-wrapper .admin-insight-link:active,
+  .admin-wrapper .pay-dots span:hover,
+  .admin-wrapper .pay-dots span:active {
     transform: none;
+  }
+
+  .admin-wrapper .modal-overlay,
+  .admin-wrapper .modal-box,
+  .admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"]::after {
+    animation: none;
   }
 }
