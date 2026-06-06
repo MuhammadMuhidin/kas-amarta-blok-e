@@ -249,6 +249,11 @@ button {
   font-weight: 500;
 }
 
+.admin-row-inactive .admin-td,
+.admin-row-inactive .admin-inline-select {
+  color: #ffffff;
+}
+
 .admin-row-new-active {
   background: #0927b0;
   color: #fecaca;
