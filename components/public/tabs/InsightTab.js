@@ -1,6 +1,90 @@
 "use client";
 
+import { useEffect } from "react";
 import { formatCashflowNote, formatDate, formatMoney, formatPeriod } from "@/lib/public/publicFormatters";
+
+const insightDetailModalCss = `
+  .insight-detail-modal-overlay {
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 18px 12px;
+  }
+
+  .insight-detail-modal-box {
+    max-height: calc(100dvh - 36px);
+    overflow-y: auto;
+    overflow-x: auto;
+    position: relative;
+    transform-origin: center;
+  }
+
+  .insight-detail-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .insight-detail-modal-title-group {
+    min-width: 0;
+  }
+
+  .insight-detail-modal-subtitle {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: var(--font-base);
+    font-weight: 700;
+    line-height: 1.5;
+  }
+
+  .insight-detail-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--surface-soft);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .insight-detail-modal-section {
+    margin-bottom: 0;
+  }
+
+  .insight-detail-table {
+    margin: 10px auto 0;
+    table-layout: auto;
+  }
+
+  @media (max-width: 640px) {
+    .insight-detail-modal-overlay {
+      align-items: center;
+      justify-content: center;
+      padding: 12px 8px;
+    }
+
+    .insight-detail-modal-box {
+      width: min(100%, calc(100vw - 16px));
+      max-height: calc(100dvh - 24px);
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .insight-detail-modal-header {
+      align-items: stretch;
+      flex-direction: row;
+      gap: 12px;
+    }
+  }
+`;
 
 export default function InsightTab({
   active,
@@ -27,6 +111,21 @@ export default function InsightTab({
   onDownloadPDF,
   onOpenReceipt,
 }) {
+  useEffect(() => {
+    if (!showInsightModal || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [showInsightModal]);
+
   function renderCashflowNote(note, receiptUrl) {
     const formattedNote = formatCashflowNote(note);
 
@@ -56,6 +155,7 @@ export default function InsightTab({
 
   return (
     <div className={!active ? "hidden" : ""}>
+      <style>{insightDetailModalCss}</style>
       <div
         style={{
           display: "flex",
@@ -207,20 +307,29 @@ export default function InsightTab({
       )}
 
       {showInsightModal && (
-        <div className="modal-overlay" onClick={() => setShowInsightModal(false)}>
-          <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title">
-                Detail Pengeluaran Bulan {modalType === "last" ? insight?.lastMonth?.month : insight?.currentMonth?.month}
+        <div className="modal-overlay insight-detail-modal-overlay" onClick={() => setShowInsightModal(false)}>
+          <div className="modal-box insight-detail-modal-box" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header insight-detail-modal-header">
+              <div className="insight-detail-modal-title-group">
+                <div className="modal-title">
+                  Detail Pengeluaran Bulan {modalType === "last" ? insight?.lastMonth?.month : insight?.currentMonth?.month}
+                </div>
+                <div className="insight-detail-modal-subtitle">
+                  Total Pengeluaran: {formatMoney(modalType === "last" ? insight?.lastMonth?.expenseTotal || 0 : insight?.currentMonth?.expenseTotal || 0)}
+                </div>
               </div>
+              <button
+                type="button"
+                className="insight-detail-modal-close"
+                onClick={() => setShowInsightModal(false)}
+                aria-label="Tutup detail pengeluaran"
+              >
+                ×
+              </button>
             </div>
 
-            <div className="modal-section">
-              <div style={{ marginBottom: 12, fontWeight: 700 }}>
-                Total Pengeluaran: {formatMoney(modalType === "last" ? insight?.lastMonth?.expenseTotal || 0 : insight?.currentMonth?.expenseTotal || 0)}
-              </div>
-
-              <table className="detail-table">
+            <div className="modal-section insight-detail-modal-section">
+              <table className="detail-table insight-detail-table">
                 <thead>
                   <tr>
                     <th>Tanggal</th>
