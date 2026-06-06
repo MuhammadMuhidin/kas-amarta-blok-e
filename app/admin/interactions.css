@@ -228,26 +228,60 @@
   background: var(--admin-primary);
 }
 
-.overview-progress-track,
-.admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] {
+.overview-hero-card {
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.overview-hero-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
+}
+
+.overview-hero-card-danger {
+  animation: overviewSoftPulse 1.8s ease-in-out infinite;
+}
+
+.overview-quick-action {
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.overview-quick-action:hover {
+  transform: translateY(-1px);
+  border-color: var(--admin-primary);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
+}
+
+.overview-quick-action:active {
+  transform: translateY(1px);
+}
+
+.overview-progress-track {
   position: relative;
 }
 
-.overview-progress-fill,
-.admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"] {
+.overview-progress-fill {
   position: relative;
   overflow: hidden;
   transition: width 0.45s ease;
 }
 
-.overview-progress-fill::after,
-.admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"]::after {
+.overview-progress-fill::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
   animation: overviewProgressSweep 1.4s linear infinite;
   transform: translateX(-100%);
+}
+
+.overview-progress-percent {
+  transition: transform 0.15s ease;
 }
 
 .overview-progress-card-actionable {
@@ -260,6 +294,10 @@
 .overview-progress-card-actionable:hover {
   transform: translateY(-1px);
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.overview-progress-card-actionable:hover .overview-progress-percent {
+  transform: scale(1.04);
 }
 
 .overview-progress-action-btn {
@@ -315,6 +353,11 @@
   to { transform: translateX(100%); }
 }
 
+@keyframes overviewSoftPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.12); }
+}
+
 @media (max-width: 640px) {
   .admin-wrapper .modal-overlay {
     align-items: center;
@@ -349,12 +392,14 @@
   .admin-deposit-chip,
   .admin-wrapper .admin-insight-link,
   .admin-wrapper .pay-dots span,
+  .overview-hero-card,
+  .overview-quick-action,
   .overview-progress-fill,
+  .overview-progress-percent,
   .overview-progress-card-actionable,
   .overview-progress-action-btn,
   .admin-monitor-grid .admin-status-card,
-  .admin-empty-state,
-  .admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"] {
+  .admin-empty-state {
     transition: none;
   }
 
@@ -367,7 +412,11 @@
   .admin-wrapper .admin-insight-link:active,
   .admin-wrapper .pay-dots span:hover,
   .admin-wrapper .pay-dots span:active,
+  .overview-hero-card:hover,
+  .overview-quick-action:hover,
+  .overview-quick-action:active,
   .overview-progress-card-actionable:hover,
+  .overview-progress-card-actionable:hover .overview-progress-percent,
   .overview-progress-action-btn:active,
   .admin-monitor-grid .admin-status-card:hover {
     transform: none;
@@ -375,8 +424,8 @@
 
   .admin-wrapper .modal-overlay,
   .admin-wrapper .modal-box,
-  .overview-progress-fill::after,
-  .admin-wrapper div[style*="height: 9px"][style*="border-radius: 999"][style*="overflow: hidden"] > div[style*="background: var(--admin-primary)"]::after {
+  .overview-hero-card-danger,
+  .overview-progress-fill::after {
     animation: none;
   }
 }
