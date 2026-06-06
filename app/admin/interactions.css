@@ -19,7 +19,9 @@
 .admin-small-btn,
 .admin-home-btn,
 .admin-tab,
-.admin-deposit-chip {
+.admin-deposit-chip,
+.admin-collapse-toggle,
+.admin-refresh-btn {
   transition:
     transform 0.15s ease,
     background 0.15s ease,
@@ -32,8 +34,54 @@
 .admin-small-btn:not(:disabled):active,
 .admin-home-btn:not(:disabled):active,
 .admin-tab:not(:disabled):active,
-.admin-deposit-chip:not(:disabled):active {
+.admin-deposit-chip:not(:disabled):active,
+.admin-collapse-toggle:not(:disabled):active,
+.admin-refresh-btn:not(:disabled):active {
   transform: translateY(1px);
+}
+
+.admin-collapse-toggle:hover {
+  background: var(--admin-row);
+  box-shadow: 0 0 0 1px var(--admin-border);
+}
+
+.admin-collapse-toggle-open {
+  background: var(--admin-row);
+  box-shadow: 0 0 0 1px var(--admin-border);
+}
+
+.admin-collapsible-panel {
+  animation: adminPanelIn 0.18s ease-out;
+}
+
+.admin-clickable-row {
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.admin-clickable-row:hover {
+  background: var(--admin-row);
+  box-shadow: inset 3px 0 0 var(--admin-primary);
+}
+
+.admin-clickable-row:active {
+  background: var(--admin-card);
+}
+
+.admin-loader-sentinel {
+  transition:
+    color 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.admin-loader-sentinel-loading::after {
+  content: "";
+  display: inline-block;
+  width: 1.2em;
+  text-align: left;
+  animation: adminLoadingDots 1s steps(4, end) infinite;
 }
 
 .admin-selected-residents-card {
@@ -244,14 +292,18 @@
   animation: overviewSoftPulse 1.8s ease-in-out infinite;
 }
 
-.overview-quick-action {
+.overview-quick-action,
+.booking-ready-pay-summary,
+.cashflow-summary-card {
   transition:
     transform 0.15s ease,
     border-color 0.15s ease,
     box-shadow 0.15s ease;
 }
 
-.overview-quick-action:hover {
+.overview-quick-action:hover,
+.booking-ready-pay-summary:hover,
+.cashflow-summary-card:hover {
   transform: translateY(-1px);
   border-color: var(--admin-primary);
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
@@ -259,6 +311,33 @@
 
 .overview-quick-action:active {
   transform: translateY(1px);
+}
+
+.booking-preview-box,
+.cashflow-receipt-panel {
+  animation: adminPanelIn 0.18s ease-out;
+}
+
+.booking-multipay-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-row);
+}
+
+.booking-multipay-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--admin-primary);
+  transition: width 0.25s ease;
+}
+
+.cashflow-receipt-file-name {
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 800;
+  animation: adminPanelIn 0.18s ease-out;
 }
 
 .overview-progress-track {
@@ -338,6 +417,18 @@
   border-color: var(--admin-primary);
 }
 
+@keyframes adminPanelIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes adminLoadingDots {
+  0% { content: ""; }
+  25% { content: "."; }
+  50% { content: ".."; }
+  75%, 100% { content: "..."; }
+}
+
 @keyframes adminModalOverlayIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -390,10 +481,17 @@
   .admin-home-btn,
   .admin-tab,
   .admin-deposit-chip,
+  .admin-collapse-toggle,
+  .admin-refresh-btn,
+  .admin-clickable-row,
+  .admin-loader-sentinel,
   .admin-wrapper .admin-insight-link,
   .admin-wrapper .pay-dots span,
   .overview-hero-card,
   .overview-quick-action,
+  .booking-ready-pay-summary,
+  .booking-multipay-progress-fill,
+  .cashflow-summary-card,
   .overview-progress-fill,
   .overview-progress-percent,
   .overview-progress-card-actionable,
@@ -409,12 +507,16 @@
   .admin-home-btn:not(:disabled):active,
   .admin-tab:not(:disabled):active,
   .admin-deposit-chip:not(:disabled):active,
+  .admin-collapse-toggle:not(:disabled):active,
+  .admin-refresh-btn:not(:disabled):active,
   .admin-wrapper .admin-insight-link:active,
   .admin-wrapper .pay-dots span:hover,
   .admin-wrapper .pay-dots span:active,
   .overview-hero-card:hover,
   .overview-quick-action:hover,
   .overview-quick-action:active,
+  .booking-ready-pay-summary:hover,
+  .cashflow-summary-card:hover,
   .overview-progress-card-actionable:hover,
   .overview-progress-card-actionable:hover .overview-progress-percent,
   .overview-progress-action-btn:active,
@@ -424,6 +526,10 @@
 
   .admin-wrapper .modal-overlay,
   .admin-wrapper .modal-box,
+  .admin-collapsible-panel,
+  .booking-preview-box,
+  .cashflow-receipt-panel,
+  .cashflow-receipt-file-name,
   .overview-hero-card-danger,
   .overview-progress-fill::after {
     animation: none;
