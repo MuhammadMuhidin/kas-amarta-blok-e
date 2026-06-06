@@ -266,6 +266,25 @@ function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset }) 
   );
 }
 
+function PaymentProgressBar({ progress }) {
+  if (!progress?.total) return null;
+
+  const percent = Math.min(100, Math.max(0, Math.round((progress.current / progress.total) * 100)));
+
+  return (
+    <section className="payment-bulk-progress-card" style={paymentProgressCardStyle} aria-live="polite">
+      <div style={paymentProgressHeaderStyle}>
+        <span>Recording payments</span>
+        <strong>{progress.current}/{progress.total}</strong>
+      </div>
+      <div className="booking-multipay-progress-track">
+        <div className="booking-multipay-progress-fill" style={{ width: `${percent}%` }} />
+      </div>
+      <div style={paymentProgressMetaStyle}>Processing {progress.current} of {progress.total} selected houses.</div>
+    </section>
+  );
+}
+
 export default function PaymentTab({
   configError,
   recordPayment,
@@ -474,6 +493,7 @@ export default function PaymentTab({
             loadingPayment={loadingPayment}
             onReset={resetSelected}
           />
+          {loadingPayment && <PaymentProgressBar progress={paymentProgress} />}
           <button className="admin-btn" disabled={disableRecordPayment}>
             <LoadingButtonContent loading={loadingPayment} loadingText={loadingText}>
               {recordPaymentLabel}
@@ -485,6 +505,32 @@ export default function PaymentTab({
     </>
   );
 }
+
+const paymentProgressCardStyle = {
+  display: "grid",
+  gap: 8,
+  padding: 12,
+  borderRadius: 14,
+  border: "1px solid var(--admin-border)",
+  background: "var(--admin-row)",
+};
+
+const paymentProgressHeaderStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 10,
+  color: "var(--admin-text)",
+  fontSize: 13,
+  fontWeight: 800,
+};
+
+const paymentProgressMetaStyle = {
+  color: "var(--admin-muted)",
+  fontSize: 12,
+  fontWeight: 700,
+  lineHeight: 1.5,
+};
 
 const wakeLockInfoStyle = {
   marginTop: -4,
