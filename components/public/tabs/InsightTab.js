@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { formatCashflowNote, formatDate, formatMoney, formatPeriod } from "@/lib/public/publicFormatters";
 
 export default function InsightTab({
@@ -27,6 +28,21 @@ export default function InsightTab({
   onDownloadPDF,
   onOpenReceipt,
 }) {
+  useEffect(() => {
+    if (!showInsightModal || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [showInsightModal]);
+
   function renderCashflowNote(note, receiptUrl) {
     const formattedNote = formatCashflowNote(note);
 
@@ -207,20 +223,29 @@ export default function InsightTab({
       )}
 
       {showInsightModal && (
-        <div className="modal-overlay" onClick={() => setShowInsightModal(false)}>
-          <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <div className="modal-title">
-                Detail Pengeluaran Bulan {modalType === "last" ? insight?.lastMonth?.month : insight?.currentMonth?.month}
+        <div className="modal-overlay insight-detail-modal-overlay" onClick={() => setShowInsightModal(false)}>
+          <div className="modal-box insight-detail-modal-box" onClick={(event) => event.stopPropagation()}>
+            <div className="modal-header insight-detail-modal-header">
+              <div className="insight-detail-modal-title-group">
+                <div className="modal-title">
+                  Detail Pengeluaran Bulan {modalType === "last" ? insight?.lastMonth?.month : insight?.currentMonth?.month}
+                </div>
+                <div className="insight-detail-modal-subtitle">
+                  Total Pengeluaran: {formatMoney(modalType === "last" ? insight?.lastMonth?.expenseTotal || 0 : insight?.currentMonth?.expenseTotal || 0)}
+                </div>
               </div>
+              <button
+                type="button"
+                className="insight-detail-modal-close"
+                onClick={() => setShowInsightModal(false)}
+                aria-label="Tutup detail pengeluaran"
+              >
+                ×
+              </button>
             </div>
 
-            <div className="modal-section">
-              <div style={{ marginBottom: 12, fontWeight: 700 }}>
-                Total Pengeluaran: {formatMoney(modalType === "last" ? insight?.lastMonth?.expenseTotal || 0 : insight?.currentMonth?.expenseTotal || 0)}
-              </div>
-
-              <table className="detail-table">
+            <div className="modal-section insight-detail-modal-section">
+              <table className="detail-table insight-detail-table">
                 <thead>
                   <tr>
                     <th>Tanggal</th>
