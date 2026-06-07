@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { dbTable } from "@/lib/dbTable";
-import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
@@ -8,7 +7,6 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
-const spreadsheetId = process.env.SPREADSHEET_ID;
 const PERSONAL_TABLE = dbTable("personal");
 
 function normalize(value) {
@@ -65,6 +63,17 @@ function filterRows(rows, filter, search) {
   return result;
 }
 
+function mapPersonal(row) {
+  return {
+    id: row.id,
+    house: row.house,
+    name: row.name,
+    trash: row.trash,
+    active: row.active,
+    join_date: row.join_date,
+  };
+}
+
 export async function GET(req) {
   if (!(await isAdmin(req))) {
     return unauthorized();
@@ -79,14 +88,7 @@ export async function GET(req) {
     return NextResponse.json({ error: "Gagal membaca data warga" }, { status: 500 });
   }
 
-  const data = sortByHouse((rows || []).map((r) => ({
-    id: r.id,
-    house: r.house,
-    name: r.name,
-    trash: r.trash,
-    active: r.active,
-    join_date: r.join_date,
-  })));
+  const data = sortByHouse((rows || []).map(mapPersonal));
 
   const { searchParams } = new URL(req.url);
   const paginated = searchParams.has("page") || searchParams.has("limit");
@@ -129,46 +131,45 @@ export async function POST(req) {
 
   const house = normalize(body.house);
   const name = normalize(body.name);
-  const trash = normalize(body.trash);
+  const trash = clean(body.trash);
   const joinDate = normalize(body.join_date);
 
   if (!house || !name || !trash || !joinDate) {
     return NextResponse.json(
-      {
-        error: "All member fields are required",
-      },
-      {
-        status: 400,
-      },
+      { error: "All member fields are required" },
+      { status: 400 },
     );
   }
 
-  const sheets = await getSheets();
+  if (trash !== "Y" && trash !== "N") {
+    return NextResponse.json({ error: "Trash must be Y or N" }, { status: 400 });
+  }
 
+  const supabase = getSupabaseAdmin();
   const id = generateId();
+  const payload = {
+    id,
+    house,
+    name,
+    trash,
+    active: "Y",
+    join_date: joinDate,
+  };
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: "personal!A:F",
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[id, house, name, trash, "Y", joinDate]],
-    },
-  });
+  const { error } = await supabase
+    .from(PERSONAL_TABLE)
+    .insert(payload);
+
+  if (error) {
+    return NextResponse.json({ error: error.message || "Gagal menyimpan data warga" }, { status: 500 });
+  }
 
   await recordAdminActivity(req, {
     type: "create",
     module: "personal",
     severity: "success",
     message: `Add member ${house} - ${name}`,
-    metadata: {
-      id,
-      house,
-      name,
-      trash,
-      active: "Y",
-      join_date: joinDate,
-    },
+    metadata: payload,
   });
 
   return NextResponse.json({ success: true });
@@ -187,81 +188,55 @@ export async function PATCH(req) {
 
   const id = normalize(body.id);
   const field = normalize(body.field);
-  const value = normalize(body.value).toUpperCase();
+  const value = clean(body.value);
 
-  const allowedFields = {
-    trash: "D",
-    active: "E",
-  };
-
-  if (!id || !allowedFields[field]) {
-    return NextResponse.json(
-      {
-        error: "Data update tidak valid",
-      },
-      {
-        status: 400,
-      },
-    );
+  if (!id || !["trash", "active"].includes(field)) {
+    return NextResponse.json({ error: "Data update tidak valid" }, { status: 400 });
   }
 
   if (value !== "Y" && value !== "N") {
-    return NextResponse.json(
-      {
-        error: "Nilai harus Y atau N",
-      },
-      {
-        status: 400,
-      },
-    );
+    return NextResponse.json({ error: "Nilai harus Y atau N" }, { status: 400 });
   }
 
-  const sheets = await getSheets();
+  const supabase = getSupabaseAdmin();
+  const { data: currentRows, error: readError } = await supabase
+    .from(PERSONAL_TABLE)
+    .select("id,house,name,trash,active,join_date")
+    .eq("id", id)
+    .limit(1);
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: "personal!A:F",
-  });
-
-  const rows = res.data.values || [];
-  const rowIndex = rows.findIndex((row, index) => index > 0 && row[0] === id);
-
-  if (rowIndex === -1) {
-    return NextResponse.json(
-      {
-        error: "Data warga tidak ditemukan",
-      },
-      {
-        status: 404,
-      },
-    );
+  if (readError) {
+    return NextResponse.json({ error: readError.message || "Gagal membaca data warga" }, { status: 500 });
   }
 
-  const rowNumber = rowIndex + 1;
-  const targetRange = `personal!${allowedFields[field]}${rowNumber}`;
-  const oldValue = normalize(rows[rowIndex]?.[field === "trash" ? 3 : 4]);
+  const current = currentRows?.[0];
 
-  await sheets.spreadsheets.values.update({
-    spreadsheetId,
-    range: targetRange,
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[value]],
-    },
-  });
+  if (!current) {
+    return NextResponse.json({ error: "Data warga tidak ditemukan" }, { status: 404 });
+  }
+
+  const oldValue = normalize(current[field]);
+  const { error } = await supabase
+    .from(PERSONAL_TABLE)
+    .update({ [field]: value, updated_at: new Date().toISOString() })
+    .eq("id", id);
+
+  if (error) {
+    return NextResponse.json({ error: error.message || "Gagal mengubah data warga" }, { status: 500 });
+  }
 
   await recordAdminActivity(req, {
     type: "update",
     module: "personal",
     severity: "success",
-    message: `Update member ${field} ${rows[rowIndex]?.[1] || id}`,
+    message: `Update member ${field} ${current.house || id}`,
     metadata: {
       id,
       field,
       old_value: oldValue,
       new_value: value,
-      house: rows[rowIndex]?.[1] || null,
-      name: rows[rowIndex]?.[2] || null,
+      house: current.house || null,
+      name: current.name || null,
     },
   });
 
