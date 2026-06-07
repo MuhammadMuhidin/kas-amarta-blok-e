@@ -1,6 +1,6 @@
 import { dbTable } from "@/lib/dbTable";
 import { withMediaReceiptUrl } from "@/lib/mediaUrl";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabase } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 
@@ -53,8 +53,6 @@ function mapCashflow(row) {
 
 export async function GET() {
   try {
-    const supabase = getSupabaseAdmin();
-
     const [personalRes, paymentRes, cashflowRes] = await Promise.all([
       supabase
         .from(PERSONAL_TABLE)
