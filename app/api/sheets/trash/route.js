@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
+import { dbTable } from "@/lib/dbTable";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
+const TRASH_TABLE = dbTable("trash");
 
 function normalize(value) {
   return String(value || "").trim();
@@ -17,20 +20,20 @@ export async function GET(req) {
     return unauthorized();
   }
 
-  const sheets = await getSheets();
+  const supabase = getSupabaseAdmin();
+  const { data: rows, error } = await supabase
+    .from(TRASH_TABLE)
+    .select("id,payment_id,amount,date");
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: "Trash!A:D",
-  });
+  if (error) {
+    return NextResponse.json({ error: "Gagal membaca data sampah" }, { status: 500 });
+  }
 
-  const rows = res.data.values || [];
-
-  const data = rows.slice(1).map((r) => ({
-    id: r[0],
-    payment_id: r[1],
-    amount: Number(r[2]) || 0,
-    date: r[3],
+  const data = (rows || []).map((r) => ({
+    id: r.id,
+    payment_id: r.payment_id,
+    amount: Number(r.amount) || 0,
+    date: r.date,
   }));
 
   return NextResponse.json(data);
