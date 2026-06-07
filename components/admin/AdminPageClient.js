@@ -18,7 +18,6 @@ import useAdminDepositActions from "@/hooks/admin/useAdminDepositActions";
 import useAdminDerivedState from "@/hooks/admin/useAdminDerivedState";
 import useAdminLoaders from "@/hooks/admin/useAdminLoaders";
 import useAdminMemberActions from "@/hooks/admin/useAdminMemberActions";
-import useAdminOverlayScrollLock from "@/hooks/admin/useAdminOverlayScrollLock";
 import useAdminPaymentActions from "@/hooks/admin/useAdminPaymentActions";
 import useAdminSession from "@/hooks/admin/useAdminSession";
 import useAdminTabs from "@/hooks/admin/useAdminTabs";
@@ -39,8 +38,6 @@ export default function AdminPageClient() {
   const [payment, setPayment] = useState({ period: "", amount: "" });
   const [depositForm, setDepositForm] = useState({ person_id: "", end_period: "" });
   const [bookingBatchLoading, setBookingBatchLoading] = useState(false);
-
-  useAdminOverlayScrollLock();
 
   const { popup, showPopup } = useAdminToast();
   const { checkSession } = useAdminSession();
