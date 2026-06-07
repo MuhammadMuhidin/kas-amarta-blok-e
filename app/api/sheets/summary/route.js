@@ -1,50 +1,96 @@
-import { getSheetData } from "@/lib/google";
+import { dbTable } from "@/lib/dbTable";
 import { withMediaReceiptUrl } from "@/lib/mediaUrl";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
+const PERSONAL_TABLE = dbTable("personal");
+const PAYMENT_TABLE = dbTable("payment");
+const CASHFLOW_TABLE = dbTable("cashflow");
+
+function normalize(value) {
+  return String(value || "").trim();
+}
+
+function mapPersonal(row) {
+  return {
+    __type: "personal",
+    id: row.id,
+    house: row.house,
+    name: row.name,
+    trash: row.trash,
+    active: row.active,
+    join_date: row.join_date,
+  };
+}
+
+function mapPayment(row) {
+  return {
+    __type: "payment",
+    id: row.id,
+    person_id: row.person_id,
+    person_house: row.person_house,
+    person_name: row.person_name,
+    period: row.period,
+    amount: Number(row.amount) || 0,
+    date: row.date,
+  };
+}
+
+function mapCashflow(row) {
+  return withMediaReceiptUrl({
+    __type: "cashflow",
+    id: row.id,
+    ref_id: row.payment_id,
+    payment_id: row.payment_id,
+    type: normalize(row.type).toLowerCase(),
+    amount: Number(row.amount) || 0,
+    note: row.note,
+    date: row.date,
+    receipt_url: row.receipt_url || "",
+  });
+}
+
 export async function GET() {
   try {
-    const rows = await getSheetData();
+    const supabase = getSupabaseAdmin();
 
-    /* ========================= */
-    /* PAYMENTS */
-    /* ========================= */
-    const payments = rows.filter(
-      (r) => r.__type === "payment" && r.person_id && r.period,
-    );
+    const [personalRes, paymentRes, cashflowRes] = await Promise.all([
+      supabase
+        .from(PERSONAL_TABLE)
+        .select("id,house,name,trash,active,join_date"),
+      supabase
+        .from(PAYMENT_TABLE)
+        .select("id,person_id,person_house,person_name,period,amount,date"),
+      supabase
+        .from(CASHFLOW_TABLE)
+        .select("id,payment_id,type,amount,note,date,receipt_url"),
+    ]);
 
-    /* ========================= */
-    /* PERSONS */
-    /* ========================= */
-    const persons = rows.filter(
-      (r) =>
-        r.__type === "personal" &&
-        r.house &&
-        r.name &&
-        ["y", "yes", "true", "1"].includes((r.active || "").toLowerCase()),
-    );
+    if (personalRes.error) throw personalRes.error;
+    if (paymentRes.error) throw paymentRes.error;
+    if (cashflowRes.error) throw cashflowRes.error;
 
-    /* ========================= */
-    /* PERIODS */
-    /* ========================= */
-    const periods = [...new Set(payments.map((p) => p.period).filter(Boolean))];
+    const payments = (paymentRes.data || [])
+      .map(mapPayment)
+      .filter((r) => r.person_id && r.period);
 
-    /* ========================= */
-    /* CASHFLOW */
-    /* ========================= */
-    const cashflows = rows
+    const persons = (personalRes.data || [])
+      .map(mapPersonal)
       .filter(
         (r) =>
-          r.__type === "cashflow" &&
-          ["income", "expense"].includes((r.type || "").toLowerCase()),
-      )
-      .map(withMediaReceiptUrl)
+          r.house &&
+          r.name &&
+          ["y", "yes", "true", "1"].includes((r.active || "").toLowerCase()),
+      );
+
+    const periods = [...new Set(payments.map((p) => p.period).filter(Boolean))];
+
+    const cashflows = (cashflowRes.data || [])
+      .map(mapCashflow)
+      .filter((r) => ["income", "expense"].includes((r.type || "").toLowerCase()))
       .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
 
-    /* ========================= */
-    /* 1. PENENTUAN TANGGAL & BULAN */
-    /* ========================= */
     const now = new Date();
     const endOfLastMonth = new Date(
       now.getFullYear(),
@@ -66,9 +112,6 @@ export async function GET() {
     const currentMonthKey = startOfCurrentMonth.toISOString().slice(0, 7);
     const lastMonthKey = endOfLastMonth.toISOString().slice(0, 7);
 
-    /* ========================= */
-    /* 2. SALDO KUMULATIF SAMPAI BULAN LALU */
-    /* ========================= */
     const totalIncomeUntilLastMonth = cashflows
       .filter((c) => c.type === "income" && new Date(c.date) <= endOfLastMonth)
       .reduce((sum, c) => sum + Number(c.amount || 0), 0);
@@ -80,9 +123,6 @@ export async function GET() {
     const lastMonthRemaining =
       totalIncomeUntilLastMonth - totalExpenseUntilLastMonth;
 
-    /* ========================= */
-    /* 3. TRANSAKSI KHUSUS BULAN LALU */
-    /* ========================= */
     const lastMonthCashflow = cashflows.filter(
       (c) => (c.date || "").slice(0, 7) === lastMonthKey,
     );
@@ -105,9 +145,6 @@ export async function GET() {
       0,
     );
 
-    /* ========================= */
-    /* 4. TRANSAKSI BULAN INI */
-    /* ========================= */
     const currentMonthCashflow = cashflows.filter(
       (c) => (c.date || "").slice(0, 7) === currentMonthKey,
     );
@@ -129,9 +166,6 @@ export async function GET() {
         receipt_url: c.receipt_url || "",
       }));
 
-    /* ========================= */
-    /* 5. TOTAL SALDO SAAT INI */
-    /* ========================= */
     const totalIncomeAllTime = cashflows
       .filter((c) => c.type === "income")
       .reduce((sum, c) => sum + Number(c.amount || 0), 0);
