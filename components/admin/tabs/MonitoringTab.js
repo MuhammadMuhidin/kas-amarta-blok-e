@@ -114,7 +114,7 @@ function getReceiptStorageView(loading, data) {
   return { value: "Unreachable", meta: [data.message || "R2 public receipts are not reachable.", data.status_code ? `HTTP ${data.status_code}` : "Residents may not be able to open receipts."], error: true };
 }
 
-export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity = [],suspiciousData,onRepairComplete}) {
+export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity = [],suspiciousData,onRepairComplete}) {
   const [buildInfo,setBuildInfo] = useState(null);
   const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
   const [loadingSettlement,setLoadingSettlement] = useState(false);
@@ -197,9 +197,9 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
         if (active) setLoadingBuildInfo(false);
       }
     }
-    if (loadingDailyBackup || !buildInfo) loadBuildInfo();
+    loadBuildInfo();
     return ()=>{active=false};
-  },[loadingDailyBackup]);
+  },[]);
 
   useEffect(()=>{
     let active = true;
@@ -252,7 +252,6 @@ export default function MonitoringTab({loadingDailyBackup,dailyBackup,paymentCas
     <Section title="System Status">
       <div className="admin-monitor-grid">
         <MonitoringCard label="Current Build" value={loadingBuildInfo?"Checking...":buildInfo?`${String(buildInfo.platform||"UNKNOWN").toUpperCase()} - ${buildInfo.branch}`:"Build info not found"} meta={buildInfo?[`Commit: ${buildInfo.commitShort}`,`Message: ${buildInfo.commitMessage||"unknown"}`,`Env: ${buildInfo.environment}`,`Built: ${fmtTime(buildInfo.buildTime)}`]:[]} error={!loadingBuildInfo&&!buildInfo} />
-        <MonitoringCard label="Daily Backup Status" value={loadingDailyBackup?"Checking...":dailyBackup?.ok?dailyBackup.name:"Backup file not found"} meta={dailyBackup?.ok?[`Last created: ${dailyBackup.created_at}`,`Retention: ${dailyBackup?.count} backup files`]:[]} error={!loadingDailyBackup&&!dailyBackup?.ok} />
       </div>
     </Section>
 
