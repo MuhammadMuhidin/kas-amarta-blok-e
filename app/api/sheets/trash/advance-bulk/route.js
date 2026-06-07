@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { getSheets } from "@/lib/google";
+import { dbTable } from "@/lib/dbTable";
 import { generateId } from "@/lib/id";
 import { getAppConfig } from "@/lib/appConfig";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   enforceRateLimit,
   RATE_LIMIT_SCOPES,
@@ -11,7 +12,10 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const spreadsheetId = process.env.SPREADSHEET_ID;
+const PERSONAL_TABLE = dbTable("personal");
+const PAYMENT_TABLE = dbTable("payment");
+const CASHFLOW_TABLE = dbTable("cashflow");
+const TRASH_TABLE = dbTable("trash");
 
 function normalize(value) {
   return String(value || "").trim();
@@ -22,11 +26,11 @@ function normalizeUpper(value) {
 }
 
 function isActiveMember(row) {
-  return ["Y", "YES", "TRUE", "1"].includes(normalizeUpper(row[4]));
+  return ["Y", "YES", "TRUE", "1"].includes(normalizeUpper(row.active));
 }
 
 function isJoinedByPeriod(row, period) {
-  const joinPeriod = normalize(row[5]).slice(0, 7);
+  const joinPeriod = normalize(row.join_date).slice(0, 7);
   return !joinPeriod || joinPeriod <= period;
 }
 
@@ -60,51 +64,71 @@ export async function POST(req) {
       return NextResponse.json({ error: "Trash fee is not configured" }, { status: 400 });
     }
 
-    const sheets = await getSheets();
+    const supabase = getSupabaseAdmin();
     const today = new Date().toISOString().slice(0, 10);
 
     const [personalRes, paymentRes, trashRes, cashflowRes] = await Promise.all([
-      sheets.spreadsheets.values.get({ spreadsheetId, range: "Personal!A:F" }),
-      sheets.spreadsheets.values.get({ spreadsheetId, range: "Payment!A:G" }),
-      sheets.spreadsheets.values.get({ spreadsheetId, range: "Trash!A:D" }),
-      sheets.spreadsheets.values.get({ spreadsheetId, range: "Cashflow!A:G" }),
+      supabase.from(PERSONAL_TABLE).select("id,house,name,trash,active,join_date"),
+      supabase.from(PAYMENT_TABLE).select("id,person_id,person_house,person_name,period,amount,date"),
+      supabase.from(TRASH_TABLE).select("id,payment_id,amount,date"),
+      supabase.from(CASHFLOW_TABLE).select("id,payment_id,type,amount,note,date,receipt_url"),
     ]);
 
-    const personalRows = personalRes.data.values || [];
-    const paymentRows = paymentRes.data.values || [];
-    const trashRows = trashRes.data.values || [];
-    const cashflowRows = cashflowRes.data.values || [];
+    if (personalRes.error) throw personalRes.error;
+    if (paymentRes.error) throw paymentRes.error;
+    if (trashRes.error) throw trashRes.error;
+    if (cashflowRes.error) throw cashflowRes.error;
 
-    const paymentMap = new Map(paymentRows.slice(1).map((row) => [normalize(row[0]), row]));
+    const paymentMap = new Map((paymentRes.data || []).map((row) => [normalize(row.id), row]));
     const paidPersonIds = new Set(
-      trashRows.slice(1).map((row) => paymentMap.get(normalize(row[1]))).filter((payment) => payment && normalize(payment[4]) === period).map((payment) => normalize(payment[1])).filter(Boolean),
+      (trashRes.data || [])
+        .map((row) => paymentMap.get(normalize(row.payment_id)))
+        .filter((payment) => payment && normalize(payment.period) === period)
+        .map((payment) => normalize(payment.person_id))
+        .filter(Boolean),
     );
-    const existingAdvanceRefs = new Set(cashflowRows.slice(1).map((row) => normalize(row[1])).filter((refId) => refId.startsWith("TRASHADV-")));
+    const existingAdvanceRefs = new Set(
+      (cashflowRes.data || [])
+        .map((row) => normalize(row.payment_id))
+        .filter((paymentId) => paymentId.startsWith("TRASHADV-")),
+    );
 
-    const trashMembers = personalRows.slice(1).filter((row) => isActiveMember(row)).filter((row) => normalizeUpper(row[3]) === "Y").filter((row) => isJoinedByPeriod(row, period));
-    const unpaidMembers = trashMembers.filter((row) => !paidPersonIds.has(normalize(row[0])));
+    const trashMembers = (personalRes.data || [])
+      .filter((row) => isActiveMember(row))
+      .filter((row) => normalizeUpper(row.trash) === "Y")
+      .filter((row) => isJoinedByPeriod(row, period));
+    const unpaidMembers = trashMembers.filter((row) => !paidPersonIds.has(normalize(row.id)));
     const values = [];
     const advancedMembers = [];
     const skippedMembers = [];
 
     unpaidMembers.forEach((member) => {
-      const personId = normalize(member[0]);
-      const house = normalize(member[1]);
-      const name = normalize(member[2]);
-      const refId = buildAdvanceRefId(personId, period);
+      const personId = normalize(member.id);
+      const house = normalize(member.house);
+      const name = normalize(member.name);
+      const paymentId = buildAdvanceRefId(personId, period);
 
-      if (!personId || !house || existingAdvanceRefs.has(refId)) {
-        skippedMembers.push({ person_id: personId, house, name, ref_id: refId });
+      if (!personId || !house || existingAdvanceRefs.has(paymentId)) {
+        skippedMembers.push({ person_id: personId, house, name, ref_id: paymentId, payment_id: paymentId });
         return;
       }
 
       const cashflowId = generateId("CSFLOW-");
-      values.push([cashflowId, refId, "expense", trashFee, buildAdvanceNote(house, period), today, ""]);
-      advancedMembers.push({ person_id: personId, house, name, ref_id: refId, cashflow_id: cashflowId });
+      values.push({
+        id: cashflowId,
+        payment_id: paymentId,
+        type: "expense",
+        amount: trashFee,
+        note: buildAdvanceNote(house, period),
+        date: today,
+        receipt_url: "",
+      });
+      advancedMembers.push({ person_id: personId, house, name, ref_id: paymentId, payment_id: paymentId, cashflow_id: cashflowId });
     });
 
     if (values.length > 0) {
-      await sheets.spreadsheets.values.append({ spreadsheetId, range: "Cashflow!A:G", valueInputOption: "USER_ENTERED", requestBody: { values } });
+      const { error } = await supabase.from(CASHFLOW_TABLE).insert(values);
+      if (error) throw error;
     }
 
     await recordAdminActivity(req, {
