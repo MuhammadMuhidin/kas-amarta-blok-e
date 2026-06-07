@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { dbTable } from "@/lib/dbTable";
-import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
@@ -15,7 +14,6 @@ import {
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const spreadsheetId = process.env.SPREADSHEET_ID;
 const CASHFLOW_TABLE = dbTable("cashflow");
 
 function normalize(value) {
@@ -27,6 +25,7 @@ function toTitleCase(str = "") {
     .toLowerCase()
     .trim()
     .split(/\s+/)
+    .filter(Boolean)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 }
@@ -73,6 +72,19 @@ function buildSummary(rows) {
   };
 }
 
+function mapCashflow(row) {
+  return withMediaReceiptUrl({
+    id: row.id,
+    ref_id: row.payment_id,
+    payment_id: row.payment_id,
+    type: (row.type || "").toLowerCase(),
+    amount: Number(row.amount) || 0,
+    note: row.note,
+    date: row.date,
+    receipt_url: row.receipt_url || "",
+  });
+}
+
 export async function GET(req) {
   if (!(await isAdmin(req))) {
     return unauthorized();
@@ -87,16 +99,7 @@ export async function GET(req) {
     return NextResponse.json({ error: "Gagal membaca cashflow" }, { status: 500 });
   }
 
-  const data = (rows || []).map((r) => withMediaReceiptUrl({
-    id: r.id,
-    ref_id: r.payment_id,
-    payment_id: r.payment_id,
-    type: (r.type || "").toLowerCase(),
-    amount: Number(r.amount) || 0,
-    note: r.note,
-    date: r.date,
-    receipt_url: r.receipt_url || "",
-  }));
+  const data = (rows || []).map(mapCashflow);
 
   const { searchParams } = new URL(req.url);
   const paginated = searchParams.has("page") || searchParams.has("limit");
@@ -157,32 +160,22 @@ export async function POST(req) {
 
   if (!["income", "expense"].includes(type)) {
     return NextResponse.json(
-      {
-        error: "Type must be income or expense",
-      },
-      {
-        status: 400,
-      },
+      { error: "Type must be income or expense" },
+      { status: 400 },
     );
   }
 
   if (!Number.isFinite(amount) || amount <= 0 || !rawNote) {
     return NextResponse.json(
-      {
-        error: "Amount and note are required",
-      },
-      {
-        status: 400,
-      },
+      { error: "Amount and note are required" },
+      { status: 400 },
     );
   }
 
-  const sheets = await getSheets();
-
+  const supabase = getSupabaseAdmin();
   const today = new Date().toISOString().slice(0, 10);
-
   const cashflowId = generateId("CSFLOW-");
-  const refId = generateId("DIRECT-");
+  const paymentId = generateId("DIRECT-");
   const note = toTitleCase(rawNote);
   let receiptUrl = "";
 
@@ -191,14 +184,19 @@ export async function POST(req) {
     receiptUrl = uploaded.url;
   }
 
-  await sheets.spreadsheets.values.append({
-    spreadsheetId,
-    range: "Cashflow!A:G",
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [[cashflowId, refId, type, amount, note, today, receiptUrl]],
-    },
+  const { error } = await supabase.from(CASHFLOW_TABLE).insert({
+    id: cashflowId,
+    payment_id: paymentId,
+    type,
+    amount,
+    note,
+    date: today,
+    receipt_url: receiptUrl,
   });
+
+  if (error) {
+    return NextResponse.json({ error: error.message || "Gagal menyimpan cashflow" }, { status: 500 });
+  }
 
   await recordAdminActivity(req, {
     type: "create",
@@ -207,7 +205,8 @@ export async function POST(req) {
     message: `Record ${type} direct cashflow ${note}`,
     metadata: {
       cashflow_id: cashflowId,
-      ref_id: refId,
+      ref_id: paymentId,
+      payment_id: paymentId,
       type,
       amount,
       note,
