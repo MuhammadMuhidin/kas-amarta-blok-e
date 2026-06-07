@@ -11,8 +11,6 @@ export default function useAdminLoaders({ setPayment }) {
   const [cashflows, setCashflows] = useState([]);
   const [appConfig, setAppConfig] = useState(null);
   const [configError, setConfigError] = useState("");
-  const [dailyBackup, setDailyBackup] = useState(null);
-  const [loadingDailyBackup, setLoadingDailyBackup] = useState(false);
 
   async function loadAppConfig() {
     try {
@@ -46,19 +44,9 @@ export default function useAdminLoaders({ setPayment }) {
     setCashflows(await readJson("/api/sheets/cashflow"));
   }
 
-  async function loadDailyBackupStatus() {
-    setLoadingDailyBackup(true);
-    try {
-      setDailyBackup(await readJson("/api/daily-backup-status"));
-    } finally {
-      setLoadingDailyBackup(false);
-    }
-  }
-
   async function refreshMonitoring() {
     await Promise.all([
       loadAppConfig(),
-      loadDailyBackupStatus(),
       loadPayment(),
       loadTrash(),
       loadPersonal(),
@@ -86,15 +74,12 @@ export default function useAdminLoaders({ setPayment }) {
     cashflows,
     appConfig,
     configError,
-    dailyBackup,
-    loadingDailyBackup,
     loadAppConfig,
     loadPersonal,
     loadPayment,
     loadTrash,
     loadDeposit,
     loadCashflow,
-    loadDailyBackupStatus,
     refreshMonitoring,
     refreshTabData,
   };
