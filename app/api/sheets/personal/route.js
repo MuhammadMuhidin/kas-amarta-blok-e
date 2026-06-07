@@ -1,12 +1,15 @@
 import { NextResponse } from "next/server";
+import { dbTable } from "@/lib/dbTable";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
+const PERSONAL_TABLE = dbTable("personal");
 
 function normalize(value) {
   return String(value || "").trim();
@@ -67,25 +70,23 @@ export async function GET(req) {
     return unauthorized();
   }
 
-  const sheets = await getSheets();
+  const supabase = getSupabaseAdmin();
+  const { data: rows, error } = await supabase
+    .from(PERSONAL_TABLE)
+    .select("id,house,name,trash,active,join_date");
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: "personal!A:F",
-  });
+  if (error) {
+    return NextResponse.json({ error: "Gagal membaca data warga" }, { status: 500 });
+  }
 
-  const rows = res.data.values || [];
-
-  const data = sortByHouse(
-    rows.slice(1).map((r) => ({
-      id: r[0],
-      house: r[1],
-      name: r[2],
-      trash: r[3],
-      active: r[4],
-      join_date: r[5],
-    })),
-  );
+  const data = sortByHouse((rows || []).map((r) => ({
+    id: r.id,
+    house: r.house,
+    name: r.name,
+    trash: r.trash,
+    active: r.active,
+    join_date: r.join_date,
+  })));
 
   const { searchParams } = new URL(req.url);
   const paginated = searchParams.has("page") || searchParams.has("limit");
