@@ -38,7 +38,6 @@ export default function AdminPageClient() {
   const [payment, setPayment] = useState({ period: "", amount: "" });
   const [depositForm, setDepositForm] = useState({ person_id: "", end_period: "" });
   const [bookingBatchLoading, setBookingBatchLoading] = useState(false);
-  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
   const { popup, showPopup } = useAdminToast();
   const { checkSession } = useAdminSession();
@@ -193,11 +192,6 @@ export default function AdminPageClient() {
     await Promise.all([loadPayment(), loadTrash(), loadCashflow()]);
   }
 
-  function handleAdminMenuTabClick(nextTab) {
-    handleTabClick(nextTab);
-    setAdminMenuOpen(false);
-  }
-
   useEffect(() => {
     async function bootstrap() {
       const validSession = await checkSession();
@@ -232,43 +226,6 @@ export default function AdminPageClient() {
     };
   }, [loadingPayment, bookingBatchLoading]);
 
-  useEffect(() => {
-    if (!adminMenuOpen) return undefined;
-
-    const scrollY = window.scrollY;
-    const { body, documentElement } = document;
-    const previousBodyStyles = {
-      overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      left: body.style.left,
-      right: body.style.right,
-      width: body.style.width,
-    };
-    const previousHtmlOverflow = documentElement.style.overflow;
-
-    body.classList.add("admin-menu-scroll-locked");
-    body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
-    body.style.left = "0";
-    body.style.right = "0";
-    body.style.width = "100%";
-    documentElement.style.overflow = "hidden";
-
-    return () => {
-      body.classList.remove("admin-menu-scroll-locked");
-      body.style.overflow = previousBodyStyles.overflow;
-      body.style.position = previousBodyStyles.position;
-      body.style.top = previousBodyStyles.top;
-      body.style.left = previousBodyStyles.left;
-      body.style.right = previousBodyStyles.right;
-      body.style.width = previousBodyStyles.width;
-      documentElement.style.overflow = previousHtmlOverflow;
-      window.scrollTo(0, scrollY);
-    };
-  }, [adminMenuOpen]);
-
   if (bootLoading) return <AdminLoading />;
 
   return (
@@ -279,38 +236,17 @@ export default function AdminPageClient() {
           <button className="admin-home-btn" onClick={() => router.push("/")}>🏠 Home</button>
           <h1 className="admin-title">Cash Flow Management</h1>
         </div>
-        <button
-          type="button"
-          className="admin-mobile-menu-btn"
-          onClick={() => setAdminMenuOpen((open) => !open)}
-          aria-controls="admin-mobile-menu"
-          aria-expanded={adminMenuOpen}
-        >
-          ☰ Menu Admin
-        </button>
-        {adminMenuOpen && (
-          <button
-            type="button"
-            className="admin-mobile-menu-backdrop"
-            aria-label="Tutup menu admin"
-            onClick={() => setAdminMenuOpen(false)}
-          />
-        )}
-        <div id="admin-mobile-menu" className={`admin-tabs ${adminMenuOpen ? "admin-tabs-open" : ""}`}>
-          <div className="admin-mobile-menu-header">
-            <span>Menu Admin</span>
-            <button type="button" onClick={() => setAdminMenuOpen(false)} aria-label="Tutup menu admin">×</button>
-          </div>
-          <button className={tabClassName("overview")} onClick={() => handleAdminMenuTabClick("overview")}>📌 Overview</button>
-          <button className={tabClassName("personal")} onClick={() => handleAdminMenuTabClick("personal")}>👤 Member</button>
-          <button className={tabClassName("payment")} onClick={() => handleAdminMenuTabClick("payment")}><div className="admin-tab-content"><span>💳 Payment</span>{pendingCurrentDeposits.length > 0 && <span className="admin-deposit-badge">{pendingCurrentDeposits.length} booking pending</span>}</div></button>
-          <button className={tabClassName("deposit")} onClick={() => handleAdminMenuTabClick("deposit")}>💰 Booking Payment</button>
-          <button className={tabClassName("cashflow")} onClick={() => handleAdminMenuTabClick("cashflow")}>📝 Cashflow</button>
-          <button className={tabClassName("timeline")} onClick={() => handleAdminMenuTabClick("timeline")}>📸 Timeline</button>
-          <button className={tabClassName("summary")} onClick={() => handleAdminMenuTabClick("summary")}>🛡️ Summary Backup</button>
-          <button className={tabClassName("monitoring")} onClick={() => handleAdminMenuTabClick("monitoring")}><div className="admin-tab-content"><span>🖥️ Monitoring</span>{monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}</div></button>
-          <button className={tabClassName("activity")} onClick={() => handleAdminMenuTabClick("activity")}>📋 Activity</button>
-          <button className={tabClassName("settings")} onClick={() => handleAdminMenuTabClick("settings")}>⚙️ Settings</button>
+        <div className="admin-tabs">
+          <button className={tabClassName("overview")} onClick={() => handleTabClick("overview")}>📌 Overview</button>
+          <button className={tabClassName("personal")} onClick={() => handleTabClick("personal")}>👤 Member</button>
+          <button className={tabClassName("payment")} onClick={() => handleTabClick("payment")}><div className="admin-tab-content"><span>💳 Payment</span>{pendingCurrentDeposits.length > 0 && <span className="admin-deposit-badge">{pendingCurrentDeposits.length} booking pending</span>}</div></button>
+          <button className={tabClassName("deposit")} onClick={() => handleTabClick("deposit")}>💰 Booking Payment</button>
+          <button className={tabClassName("cashflow")} onClick={() => handleTabClick("cashflow")}>📝 Cashflow</button>
+          <button className={tabClassName("timeline")} onClick={() => handleTabClick("timeline")}>📸 Timeline</button>
+          <button className={tabClassName("summary")} onClick={() => handleTabClick("summary")}>🛡️ Summary Backup</button>
+          <button className={tabClassName("monitoring")} onClick={() => handleTabClick("monitoring")}><div className="admin-tab-content"><span>🖥️ Monitoring</span>{monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}</div></button>
+          <button className={tabClassName("activity")} onClick={() => handleTabClick("activity")}>📋 Activity</button>
+          <button className={tabClassName("settings")} onClick={() => handleTabClick("settings")}>⚙️ Settings</button>
         </div>
         {tab === "overview" && <OverviewTab key={`overview-${tabRefreshKey}`} personal={personal} payments={payments} trashRecords={trashRecords} cashflows={cashflows} sortedDeposits={sortedDeposits} currentPeriod={currentPeriod} appConfig={appConfig} dailyBackup={dailyBackup} monitoringIssueCount={monitoringIssueCount} getDepositStatus={getDepositStatus} onNavigate={handleTabClick} onTrashAdvanceComplete={refreshOverviewState} />}
         {tab === "personal" && <PersonalTab key={`personal-${tabRefreshKey}`} member={member} setMember={setMember} addMember={addMember} loadingAdd={loadingAdd} memberFilter={memberFilter} toggleMemberFilter={toggleMemberFilter} stats={stats} memberSearch={memberSearch} setMemberSearch={setMemberSearch} searchedPersonal={searchedPersonal} rowClassName={rowClassName} onUpdateMember={updateMemberInline} />}
