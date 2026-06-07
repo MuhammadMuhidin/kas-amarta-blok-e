@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
+import { dbTable } from "@/lib/dbTable";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
 import { getAppConfig } from "@/lib/appConfig";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   enforceRateLimit,
   RATE_LIMIT_SCOPES,
@@ -12,6 +14,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
+const PAYMENT_TABLE = dbTable("payment");
 
 function normalize(value) {
   return String(value || "").trim();
@@ -81,23 +84,23 @@ export async function GET(req) {
     return unauthorized();
   }
 
-  const sheets = await getSheets();
+  const supabase = getSupabaseAdmin();
+  const { data: rows, error } = await supabase
+    .from(PAYMENT_TABLE)
+    .select("id,person_id,person_house,person_name,period,amount,date");
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: "Payment!A:G",
-  });
+  if (error) {
+    return NextResponse.json({ error: "Gagal membaca payment" }, { status: 500 });
+  }
 
-  const rows = res.data.values || [];
-
-  const data = rows.slice(1).map((r) => ({
-    id: r[0],
-    person_id: r[1],
-    person_house: r[2],
-    person_name: r[3],
-    period: r[4],
-    amount: Number(r[5]) || 0,
-    date: r[6],
+  const data = (rows || []).map((r) => ({
+    id: r.id,
+    person_id: r.person_id,
+    person_house: r.person_house,
+    person_name: r.person_name,
+    period: r.period,
+    amount: Number(r.amount) || 0,
+    date: r.date,
   }));
 
   return NextResponse.json(data);
