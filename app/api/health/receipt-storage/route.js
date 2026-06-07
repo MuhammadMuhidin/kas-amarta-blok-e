@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { getSheets } from "@/lib/google";
+import { dbTable } from "@/lib/dbTable";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const spreadsheetId = process.env.SPREADSHEET_ID;
+const CASHFLOW_TABLE = dbTable("cashflow");
 const RECEIPT_PREFIX = "/cashflow-receipts/";
 const CHECK_TIMEOUT_MS = 5000;
 
@@ -47,19 +48,20 @@ function normalizeReceiptUrl(value) {
 }
 
 async function getLatestReceiptUrl() {
-  const sheets = await getSheets();
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: "Cashflow!A:G",
-  });
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from(CASHFLOW_TABLE)
+    .select("date,receipt_url")
+    .not("receipt_url", "is", null)
+    .neq("receipt_url", "")
+    .order("date", { ascending: false })
+    .limit(1);
 
-  const rows = res.data.values || [];
+  if (error) {
+    throw new Error(error.message || "Gagal membaca sample receipt_url.");
+  }
 
-  return rows
-    .slice(1)
-    .map((row) => ({ date: row[5] || "", receiptUrl: row[6] || "" }))
-    .filter((row) => row.receiptUrl)
-    .sort((a, b) => String(b.date).localeCompare(String(a.date)))[0]?.receiptUrl || "";
+  return data?.[0]?.receipt_url || "";
 }
 
 async function testPublicReceiptAccess(url) {
