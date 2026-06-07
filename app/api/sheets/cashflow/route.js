@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
+import { dbTable } from "@/lib/dbTable";
 import { getSheets } from "@/lib/google";
 import { generateId } from "@/lib/id";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 import { uploadCashflowReceipt } from "@/lib/r2Upload";
 import { withMediaReceiptUrl } from "@/lib/mediaUrl";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import {
   enforceRateLimit,
   RATE_LIMIT_SCOPES,
@@ -14,6 +16,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 const spreadsheetId = process.env.SPREADSHEET_ID;
+const CASHFLOW_TABLE = dbTable("cashflow");
 
 function normalize(value) {
   return String(value || "").trim();
@@ -75,23 +78,24 @@ export async function GET(req) {
     return unauthorized();
   }
 
-  const sheets = await getSheets();
+  const supabase = getSupabaseAdmin();
+  const { data: rows, error } = await supabase
+    .from(CASHFLOW_TABLE)
+    .select("id,payment_id,type,amount,note,date,receipt_url");
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range: "Cashflow!A:G",
-  });
+  if (error) {
+    return NextResponse.json({ error: "Gagal membaca cashflow" }, { status: 500 });
+  }
 
-  const rows = res.data.values || [];
-
-  const data = rows.slice(1).map((r) => withMediaReceiptUrl({
-    id: r[0],
-    ref_id: r[1],
-    type: (r[2] || "").toLowerCase(),
-    amount: Number(r[3]) || 0,
-    note: r[4],
-    date: r[5],
-    receipt_url: r[6] || "",
+  const data = (rows || []).map((r) => withMediaReceiptUrl({
+    id: r.id,
+    ref_id: r.payment_id,
+    payment_id: r.payment_id,
+    type: (r.type || "").toLowerCase(),
+    amount: Number(r.amount) || 0,
+    note: r.note,
+    date: r.date,
+    receipt_url: r.receipt_url || "",
   }));
 
   const { searchParams } = new URL(req.url);
