@@ -1,4 +1,4 @@
-import { GET as getSheetsSummary } from "@/app/api/sheets/summary/route";
+import { GET as getCashSummary } from "@/app/api/sheets/summary/route";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 import { getWhatsAppWorkflowDefaults, triggerWhatsAppWorkflow } from "@/lib/whatsappWorkflow";
 
@@ -9,7 +9,7 @@ const PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 
 async function getSummary() {
-  const response = await getSheetsSummary();
+  const response = await getCashSummary();
 
   if (!response.ok) {
     throw new Error("Gagal mengambil data dari API summary");
