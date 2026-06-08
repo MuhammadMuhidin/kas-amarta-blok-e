@@ -96,12 +96,12 @@ function AlertTestCard({loading,result,onSend}) {
 }
 
 function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity,suspiciousData}) {
-  const sheetOk = !loadingSettlement && (rows.cashflows.length + rows.deposits.length + rows.payments.length + rows.trashRecords.length) > 0;
+  const databaseOk = !loadingSettlement && (rows.personal.length + rows.cashflows.length + rows.deposits.length + rows.payments.length + rows.trashRecords.length) > 0;
   const buildOk = Boolean(buildInfo);
   const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + depositPaymentIntegrity.length + suspiciousData.length;
   const integrityOk = integrityIssueCount === 0;
-  const reportReady = sheetOk && buildOk;
-  return { sheetOk, buildOk, integrityOk, reportReady, integrityIssueCount };
+  const reportReady = databaseOk && buildOk;
+  return { databaseOk, buildOk, integrityOk, reportReady, integrityIssueCount };
 }
 
 function getReceiptStorageView(loading, data) {
@@ -124,11 +124,18 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
   const [repairedPaymentIds,setRepairedPaymentIds] = useState([]);
   const [sendingTestAlert,setSendingTestAlert] = useState(false);
   const [testAlertResult,setTestAlertResult] = useState(null);
-  const [rows,setRows] = useState({cashflows:[],deposits:[],payments:[],trashRecords:[]});
+  const [rows,setRows] = useState({personal:[],cashflows:[],deposits:[],payments:[],trashRecords:[]});
   const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
   const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,depositPaymentIntegrity,suspiciousData]);
   const receiptStorageView = useMemo(()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),[loadingReceiptStorage,receiptStorage]);
+  const databaseMeta = [
+    `Personal: ${rows.personal.length} rows`,
+    `Payment: ${rows.payments.length} rows`,
+    `Cashflow: ${rows.cashflows.length} rows`,
+    `Trash: ${rows.trashRecords.length} rows`,
+    `Deposit: ${rows.deposits.length} rows`,
+  ];
 
   async function handleRepairTrash(row) {
     if (!row?.payment_id || repairingPaymentId) return;
@@ -169,12 +176,18 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
     async function loadSettlement() {
       setLoadingSettlement(true);
       try {
-        const endpoints = ["cashflow","deposit","trash","payment"];
+        const endpoints = ["personal","payment","cashflow","trash","deposit"];
         const res = await Promise.all(endpoints.map((x)=>fetch(`/api/sheets/${x}`,{cache:"no-store"})));
         const data = await Promise.all(res.map((r)=>r.json()));
-        if (active) setRows({cashflows:Array.isArray(data[0])?data[0]:[],deposits:Array.isArray(data[1])?data[1]:[],trashRecords:Array.isArray(data[2])?data[2]:[],payments:Array.isArray(data[3])?data[3]:[]});
+        if (active) setRows({
+          personal:Array.isArray(data[0])?data[0]:[],
+          payments:Array.isArray(data[1])?data[1]:[],
+          cashflows:Array.isArray(data[2])?data[2]:[],
+          trashRecords:Array.isArray(data[3])?data[3]:[],
+          deposits:Array.isArray(data[4])?data[4]:[],
+        });
       } catch {
-        if (active) setRows({cashflows:[],deposits:[],payments:[],trashRecords:[]});
+        if (active) setRows({personal:[],cashflows:[],deposits:[],payments:[],trashRecords:[]});
       } finally {
         if (active) setLoadingSettlement(false);
       }
@@ -232,7 +245,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
 
     <Section title="Operational Health Check">
       <div className="admin-monitor-grid">
-        <MonitoringCard label="Sheets API" value={loadingSettlement?"Checking...":health.sheetOk?"Connected":"Need check"} meta={[health.sheetOk?`${rows.cashflows.length} cashflow, ${rows.deposits.length} booking, ${rows.payments.length} payment, ${rows.trashRecords.length} trash rows loaded.`:"Operational data has not been read yet."]} error={!loadingSettlement&&!health.sheetOk} />
+        <MonitoringCard label="Database API" value={loadingSettlement?"Checking...":health.databaseOk?"Connected":"Need check"} meta={health.databaseOk?databaseMeta:["Operational data has not been read yet."]} error={!loadingSettlement&&!health.databaseOk} />
         <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"There are issues that need review."]} error={!health.integrityOk} />
         <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data and build metadata are available for reports.":"Reports may fail if data/build status is unhealthy."]} error={!health.reportReady} />
         <MonitoringCard label="Receipt Storage" value={receiptStorageView.value} meta={receiptStorageView.meta} error={receiptStorageView.error} />
