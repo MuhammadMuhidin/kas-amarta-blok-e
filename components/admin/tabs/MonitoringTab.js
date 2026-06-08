@@ -95,6 +95,41 @@ function AlertTestCard({loading,result,onSend}) {
   </div>;
 }
 
+function DatabaseStatusCard({loading,connected,rows}) {
+  const items = [
+    {label:"Personal", value:rows.personal.length},
+    {label:"Payment", value:rows.payments.length},
+    {label:"Cashflow", value:rows.cashflows.length},
+    {label:"Trash", value:rows.trashRecords.length},
+    {label:"Deposit", value:rows.deposits.length},
+  ];
+  const totalRows = items.reduce((sum,item)=>sum+item.value,0);
+  const statusText = loading ? "Checking..." : connected ? "Connected" : "Need check";
+  const statusColor = loading ? "#64748b" : connected ? "#16a34a" : "#dc2626";
+
+  return <div style={{border:"1px solid var(--admin-border)",background:"linear-gradient(135deg, var(--admin-row), rgba(37,99,235,0.06))",borderRadius:18,padding:16,display:"grid",gap:14,boxShadow:"0 8px 24px rgba(15,23,42,0.06)"}}>
+    <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}>
+      <div>
+        <div style={{fontSize:13,fontWeight:800,color:"var(--admin-muted)",textTransform:"uppercase",letterSpacing:"0.04em"}}>Database API</div>
+        <div style={{fontSize:30,fontWeight:900,lineHeight:1.1,color:"var(--admin-text)",marginTop:4}}>{loading ? "..." : totalRows.toLocaleString("id-ID")}</div>
+        <div style={{fontSize:12,fontWeight:700,color:"var(--admin-muted)",marginTop:2}}>total rows loaded from Supabase</div>
+      </div>
+      <div style={{display:"inline-flex",alignItems:"center",gap:7,border:`1px solid ${statusColor}33`,background:`${statusColor}12`,color:statusColor,borderRadius:999,padding:"7px 10px",fontSize:12,fontWeight:900,whiteSpace:"nowrap"}}>
+        <span style={{width:8,height:8,borderRadius:999,background:statusColor,display:"inline-block"}} />
+        {statusText}
+      </div>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(92px,1fr))",gap:8}}>
+      {items.map((item)=><div key={item.label} style={{border:"1px solid var(--admin-border)",background:"rgba(255,255,255,0.04)",borderRadius:12,padding:"10px 11px"}}>
+        <div style={{fontSize:11,fontWeight:800,color:"var(--admin-muted)",textTransform:"uppercase",letterSpacing:"0.03em"}}>{item.label}</div>
+        <div style={{fontSize:21,fontWeight:900,color:"var(--admin-text)",lineHeight:1.15,marginTop:4}}>{loading ? "-" : item.value.toLocaleString("id-ID")}</div>
+        <div style={{fontSize:11,fontWeight:700,color:"var(--admin-muted)",marginTop:1}}>rows</div>
+      </div>)}
+    </div>
+  </div>;
+}
+
 function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity,suspiciousData}) {
   const databaseOk = !loadingSettlement && (rows.personal.length + rows.cashflows.length + rows.deposits.length + rows.payments.length + rows.trashRecords.length) > 0;
   const buildOk = Boolean(buildInfo);
@@ -129,13 +164,6 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
   const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,depositPaymentIntegrity,suspiciousData]);
   const receiptStorageView = useMemo(()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),[loadingReceiptStorage,receiptStorage]);
-  const databaseMeta = [
-    `Personal: ${rows.personal.length} rows`,
-    `Payment: ${rows.payments.length} rows`,
-    `Cashflow: ${rows.cashflows.length} rows`,
-    `Trash: ${rows.trashRecords.length} rows`,
-    `Deposit: ${rows.deposits.length} rows`,
-  ];
 
   async function handleRepairTrash(row) {
     if (!row?.payment_id || repairingPaymentId) return;
@@ -245,7 +273,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
 
     <Section title="Operational Health Check">
       <div className="admin-monitor-grid">
-        <MonitoringCard label="Database API" value={loadingSettlement?"Checking...":health.databaseOk?"Connected":"Need check"} meta={health.databaseOk?databaseMeta:["Operational data has not been read yet."]} error={!loadingSettlement&&!health.databaseOk} />
+        <DatabaseStatusCard loading={loadingSettlement} connected={health.databaseOk} rows={rows} />
         <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"There are issues that need review."]} error={!health.integrityOk} />
         <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data and build metadata are available for reports.":"Reports may fail if data/build status is unhealthy."]} error={!health.reportReady} />
         <MonitoringCard label="Receipt Storage" value={receiptStorageView.value} meta={receiptStorageView.meta} error={receiptStorageView.error} />
