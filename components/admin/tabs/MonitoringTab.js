@@ -107,12 +107,12 @@ function DatabaseStatusCard({loading,connected,rows}) {
   const statusText = loading ? "Checking..." : connected ? "Connected" : "Need check";
   const statusColor = loading ? "#64748b" : connected ? "#16a34a" : "#dc2626";
 
-  return <div style={{border:"1px solid var(--admin-border)",background:"linear-gradient(135deg, var(--admin-row), rgba(37,99,235,0.06))",borderRadius:18,padding:16,display:"grid",gap:14,boxShadow:"0 8px 24px rgba(15,23,42,0.06)"}}>
+  return <div className="admin-status-card" style={{display:"grid",gap:14}}>
     <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}>
       <div>
-        <div style={{fontSize:13,fontWeight:800,color:"var(--admin-muted)",textTransform:"uppercase",letterSpacing:"0.04em"}}>Database API</div>
-        <div style={{fontSize:30,fontWeight:900,lineHeight:1.1,color:"var(--admin-text)",marginTop:4}}>{loading ? "..." : totalRows.toLocaleString("id-ID")}</div>
-        <div style={{fontSize:12,fontWeight:700,color:"var(--admin-muted)",marginTop:2}}>total rows loaded from Supabase</div>
+        <div className="admin-status-label">Database API</div>
+        <div className={connected ? "admin-status-value" : "admin-status-error"} style={{fontSize:30,lineHeight:1.1,marginTop:4}}>{loading ? "..." : totalRows.toLocaleString("id-ID")}</div>
+        <div className="admin-status-meta">total rows loaded from Supabase</div>
       </div>
       <div style={{display:"inline-flex",alignItems:"center",gap:7,border:`1px solid ${statusColor}33`,background:`${statusColor}12`,color:statusColor,borderRadius:999,padding:"7px 10px",fontSize:12,fontWeight:900,whiteSpace:"nowrap"}}>
         <span style={{width:8,height:8,borderRadius:999,background:statusColor,display:"inline-block"}} />
@@ -121,10 +121,10 @@ function DatabaseStatusCard({loading,connected,rows}) {
     </div>
 
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(92px,1fr))",gap:8}}>
-      {items.map((item)=><div key={item.label} style={{border:"1px solid var(--admin-border)",background:"rgba(255,255,255,0.04)",borderRadius:12,padding:"10px 11px"}}>
-        <div style={{fontSize:11,fontWeight:800,color:"var(--admin-muted)",textTransform:"uppercase",letterSpacing:"0.03em"}}>{item.label}</div>
-        <div style={{fontSize:21,fontWeight:900,color:"var(--admin-text)",lineHeight:1.15,marginTop:4}}>{loading ? "-" : item.value.toLocaleString("id-ID")}</div>
-        <div style={{fontSize:11,fontWeight:700,color:"var(--admin-muted)",marginTop:1}}>rows</div>
+      {items.map((item)=><div key={item.label} style={{border:"1px solid var(--admin-border)",background:"var(--admin-row)",borderRadius:12,padding:"10px 11px"}}>
+        <div className="admin-status-label" style={{fontSize:11}}>{item.label}</div>
+        <div className="admin-status-value" style={{fontSize:21,lineHeight:1.15,marginTop:4}}>{loading ? "-" : item.value.toLocaleString("id-ID")}</div>
+        <div className="admin-status-meta">rows</div>
       </div>)}
     </div>
   </div>;
