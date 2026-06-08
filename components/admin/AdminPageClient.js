@@ -31,7 +31,7 @@ function normalize(value) {
   return String(value || "").trim();
 }
 
-const icon = (codePoint) => String.fromCodePoint(codePoint);
+const icon = (codePoint, emoji = false) => `${String.fromCodePoint(codePoint)}${emoji ? String.fromCodePoint(0xfe0f) : ""}`;
 
 export default function AdminPageClient() {
   const router = useRouter();
@@ -243,10 +243,10 @@ export default function AdminPageClient() {
           <button className={tabClassName("deposit")} onClick={() => handleTabClick("deposit")}>{icon(0x1F4B0)} Booking Payment</button>
           <button className={tabClassName("cashflow")} onClick={() => handleTabClick("cashflow")}>{icon(0x1F4DD)} Cashflow</button>
           <button className={tabClassName("timeline")} onClick={() => handleTabClick("timeline")}>{icon(0x1F4F8)} Timeline</button>
-          <button className={tabClassName("summary")} onClick={() => handleTabClick("summary")}>{icon(0x1F6E1)} Summary Backup</button>
-          <button className={tabClassName("monitoring")} onClick={() => handleTabClick("monitoring")}><div className="admin-tab-content"><span>{icon(0x1F5A5)} Monitoring</span>{monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}</div></button>
+          <button className={tabClassName("summary")} onClick={() => handleTabClick("summary")}>{icon(0x1F6E1, true)} Summary Backup</button>
+          <button className={tabClassName("monitoring")} onClick={() => handleTabClick("monitoring")}><div className="admin-tab-content"><span>{icon(0x1F5A5, true)} Monitoring</span>{monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}</div></button>
           <button className={tabClassName("activity")} onClick={() => handleTabClick("activity")}>{icon(0x1F4CB)} Activity</button>
-          <button className={tabClassName("settings")} onClick={() => handleTabClick("settings")}>{icon(0x2699)} Settings</button>
+          <button className={tabClassName("settings")} onClick={() => handleTabClick("settings")}>{icon(0x2699, true)} Settings</button>
         </div>
         {tab === "overview" && <OverviewTab key={`overview-${tabRefreshKey}`} personal={personal} payments={payments} trashRecords={trashRecords} cashflows={cashflows} sortedDeposits={sortedDeposits} currentPeriod={currentPeriod} appConfig={appConfig} dailyBackup={{ ok: true }} monitoringIssueCount={monitoringIssueCount} getDepositStatus={getDepositStatus} onNavigate={handleTabClick} onTrashAdvanceComplete={refreshOverviewState} />}
         {tab === "personal" && <PersonalTab key={`personal-${tabRefreshKey}`} member={member} setMember={setMember} addMember={addMember} loadingAdd={loadingAdd} memberFilter={memberFilter} toggleMemberFilter={toggleMemberFilter} stats={stats} memberSearch={memberSearch} setMemberSearch={setMemberSearch} searchedPersonal={searchedPersonal} rowClassName={rowClassName} onUpdateMember={updateMemberInline} />}
