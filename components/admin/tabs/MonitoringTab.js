@@ -95,13 +95,48 @@ function AlertTestCard({loading,result,onSend}) {
   </div>;
 }
 
+function DatabaseStatusCard({loading,connected,rows}) {
+  const items = [
+    {label:"Personal", value:rows.personal.length},
+    {label:"Payment", value:rows.payments.length},
+    {label:"Cashflow", value:rows.cashflows.length},
+    {label:"Trash", value:rows.trashRecords.length},
+    {label:"Deposit", value:rows.deposits.length},
+  ];
+  const totalRows = items.reduce((sum,item)=>sum+item.value,0);
+  const statusText = loading ? "Checking..." : connected ? "Connected" : "Need check";
+  const statusColor = loading ? "#64748b" : connected ? "#16a34a" : "#dc2626";
+
+  return <div className="admin-status-card" style={{display:"grid",gap:14}}>
+    <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}>
+      <div>
+        <div className="admin-status-label">Database API</div>
+        <div className={connected ? "admin-status-value" : "admin-status-error"} style={{fontSize:30,lineHeight:1.1,marginTop:4}}>{loading ? "..." : totalRows.toLocaleString("id-ID")}</div>
+        <div className="admin-status-meta">total rows loaded from Supabase</div>
+      </div>
+      <div style={{display:"inline-flex",alignItems:"center",gap:7,border:`1px solid ${statusColor}33`,background:`${statusColor}12`,color:statusColor,borderRadius:999,padding:"7px 10px",fontSize:12,fontWeight:900,whiteSpace:"nowrap"}}>
+        <span style={{width:8,height:8,borderRadius:999,background:statusColor,display:"inline-block"}} />
+        {statusText}
+      </div>
+    </div>
+
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(92px,1fr))",gap:8}}>
+      {items.map((item)=><div key={item.label} style={{border:"1px solid var(--admin-border)",background:"var(--admin-row)",borderRadius:12,padding:"10px 11px"}}>
+        <div className="admin-status-label" style={{fontSize:11}}>{item.label}</div>
+        <div className="admin-status-value" style={{fontSize:21,lineHeight:1.15,marginTop:4}}>{loading ? "-" : item.value.toLocaleString("id-ID")}</div>
+        <div className="admin-status-meta">rows</div>
+      </div>)}
+    </div>
+  </div>;
+}
+
 function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity,suspiciousData}) {
-  const sheetOk = !loadingSettlement && (rows.cashflows.length + rows.deposits.length + rows.payments.length + rows.trashRecords.length) > 0;
+  const databaseOk = !loadingSettlement && (rows.personal.length + rows.cashflows.length + rows.deposits.length + rows.payments.length + rows.trashRecords.length) > 0;
   const buildOk = Boolean(buildInfo);
   const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + depositPaymentIntegrity.length + suspiciousData.length;
   const integrityOk = integrityIssueCount === 0;
-  const reportReady = sheetOk && buildOk;
-  return { sheetOk, buildOk, integrityOk, reportReady, integrityIssueCount };
+  const reportReady = databaseOk && buildOk;
+  return { databaseOk, buildOk, integrityOk, reportReady, integrityIssueCount };
 }
 
 function getReceiptStorageView(loading, data) {
@@ -124,7 +159,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
   const [repairedPaymentIds,setRepairedPaymentIds] = useState([]);
   const [sendingTestAlert,setSendingTestAlert] = useState(false);
   const [testAlertResult,setTestAlertResult] = useState(null);
-  const [rows,setRows] = useState({cashflows:[],deposits:[],payments:[],trashRecords:[]});
+  const [rows,setRows] = useState({personal:[],cashflows:[],deposits:[],payments:[],trashRecords:[]});
   const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
   const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,depositPaymentIntegrity,suspiciousData]);
@@ -169,12 +204,18 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
     async function loadSettlement() {
       setLoadingSettlement(true);
       try {
-        const endpoints = ["cashflow","deposit","trash","payment"];
+        const endpoints = ["personal","payment","cashflow","trash","deposit"];
         const res = await Promise.all(endpoints.map((x)=>fetch(`/api/sheets/${x}`,{cache:"no-store"})));
         const data = await Promise.all(res.map((r)=>r.json()));
-        if (active) setRows({cashflows:Array.isArray(data[0])?data[0]:[],deposits:Array.isArray(data[1])?data[1]:[],trashRecords:Array.isArray(data[2])?data[2]:[],payments:Array.isArray(data[3])?data[3]:[]});
+        if (active) setRows({
+          personal:Array.isArray(data[0])?data[0]:[],
+          payments:Array.isArray(data[1])?data[1]:[],
+          cashflows:Array.isArray(data[2])?data[2]:[],
+          trashRecords:Array.isArray(data[3])?data[3]:[],
+          deposits:Array.isArray(data[4])?data[4]:[],
+        });
       } catch {
-        if (active) setRows({cashflows:[],deposits:[],payments:[],trashRecords:[]});
+        if (active) setRows({personal:[],cashflows:[],deposits:[],payments:[],trashRecords:[]});
       } finally {
         if (active) setLoadingSettlement(false);
       }
@@ -232,7 +273,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
 
     <Section title="Operational Health Check">
       <div className="admin-monitor-grid">
-        <MonitoringCard label="Sheets API" value={loadingSettlement?"Checking...":health.sheetOk?"Connected":"Need check"} meta={[health.sheetOk?`${rows.cashflows.length} cashflow, ${rows.deposits.length} booking, ${rows.payments.length} payment, ${rows.trashRecords.length} trash rows loaded.`:"Operational data has not been read yet."]} error={!loadingSettlement&&!health.sheetOk} />
+        <DatabaseStatusCard loading={loadingSettlement} connected={health.databaseOk} rows={rows} />
         <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"There are issues that need review."]} error={!health.integrityOk} />
         <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data and build metadata are available for reports.":"Reports may fail if data/build status is unhealthy."]} error={!health.reportReady} />
         <MonitoringCard label="Receipt Storage" value={receiptStorageView.value} meta={receiptStorageView.meta} error={receiptStorageView.error} />
