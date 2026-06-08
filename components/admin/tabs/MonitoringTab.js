@@ -130,10 +130,10 @@ function DatabaseStatusCard({loading,connected,rows}) {
   </div>;
 }
 
-function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity,suspiciousData}) {
+function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,trashAdvanceReimbursementIntegrity,depositPaymentIntegrity,suspiciousData}) {
   const databaseOk = !loadingSettlement && (rows.personal.length + rows.cashflows.length + rows.deposits.length + rows.payments.length + rows.trashRecords.length) > 0;
   const buildOk = Boolean(buildInfo);
-  const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + depositPaymentIntegrity.length + suspiciousData.length;
+  const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + trashAdvanceReimbursementIntegrity.length + depositPaymentIntegrity.length + suspiciousData.length;
   const integrityOk = integrityIssueCount === 0;
   const reportReady = databaseOk && buildOk;
   return { databaseOk, buildOk, integrityOk, reportReady, integrityIssueCount };
@@ -149,7 +149,7 @@ function getReceiptStorageView(loading, data) {
   return { value: "Unreachable", meta: [data.message || "R2 public receipts are not reachable.", data.status_code ? `HTTP ${data.status_code}` : "Residents may not be able to open receipts."], error: true };
 }
 
-export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity = [],suspiciousData,onRepairComplete}) {
+export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,trashAdvanceReimbursementIntegrity = [],depositPaymentIntegrity = [],suspiciousData,onRepairComplete}) {
   const [buildInfo,setBuildInfo] = useState(null);
   const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
   const [loadingSettlement,setLoadingSettlement] = useState(false);
@@ -162,7 +162,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
   const [rows,setRows] = useState({personal:[],cashflows:[],deposits:[],payments:[],trashRecords:[]});
   const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
-  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,depositPaymentIntegrity,suspiciousData]);
+  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,trashAdvanceReimbursementIntegrity,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,trashAdvanceReimbursementIntegrity,depositPaymentIntegrity,suspiciousData]);
   const receiptStorageView = useMemo(()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),[loadingReceiptStorage,receiptStorage]);
 
   async function handleRepairTrash(row) {
@@ -300,6 +300,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
       <div className="admin-monitor-grid">
         <MonitoringCard label="Payment ⇄ Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Payment ⇄ Trash Integrity" value={`${displayedTrashMismatch.length} issue`} meta={[displayedTrashMismatch.length===0?"No issue detected":"Need review"]} />
+        <MonitoringCard label="Trash Advance ⇄ Reimbursement Integrity" value={`${trashAdvanceReimbursementIntegrity.length} issue`} meta={[trashAdvanceReimbursementIntegrity.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Payment ⇄ Deposit Integrity" value={`${depositPaymentIntegrity.length} issue`} meta={[depositPaymentIntegrity.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Data Quality Check" value={`${suspiciousData.length} issue`} meta={[suspiciousData.length===0?"No suspicious data":"Need review"]} />
       </div>
@@ -307,6 +308,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
 
     <IssueTable title="Payment ⇄ Cashflow Integrity" rows={paymentCashflowIntegrity} columns={["house","name","period","type","detail"]} />
     <TrashIssueTable rows={displayedTrashMismatch} repairingPaymentId={repairingPaymentId} onRepair={handleRepairTrash} />
+    <IssueTable title="Trash Advance ⇄ Reimbursement Integrity" rows={trashAdvanceReimbursementIntegrity} columns={["house","name","period","type","detail"]} />
     <IssueTable title="Payment ⇄ Deposit Integrity" rows={depositPaymentIntegrity} columns={["house","name","period","type","detail"]} />
     <IssueTable title="Suspicious Data" rows={suspiciousData} columns={["sheet","row","type","detail"]} />
   </div>;
