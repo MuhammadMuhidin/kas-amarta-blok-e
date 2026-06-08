@@ -21,6 +21,45 @@ function normalize(value) {
   return String(value || "").trim();
 }
 
+function formatPeriodLabel(period) {
+  const normalized = normalize(period);
+  const match = /^(\d{4})-(\d{2})$/.exec(normalized);
+
+  if (!match) return normalized;
+
+  const monthNames = [
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+  ];
+  const monthIndex = Number(match[2]) - 1;
+
+  if (monthIndex < 0 || monthIndex >= monthNames.length) return normalized;
+
+  return `${monthNames[monthIndex]} ${match[1]}`;
+}
+
+function buildTrashAdvanceRefId(personId, period) {
+  return `TRASHADV-${normalize(personId)}-${normalize(period)}`;
+}
+
+function buildTrashReimbursementRefId(paymentId) {
+  return `TRASHREIMB-${normalize(paymentId)}`;
+}
+
+function buildTrashReimbursementNote(house, period) {
+  return `Pengembalian Talangan Iuran Sampah ${house} Periode ${formatPeriodLabel(period)}`;
+}
+
 function mapPayment(row) {
   return {
     id: row.id,
@@ -87,6 +126,56 @@ async function ensurePaymentTrash({ supabase, paymentId, member, date }) {
   });
 
   if (error) throw new Error(error.message || "Gagal menyimpan data sampah");
+  return true;
+}
+
+async function ensureTrashAdvanceReimbursement({ supabase, paymentId, personId, personHouse, period, date }) {
+  const advancePaymentId = buildTrashAdvanceRefId(personId, period);
+  const reimbursementPaymentId = buildTrashReimbursementRefId(paymentId);
+
+  const { data: advanceRows, error: advanceReadError } = await supabase
+    .from(CASHFLOW_TABLE)
+    .select("id,amount")
+    .eq("payment_id", advancePaymentId)
+    .eq("type", "expense")
+    .limit(1);
+
+  if (advanceReadError) {
+    throw new Error(advanceReadError.message || "Gagal membaca cashflow talangan sampah");
+  }
+
+  if (!advanceRows?.length) return false;
+
+  const { data: reimbursementRows, error: reimbursementReadError } = await supabase
+    .from(CASHFLOW_TABLE)
+    .select("id")
+    .eq("payment_id", reimbursementPaymentId)
+    .limit(1);
+
+  if (reimbursementReadError) {
+    throw new Error(reimbursementReadError.message || "Gagal membaca cashflow pengembalian talangan sampah");
+  }
+
+  if (reimbursementRows?.length) return false;
+
+  const reimbursementAmount = Number(advanceRows[0]?.amount || 0);
+
+  if (!Number.isFinite(reimbursementAmount) || reimbursementAmount <= 0) return false;
+
+  const { error } = await supabase.from(CASHFLOW_TABLE).insert({
+    id: generateId("CSFLOW-"),
+    payment_id: reimbursementPaymentId,
+    type: "income",
+    amount: reimbursementAmount,
+    note: buildTrashReimbursementNote(personHouse, period),
+    date,
+    receipt_url: "",
+  });
+
+  if (error) {
+    throw new Error(error.message || "Gagal menyimpan cashflow pengembalian talangan sampah");
+  }
+
   return true;
 }
 
@@ -213,6 +302,14 @@ export async function POST(req) {
         member,
         date: existingPaymentDate,
       });
+      const trashReimbursementRecovered = await ensureTrashAdvanceReimbursement({
+        supabase,
+        paymentId: existingPaymentId,
+        personId: existingPayment.person_id || person_id,
+        personHouse: existingPayment.person_house || person_house,
+        period,
+        date: existingPaymentDate,
+      });
 
       await recordAdminActivity(req, {
         type: "idempotent",
@@ -228,6 +325,7 @@ export async function POST(req) {
           amount: existingPaymentAmount,
           cashflow_recovered: cashflowRecovered,
           trash_recovered: trashRecovered,
+          trash_reimbursement_recovered: trashReimbursementRecovered,
           bulk_batch_id: bulkBatchId || null,
         },
       });
@@ -237,6 +335,7 @@ export async function POST(req) {
         existing: true,
         cashflow_recovered: cashflowRecovered,
         trash_recovered: trashRecovered,
+        trash_reimbursement_recovered: trashReimbursementRecovered,
         payment_id: existingPaymentId,
       });
     }
@@ -266,6 +365,14 @@ export async function POST(req) {
       date: today,
     });
     const trashRecorded = await ensurePaymentTrash({ supabase, paymentId, member, date: today });
+    const trashReimbursementRecorded = await ensureTrashAdvanceReimbursement({
+      supabase,
+      paymentId,
+      personId: person_id,
+      personHouse: person_house,
+      period,
+      date: today,
+    });
 
     await recordAdminActivity(req, {
       type: "create",
@@ -281,6 +388,7 @@ export async function POST(req) {
         amount,
         cashflow_recorded: cashflowRecorded,
         trash_recorded: trashRecorded,
+        trash_reimbursement_recorded: trashReimbursementRecorded,
         bulk_batch_id: bulkBatchId || null,
       },
     });
@@ -290,6 +398,7 @@ export async function POST(req) {
       payment_id: paymentId,
       cashflow_recorded: cashflowRecorded,
       trash_recorded: trashRecorded,
+      trash_reimbursement_recorded: trashReimbursementRecorded,
     });
   } catch (err) {
     return NextResponse.json({ error: err.message || "Gagal menyimpan payment" }, { status: 500 });
