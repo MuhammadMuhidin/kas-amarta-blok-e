@@ -18,6 +18,16 @@ function TrashIssueTable({rows,repairingPaymentId,onRepair}) {
   })}</tbody></table></div></div>;
 }
 
+function ReimbursementIssueTable({rows,repairingPaymentId,onRepair}) {
+  if (!rows?.length) return null;
+  return <div className="admin-monitor-detail"><h3>Trash Advance ⇄ Reimbursement Integrity</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th className="admin-th">house</th><th className="admin-th">name</th><th className="admin-th">period</th><th className="admin-th">Issue</th><th className="admin-th">Action</th></tr></thead><tbody>{rows.map((row,i)=>{
+    const canRepair = row.type === "MISSING_REIMBURSEMENT" && row.payment_id;
+    const repairing = repairingPaymentId === row.payment_id;
+    const rowClassName = [i%2?"admin-row-alt":"","admin-clickable-row",repairing?"monitoring-row-repairing":""].filter(Boolean).join(" ");
+    return <tr key={`${row.type}-${row.payment_id || row.house}-${row.period}-${i}`} className={rowClassName}><td className="admin-td admin-issue-text">{row.house}</td><td className="admin-td admin-issue-text">{row.name}</td><td className="admin-td admin-issue-text">{row.period}</td><td className="admin-td admin-issue-text">{row.detail}</td><td className="admin-td admin-issue-text">{canRepair ? <button type="button" className="admin-small-btn monitoring-repair-btn" disabled={repairing || Boolean(repairingPaymentId)} onClick={()=>onRepair(row)}>{repairing ? "Repairing..." : "Repair"}</button> : <span style={{color:"var(--admin-muted)",fontSize:12}}>Manual review</span>}</td></tr>;
+  })}</tbody></table></div></div>;
+}
+
 function Section({title,children}) {
   return <div className="admin-monitor-section" style={{marginBottom:20}}><h2 style={{margin:"0 0 12px"}}>{title}</h2>{children}</div>;
 }
@@ -169,13 +179,16 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,tr
   const [loadingReceiptStorage,setLoadingReceiptStorage] = useState(false);
   const [receiptStorage,setReceiptStorage] = useState(null);
   const [repairingPaymentId,setRepairingPaymentId] = useState("");
+  const [repairingReimbursementPaymentId,setRepairingReimbursementPaymentId] = useState("");
   const [repairedPaymentIds,setRepairedPaymentIds] = useState([]);
+  const [repairedReimbursementPaymentIds,setRepairedReimbursementPaymentIds] = useState([]);
   const [sendingTestAlert,setSendingTestAlert] = useState(false);
   const [testAlertResult,setTestAlertResult] = useState(null);
   const [rows,setRows] = useState({personal:[],cashflows:[],deposits:[],payments:[],trashRecords:[]});
   const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
+  const displayedReimbursementIssues = useMemo(()=>trashAdvanceReimbursementIntegrity.filter((row)=>!repairedReimbursementPaymentIds.includes(row.payment_id)),[trashAdvanceReimbursementIntegrity,repairedReimbursementPaymentIds]);
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
-  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,trashAdvanceReimbursementIntegrity,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,trashAdvanceReimbursementIntegrity,depositPaymentIntegrity,suspiciousData]);
+  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,trashAdvanceReimbursementIntegrity: displayedReimbursementIssues,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,displayedReimbursementIssues,depositPaymentIntegrity,suspiciousData]);
   const receiptStorageView = useMemo(()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),[loadingReceiptStorage,receiptStorage]);
 
   async function handleRepairTrash(row) {
@@ -187,6 +200,18 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,tr
       await onRepairComplete?.();
     } finally {
       setRepairingPaymentId("");
+    }
+  }
+
+  async function handleRepairReimbursement(row) {
+    if (!row?.payment_id || repairingReimbursementPaymentId) return;
+    setRepairingReimbursementPaymentId(row.payment_id);
+    try {
+      await sendJson("/api/sheets/trash/reimbursement-repair", "POST", { payment_id: row.payment_id });
+      setRepairedReimbursementPaymentIds((prev)=>prev.includes(row.payment_id) ? prev : [...prev,row.payment_id]);
+      await onRepairComplete?.();
+    } finally {
+      setRepairingReimbursementPaymentId("");
     }
   }
 
@@ -313,7 +338,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,tr
       <div className="admin-monitor-grid">
         <MonitoringCard label="Payment ⇄ Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Payment ⇄ Trash Integrity" value={`${displayedTrashMismatch.length} issue`} meta={[displayedTrashMismatch.length===0?"No issue detected":"Need review"]} />
-        <MonitoringCard label="Trash Advance ⇄ Reimbursement Integrity" value={`${trashAdvanceReimbursementIntegrity.length} issue`} meta={[trashAdvanceReimbursementIntegrity.length===0?"No issue detected":"Need review"]} />
+        <MonitoringCard label="Trash Advance ⇄ Reimbursement Integrity" value={`${displayedReimbursementIssues.length} issue`} meta={[displayedReimbursementIssues.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Payment ⇄ Deposit Integrity" value={`${depositPaymentIntegrity.length} issue`} meta={[depositPaymentIntegrity.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Data Quality Check" value={`${suspiciousData.length} issue`} meta={[suspiciousData.length===0?"No suspicious data":"Need review"]} />
       </div>
@@ -321,7 +346,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,tr
 
     <IssueTable title="Payment ⇄ Cashflow Integrity" rows={paymentCashflowIntegrity} columns={["house","name","period","type","detail"]} />
     <TrashIssueTable rows={displayedTrashMismatch} repairingPaymentId={repairingPaymentId} onRepair={handleRepairTrash} />
-    <IssueTable title="Trash Advance ⇄ Reimbursement Integrity" rows={trashAdvanceReimbursementIntegrity} columns={["house","name","period","type","detail"]} />
+    <ReimbursementIssueTable rows={displayedReimbursementIssues} repairingPaymentId={repairingReimbursementPaymentId} onRepair={handleRepairReimbursement} />
     <IssueTable title="Payment ⇄ Deposit Integrity" rows={depositPaymentIntegrity} columns={["house","name","period","type","detail"]} />
     <IssueTable title="Suspicious Data" rows={suspiciousData} columns={["sheet","row","type","detail"]} />
   </div>;
