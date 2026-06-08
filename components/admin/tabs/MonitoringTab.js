@@ -18,6 +18,16 @@ function TrashIssueTable({rows,repairingPaymentId,onRepair}) {
   })}</tbody></table></div></div>;
 }
 
+function ReimbursementIssueTable({rows,repairingPaymentId,onRepair}) {
+  if (!rows?.length) return null;
+  return <div className="admin-monitor-detail"><h3>Trash Advance ⇄ Reimbursement Integrity</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th className="admin-th">house</th><th className="admin-th">name</th><th className="admin-th">period</th><th className="admin-th">Issue</th><th className="admin-th">Action</th></tr></thead><tbody>{rows.map((row,i)=>{
+    const canRepair = row.type === "MISSING_REIMBURSEMENT" && row.payment_id;
+    const repairing = repairingPaymentId === row.payment_id;
+    const rowClassName = [i%2?"admin-row-alt":"","admin-clickable-row",repairing?"monitoring-row-repairing":""].filter(Boolean).join(" ");
+    return <tr key={`${row.type}-${row.payment_id || row.house}-${row.period}-${i}`} className={rowClassName}><td className="admin-td admin-issue-text">{row.house}</td><td className="admin-td admin-issue-text">{row.name}</td><td className="admin-td admin-issue-text">{row.period}</td><td className="admin-td admin-issue-text">{row.detail}</td><td className="admin-td admin-issue-text">{canRepair ? <button type="button" className="admin-small-btn monitoring-repair-btn" disabled={repairing || Boolean(repairingPaymentId)} onClick={()=>onRepair(row)}>{repairing ? "Repairing..." : "Repair"}</button> : <span style={{color:"var(--admin-muted)",fontSize:12}}>Manual review</span>}</td></tr>;
+  })}</tbody></table></div></div>;
+}
+
 function Section({title,children}) {
   return <div className="admin-monitor-section" style={{marginBottom:20}}><h2 style={{margin:"0 0 12px"}}>{title}</h2>{children}</div>;
 }
@@ -40,6 +50,14 @@ function parseTrashAdvanceRefId(refId) {
   return { personId, period };
 }
 
+function parseTrashReimbursementRefId(refId) {
+  const normalized = normalize(refId);
+  const prefix = "TRASHREIMB-";
+  if (!normalized.toUpperCase().startsWith(prefix)) return null;
+  const paymentId = normalized.slice(prefix.length);
+  return paymentId ? { paymentId } : null;
+}
+
 function getSettlement({cashflows,deposits,trashRecords,payments}) {
   const periodNow = getCurrentPeriod();
   const recon = deposits.filter((d)=>String(d.status||"").toLowerCase()!=="paid").reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
@@ -53,10 +71,15 @@ function getSettlement({cashflows,deposits,trashRecords,payments}) {
     const parsed = parseTrashAdvanceRefId(cashflow.ref_id);
     return parsed ? { cashflow, ...parsed } : null;
   }).filter((item)=>item && normalize(item.cashflow.type).toLowerCase()==="expense" && item.period === periodNow);
+  const reimbursementRecords = cashflows.map((cashflow)=>{
+    const parsed = parseTrashReimbursementRefId(cashflow.ref_id);
+    const payment = parsed ? paymentById.get(normalize(parsed.paymentId)) : null;
+    return payment ? { cashflow, payment } : null;
+  }).filter((item)=>item && normalize(item.cashflow.type).toLowerCase()==="income" && normalize(item.payment.period) === periodNow);
   const advanceKeys = new Set(advanceRecords.map((item)=>keyOf(item.personId,item.period)));
   const trashMonthlyReceived = trashPayments.reduce((total,{trash})=>total+n(trash.amount),0);
+  const trashReimbursed = reimbursementRecords.reduce((total,item)=>total+n(item.cashflow.amount),0);
   const trashAdvanceOutstanding = advanceRecords.reduce((total,item)=>trashPaymentKeys.has(keyOf(item.personId,item.period)) ? total : total+n(item.cashflow.amount),0);
-  const trashReimbursed = advanceRecords.reduce((total,item)=>trashPaymentKeys.has(keyOf(item.personId,item.period)) ? total+n(item.cashflow.amount) : total,0);
   const trashPaidDirect = trashPayments.reduce((total,{trash,payment})=>advanceKeys.has(keyOf(payment.person_id,payment.period)) ? total : total+n(trash.amount),0);
 
   return {recon,trashMonthlyReceived,trashAdvanceOutstanding,trashReimbursed,trashPaidDirect};
@@ -130,10 +153,10 @@ function DatabaseStatusCard({loading,connected,rows}) {
   </div>;
 }
 
-function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity,suspiciousData}) {
+function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,trashAdvanceReimbursementIntegrity,depositPaymentIntegrity,suspiciousData}) {
   const databaseOk = !loadingSettlement && (rows.personal.length + rows.cashflows.length + rows.deposits.length + rows.payments.length + rows.trashRecords.length) > 0;
   const buildOk = Boolean(buildInfo);
-  const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + depositPaymentIntegrity.length + suspiciousData.length;
+  const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + trashAdvanceReimbursementIntegrity.length + depositPaymentIntegrity.length + suspiciousData.length;
   const integrityOk = integrityIssueCount === 0;
   const reportReady = databaseOk && buildOk;
   return { databaseOk, buildOk, integrityOk, reportReady, integrityIssueCount };
@@ -149,20 +172,23 @@ function getReceiptStorageView(loading, data) {
   return { value: "Unreachable", meta: [data.message || "R2 public receipts are not reachable.", data.status_code ? `HTTP ${data.status_code}` : "Residents may not be able to open receipts."], error: true };
 }
 
-export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,depositPaymentIntegrity = [],suspiciousData,onRepairComplete}) {
+export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,trashAdvanceReimbursementIntegrity = [],depositPaymentIntegrity = [],suspiciousData,onRepairComplete}) {
   const [buildInfo,setBuildInfo] = useState(null);
   const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
   const [loadingSettlement,setLoadingSettlement] = useState(false);
   const [loadingReceiptStorage,setLoadingReceiptStorage] = useState(false);
   const [receiptStorage,setReceiptStorage] = useState(null);
   const [repairingPaymentId,setRepairingPaymentId] = useState("");
+  const [repairingReimbursementPaymentId,setRepairingReimbursementPaymentId] = useState("");
   const [repairedPaymentIds,setRepairedPaymentIds] = useState([]);
+  const [repairedReimbursementPaymentIds,setRepairedReimbursementPaymentIds] = useState([]);
   const [sendingTestAlert,setSendingTestAlert] = useState(false);
   const [testAlertResult,setTestAlertResult] = useState(null);
   const [rows,setRows] = useState({personal:[],cashflows:[],deposits:[],payments:[],trashRecords:[]});
   const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
+  const displayedReimbursementIssues = useMemo(()=>trashAdvanceReimbursementIntegrity.filter((row)=>!repairedReimbursementPaymentIds.includes(row.payment_id)),[trashAdvanceReimbursementIntegrity,repairedReimbursementPaymentIds]);
   const settlement = useMemo(()=>getSettlement(rows),[rows]);
-  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,depositPaymentIntegrity,suspiciousData]);
+  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,trashAdvanceReimbursementIntegrity: displayedReimbursementIssues,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,displayedReimbursementIssues,depositPaymentIntegrity,suspiciousData]);
   const receiptStorageView = useMemo(()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),[loadingReceiptStorage,receiptStorage]);
 
   async function handleRepairTrash(row) {
@@ -174,6 +200,18 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
       await onRepairComplete?.();
     } finally {
       setRepairingPaymentId("");
+    }
+  }
+
+  async function handleRepairReimbursement(row) {
+    if (!row?.payment_id || repairingReimbursementPaymentId) return;
+    setRepairingReimbursementPaymentId(row.payment_id);
+    try {
+      await sendJson("/api/sheets/trash/reimbursement-repair", "POST", { payment_id: row.payment_id });
+      setRepairedReimbursementPaymentIds((prev)=>prev.includes(row.payment_id) ? prev : [...prev,row.payment_id]);
+      await onRepairComplete?.();
+    } finally {
+      setRepairingReimbursementPaymentId("");
     }
   }
 
@@ -285,7 +323,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
         <MonitoringCard label="Reconciliation Balance" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total unpaid booking payments."]} />
         <MonitoringCard label="Monthly Trash Received" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthlyReceived)} meta={["Trash fee payments received for the current period."]} />
         <MonitoringCard label="Trash Advance Outstanding" value={loadingSettlement?"Checking...":rupiah(settlement.trashAdvanceOutstanding)} meta={["Advanced trash fees not reimbursed by residents yet."]} error={!loadingSettlement && settlement.trashAdvanceOutstanding > 0} />
-        <MonitoringCard label="Trash Reimbursed" value={loadingSettlement?"Checking...":rupiah(settlement.trashReimbursed)} meta={["Previously advanced trash fees already paid back by residents."]} />
+        <MonitoringCard label="Trash Reimbursed" value={loadingSettlement?"Checking...":rupiah(settlement.trashReimbursed)} meta={["Recorded reimbursement income from trash advance."]} />
         <MonitoringCard label="Trash Paid Direct" value={loadingSettlement?"Checking...":rupiah(settlement.trashPaidDirect)} meta={["Trash fees paid without prior cash advance."]} />
       </div>
     </Section>
@@ -300,6 +338,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
       <div className="admin-monitor-grid">
         <MonitoringCard label="Payment ⇄ Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Payment ⇄ Trash Integrity" value={`${displayedTrashMismatch.length} issue`} meta={[displayedTrashMismatch.length===0?"No issue detected":"Need review"]} />
+        <MonitoringCard label="Trash Advance ⇄ Reimbursement Integrity" value={`${displayedReimbursementIssues.length} issue`} meta={[displayedReimbursementIssues.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Payment ⇄ Deposit Integrity" value={`${depositPaymentIntegrity.length} issue`} meta={[depositPaymentIntegrity.length===0?"No issue detected":"Need review"]} />
         <MonitoringCard label="Data Quality Check" value={`${suspiciousData.length} issue`} meta={[suspiciousData.length===0?"No suspicious data":"Need review"]} />
       </div>
@@ -307,6 +346,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,de
 
     <IssueTable title="Payment ⇄ Cashflow Integrity" rows={paymentCashflowIntegrity} columns={["house","name","period","type","detail"]} />
     <TrashIssueTable rows={displayedTrashMismatch} repairingPaymentId={repairingPaymentId} onRepair={handleRepairTrash} />
+    <ReimbursementIssueTable rows={displayedReimbursementIssues} repairingPaymentId={repairingReimbursementPaymentId} onRepair={handleRepairReimbursement} />
     <IssueTable title="Payment ⇄ Deposit Integrity" rows={depositPaymentIntegrity} columns={["house","name","period","type","detail"]} />
     <IssueTable title="Suspicious Data" rows={suspiciousData} columns={["sheet","row","type","detail"]} />
   </div>;
