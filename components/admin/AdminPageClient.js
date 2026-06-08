@@ -101,6 +101,7 @@ export default function AdminPageClient() {
     depositAmount,
     paymentCashflowIntegrity,
     trashMismatch,
+    trashAdvanceReimbursementIntegrity,
     depositPaymentIntegrity,
     suspiciousData,
     monitoringIssueCount,
@@ -230,20 +231,20 @@ export default function AdminPageClient() {
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
       <div className="admin-wrapper">
         <div className="admin-header">
-          <button className="admin-home-btn" onClick={() => router.push("/")}>🏠 Home</button>
+          <button className="admin-home-btn" onClick={() => router.push("/")}>Home</button>
           <h1 className="admin-title">Cash Flow Management</h1>
         </div>
         <div className="admin-tabs">
-          <button className={tabClassName("overview")} onClick={() => handleTabClick("overview")}>📌 Overview</button>
-          <button className={tabClassName("personal")} onClick={() => handleTabClick("personal")}>👤 Member</button>
-          <button className={tabClassName("payment")} onClick={() => handleTabClick("payment")}><div className="admin-tab-content"><span>💳 Payment</span>{pendingCurrentDeposits.length > 0 && <span className="admin-deposit-badge">{pendingCurrentDeposits.length} booking pending</span>}</div></button>
-          <button className={tabClassName("deposit")} onClick={() => handleTabClick("deposit")}>💰 Booking Payment</button>
-          <button className={tabClassName("cashflow")} onClick={() => handleTabClick("cashflow")}>📝 Cashflow</button>
-          <button className={tabClassName("timeline")} onClick={() => handleTabClick("timeline")}>📸 Timeline</button>
-          <button className={tabClassName("summary")} onClick={() => handleTabClick("summary")}>🛡️ Summary Backup</button>
-          <button className={tabClassName("monitoring")} onClick={() => handleTabClick("monitoring")}><div className="admin-tab-content"><span>🖥️ Monitoring</span>{monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}</div></button>
-          <button className={tabClassName("activity")} onClick={() => handleTabClick("activity")}>📋 Activity</button>
-          <button className={tabClassName("settings")} onClick={() => handleTabClick("settings")}>⚙️ Settings</button>
+          <button className={tabClassName("overview")} onClick={() => handleTabClick("overview")}>Overview</button>
+          <button className={tabClassName("personal")} onClick={() => handleTabClick("personal")}>Member</button>
+          <button className={tabClassName("payment")} onClick={() => handleTabClick("payment")}><div className="admin-tab-content"><span>Payment</span>{pendingCurrentDeposits.length > 0 && <span className="admin-deposit-badge">{pendingCurrentDeposits.length} booking pending</span>}</div></button>
+          <button className={tabClassName("deposit")} onClick={() => handleTabClick("deposit")}>Booking Payment</button>
+          <button className={tabClassName("cashflow")} onClick={() => handleTabClick("cashflow")}>Cashflow</button>
+          <button className={tabClassName("timeline")} onClick={() => handleTabClick("timeline")}>Timeline</button>
+          <button className={tabClassName("summary")} onClick={() => handleTabClick("summary")}>Summary Backup</button>
+          <button className={tabClassName("monitoring")} onClick={() => handleTabClick("monitoring")}><div className="admin-tab-content"><span>Monitoring</span>{monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}</div></button>
+          <button className={tabClassName("activity")} onClick={() => handleTabClick("activity")}>Activity</button>
+          <button className={tabClassName("settings")} onClick={() => handleTabClick("settings")}>Settings</button>
         </div>
         {tab === "overview" && <OverviewTab key={`overview-${tabRefreshKey}`} personal={personal} payments={payments} trashRecords={trashRecords} cashflows={cashflows} sortedDeposits={sortedDeposits} currentPeriod={currentPeriod} appConfig={appConfig} dailyBackup={{ ok: true }} monitoringIssueCount={monitoringIssueCount} getDepositStatus={getDepositStatus} onNavigate={handleTabClick} onTrashAdvanceComplete={refreshOverviewState} />}
         {tab === "personal" && <PersonalTab key={`personal-${tabRefreshKey}`} member={member} setMember={setMember} addMember={addMember} loadingAdd={loadingAdd} memberFilter={memberFilter} toggleMemberFilter={toggleMemberFilter} stats={stats} memberSearch={memberSearch} setMemberSearch={setMemberSearch} searchedPersonal={searchedPersonal} rowClassName={rowClassName} onUpdateMember={updateMemberInline} />}
@@ -252,7 +253,7 @@ export default function AdminPageClient() {
         {tab === "cashflow" && <CashflowTab key={`cashflow-${tabRefreshKey}`} addCashflow={addCashflow} cashflow={cashflow} setCashflow={setCashflow} loadingCashflow={loadingCashflow} />}
         {tab === "timeline" && <TimelineTab key={`timeline-${tabRefreshKey}`} showPopup={showPopup} />}
         {tab === "summary" && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
-        {tab === "monitoring" && <MonitoringTab key={`monitoring-${tabRefreshKey}`} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} depositPaymentIntegrity={depositPaymentIntegrity} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
+        {tab === "monitoring" && <MonitoringTab key={`monitoring-${tabRefreshKey}`} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} trashAdvanceReimbursementIntegrity={trashAdvanceReimbursementIntegrity} depositPaymentIntegrity={depositPaymentIntegrity} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
         {tab === "activity" && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
         {tab === "settings" && <SettingsTab key={`settings-${tabRefreshKey}`} />}
       </div>
