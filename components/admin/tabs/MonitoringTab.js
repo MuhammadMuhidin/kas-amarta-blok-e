@@ -40,6 +40,14 @@ function parseTrashAdvanceRefId(refId) {
   return { personId, period };
 }
 
+function parseTrashReimbursementRefId(refId) {
+  const normalized = normalize(refId);
+  const prefix = "TRASHREIMB-";
+  if (!normalized.toUpperCase().startsWith(prefix)) return null;
+  const paymentId = normalized.slice(prefix.length);
+  return paymentId ? { paymentId } : null;
+}
+
 function getSettlement({cashflows,deposits,trashRecords,payments}) {
   const periodNow = getCurrentPeriod();
   const recon = deposits.filter((d)=>String(d.status||"").toLowerCase()!=="paid").reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
@@ -53,10 +61,15 @@ function getSettlement({cashflows,deposits,trashRecords,payments}) {
     const parsed = parseTrashAdvanceRefId(cashflow.ref_id);
     return parsed ? { cashflow, ...parsed } : null;
   }).filter((item)=>item && normalize(item.cashflow.type).toLowerCase()==="expense" && item.period === periodNow);
+  const reimbursementRecords = cashflows.map((cashflow)=>{
+    const parsed = parseTrashReimbursementRefId(cashflow.ref_id);
+    const payment = parsed ? paymentById.get(normalize(parsed.paymentId)) : null;
+    return payment ? { cashflow, payment } : null;
+  }).filter((item)=>item && normalize(item.cashflow.type).toLowerCase()==="income" && normalize(item.payment.period) === periodNow);
   const advanceKeys = new Set(advanceRecords.map((item)=>keyOf(item.personId,item.period)));
   const trashMonthlyReceived = trashPayments.reduce((total,{trash})=>total+n(trash.amount),0);
+  const trashReimbursed = reimbursementRecords.reduce((total,item)=>total+n(item.cashflow.amount),0);
   const trashAdvanceOutstanding = advanceRecords.reduce((total,item)=>trashPaymentKeys.has(keyOf(item.personId,item.period)) ? total : total+n(item.cashflow.amount),0);
-  const trashReimbursed = advanceRecords.reduce((total,item)=>trashPaymentKeys.has(keyOf(item.personId,item.period)) ? total+n(item.cashflow.amount) : total,0);
   const trashPaidDirect = trashPayments.reduce((total,{trash,payment})=>advanceKeys.has(keyOf(payment.person_id,payment.period)) ? total : total+n(trash.amount),0);
 
   return {recon,trashMonthlyReceived,trashAdvanceOutstanding,trashReimbursed,trashPaidDirect};
@@ -285,7 +298,7 @@ export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,tr
         <MonitoringCard label="Reconciliation Balance" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total unpaid booking payments."]} />
         <MonitoringCard label="Monthly Trash Received" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthlyReceived)} meta={["Trash fee payments received for the current period."]} />
         <MonitoringCard label="Trash Advance Outstanding" value={loadingSettlement?"Checking...":rupiah(settlement.trashAdvanceOutstanding)} meta={["Advanced trash fees not reimbursed by residents yet."]} error={!loadingSettlement && settlement.trashAdvanceOutstanding > 0} />
-        <MonitoringCard label="Trash Reimbursed" value={loadingSettlement?"Checking...":rupiah(settlement.trashReimbursed)} meta={["Previously advanced trash fees already paid back by residents."]} />
+        <MonitoringCard label="Trash Reimbursed" value={loadingSettlement?"Checking...":rupiah(settlement.trashReimbursed)} meta={["Recorded reimbursement income from trash advance."]} />
         <MonitoringCard label="Trash Paid Direct" value={loadingSettlement?"Checking...":rupiah(settlement.trashPaidDirect)} meta={["Trash fees paid without prior cash advance."]} />
       </div>
     </Section>
