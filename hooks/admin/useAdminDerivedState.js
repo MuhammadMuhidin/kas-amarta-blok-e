@@ -5,6 +5,7 @@ import {
   buildDepositPaymentIntegrity,
   buildPaymentCashflowIntegrity,
   buildSuspiciousData,
+  buildTrashAdvanceReimbursementIntegrity,
   buildTrashMismatch,
 } from "@/lib/adminMonitoring";
 import { addMonths, sortDeposits } from "@/lib/depositUtils";
@@ -71,6 +72,11 @@ export default function useAdminDerivedState({
     [payments, cashflows, appConfig, monitoringStartPeriod, normalize],
   );
 
+  const trashAdvanceReimbursementIntegrity = useMemo(
+    () => buildTrashAdvanceReimbursementIntegrity({ personal, payments, trashRecords, cashflows, monitoringStartPeriod, normalize }),
+    [personal, payments, trashRecords, cashflows, monitoringStartPeriod, normalize],
+  );
+
   const depositPaymentIntegrity = useMemo(
     () => buildDepositPaymentIntegrity({ deposits, personal, payments, monitoringStartPeriod, normalize }),
     [deposits, personal, payments, monitoringStartPeriod, normalize],
@@ -82,8 +88,8 @@ export default function useAdminDerivedState({
   );
 
   const monitoringIssueCount = useMemo(
-    () => trashMismatch.length + paymentCashflowIntegrity.length + depositPaymentIntegrity.length + suspiciousData.length,
-    [trashMismatch, paymentCashflowIntegrity, depositPaymentIntegrity, suspiciousData],
+    () => trashMismatch.length + paymentCashflowIntegrity.length + trashAdvanceReimbursementIntegrity.length + depositPaymentIntegrity.length + suspiciousData.length,
+    [trashMismatch, paymentCashflowIntegrity, trashAdvanceReimbursementIntegrity, depositPaymentIntegrity, suspiciousData],
   );
 
   const filteredPersonal = useMemo(
@@ -111,6 +117,7 @@ export default function useAdminDerivedState({
     stats,
     trashMismatch,
     paymentCashflowIntegrity,
+    trashAdvanceReimbursementIntegrity,
     depositPaymentIntegrity,
     suspiciousData,
     monitoringIssueCount,
