@@ -1,33 +1,12 @@
 import { NextResponse } from "next/server";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
-import { createTimelinePost, listAdminTimelinePosts } from "@/lib/timelineRepository";
-import { withMediaPostUrls } from "@/lib/mediaUrl";
+import {
+  createTimelinePostFromBody,
+  listTimelinePosts,
+} from "@/features/timeline/timelineService";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-
-function normalizeText(value) {
-  return String(value || "").trim();
-}
-
-function normalizePayload(body = {}) {
-  const title = normalizeText(body.title);
-  const description = normalizeText(body.description);
-
-  if (!title) {
-    throw new Error("Judul kegiatan wajib diisi");
-  }
-
-  return {
-    title,
-    description,
-    category: normalizeText(body.category),
-    event_date: normalizeText(body.event_date) || null,
-    cover_image_key: normalizeText(body.cover_image_key),
-    cover_image_url: normalizeText(body.cover_image_url),
-    published: body.published === true,
-  };
-}
 
 export async function GET(req) {
   try {
@@ -35,9 +14,9 @@ export async function GET(req) {
       return unauthorized();
     }
 
-    const posts = await listAdminTimelinePosts({ limit: 50 });
+    const result = await listTimelinePosts();
 
-    return NextResponse.json({ ok: true, posts: posts.map(withMediaPostUrls) });
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: err.message || "Gagal membaca data kegiatan" }, { status: 500 });
   }
@@ -54,9 +33,9 @@ export async function POST(req) {
     }
 
     const body = await req.json().catch(() => ({}));
-    const post = await createTimelinePost(normalizePayload(body));
+    const result = await createTimelinePostFromBody(body);
 
-    return NextResponse.json({ ok: true, post: withMediaPostUrls(post) });
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json({ error: err.message || "Gagal membuat kegiatan" }, { status: 500 });
   }
