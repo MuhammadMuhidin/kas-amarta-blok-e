@@ -36,10 +36,6 @@ function isImageProof(proof) {
   return String(proof?.proof_mime_type || "").startsWith("image/");
 }
 
-function getTrashLabel(proof) {
-  return proof?.is_trash_user ? "Ikut sampah" : "Tidak ikut sampah";
-}
-
 function useModalScrollLock(open) {
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
@@ -75,11 +71,7 @@ function ProofAmountBreakdown({ proof }) {
         </div>
         <div style={styles.breakdownRow}>
           <span>Sampah</span>
-          <strong>{proof?.is_trash_user ? money(trashAmount) : "-"}</strong>
-        </div>
-        <div style={styles.breakdownRow}>
-          <span>Status sampah</span>
-          <strong>{getTrashLabel(proof)}</strong>
+          <strong>{trashAmount > 0 ? money(trashAmount) : "-"}</strong>
         </div>
       </div>
     </div>
@@ -240,7 +232,7 @@ export default function PaymentProofReviewCard({ onReviewed }) {
               <div>
                 <strong>{proof.person_house} — {formatPeriod(proof.period)}</strong>
                 <div style={styles.meta}>
-                  {proof.person_name || "-"} • {getTrashLabel(proof)} • Total {money(proof.total_amount || proof.amount)} • {formatDateTime(proof.submitted_at)}
+                  {proof.person_name || "-"} • Total {money(proof.total_amount || proof.amount)} • {formatDateTime(proof.submitted_at)}
                 </div>
               </div>
               <div style={styles.actions}>
