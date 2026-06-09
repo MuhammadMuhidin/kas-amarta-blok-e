@@ -111,9 +111,6 @@ export default function PaymentProofReviewCard({ onReviewed }) {
           <h3 style={styles.title}>Konfirmasi Pembayaran Warga</h3>
           <p style={styles.description}>Bukti pembayaran dari warga menunggu verifikasi admin. Payment manual tetap bisa digunakan seperti biasa.</p>
         </div>
-        <button type="button" className="admin-small-btn" disabled={loading} onClick={loadProofs}>
-          {loading ? "Memuat..." : "Refresh"}
-        </button>
       </div>
 
       {error && <div className="admin-error-box">{error}</div>}
