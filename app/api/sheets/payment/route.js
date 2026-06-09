@@ -9,11 +9,14 @@ import {
   enforceRateLimit,
   RATE_LIMIT_SCOPES,
 } from "@/lib/rateLimit";
-import { listPayments } from "@/features/payment/paymentRepository";
+import {
+  findMemberByHouse,
+  listPayments,
+  listPaymentsByPeriod,
+} from "@/features/payment/paymentRepository";
 
 export const dynamic = "force-dynamic";
 
-const PERSONAL_TABLE = dbTable("personal");
 const PAYMENT_TABLE = dbTable("payment");
 const CASHFLOW_TABLE = dbTable("cashflow");
 const TRASH_TABLE = dbTable("trash");
@@ -236,17 +239,12 @@ export async function POST(req) {
     const supabase = getSupabaseAdmin();
     const today = new Date().toISOString().slice(0, 10);
 
-    const { data: memberRows, error: memberError } = await supabase
-      .from(PERSONAL_TABLE)
-      .select("id,house,name,trash,active,join_date")
-      .eq("house", house)
-      .limit(1);
-
-    if (memberError) {
-      return NextResponse.json({ error: memberError.message || "Gagal membaca data warga" }, { status: 500 });
+    let member;
+    try {
+      member = await findMemberByHouse(supabase, house);
+    } catch (err) {
+      return NextResponse.json({ error: err.message || "Gagal membaca data warga" }, { status: 500 });
     }
-
-    const member = memberRows?.[0];
 
     if (!member) {
       return NextResponse.json({ error: "House not found" }, { status: 404 });
@@ -256,13 +254,11 @@ export async function POST(req) {
     const person_house = member.house;
     const person_name = member.name;
 
-    const { data: paymentRows, error: paymentError } = await supabase
-      .from(PAYMENT_TABLE)
-      .select("id,person_id,person_house,person_name,period,amount,date")
-      .eq("period", period);
-
-    if (paymentError) {
-      return NextResponse.json({ error: paymentError.message || "Gagal membaca payment" }, { status: 500 });
+    let paymentRows;
+    try {
+      paymentRows = await listPaymentsByPeriod(supabase, period);
+    } catch (err) {
+      return NextResponse.json({ error: err.message || "Gagal membaca payment" }, { status: 500 });
     }
 
     const existingPayment = (paymentRows || []).find((item) => {
