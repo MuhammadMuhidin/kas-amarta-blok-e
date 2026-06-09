@@ -2,6 +2,7 @@ import { getAppConfig } from "@/lib/appConfig";
 import { generateId } from "@/lib/id";
 import { uploadPaymentProof } from "@/lib/r2Upload";
 import { sendAlertEmail } from "@/lib/emailAlert";
+import { getJakartaDateString } from "@/lib/localDate";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { recordPayment } from "@/features/payment/paymentService";
 import {
@@ -252,7 +253,7 @@ export async function approvePaymentProof({ supabase, req, id }) {
       period: proof.period,
       amount: proof.amount,
       bulkBatchId: "",
-      today: new Date().toISOString().slice(0, 10),
+      today: getJakartaDateString(),
     });
 
     if (result.status >= 400) return result;
