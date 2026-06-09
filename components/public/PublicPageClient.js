@@ -30,7 +30,7 @@ const chunk = 20;
 export default function PublicPageClient() {
   const router = useRouter();
   const paySliderRef = useRef(null);
-  const { data, insight, loading, error, selectedPeriod, setSelectedPeriod } = usePublicSummary();
+  const { data, insight, loading, error, selectedPeriod, setSelectedPeriod, reload } = usePublicSummary();
 
   const [activeTab, setActiveTab] = useState("payment");
   const [searchTerm, setSearchTerm] = useState("");
@@ -62,8 +62,13 @@ export default function PublicPageClient() {
   }
 
   const paymentList = useMemo(
-    () => buildPaymentList({ persons: data.persons, payments: data.payments, selectedPeriod }),
-    [data.persons, data.payments, selectedPeriod],
+    () => buildPaymentList({
+      persons: data.persons,
+      payments: data.payments,
+      paymentConfirmations: data.payment_confirmations,
+      selectedPeriod,
+    }),
+    [data.persons, data.payments, data.payment_confirmations, selectedPeriod],
   );
 
   const totalPagePay = Math.max(1, Math.ceil(paymentList.length / perPagePay));
@@ -198,6 +203,8 @@ export default function PublicPageClient() {
         <ResidentDetailModal
           resident={selectedResident}
           payments={data.payments}
+          selectedPeriod={selectedPeriod}
+          onSubmitted={reload}
           onClose={() => setSelectedResident(null)}
         />
 
