@@ -7,15 +7,13 @@ import {
 } from "@/lib/auth";
 
 import {
-  getAdminSessions,
-  revokeAdminSession,
-} from "@/lib/adminSession";
-
-import { recordAdminActivity } from "@/lib/adminActivity";
-import {
   enforceRateLimit,
   RATE_LIMIT_SCOPES,
 } from "@/lib/rateLimit";
+import {
+  disconnectAdminSession,
+  listAdminSessions,
+} from "@/features/session/adminSessionService";
 
 export const runtime = "nodejs";
 
@@ -25,13 +23,9 @@ export async function GET(req) {
       return unauthorized();
     }
 
-    const sessions =
-      await getAdminSessions(req);
+    const result = await listAdminSessions(req);
 
-    return NextResponse.json({
-      ok: true,
-      sessions,
-    });
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
       {
@@ -72,31 +66,9 @@ export async function DELETE(req) {
     if (revokeLimit) return revokeLimit;
 
     const { id } = await req.json();
-    const sessions = await getAdminSessions(req);
-    const targetSession = sessions.find(
-      (session) => String(session.id) === String(id),
-    );
+    const result = await disconnectAdminSession({ req, id });
 
-    await revokeAdminSession(id);
-
-    await recordAdminActivity(req, {
-      type: "revoke",
-      module: "session",
-      severity: "warning",
-      message: `Revoke admin session ${id}`,
-      metadata: {
-        session_id: id,
-        device_name: targetSession?.device_name || null,
-        ip: targetSession?.ip || null,
-        location: targetSession?.location || null,
-        last_active: targetSession?.last_active || null,
-        current: Boolean(targetSession?.current),
-      },
-    });
-
-    return NextResponse.json({
-      ok: true,
-    });
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
       {

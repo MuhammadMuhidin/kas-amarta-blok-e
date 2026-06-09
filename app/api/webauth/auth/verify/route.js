@@ -2,13 +2,6 @@ import { NextResponse } from "next/server";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 
 import {
-  createAdminSession,
-  getSessionCookieName,
-} from "@/lib/adminSession";
-
-import {
-  createCSRFToken,
-  getAdminSessionDuration,
   getCredentialById,
   getWebAuthConfig,
   updateCounter,
@@ -19,39 +12,9 @@ import {
   RATE_LIMIT_SCOPES,
   recordRateLimitFailure,
 } from "@/lib/rateLimit";
+import { createAuthResponse } from "@/features/auth/loginResponseService";
 
 export const runtime = "nodejs";
-
-async function createAuthResponse(req) {
-  const csrfToken = createCSRFToken();
-  const sessionDuration = await getAdminSessionDuration();
-
-  const res = NextResponse.json({
-    ok: true,
-  });
-
-  const token = await createAdminSession(req, sessionDuration);
-
-  res.cookies.set(getSessionCookieName(), token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "strict",
-    path: "/",
-    maxAge: sessionDuration,
-  });
-
-  res.cookies.set("csrf_token", csrfToken, {
-    httpOnly: false,
-    secure: true,
-    sameSite: "strict",
-    path: "/",
-    maxAge: sessionDuration,
-  });
-
-  res.cookies.delete("webauth_login_challenge");
-
-  return res;
-}
 
 export async function POST(req) {
   try {
@@ -149,7 +112,7 @@ export async function POST(req) {
       rateLimitOptions,
     );
 
-    return createAuthResponse(req);
+    return createAuthResponse(req, { clearWebAuthChallenge: true });
   } catch (err) {
     await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.webauthVerifyFailed);
 

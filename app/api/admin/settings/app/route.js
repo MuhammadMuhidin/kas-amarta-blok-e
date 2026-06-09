@@ -5,17 +5,16 @@ import {
   validateCSRF,
 } from "@/lib/auth";
 import {
-  getAppConfig,
-  updateAppConfig,
-} from "@/lib/appConfig";
-import { recordAdminActivity } from "@/lib/adminActivity";
-import {
   clearRateLimit,
   enforceFailureRateLimit,
   enforceRateLimit,
   RATE_LIMIT_SCOPES,
   recordRateLimitFailure,
 } from "@/lib/rateLimit";
+import {
+  getAppSettings,
+  updateAppSetting,
+} from "@/features/settings/appSettingsService";
 
 export const runtime = "nodejs";
 
@@ -25,12 +24,9 @@ export async function GET(req) {
       return unauthorized();
     }
 
-    const config = await getAppConfig();
+    const result = await getAppSettings();
 
-    return NextResponse.json({
-      ok: true,
-      config,
-    });
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
       {
@@ -103,29 +99,9 @@ export async function PATCH(req) {
       { identity: "session" },
     );
 
-    const currentConfig = await getAppConfig();
-    const oldValue = currentConfig?.[key];
+    const result = await updateAppSetting({ req, key, value });
 
-    await updateAppConfig(key, value);
-
-    const updatedConfig = await getAppConfig();
-    const newValue = updatedConfig?.[key];
-
-    await recordAdminActivity(req, {
-      type: "update",
-      module: "settings-app",
-      severity: "success",
-      message: `Update app config ${key}`,
-      metadata: {
-        key,
-        old_value: oldValue,
-        new_value: newValue,
-      },
-    });
-
-    return NextResponse.json({
-      ok: true,
-    });
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
       {
