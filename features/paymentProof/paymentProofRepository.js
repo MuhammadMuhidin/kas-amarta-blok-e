@@ -18,7 +18,6 @@ export function mapPaymentProof(row = {}) {
     proof_mime_type: row.proof_mime_type || "",
     proof_size: Number(row.proof_size || 0),
     original_filename: row.original_filename || "",
-    note: row.note || "",
     status: row.status || "pending",
     submitted_at: row.submitted_at || "",
     reviewed_at: row.reviewed_at || "",
