@@ -224,7 +224,6 @@ export default function PaymentProofReviewCard({ onReviewed }) {
               <div>
                 <strong>{proof.person_house} — {formatPeriod(proof.period)}</strong>
                 <div style={styles.meta}>{proof.person_name || "-"} • {money(proof.amount)} • {formatDateTime(proof.submitted_at)}</div>
-                {proof.note && <div style={styles.note}>Catatan: {proof.note}</div>}
               </div>
               <div style={styles.actions}>
                 <button type="button" className="admin-small-btn" onClick={() => setSelectedProof(proof)}>Detail Bukti</button>
@@ -274,7 +273,6 @@ const styles = {
   list: { display: "grid", gap: 10 },
   item: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, padding: 12, border: "1px solid var(--admin-border)", borderRadius: 12, background: "var(--admin-row)" },
   meta: { marginTop: 4, color: "var(--admin-muted)", fontSize: 12, fontWeight: 700 },
-  note: { marginTop: 6, color: "var(--admin-text)", fontSize: 12 },
   actions: { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" },
   rejectButton: { borderColor: "var(--admin-expense)", color: "var(--admin-expense)" },
   modal: { width: "min(100%, 760px)", maxHeight: "calc(100dvh - 24px)", display: "grid", gap: 14, overflow: "auto" },
