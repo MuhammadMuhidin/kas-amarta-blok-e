@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getPublishedTimelinePostById, listPublishedTimelinePosts } from "@/lib/timelineRepository";
-import { withMediaPostUrls } from "@/lib/mediaUrl";
+import { getPublicTimelinePosts } from "@/features/timeline/publicTimelineService";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,23 +19,9 @@ function jsonNoStore(payload, init = {}) {
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const postId = String(searchParams.get("post") || "").trim();
+    const result = await getPublicTimelinePosts(searchParams);
 
-    if (postId) {
-      const post = await getPublishedTimelinePostById(postId);
-
-      return jsonNoStore({ ok: true, post: withMediaPostUrls(post) });
-    }
-
-    const limit = Number(searchParams.get("limit") || 8);
-    const offset = Number(searchParams.get("offset") || 0);
-    const result = await listPublishedTimelinePosts({ limit, offset });
-
-    return jsonNoStore({
-      ok: true,
-      ...result,
-      posts: Array.isArray(result.posts) ? result.posts.map(withMediaPostUrls) : [],
-    });
+    return jsonNoStore(result);
   } catch (err) {
     return jsonNoStore({ error: err.message || "Gagal membaca timeline kegiatan" }, { status: 500 });
   }
