@@ -58,13 +58,19 @@ async function getConfiguredMonthlyFee() {
   return Number(appConfig?.monthly_fee || 0);
 }
 
+function getProofTrashAmount(proof, member, appConfig) {
+  const storedTrashAmount = Number(proof?.trash_amount || 0);
+  if (storedTrashAmount > 0) return storedTrashAmount;
+  return isTrashMember(member) ? Number(appConfig?.trash_fee || 0) : 0;
+}
+
 function withPaymentVerificationBreakdown(proof, member, appConfig) {
   const cashAmount = Number(proof?.amount || 0);
-  const trashAmount = isTrashMember(member) ? Number(appConfig?.trash_fee || 0) : 0;
+  const trashAmount = getProofTrashAmount(proof, member, appConfig);
 
   return {
     ...proof,
-    is_trash_user: isTrashMember(member),
+    is_trash_user: trashAmount > 0,
     cash_amount: cashAmount,
     trash_amount: trashAmount,
     total_amount: cashAmount + trashAmount,
@@ -82,9 +88,8 @@ function buildPaymentProofAlertMessage({ proof, member, appConfig }) {
     `Rumah: ${proof.person_house}`,
     `Nama: ${proof.person_name || "-"}`,
     `Periode: ${proof.period}`,
-    `Status sampah: ${enrichedProof.is_trash_user ? "Ikut sampah" : "Tidak ikut sampah"}`,
     `Kas: ${money(enrichedProof.cash_amount)}`,
-    `Sampah: ${enrichedProof.is_trash_user ? money(enrichedProof.trash_amount) : "-"}`,
+    `Sampah: ${enrichedProof.trash_amount > 0 ? money(enrichedProof.trash_amount) : "-"}`,
     `Total untuk dicocokkan: ${money(enrichedProof.total_amount)}`,
     `Waktu submit: ${proof.submitted_at || "-"}`,
     "",
@@ -166,6 +171,7 @@ export async function submitPaymentProof({ supabase, formData }) {
     person_name: member.name,
     period,
     amount,
+    trash_amount: isTrashMember(member) ? Number(appConfig?.trash_fee || 0) : 0,
     proof_url: uploaded.url,
     proof_key: uploaded.key,
     proof_mime_type: file?.type || "",
@@ -193,6 +199,7 @@ export async function submitPaymentProof({ supabase, formData }) {
         person_house: proof.person_house,
         period: proof.period,
         amount: proof.amount,
+        trash_amount: proof.trash_amount,
         status: proof.status,
         submitted_at: proof.submitted_at,
       },
@@ -275,6 +282,7 @@ export async function approvePaymentProof({ supabase, req, id }) {
       house: proof.person_house,
       period: proof.period,
       amount: proof.amount,
+      trash_amount: proof.trash_amount,
     },
   });
 
@@ -323,6 +331,7 @@ export async function rejectPaymentProof({ supabase, req, id, reason }) {
       house: proof.person_house,
       period: proof.period,
       amount: proof.amount,
+      trash_amount: proof.trash_amount,
       reason: rejectReason,
     },
   });
