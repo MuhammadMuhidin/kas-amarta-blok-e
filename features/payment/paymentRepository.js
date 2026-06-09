@@ -107,3 +107,18 @@ export async function insertTrash(supabase, trash) {
     throw new Error(error.message || "Gagal menyimpan data sampah");
   }
 }
+
+export async function findTrashAdvanceCashflow(supabase, advancePaymentId) {
+  const { data: rows, error } = await supabase
+    .from(CASHFLOW_TABLE)
+    .select("id,amount")
+    .eq("payment_id", advancePaymentId)
+    .eq("type", "expense")
+    .limit(1);
+
+  if (error) {
+    throw new Error(error.message || "Gagal membaca cashflow talangan sampah");
+  }
+
+  return rows?.[0] || null;
+}
