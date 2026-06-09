@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { isAdmin, unauthorized } from "@/lib/auth";
-import { dbTable } from "@/lib/dbTable";
-import { supabase } from "@/lib/supabase";
+import { getSettingsHistory } from "@/features/settings/settingsHistoryService";
 
 export const runtime = "nodejs";
-
-const ADMIN_ACTIVITIES_TABLE = dbTable("admin_activities");
 
 export async function GET(req) {
   try {
@@ -13,23 +10,9 @@ export async function GET(req) {
       return unauthorized();
     }
 
-    const { data, error } = await supabase
-      .from(ADMIN_ACTIVITIES_TABLE)
-      .select("id,type,module,severity,message,metadata,actor,device_name,created_at")
-      .in("module", ["settings-app", "settings-auth"])
-      .order("created_at", {
-        ascending: false,
-      })
-      .limit(5);
+    const result = await getSettingsHistory();
 
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    return NextResponse.json({
-      ok: true,
-      changes: data || [],
-    });
+    return NextResponse.json(result);
   } catch (err) {
     return NextResponse.json(
       {
