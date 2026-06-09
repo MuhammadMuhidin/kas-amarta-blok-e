@@ -36,16 +36,50 @@ function isImageProof(proof) {
   return String(proof?.proof_mime_type || "").startsWith("image/");
 }
 
+function useModalScrollLock(open) {
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [open]);
+}
+
+function ModalCloseButton({ disabled, onClose }) {
+  return (
+    <button
+      type="button"
+      className="overview-modal-close"
+      style={styles.modalCloseButton}
+      disabled={disabled}
+      onClick={onClose}
+      aria-label="Close modal"
+    >
+      ×
+    </button>
+  );
+}
+
 function ProofPreview({ proof }) {
   if (!proof?.proof_url) return <div className="admin-empty-state">Bukti pembayaran tidak tersedia.</div>;
 
   if (isImageProof(proof)) {
     return (
-      <img
-        src={proof.proof_url}
-        alt={`Bukti pembayaran ${proof.person_house}`}
-        style={styles.previewImage}
-      />
+      <div style={styles.previewFrame}>
+        <img
+          src={proof.proof_url}
+          alt={`Bukti pembayaran ${proof.person_house}`}
+          style={styles.previewImage}
+        />
+      </div>
     );
   }
 
@@ -53,6 +87,71 @@ function ProofPreview({ proof }) {
     <a className="admin-small-btn" href={proof.proof_url} target="_blank" rel="noreferrer">
       Buka Bukti PDF
     </a>
+  );
+}
+
+function ProofDetailModal({ proof, onClose }) {
+  useModalScrollLock(Boolean(proof));
+
+  if (!proof) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" style={styles.modal} onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div style={styles.modalHeaderTop}>
+            <div style={styles.modalTitleGroup}>
+              <div className="modal-title">Bukti Pembayaran {proof.person_house}</div>
+              <div className="modal-section">{formatPeriod(proof.period)} • {money(proof.amount)}</div>
+            </div>
+            <ModalCloseButton onClose={onClose} />
+          </div>
+        </div>
+        <ProofPreview proof={proof} />
+      </div>
+    </div>
+  );
+}
+
+function ProofRejectModal({ proof, reason, processing, onReasonChange, onCancel, onSubmit }) {
+  useModalScrollLock(Boolean(proof));
+
+  if (!proof) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-box" style={styles.modal} onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div style={styles.modalHeaderTop}>
+            <div style={styles.modalTitleGroup}>
+              <div className="modal-title">Reject Bukti Pembayaran</div>
+              <div className="modal-section">{proof.person_house} • {formatPeriod(proof.period)}</div>
+            </div>
+            <ModalCloseButton disabled={processing} onClose={onCancel} />
+          </div>
+        </div>
+        <textarea
+          className="admin-input"
+          rows={4}
+          placeholder="Alasan penolakan wajib diisi"
+          value={reason}
+          onChange={(event) => onReasonChange(event.target.value)}
+        />
+        <div style={styles.modalActions}>
+          <button type="button" className="admin-small-btn" disabled={processing} onClick={onCancel}>Cancel</button>
+          <button
+            type="button"
+            className="admin-btn"
+            disabled={processing || !reason.trim()}
+            onClick={onSubmit}
+          >
+            <LoadingButtonContent loading={processing} loadingText="Reject...">
+              Reject Bukti
+            </LoadingButtonContent>
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -155,54 +254,15 @@ export default function PaymentProofReviewCard({ onReviewed }) {
         </div>
       )}
 
-      {selectedProof && (
-        <div className="modal-overlay" onClick={() => setSelectedProof(null)}>
-          <div className="modal-box" style={styles.modal} onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <div className="modal-title">Bukti Pembayaran {selectedProof.person_house}</div>
-                <div className="modal-section">{formatPeriod(selectedProof.period)} • {money(selectedProof.amount)}</div>
-              </div>
-              <button type="button" className="admin-small-btn" onClick={() => setSelectedProof(null)}>Tutup</button>
-            </div>
-            <ProofPreview proof={selectedProof} />
-          </div>
-        </div>
-      )}
-
-      {rejectingProof && (
-        <div className="modal-overlay" onClick={() => setRejectingProof(null)}>
-          <div className="modal-box" style={styles.modal} onClick={(event) => event.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <div className="modal-title">Reject Bukti Pembayaran</div>
-                <div className="modal-section">{rejectingProof.person_house} • {formatPeriod(rejectingProof.period)}</div>
-              </div>
-              <button type="button" className="admin-small-btn" disabled={Boolean(processingId)} onClick={() => setRejectingProof(null)}>Tutup</button>
-            </div>
-            <textarea
-              className="admin-input"
-              rows={4}
-              placeholder="Alasan penolakan wajib diisi"
-              value={rejectReason}
-              onChange={(event) => setRejectReason(event.target.value)}
-            />
-            <div style={styles.modalActions}>
-              <button type="button" className="admin-small-btn" disabled={Boolean(processingId)} onClick={() => setRejectingProof(null)}>Cancel</button>
-              <button
-                type="button"
-                className="admin-btn"
-                disabled={Boolean(processingId) || !rejectReason.trim()}
-                onClick={() => reviewProof(rejectingProof, "reject", rejectReason)}
-              >
-                <LoadingButtonContent loading={processingId === `reject:${rejectingProof.id}`} loadingText="Reject...">
-                  Reject Bukti
-                </LoadingButtonContent>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ProofDetailModal proof={selectedProof} onClose={() => setSelectedProof(null)} />
+      <ProofRejectModal
+        proof={rejectingProof}
+        reason={rejectReason}
+        processing={processingId === `reject:${rejectingProof?.id}`}
+        onReasonChange={setRejectReason}
+        onCancel={() => setRejectingProof(null)}
+        onSubmit={() => reviewProof(rejectingProof, "reject", rejectReason)}
+      />
     </div>
   );
 }
@@ -218,7 +278,11 @@ const styles = {
   note: { marginTop: 6, color: "var(--admin-text)", fontSize: 12 },
   actions: { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" },
   rejectButton: { borderColor: "var(--admin-expense)", color: "var(--admin-expense)" },
-  modal: { width: "min(100%, 760px)", display: "grid", gap: 14 },
-  previewImage: { width: "100%", maxHeight: "70vh", objectFit: "contain", borderRadius: 12, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
+  modal: { width: "min(100%, 760px)", maxHeight: "calc(100dvh - 24px)", display: "grid", gap: 14, overflow: "auto" },
+  modalHeaderTop: { width: "100%", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 },
+  modalTitleGroup: { display: "grid", gap: 6 },
+  modalCloseButton: { width: 34, height: 34, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", fontSize: 22, lineHeight: 1, fontWeight: 800, cursor: "pointer", flexShrink: 0 },
+  previewFrame: { display: "grid", placeItems: "center", minHeight: 240, borderRadius: 12, border: "1px solid var(--admin-border)", background: "var(--admin-row)", overflow: "hidden" },
+  previewImage: { width: "100%", maxHeight: "70dvh", objectFit: "contain", display: "block" },
   modalActions: { display: "flex", justifyContent: "flex-end", gap: 10, flexWrap: "wrap" },
 };
