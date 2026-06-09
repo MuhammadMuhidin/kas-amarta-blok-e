@@ -1,46 +1,11 @@
 import { NextResponse } from "next/server";
-import { generateRegistrationOptions } from "@simplewebauthn/server";
-
-import { getActiveCredential, getWebAuthConfig } from "@/lib/webauth";
+import { createWebAuthRegistrationOptions } from "@/features/auth/webauthRegistrationService";
 
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const { rpName, rpID } = getWebAuthConfig();
-
-    const activeCredential = await getActiveCredential();
-
-    const options = await generateRegistrationOptions({
-      rpName,
-      rpID,
-
-      userID: Buffer.from("admin"),
-
-      userName: "admin",
-
-      userDisplayName: "Admin",
-
-      attestationType: "none",
-
-      supportedAlgorithmIDs: [-7, -257],
-
-      authenticatorSelection: {
-        authenticatorAttachment: "platform",
-        residentKey: "required",
-        userVerification: "required",
-      },
-
-      excludeCredentials: activeCredential
-        ? [
-            {
-              id: activeCredential.credential_id,
-              type: "public-key",
-            },
-          ]
-        : [],
-    });
-
+    const options = await createWebAuthRegistrationOptions();
     const res = NextResponse.json(options);
 
     res.cookies.set("webauth_register_challenge", options.challenge, {
