@@ -1,6 +1,7 @@
 import { getAppConfig } from "@/lib/appConfig";
 import { generateId } from "@/lib/id";
 import { uploadPaymentProof } from "@/lib/r2Upload";
+import { sendAdminEmailNotification } from "@/lib/emailNotification";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { recordPayment } from "@/features/payment/paymentService";
 import {
@@ -20,6 +21,10 @@ function normalize(value) {
 
 function normalizeUpper(value) {
   return normalize(value).toUpperCase();
+}
+
+function money(value) {
+  return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 }
 
 function isActiveMember(member) {
@@ -43,6 +48,11 @@ function getFileName(file) {
   return normalize(file?.name);
 }
 
+function getAppBaseUrl() {
+  return normalize(process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL)
+    .replace(/\/$/, "");
+}
+
 async function getConfiguredMonthlyFee() {
   const appConfig = await getAppConfig();
   return Number(appConfig?.monthly_fee || 0);
@@ -61,6 +71,51 @@ function withPaymentVerificationBreakdown(proof, member, appConfig) {
   };
 }
 
+async function notifyAdminPaymentProofSubmitted({ proof, member, appConfig }) {
+  const enrichedProof = withPaymentVerificationBreakdown(proof, member, appConfig);
+  const appBaseUrl = getAppBaseUrl();
+  const adminUrl = appBaseUrl ? `${appBaseUrl}/admin` : "";
+  const subject = `[Amarta Kas] Bukti pembayaran masuk - ${proof.person_house} ${proof.period}`;
+  const lines = [
+    "Ada bukti pembayaran baru yang perlu diverifikasi admin.",
+    "",
+    `Rumah: ${proof.person_house}`,
+    `Nama: ${proof.person_name || "-"}`,
+    `Periode: ${proof.period}`,
+    `Status sampah: ${enrichedProof.is_trash_user ? "Ikut sampah" : "Tidak ikut sampah"}`,
+    `Kas: ${money(enrichedProof.cash_amount)}`,
+    `Sampah: ${enrichedProof.is_trash_user ? money(enrichedProof.trash_amount) : "-"}`,
+    `Total untuk dicocokkan: ${money(enrichedProof.total_amount)}`,
+    `Waktu submit: ${proof.submitted_at || "-"}`,
+    "",
+    adminUrl ? `Buka admin: ${adminUrl}` : "Buka dashboard admin untuk review bukti pembayaran.",
+  ];
+  const html = `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
+      <h2 style="margin:0 0 12px">Bukti pembayaran masuk</h2>
+      <p>Ada bukti pembayaran baru yang perlu diverifikasi admin.</p>
+      <table style="border-collapse:collapse;width:100%;max-width:560px">
+        <tbody>
+          <tr><td style="padding:6px 0;color:#6b7280">Rumah</td><td style="padding:6px 0;font-weight:700">${proof.person_house}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Nama</td><td style="padding:6px 0;font-weight:700">${proof.person_name || "-"}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Periode</td><td style="padding:6px 0;font-weight:700">${proof.period}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Status sampah</td><td style="padding:6px 0;font-weight:700">${enrichedProof.is_trash_user ? "Ikut sampah" : "Tidak ikut sampah"}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Kas</td><td style="padding:6px 0;font-weight:700">${money(enrichedProof.cash_amount)}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Sampah</td><td style="padding:6px 0;font-weight:700">${enrichedProof.is_trash_user ? money(enrichedProof.trash_amount) : "-"}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Total dicocokkan</td><td style="padding:6px 0;font-weight:800">${money(enrichedProof.total_amount)}</td></tr>
+        </tbody>
+      </table>
+      ${adminUrl ? `<p><a href="${adminUrl}" style="display:inline-block;margin-top:14px;padding:10px 14px;border-radius:10px;background:#10b981;color:#042f2e;text-decoration:none;font-weight:800">Buka Admin</a></p>` : ""}
+    </div>
+  `;
+
+  try {
+    await sendAdminEmailNotification({ subject, text: lines.join("\n"), html });
+  } catch (error) {
+    console.error("Gagal mengirim email notifikasi bukti pembayaran", error);
+  }
+}
+
 export async function listPublicPaymentConfirmations(supabase) {
   const confirmations = await listPublicPaymentProofs(supabase);
 
@@ -76,7 +131,8 @@ export async function submitPaymentProof({ supabase, formData }) {
     return { status: 400, body: { error: "Data rumah dan periode wajib diisi" } };
   }
 
-  const amount = await getConfiguredMonthlyFee();
+  const appConfig = await getAppConfig();
+  const amount = Number(appConfig?.monthly_fee || 0);
 
   if (!Number.isFinite(amount) || amount <= 0) {
     return { status: 400, body: { error: "Nominal kas bulanan belum dikonfigurasi" } };
@@ -130,6 +186,8 @@ export async function submitPaymentProof({ supabase, formData }) {
     approved_payment_id: "",
     reject_reason: "",
   });
+
+  await notifyAdminPaymentProofSubmitted({ proof, member, appConfig });
 
   return {
     status: 200,
