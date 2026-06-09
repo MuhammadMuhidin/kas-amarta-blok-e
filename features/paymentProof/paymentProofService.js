@@ -1,7 +1,7 @@
 import { getAppConfig } from "@/lib/appConfig";
 import { generateId } from "@/lib/id";
 import { uploadPaymentProof } from "@/lib/r2Upload";
-import { sendAdminEmailNotification } from "@/lib/emailNotification";
+import { sendAlertEmail } from "@/lib/emailAlert";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { recordPayment } from "@/features/payment/paymentService";
 import {
@@ -71,12 +71,12 @@ function withPaymentVerificationBreakdown(proof, member, appConfig) {
   };
 }
 
-async function notifyAdminPaymentProofSubmitted({ proof, member, appConfig }) {
+function buildPaymentProofAlertMessage({ proof, member, appConfig }) {
   const enrichedProof = withPaymentVerificationBreakdown(proof, member, appConfig);
   const appBaseUrl = getAppBaseUrl();
   const adminUrl = appBaseUrl ? `${appBaseUrl}/admin` : "";
-  const subject = `[Amarta Kas] Bukti pembayaran masuk - ${proof.person_house} ${proof.period}`;
-  const lines = [
+
+  return [
     "Ada bukti pembayaran baru yang perlu diverifikasi admin.",
     "",
     `Rumah: ${proof.person_house}`,
@@ -89,30 +89,22 @@ async function notifyAdminPaymentProofSubmitted({ proof, member, appConfig }) {
     `Waktu submit: ${proof.submitted_at || "-"}`,
     "",
     adminUrl ? `Buka admin: ${adminUrl}` : "Buka dashboard admin untuk review bukti pembayaran.",
-  ];
-  const html = `
-    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
-      <h2 style="margin:0 0 12px">Bukti pembayaran masuk</h2>
-      <p>Ada bukti pembayaran baru yang perlu diverifikasi admin.</p>
-      <table style="border-collapse:collapse;width:100%;max-width:560px">
-        <tbody>
-          <tr><td style="padding:6px 0;color:#6b7280">Rumah</td><td style="padding:6px 0;font-weight:700">${proof.person_house}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Nama</td><td style="padding:6px 0;font-weight:700">${proof.person_name || "-"}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Periode</td><td style="padding:6px 0;font-weight:700">${proof.period}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Status sampah</td><td style="padding:6px 0;font-weight:700">${enrichedProof.is_trash_user ? "Ikut sampah" : "Tidak ikut sampah"}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Kas</td><td style="padding:6px 0;font-weight:700">${money(enrichedProof.cash_amount)}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Sampah</td><td style="padding:6px 0;font-weight:700">${enrichedProof.is_trash_user ? money(enrichedProof.trash_amount) : "-"}</td></tr>
-          <tr><td style="padding:6px 0;color:#6b7280">Total dicocokkan</td><td style="padding:6px 0;font-weight:800">${money(enrichedProof.total_amount)}</td></tr>
-        </tbody>
-      </table>
-      ${adminUrl ? `<p><a href="${adminUrl}" style="display:inline-block;margin-top:14px;padding:10px 14px;border-radius:10px;background:#10b981;color:#042f2e;text-decoration:none;font-weight:800">Buka Admin</a></p>` : ""}
-    </div>
-  `;
+  ].join("\n");
+}
+
+async function notifyAdminPaymentProofSubmitted({ proof, member, appConfig }) {
+  const message = buildPaymentProofAlertMessage({ proof, member, appConfig });
 
   try {
-    await sendAdminEmailNotification({ subject, text: lines.join("\n"), html });
+    return await sendAlertEmail({
+      message,
+      period: proof.period,
+      source: "payment-proof-upload",
+      subject: `[Amarta Kas] Bukti pembayaran masuk - ${proof.person_house} ${proof.period}`,
+    });
   } catch (error) {
-    console.error("Gagal mengirim email notifikasi bukti pembayaran", error);
+    console.error("Gagal mengirim email alert bukti pembayaran", error);
+    return { ok: false, error: error.message || "Gagal mengirim email alert bukti pembayaran" };
   }
 }
 
@@ -187,13 +179,14 @@ export async function submitPaymentProof({ supabase, formData }) {
     reject_reason: "",
   });
 
-  await notifyAdminPaymentProofSubmitted({ proof, member, appConfig });
+  const email = await notifyAdminPaymentProofSubmitted({ proof, member, appConfig });
 
   return {
     status: 200,
     body: {
       ok: true,
       status: proof.status,
+      email,
       proof: {
         id: proof.id,
         person_id: proof.person_id,
