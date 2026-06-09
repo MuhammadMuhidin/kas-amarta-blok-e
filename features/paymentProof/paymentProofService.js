@@ -106,7 +106,6 @@ export async function submitPaymentProof({ supabase, formData }) {
     proof_mime_type: file?.type || "",
     proof_size: Number(file?.size || 0),
     original_filename: getFileName(file),
-    note: "",
     status: "pending",
     submitted_at: submittedAt,
     reviewed_at: null,
