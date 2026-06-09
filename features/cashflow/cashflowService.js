@@ -1,5 +1,6 @@
 import { generateId } from "@/lib/id";
 import { recordAdminActivity } from "@/lib/adminActivity";
+import { getJakartaDateString } from "@/lib/localDate";
 import { uploadCashflowReceipt } from "@/lib/r2Upload";
 import { withMediaReceiptUrl } from "@/lib/mediaUrl";
 import {
@@ -115,7 +116,7 @@ export async function createDirectCashflow({ supabase, req, body, isMultipart })
     };
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getJakartaDateString();
   const cashflowId = generateId("CSFLOW-");
   const paymentId = generateId("DIRECT-");
   const note = toTitleCase(rawNote);
