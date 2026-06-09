@@ -11,13 +11,13 @@ import {
 } from "@/lib/rateLimit";
 import {
   findMemberByHouse,
+  insertPayment,
   listPayments,
   listPaymentsByPeriod,
 } from "@/features/payment/paymentRepository";
 
 export const dynamic = "force-dynamic";
 
-const PAYMENT_TABLE = dbTable("payment");
 const CASHFLOW_TABLE = dbTable("cashflow");
 const TRASH_TABLE = dbTable("trash");
 
@@ -325,18 +325,18 @@ export async function POST(req) {
 
     const paymentId = generateId("PAY-");
 
-    const { error: insertError } = await supabase.from(PAYMENT_TABLE).insert({
-      id: paymentId,
-      person_id,
-      person_house,
-      person_name,
-      period,
-      amount,
-      date: today,
-    });
-
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message || "Gagal menyimpan payment" }, { status: 500 });
+    try {
+      await insertPayment(supabase, {
+        id: paymentId,
+        person_id,
+        person_house,
+        person_name,
+        period,
+        amount,
+        date: today,
+      });
+    } catch (err) {
+      return NextResponse.json({ error: err.message || "Gagal menyimpan payment" }, { status: 500 });
     }
 
     const cashflowRecorded = await ensurePaymentCashflow({
