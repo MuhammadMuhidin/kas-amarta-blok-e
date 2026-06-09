@@ -414,7 +414,7 @@ export default function PaymentTab({
           Complete {pendingCurrentDeposits.length} current-month booking payments with Pay Now before recording manual payments.
         </div>
       )}
-      <PaymentProofReviewCard onReviewed={onPaymentProofReviewed} />
+      <PaymentProofReviewCard onReviewed={onPaymentProofReviewed} onToast={showToast} />
       <PaymentReminderCard
         sendingReminder={sendingReminder}
         showPreview={showReminderPreview}
