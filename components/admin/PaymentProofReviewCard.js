@@ -2,6 +2,7 @@
 
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import { formatJakartaDateTime, JAKARTA_TIME_ZONE } from "@/lib/localDate";
 import { useEffect, useState } from "react";
 
 function money(value) {
@@ -9,24 +10,14 @@ function money(value) {
 }
 
 function formatDateTime(value) {
-  if (!value) return "-";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-
-  return date.toLocaleString("id-ID", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatJakartaDateTime(value, "id-ID");
 }
 
 function formatPeriod(period) {
   if (!period || !/^\d{4}-\d{2}$/.test(String(period).slice(0, 7))) return period || "-";
 
-  return new Date(`${String(period).slice(0, 7)}-01`).toLocaleDateString("id-ID", {
+  return new Date(`${String(period).slice(0, 7)}-01T00:00:00+07:00`).toLocaleDateString("id-ID", {
+    timeZone: JAKARTA_TIME_ZONE,
     month: "long",
     year: "numeric",
   });
@@ -236,7 +227,7 @@ export default function PaymentProofReviewCard({ onReviewed, onToast }) {
               <div>
                 <strong>{proof.person_house} — {formatPeriod(proof.period)}</strong>
                 <div style={styles.meta}>
-                  {proof.person_name || "-"} • Total {money(proof.total_amount || proof.amount)} • {formatDateTime(proof.submitted_at)}
+                  {proof.person_name || "-"} • Total {money(proof.total_amount || proof.amount)} • {formatDateTime(proof.submitted_at)} WIB
                 </div>
               </div>
               <div style={styles.actions}>
