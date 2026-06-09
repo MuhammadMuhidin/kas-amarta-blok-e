@@ -1,4 +1,5 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import PaymentProofReviewCard from "@/components/admin/PaymentProofReviewCard";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
 import { getCurrentPeriod } from "@/lib/depositUtils";
@@ -300,6 +301,7 @@ export default function PaymentTab({
   loadingPayment,
   paymentProgress,
   wakeLock,
+  onPaymentProofReviewed,
 }) {
   const [deposits, setDeposits] = useState([]);
   const [showReminderPreview, setShowReminderPreview] = useState(false);
@@ -412,6 +414,7 @@ export default function PaymentTab({
           Complete {pendingCurrentDeposits.length} current-month booking payments with Pay Now before recording manual payments.
         </div>
       )}
+      <PaymentProofReviewCard onReviewed={onPaymentProofReviewed} />
       <PaymentReminderCard
         sendingReminder={sendingReminder}
         showPreview={showReminderPreview}
