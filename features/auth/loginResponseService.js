@@ -8,7 +8,7 @@ import {
   getSessionCookieName,
 } from "@/lib/adminSession";
 
-export async function createAuthResponse(req) {
+export async function createAuthResponse(req, { clearWebAuthChallenge = false } = {}) {
   const csrfToken = createCSRFToken();
   const sessionDuration = await getAdminSessionDuration();
 
@@ -33,6 +33,10 @@ export async function createAuthResponse(req) {
     path: "/",
     maxAge: sessionDuration,
   });
+
+  if (clearWebAuthChallenge) {
+    res.cookies.delete("webauth_login_challenge");
+  }
 
   return res;
 }
