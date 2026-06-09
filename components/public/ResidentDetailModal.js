@@ -65,7 +65,6 @@ export default function ResidentDetailModal({ resident, payments, selectedPeriod
             {canUpload && (
               <PaymentProofUploadForm
                 resident={resident}
-                payments={payments}
                 selectedPeriod={selectedPeriod}
                 onSubmitted={onSubmitted}
               />
