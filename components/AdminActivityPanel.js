@@ -2,6 +2,7 @@
 
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
+import { formatJakartaDateTimeLong } from "@/lib/localDate";
 import { useEffect, useMemo, useState } from "react";
 import "./AdminActivityPanel.css";
 
@@ -21,15 +22,7 @@ const severities = ["", "info", "success", "warning", "error"];
 const pageSize = 10;
 
 function formatDate(value) {
-  if (!value) return "-";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleString("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  });
+  return formatJakartaDateTimeLong(value, "id-ID");
 }
 
 function titleCase(value) {
