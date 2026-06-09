@@ -10,6 +10,7 @@ import {
 } from "@/lib/rateLimit";
 import {
   findMemberByHouse,
+  findTrashAdvanceCashflow,
   hasCashflowByPaymentId,
   hasTrashByPaymentId,
   insertCashflow,
@@ -113,36 +114,19 @@ async function ensureTrashAdvanceReimbursement({ supabase, paymentId, personId, 
   const advancePaymentId = buildTrashAdvanceRefId(personId, period);
   const reimbursementPaymentId = buildTrashReimbursementRefId(paymentId);
 
-  const { data: advanceRows, error: advanceReadError } = await supabase
-    .from(CASHFLOW_TABLE)
-    .select("id,amount")
-    .eq("payment_id", advancePaymentId)
-    .eq("type", "expense")
-    .limit(1);
+  const advanceRow = await findTrashAdvanceCashflow(supabase, advancePaymentId);
 
-  if (advanceReadError) {
-    throw new Error(advanceReadError.message || "Gagal membaca cashflow talangan sampah");
-  }
+  if (!advanceRow) return false;
 
-  if (!advanceRows?.length) return false;
+  const hasReimbursement = await hasCashflowByPaymentId(supabase, reimbursementPaymentId);
 
-  const { data: reimbursementRows, error: reimbursementReadError } = await supabase
-    .from(CASHFLOW_TABLE)
-    .select("id")
-    .eq("payment_id", reimbursementPaymentId)
-    .limit(1);
+  if (hasReimbursement) return false;
 
-  if (reimbursementReadError) {
-    throw new Error(reimbursementReadError.message || "Gagal membaca cashflow pengembalian talangan sampah");
-  }
-
-  if (reimbursementRows?.length) return false;
-
-  const reimbursementAmount = Number(advanceRows[0]?.amount || 0);
+  const reimbursementAmount = Number(advanceRow.amount || 0);
 
   if (!Number.isFinite(reimbursementAmount) || reimbursementAmount <= 0) return false;
 
-  const { error } = await supabase.from(CASHFLOW_TABLE).insert({
+  await insertCashflow(supabase, {
     id: generateId("CSFLOW-"),
     payment_id: reimbursementPaymentId,
     type: "income",
@@ -151,10 +135,6 @@ async function ensureTrashAdvanceReimbursement({ supabase, paymentId, personId, 
     date,
     receipt_url: "",
   });
-
-  if (error) {
-    throw new Error(error.message || "Gagal menyimpan cashflow pengembalian talangan sampah");
-  }
 
   return true;
 }
