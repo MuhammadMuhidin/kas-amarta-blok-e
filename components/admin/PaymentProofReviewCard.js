@@ -162,7 +162,7 @@ function ProofRejectModal({ proof, reason, processing, onReasonChange, onCancel,
   );
 }
 
-export default function PaymentProofReviewCard({ onReviewed }) {
+export default function PaymentProofReviewCard({ onReviewed, onToast }) {
   const [proofs, setProofs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState("");
@@ -203,8 +203,12 @@ export default function PaymentProofReviewCard({ onReviewed }) {
       setRejectReason("");
       await loadProofs();
       await onReviewed?.();
+      const actionLabel = action === "approve" ? "disetujui" : "ditolak";
+      onToast?.("success", `Bukti pembayaran ${proof.person_house} ${formatPeriod(proof.period)} berhasil ${actionLabel}.`);
     } catch (err) {
-      setError(err.message || "Gagal memproses bukti pembayaran");
+      const message = err.message || "Gagal memproses bukti pembayaran";
+      setError(message);
+      onToast?.("error", message);
     } finally {
       setProcessingId("");
     }
