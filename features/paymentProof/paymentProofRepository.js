@@ -13,6 +13,7 @@ export function mapPaymentProof(row = {}) {
     person_name: row.person_name,
     period: row.period,
     amount: Number(row.amount) || 0,
+    trash_amount: Number(row.trash_amount) || 0,
     proof_url: row.proof_url || "",
     proof_key: row.proof_key || "",
     proof_mime_type: row.proof_mime_type || "",
