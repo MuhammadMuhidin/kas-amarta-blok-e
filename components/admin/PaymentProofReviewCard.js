@@ -127,7 +127,6 @@ function ProofRejectModal({ proof, reason, processing, onReasonChange, onCancel,
               <div className="modal-title">Reject Bukti Pembayaran</div>
               <div className="modal-section">{proof.person_house} • {formatPeriod(proof.period)}</div>
             </div>
-            <ModalCloseButton disabled={processing} onClose={onCancel} />
           </div>
         </div>
         <textarea
