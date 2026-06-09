@@ -39,6 +39,11 @@ function getFileName(file) {
   return normalize(file?.name);
 }
 
+async function getConfiguredMonthlyFee() {
+  const appConfig = await getAppConfig();
+  return Number(appConfig?.monthly_fee || 0);
+}
+
 export async function listPublicPaymentConfirmations(supabase) {
   const confirmations = await listPublicPaymentProofs(supabase);
 
@@ -48,17 +53,16 @@ export async function listPublicPaymentConfirmations(supabase) {
 export async function submitPaymentProof({ supabase, formData }) {
   const personId = normalize(formData.get("person_id"));
   const period = normalize(formData.get("period")).slice(0, 7);
-  const rawAmount = formData.get("amount");
-  const amount = Number(rawAmount || 0);
-  const note = normalize(formData.get("note"));
   const file = formData.get("proof");
 
   if (!personId || !isValidPeriod(period)) {
     return { status: 400, body: { error: "Data rumah dan periode wajib diisi" } };
   }
 
+  const amount = await getConfiguredMonthlyFee();
+
   if (!Number.isFinite(amount) || amount <= 0) {
-    return { status: 400, body: { error: "Nominal pembayaran wajib diisi" } };
+    return { status: 400, body: { error: "Nominal kas bulanan belum dikonfigurasi" } };
   }
 
   const member = await findActiveMemberById(supabase, personId);
@@ -84,7 +88,7 @@ export async function submitPaymentProof({ supabase, formData }) {
   const existingProof = await findOpenPaymentProof(supabase, { personId, period });
 
   if (existingProof) {
-    return { status: 409, body: { error: "Bukti transfer sudah dikirim dan menunggu persetujuan admin" } };
+    return { status: 409, body: { error: "Bukti pembayaran sudah dikirim dan menunggu persetujuan admin" } };
   }
 
   const proofId = generateId("PAYPROOF-");
@@ -102,10 +106,10 @@ export async function submitPaymentProof({ supabase, formData }) {
     proof_mime_type: file?.type || "",
     proof_size: Number(file?.size || 0),
     original_filename: getFileName(file),
-    note,
+    note: "",
     status: "pending",
     submitted_at: submittedAt,
-    reviewed_at: "",
+    reviewed_at: null,
     reviewed_by: "",
     approved_payment_id: "",
     reject_reason: "",
@@ -144,11 +148,11 @@ export async function approvePaymentProof({ supabase, req, id }) {
   const proof = await findPaymentProofById(supabase, id);
 
   if (!proof) {
-    return { status: 404, body: { error: "Bukti transfer tidak ditemukan" } };
+    return { status: 404, body: { error: "Bukti pembayaran tidak ditemukan" } };
   }
 
   if (proof.status !== "pending") {
-    return { status: 409, body: { error: "Bukti transfer sudah diproses" } };
+    return { status: 409, body: { error: "Bukti pembayaran sudah diproses" } };
   }
 
   const existingPayment = await findPaymentByPersonPeriod(supabase, {
@@ -216,11 +220,11 @@ export async function rejectPaymentProof({ supabase, req, id, reason }) {
   const rejectReason = normalize(reason);
 
   if (!proof) {
-    return { status: 404, body: { error: "Bukti transfer tidak ditemukan" } };
+    return { status: 404, body: { error: "Bukti pembayaran tidak ditemukan" } };
   }
 
   if (proof.status !== "pending") {
-    return { status: 409, body: { error: "Bukti transfer sudah diproses" } };
+    return { status: 409, body: { error: "Bukti pembayaran sudah diproses" } };
   }
 
   if (!rejectReason) {
@@ -253,6 +257,5 @@ export async function rejectPaymentProof({ supabase, req, id, reason }) {
 }
 
 export async function getDefaultPaymentProofAmount() {
-  const appConfig = await getAppConfig();
-  return Number(appConfig?.monthly_fee || 0);
+  return getConfiguredMonthlyFee();
 }
