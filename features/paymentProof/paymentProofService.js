@@ -26,6 +26,10 @@ function isActiveMember(member) {
   return ["Y", "YES", "TRUE", "1"].includes(normalizeUpper(member?.active));
 }
 
+function isTrashMember(member) {
+  return normalizeUpper(member?.trash) === "Y";
+}
+
 function isValidPeriod(period) {
   return /^\d{4}-\d{2}$/.test(period);
 }
@@ -42,6 +46,19 @@ function getFileName(file) {
 async function getConfiguredMonthlyFee() {
   const appConfig = await getAppConfig();
   return Number(appConfig?.monthly_fee || 0);
+}
+
+function withPaymentVerificationBreakdown(proof, member, appConfig) {
+  const cashAmount = Number(proof?.amount || 0);
+  const trashAmount = isTrashMember(member) ? Number(appConfig?.trash_fee || 0) : 0;
+
+  return {
+    ...proof,
+    is_trash_user: isTrashMember(member),
+    cash_amount: cashAmount,
+    trash_amount: trashAmount,
+    total_amount: cashAmount + trashAmount,
+  };
 }
 
 export async function listPublicPaymentConfirmations(supabase) {
@@ -135,12 +152,19 @@ export async function submitPaymentProof({ supabase, formData }) {
 export async function listAdminPaymentProofs({ supabase, searchParams }) {
   const status = normalize(searchParams.get("status"));
   const period = normalize(searchParams.get("period")).slice(0, 7);
+  const appConfig = await getAppConfig();
   const proofs = await listPaymentProofs(supabase, {
     status,
     period: isValidPeriod(period) ? period : "",
   });
+  const enrichedProofs = await Promise.all(
+    proofs.map(async (proof) => {
+      const member = await findActiveMemberById(supabase, proof.person_id).catch(() => null);
+      return withPaymentVerificationBreakdown(proof, member, appConfig);
+    }),
+  );
 
-  return { ok: true, proofs };
+  return { ok: true, proofs: enrichedProofs };
 }
 
 export async function approvePaymentProof({ supabase, req, id }) {
