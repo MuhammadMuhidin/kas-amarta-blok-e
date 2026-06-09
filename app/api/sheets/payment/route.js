@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { dbTable } from "@/lib/dbTable";
 import { generateId } from "@/lib/id";
 import { getAppConfig } from "@/lib/appConfig";
 import { recordAdminActivity } from "@/lib/adminActivity";
@@ -11,15 +10,16 @@ import {
 } from "@/lib/rateLimit";
 import {
   findMemberByHouse,
+  hasCashflowByPaymentId,
+  hasTrashByPaymentId,
+  insertCashflow,
   insertPayment,
+  insertTrash,
   listPayments,
   listPaymentsByPeriod,
 } from "@/features/payment/paymentRepository";
 
 export const dynamic = "force-dynamic";
-
-const CASHFLOW_TABLE = dbTable("cashflow");
-const TRASH_TABLE = dbTable("trash");
 
 function normalize(value) {
   return String(value || "").trim();
@@ -65,17 +65,12 @@ function buildTrashReimbursementNote(house, period) {
 }
 
 async function ensurePaymentCashflow({ supabase, paymentId, personHouse, period, amount, date }) {
-  const { data: existingRows, error: readError } = await supabase
-    .from(CASHFLOW_TABLE)
-    .select("id")
-    .eq("payment_id", paymentId)
-    .limit(1);
+  const hasCashflow = await hasCashflowByPaymentId(supabase, paymentId);
 
-  if (readError) throw new Error(readError.message || "Gagal membaca cashflow");
-  if (existingRows?.length) return false;
+  if (hasCashflow) return false;
 
   const note = `Pembayaran Kas ${personHouse} Periode ${period}`;
-  const { error } = await supabase.from(CASHFLOW_TABLE).insert({
+  await insertCashflow(supabase, {
     id: generateId("CSFLOW-"),
     payment_id: paymentId,
     type: "income",
@@ -85,7 +80,6 @@ async function ensurePaymentCashflow({ supabase, paymentId, personHouse, period,
     receipt_url: "",
   });
 
-  if (error) throw new Error(error.message || "Gagal menyimpan cashflow");
   return true;
 }
 
@@ -101,23 +95,17 @@ async function ensurePaymentTrash({ supabase, paymentId, member, date }) {
     throw new Error("Tarif sampah belum dikonfigurasi.");
   }
 
-  const { data: existingRows, error: readError } = await supabase
-    .from(TRASH_TABLE)
-    .select("id")
-    .eq("payment_id", paymentId)
-    .limit(1);
+  const hasTrash = await hasTrashByPaymentId(supabase, paymentId);
 
-  if (readError) throw new Error(readError.message || "Gagal membaca data sampah");
-  if (existingRows?.length) return false;
+  if (hasTrash) return false;
 
-  const { error } = await supabase.from(TRASH_TABLE).insert({
+  await insertTrash(supabase, {
     id: generateId("TRASH-"),
     payment_id: paymentId,
     amount: trashAmount,
     date,
   });
 
-  if (error) throw new Error(error.message || "Gagal menyimpan data sampah");
   return true;
 }
 
