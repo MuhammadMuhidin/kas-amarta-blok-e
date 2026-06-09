@@ -53,3 +53,11 @@ export async function listPaymentsByPeriod(supabase, period) {
 
   return rows || [];
 }
+
+export async function insertPayment(supabase, payment) {
+  const { error } = await supabase.from(PAYMENT_TABLE).insert(payment);
+
+  if (error) {
+    throw new Error(error.message || "Gagal menyimpan payment");
+  }
+}
