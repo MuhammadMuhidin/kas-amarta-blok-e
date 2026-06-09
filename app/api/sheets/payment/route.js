@@ -9,6 +9,7 @@ import {
   enforceRateLimit,
   RATE_LIMIT_SCOPES,
 } from "@/lib/rateLimit";
+import { listPayments } from "@/features/payment/paymentRepository";
 
 export const dynamic = "force-dynamic";
 
@@ -58,18 +59,6 @@ function buildTrashReimbursementRefId(paymentId) {
 
 function buildTrashReimbursementNote(house, period) {
   return `Pengembalian Talangan Iuran Sampah ${house} Periode ${formatPeriodLabel(period)}`;
-}
-
-function mapPayment(row) {
-  return {
-    id: row.id,
-    person_id: row.person_id,
-    person_house: row.person_house,
-    person_name: row.person_name,
-    period: row.period,
-    amount: Number(row.amount) || 0,
-    date: row.date,
-  };
 }
 
 async function ensurePaymentCashflow({ supabase, paymentId, personHouse, period, amount, date }) {
@@ -184,16 +173,14 @@ export async function GET(req) {
     return unauthorized();
   }
 
-  const supabase = getSupabaseAdmin();
-  const { data: rows, error } = await supabase
-    .from(PAYMENT_TABLE)
-    .select("id,person_id,person_house,person_name,period,amount,date");
+  try {
+    const supabase = getSupabaseAdmin();
+    const payments = await listPayments(supabase);
 
-  if (error) {
+    return NextResponse.json(payments);
+  } catch {
     return NextResponse.json({ error: "Gagal membaca payment" }, { status: 500 });
   }
-
-  return NextResponse.json((rows || []).map(mapPayment));
 }
 
 export async function POST(req) {
