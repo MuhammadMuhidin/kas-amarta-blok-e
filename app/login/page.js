@@ -278,13 +278,16 @@ export default function Login() {
       <style jsx global>{`
         @keyframes securityPulse{0%,100%{opacity:.92;transform:scale(.996);filter:drop-shadow(0 0 0 rgba(250,204,21,0))}50%{opacity:1;transform:scale(1);filter:drop-shadow(0 0 10px rgba(250,204,21,.30))}}
         @keyframes glowFloat{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(0,-10px,0) scale(1.03)}}
+        html,body{overflow:hidden!important;height:100%;overscroll-behavior:none}
         .login-shell::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(96,165,250,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,.10) 1px,transparent 1px);background-size:56px 56px;mask-image:radial-gradient(circle at 50% 50%,#000 0%,transparent 72%);pointer-events:none}
         .login-shell::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 20% 30%,rgba(255,255,255,.14),transparent 20%),radial-gradient(circle at 80% 70%,rgba(250,204,21,.10),transparent 22%);pointer-events:none}
         .login-glow{position:absolute;width:360px;height:360px;border-radius:999px;filter:blur(26px);opacity:.50;animation:glowFloat 7s ease-in-out infinite;pointer-events:none}
         .login-glow-blue{left:-120px;top:-120px;background:rgba(37,99,235,.42)}
         .login-glow-gold{right:-120px;bottom:-120px;background:rgba(250,204,21,.34);animation-delay:-2s}
-        @media (max-width: 980px){.login-visual{display:none!important}.login-layout{justify-content:center!important}.login-card{max-width:430px!important}}
-        @media (max-width: 520px){.login-shell{padding:16px!important}.login-card{padding:22px!important;border-radius:24px!important}.login-step-label{font-size:11px!important}.login-title{font-size:28px!important}}
+        @media (max-width: 980px){.login-visual{display:none!important}.login-layout{justify-content:center!important}.login-card{width:min(100%,430px)!important;max-width:430px!important}}
+        @media (max-width: 520px){.login-shell{padding:14px!important}.login-card{padding:20px!important;border-radius:24px!important}.login-step-label{font-size:11px!important}.login-title{font-size:27px!important}.login-lock-icon{width:44px!important;height:44px!important;font-size:22px!important}}
+        @media (max-height: 740px){.login-card{padding-top:20px!important;padding-bottom:20px!important;gap:10px!important}.login-visual{padding:20px!important}.login-lock-icon{display:none!important}.login-visual-safe{min-height:148px!important;margin-top:18px!important}.login-hero-title{margin-top:20px!important;font-size:34px!important}.login-brand-mark{width:62px!important;height:62px!important;font-size:30px!important}.login-brand-name{margin-top:14px!important;font-size:30px!important}.login-feature-grid{margin-top:22px!important}.login-footer-note{margin-top:8px!important}}
+        @media (max-height: 640px){.login-protection-text{display:none!important}.login-card{gap:8px!important}.login-title{font-size:24px!important}.login-stepper{margin-top:10px!important}.login-divider{margin-bottom:8px!important}.login-input{padding-top:12px!important;padding-bottom:12px!important}.login-primary-button{min-height:48px!important;padding-top:12px!important;padding-bottom:12px!important}.login-secondary-button{min-height:46px!important;padding-top:11px!important;padding-bottom:11px!important}}
       `}</style>
       <Toast {...toast} />
       <ConfirmModal
@@ -304,13 +307,13 @@ export default function Login() {
 
         <div className="login-layout" style={styles.layout}>
           <section className="login-visual" style={{ ...styles.visualPanel, background: theme.panel, border: theme.panelBorder }}>
-            <div style={styles.brandMark}>A</div>
-            <div style={{ ...styles.brandName, color: theme.text }}>AMARTA</div>
+            <div className="login-brand-mark" style={styles.brandMark}>A</div>
+            <div className="login-brand-name" style={{ ...styles.brandName, color: theme.text }}>AMARTA</div>
             <div style={styles.brandSub}>CASH CONTROL</div>
-            <h1 style={{ ...styles.heroTitle, color: theme.text }}>Secure Access</h1>
+            <h1 className="login-hero-title" style={{ ...styles.heroTitle, color: theme.text }}>Secure Access</h1>
             <p style={{ ...styles.heroText, color: theme.muted }}>Multi-layer verification for authorized management access.</p>
 
-            <div style={styles.featureGrid}>
+            <div className="login-feature-grid" style={styles.featureGrid}>
               {FEATURE_CHIPS.map((item) => (
                 <div key={item.title} style={{ ...styles.featureItem, borderColor: isDark ? "rgba(148,163,184,.25)" : "rgba(148,163,184,.32)" }}>
                   <div style={styles.featureIcon}>{item.icon}</div>
@@ -320,7 +323,7 @@ export default function Login() {
               ))}
             </div>
 
-            <div style={styles.safeVisual}>
+            <div className="login-visual-safe" style={styles.safeVisual}>
               <div style={{ ...styles.safeBox, background: isDark ? "linear-gradient(145deg,#0f172a,#020617)" : "linear-gradient(145deg,#ffffff,#e2e8f0)", border: isDark ? "1px solid rgba(148,163,184,.28)" : "1px solid rgba(148,163,184,.34)" }}>
                 <div style={styles.safeDoor}>◆</div>
               </div>
@@ -342,14 +345,14 @@ export default function Login() {
           </section>
 
           <form className="login-card" onSubmit={step === "password" ? requestOtp : submit} style={{ ...styles.card, background: theme.card, border: theme.cardBorder, boxShadow: theme.cardShadow }}>
-            <div style={styles.lockIcon}>🛡️</div>
+            <div className="login-lock-icon" style={styles.lockIcon}>🛡️</div>
             <div style={{ ...styles.badge, background: theme.badge, border: theme.badgeBorder }}>
               Secure Management Portal
             </div>
             <h2 className="login-title" style={{ ...styles.title, color: theme.text }}>Amarta Secure Access</h2>
             <p style={{ ...styles.subtitle, color: theme.muted }}>{subtitle}</p>
 
-            <div style={styles.stepper}>
+            <div className="login-stepper" style={styles.stepper}>
               {SECURITY_STEPS.map((item, index) => {
                 const active = index === stepIndex;
                 const completed = index < stepIndex;
@@ -371,7 +374,7 @@ export default function Login() {
               })}
             </div>
 
-            <div style={{ ...styles.divider, background: theme.stepTrack }} />
+            <div className="login-divider" style={{ ...styles.divider, background: theme.stepTrack }} />
 
             <div style={styles.formSection}>
               <div>
@@ -382,6 +385,7 @@ export default function Login() {
               {step === "password" && (
                 <>
                   <select
+                    className="login-input"
                     value={role}
                     disabled={loading || sendingOtp}
                     onChange={(e) => {
@@ -393,6 +397,7 @@ export default function Login() {
                     {ADMIN_ACCESS_ROLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                   </select>
                   <input
+                    className="login-input"
                     type="password"
                     placeholder="Enter your password"
                     value={password}
@@ -403,7 +408,7 @@ export default function Login() {
                     }}
                     style={commonInputStyle()}
                   />
-                  <button type="submit" disabled={loading || sendingOtp || !password.trim()} style={{ ...styles.button, opacity: loading || sendingOtp || !password.trim() ? 0.72 : 1 }}>
+                  <button className="login-primary-button" type="submit" disabled={loading || sendingOtp || !password.trim()} style={{ ...styles.button, opacity: loading || sendingOtp || !password.trim() ? 0.72 : 1 }}>
                     <span>🔒</span>
                     <span>{sendingOtp ? "Sending OTP..." : "Continue"}</span>
                     <span style={styles.buttonArrow}>›</span>
@@ -414,6 +419,7 @@ export default function Login() {
               {step === "otp" && (
                 <>
                   <input
+                    className="login-input"
                     type="text"
                     inputMode="numeric"
                     maxLength={6}
@@ -423,7 +429,7 @@ export default function Login() {
                     onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                     style={{ ...commonInputStyle(), letterSpacing: ".32em", textAlign: "center", fontWeight: 900 }}
                   />
-                  <button type="submit" disabled={loading || otp.length !== 6} style={{ ...styles.button, opacity: loading || otp.length !== 6 ? 0.72 : 1 }}>
+                  <button className="login-primary-button" type="submit" disabled={loading || otp.length !== 6} style={{ ...styles.button, opacity: loading || otp.length !== 6 ? 0.72 : 1 }}>
                     <span>🛡️</span>
                     <span>{loading ? "Verifying..." : "Verify OTP"}</span>
                     <span style={styles.buttonArrow}>›</span>
@@ -433,25 +439,25 @@ export default function Login() {
 
               {step === "pin" && (
                 <>
-                  <input type="password" placeholder="Admin PIN" value={pin} disabled={loading} onChange={(e) => setPin(e.target.value)} style={commonInputStyle()} />
-                  <button type="submit" disabled={loading || !pin.trim()} style={{ ...styles.button, opacity: loading || !pin.trim() ? 0.72 : 1 }}>
+                  <input className="login-input" type="password" placeholder="Admin PIN" value={pin} disabled={loading} onChange={(e) => setPin(e.target.value)} style={commonInputStyle()} />
+                  <button className="login-primary-button" type="submit" disabled={loading || !pin.trim()} style={{ ...styles.button, opacity: loading || !pin.trim() ? 0.72 : 1 }}>
                     <span>🔓</span>
                     <span>{loading ? "Processing..." : "Unlock Dashboard"}</span>
                     <span style={styles.buttonArrow}>›</span>
                   </button>
-                  <button type="button" disabled={loading} onClick={() => setConfirmOpen(true)} style={{ ...styles.secondaryButton, color: theme.text, border: theme.secondaryBorder, background: theme.secondary, opacity: loading ? 0.75 : 1 }}>
+                  <button className="login-secondary-button" type="button" disabled={loading} onClick={() => setConfirmOpen(true)} style={{ ...styles.secondaryButton, color: theme.text, border: theme.secondaryBorder, background: theme.secondary, opacity: loading ? 0.75 : 1 }}>
                     Register Passkey
                   </button>
                 </>
               )}
             </div>
 
-            <div style={{ ...styles.footerNote, color: theme.muted }}>
+            <div className="login-footer-note" style={{ ...styles.footerNote, color: theme.muted }}>
               <span style={styles.footerLine} />
               <span style={styles.footerShield}>🛡️</span>
               <span style={styles.footerLine} />
             </div>
-            <div style={{ ...styles.protectionText, color: theme.muted }}>Protected by password, OTP, PIN, and passkey verification.</div>
+            <div className="login-protection-text" style={{ ...styles.protectionText, color: theme.muted }}>Protected by password, OTP, PIN, and passkey verification.</div>
           </form>
         </div>
       </div>
@@ -460,49 +466,49 @@ export default function Login() {
 }
 
 const styles = {
-  wrapper: { position: "fixed", inset: 0, width: "100vw", height: "100dvh", minHeight: "100dvh", padding: 24, boxSizing: "border-box", overflowY: "auto", overflowX: "hidden", fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
-  layout: { position: "relative", zIndex: 2, minHeight: "calc(100dvh - 48px)", width: "100%", maxWidth: 1240, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 42 },
-  visualPanel: { width: "min(48vw, 520px)", minHeight: 640, borderRadius: 34, padding: 28, boxSizing: "border-box", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", boxShadow: "0 28px 90px rgba(15,23,42,.12)" },
-  brandMark: { width: 76, height: 76, borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 4, color: "#d9a520", border: "2px solid rgba(217,165,32,.72)", fontFamily: "Georgia, serif", fontSize: 38, fontWeight: 900, boxShadow: "0 18px 40px rgba(217,165,32,.16)" },
-  brandName: { marginTop: 22, fontFamily: "Georgia, serif", fontSize: 38, letterSpacing: ".28em", color: "#d9a520", textIndent: ".28em" },
-  brandSub: { marginTop: 4, fontSize: 14, letterSpacing: ".34em", color: "#d9a520", fontWeight: 800 },
-  heroTitle: { margin: "34px 0 0", fontSize: 40, lineHeight: 1, textTransform: "uppercase", letterSpacing: ".035em", fontWeight: 950 },
-  heroText: { maxWidth: 380, margin: "14px 0 0", fontSize: 18, lineHeight: 1.35 },
-  featureGrid: { width: "100%", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginTop: 34 },
-  featureItem: { borderLeft: "1px solid", padding: "0 10px", minHeight: 82 },
-  featureIcon: { fontSize: 34, lineHeight: 1.2, marginBottom: 8, filter: "drop-shadow(0 10px 20px rgba(37,99,235,.22))" },
-  featureTitle: { fontSize: 12, fontWeight: 950, textTransform: "uppercase", letterSpacing: ".045em" },
-  featureDesc: { marginTop: 5, fontSize: 12, lineHeight: 1.35 },
-  safeVisual: { position: "relative", width: "100%", minHeight: 210, marginTop: 30, display: "flex", justifyContent: "center", alignItems: "center" },
-  safeBox: { position: "relative", width: 132, height: 132, borderRadius: 18, boxShadow: "0 22px 60px rgba(15,23,42,.18)", transform: "perspective(500px) rotateY(-12deg) rotateX(4deg)" },
-  safeDoor: { position: "absolute", inset: 22, borderRadius: 12, border: "1px solid rgba(217,165,32,.72)", display: "flex", alignItems: "center", justifyContent: "center", color: "#d9a520", fontSize: 38 },
-  safeShield: { width: 72, height: 72, borderRadius: 20, marginLeft: -12, display: "flex", alignItems: "center", justifyContent: "center", color: "#d9a520", background: "rgba(217,165,32,.10)", border: "1px solid rgba(217,165,32,.35)", fontSize: 34, boxShadow: "0 20px 60px rgba(217,165,32,.14)" },
-  safeBars: { display: "flex", alignItems: "flex-end", gap: 7, marginLeft: 34, height: 106 },
-  safeBar: { width: 20, borderRadius: "7px 7px 3px 3px", background: "linear-gradient(180deg,#2563eb,#60a5fa)", boxShadow: "0 12px 28px rgba(37,99,235,.24)" },
-  auditBox: { width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 18, boxSizing: "border-box", textAlign: "left" },
-  auditIcon: { width: 34, height: 34, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(250,204,21,.12)" },
-  auditTitle: { fontSize: 14, fontWeight: 850 },
-  auditText: { marginTop: 3, fontSize: 12 },
-  card: { width: "100%", maxWidth: 560, maxHeight: "calc(100dvh - 48px)", overflow: "auto", padding: "34px 44px", boxSizing: "border-box", borderRadius: 34, display: "flex", flexDirection: "column", gap: 14, backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)" },
-  lockIcon: { alignSelf: "center", width: 54, height: 54, borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(250,204,21,.10)", color: "#d9a520", border: "1px solid rgba(217,165,32,.32)", fontSize: 26, boxShadow: "0 14px 40px rgba(217,165,32,.12)" },
-  badge: { alignSelf: "center", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "8px 14px", borderRadius: 999, fontSize: 12, fontWeight: 900, letterSpacing: ".10em", textTransform: "uppercase", color: "#d9a520", textShadow: "0 0 8px rgba(250,204,21,.18)", animation: "securityPulse 3.6s ease-in-out infinite" },
-  title: { textAlign: "center", margin: "6px 0 0", fontSize: 34, letterSpacing: "-.03em", fontWeight: 950 },
-  subtitle: { textAlign: "center", margin: "0 auto", maxWidth: 390, fontSize: 15, lineHeight: 1.45 },
-  stepper: { position: "relative", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginTop: 20, marginBottom: 2 },
-  stepItem: { position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 8 },
-  stepCircle: { position: "relative", zIndex: 2, width: 40, height: 40, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 950, fontSize: 15 },
-  stepLabel: { fontSize: 13, fontWeight: 750 },
-  stepLine: { position: "absolute", zIndex: 1, top: 20, left: "62%", width: "76%", height: 2, borderRadius: 999 },
-  divider: { height: 1, width: "100%", margin: "4px 0 18px" },
-  formSection: { display: "flex", flexDirection: "column", gap: 14 },
-  sectionTitle: { margin: 0, fontSize: 20, fontWeight: 950 },
-  sectionDesc: { margin: "6px 0 4px", fontSize: 13, lineHeight: 1.4 },
-  input: { width: "100%", padding: "15px 16px", borderRadius: 16, fontSize: 15, outline: "none", boxSizing: "border-box", transition: "border .2s ease, box-shadow .2s ease, transform .2s ease" },
-  button: { width: "100%", padding: "15px 16px", border: "none", borderRadius: 16, background: "linear-gradient(135deg,#2563eb,#0057ff)", color: "#fff", fontWeight: 900, cursor: "pointer", minHeight: 54, display: "flex", alignItems: "center", justifyContent: "center", gap: 12, boxShadow: "0 18px 42px rgba(37,99,235,.30)", fontSize: 15, letterSpacing: ".01em" },
+  wrapper: { position: "fixed", inset: 0, width: "100vw", height: "100dvh", padding: "clamp(12px,2vw,24px)", boxSizing: "border-box", overflow: "hidden", fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" },
+  layout: { position: "relative", zIndex: 2, height: "100%", width: "100%", maxWidth: 1240, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "center", gap: "clamp(22px,3.4vw,42px)" },
+  visualPanel: { width: "min(47vw,500px)", height: "min(650px,calc(100dvh - 48px))", minHeight: 0, borderRadius: 34, padding: "clamp(18px,2vw,26px)", boxSizing: "border-box", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", textAlign: "center", overflow: "hidden", backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)", boxShadow: "0 28px 90px rgba(15,23,42,.12)" },
+  brandMark: { width: 68, height: 68, borderRadius: 22, display: "flex", alignItems: "center", justifyContent: "center", color: "#d9a520", border: "2px solid rgba(217,165,32,.72)", fontFamily: "Georgia, serif", fontSize: 34, fontWeight: 900, boxShadow: "0 18px 40px rgba(217,165,32,.16)" },
+  brandName: { marginTop: 16, fontFamily: "Georgia, serif", fontSize: 34, letterSpacing: ".28em", color: "#d9a520", textIndent: ".28em" },
+  brandSub: { marginTop: 2, fontSize: 13, letterSpacing: ".34em", color: "#d9a520", fontWeight: 800 },
+  heroTitle: { margin: "26px 0 0", fontSize: 36, lineHeight: 1, textTransform: "uppercase", letterSpacing: ".035em", fontWeight: 950 },
+  heroText: { maxWidth: 380, margin: "12px 0 0", fontSize: 16, lineHeight: 1.35 },
+  featureGrid: { width: "100%", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, marginTop: 28 },
+  featureItem: { borderLeft: "1px solid", padding: "0 8px", minHeight: 74 },
+  featureIcon: { fontSize: 30, lineHeight: 1.2, marginBottom: 7, filter: "drop-shadow(0 10px 20px rgba(37,99,235,.22))" },
+  featureTitle: { fontSize: 11, fontWeight: 950, textTransform: "uppercase", letterSpacing: ".045em" },
+  featureDesc: { marginTop: 4, fontSize: 11, lineHeight: 1.35 },
+  safeVisual: { position: "relative", width: "100%", minHeight: 176, marginTop: 24, display: "flex", justifyContent: "center", alignItems: "center" },
+  safeBox: { position: "relative", width: 118, height: 118, borderRadius: 18, boxShadow: "0 22px 60px rgba(15,23,42,.18)", transform: "perspective(500px) rotateY(-12deg) rotateX(4deg)" },
+  safeDoor: { position: "absolute", inset: 20, borderRadius: 12, border: "1px solid rgba(217,165,32,.72)", display: "flex", alignItems: "center", justifyContent: "center", color: "#d9a520", fontSize: 34 },
+  safeShield: { width: 64, height: 64, borderRadius: 20, marginLeft: -12, display: "flex", alignItems: "center", justifyContent: "center", color: "#d9a520", background: "rgba(217,165,32,.10)", border: "1px solid rgba(217,165,32,.35)", fontSize: 30, boxShadow: "0 20px 60px rgba(217,165,32,.14)" },
+  safeBars: { display: "flex", alignItems: "flex-end", gap: 7, marginLeft: 30, height: 98 },
+  safeBar: { width: 18, borderRadius: "7px 7px 3px 3px", background: "linear-gradient(180deg,#2563eb,#60a5fa)", boxShadow: "0 12px 28px rgba(37,99,235,.24)" },
+  auditBox: { width: "100%", display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 18, boxSizing: "border-box", textAlign: "left" },
+  auditIcon: { width: 32, height: 32, borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(250,204,21,.12)" },
+  auditTitle: { fontSize: 13, fontWeight: 850 },
+  auditText: { marginTop: 2, fontSize: 11 },
+  card: { width: "min(100%,520px)", height: "min(650px,calc(100dvh - 48px))", minHeight: 0, overflow: "hidden", padding: "clamp(20px,2.4vw,34px) clamp(22px,3vw,42px)", boxSizing: "border-box", borderRadius: 34, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)" },
+  lockIcon: { alignSelf: "center", width: 50, height: 50, borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(250,204,21,.10)", color: "#d9a520", border: "1px solid rgba(217,165,32,.32)", fontSize: 24, boxShadow: "0 14px 40px rgba(217,165,32,.12)" },
+  badge: { alignSelf: "center", display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "7px 13px", borderRadius: 999, fontSize: 11.5, fontWeight: 900, letterSpacing: ".10em", textTransform: "uppercase", color: "#d9a520", textShadow: "0 0 8px rgba(250,204,21,.18)", animation: "securityPulse 3.6s ease-in-out infinite" },
+  title: { textAlign: "center", margin: "4px 0 0", fontSize: 31, letterSpacing: "-.03em", fontWeight: 950 },
+  subtitle: { textAlign: "center", margin: "0 auto", maxWidth: 390, fontSize: 14, lineHeight: 1.35 },
+  stepper: { position: "relative", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 6, marginTop: 14, marginBottom: 0 },
+  stepItem: { position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 7 },
+  stepCircle: { position: "relative", zIndex: 2, width: 38, height: 38, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 950, fontSize: 14 },
+  stepLabel: { fontSize: 12.5, fontWeight: 750 },
+  stepLine: { position: "absolute", zIndex: 1, top: 19, left: "62%", width: "76%", height: 2, borderRadius: 999 },
+  divider: { height: 1, width: "100%", margin: "2px 0 12px" },
+  formSection: { display: "flex", flexDirection: "column", gap: 12 },
+  sectionTitle: { margin: 0, fontSize: 19, fontWeight: 950 },
+  sectionDesc: { margin: "5px 0 2px", fontSize: 12.5, lineHeight: 1.35 },
+  input: { width: "100%", padding: "14px 16px", borderRadius: 16, fontSize: 14.5, outline: "none", boxSizing: "border-box", transition: "border .2s ease, box-shadow .2s ease, transform .2s ease" },
+  button: { width: "100%", padding: "14px 16px", border: "none", borderRadius: 16, background: "linear-gradient(135deg,#2563eb,#0057ff)", color: "#fff", fontWeight: 900, cursor: "pointer", minHeight: 52, display: "flex", alignItems: "center", justifyContent: "center", gap: 12, boxShadow: "0 18px 42px rgba(37,99,235,.30)", fontSize: 15, letterSpacing: ".01em" },
   buttonArrow: { marginLeft: 14, fontSize: 24, lineHeight: 1 },
-  secondaryButton: { width: "100%", padding: "14px 16px", borderRadius: 16, fontWeight: 850, cursor: "pointer", minHeight: 50, fontSize: 14 },
-  footerNote: { marginTop: 18, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 },
+  secondaryButton: { width: "100%", padding: "13px 16px", borderRadius: 16, fontWeight: 850, cursor: "pointer", minHeight: 48, fontSize: 14 },
+  footerNote: { marginTop: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 },
   footerLine: { height: 1, flex: 1, maxWidth: 140, background: "currentColor", opacity: .24 },
   footerShield: { opacity: .54 },
-  protectionText: { textAlign: "center", fontSize: 13, lineHeight: 1.45 },
+  protectionText: { textAlign: "center", fontSize: 12.5, lineHeight: 1.35 },
 };
