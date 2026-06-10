@@ -61,14 +61,14 @@ function buildText(data) {
         .map((item, index) => `${index + 1}. ${item.note || "-"} ${money(item.amount)}`)
     : [`Tidak ada pengeluaran pada bulan ${lastMonth.month || "lalu"}.`];
   const incomeLines = [
-    `Pembayaran kas warga: ${money(currentPaymentIncome)} dari ${paidHouseCount} rumah`,
+    `- Pembayaran kas warga: ${money(currentPaymentIncome)} dari ${paidHouseCount} rumah`,
   ];
 
   if (currentOtherIncome > 0) {
-    incomeLines.push(`Pemasukan lainnya: ${money(currentOtherIncome)}`);
+    incomeLines.push(`- Pemasukan lainnya: ${money(currentOtherIncome)}`);
   }
 
-  incomeLines.push(`Sisa saldo bulan lalu: ${money(lastMonth.remaining)}`);
+  incomeLines.push(`- Sisa saldo bulan lalu: ${money(lastMonth.remaining)}`);
 
   return [
     "Assalamu’alaikum, selamat malam Bapak-Bapak.",
@@ -83,10 +83,10 @@ function buildText(data) {
     "",
     `Kas tersedia bulan ${currentMonth.month || "ini"} terdiri dari:`,
     ...incomeLines,
-    `Total kas tersedia: ${money(availableCash)}`,
     "",
+    `Total kas tersedia: ${money(availableCash)}`,
     `Pengeluaran bulan ini: ${money(currentMonth.expenseTotal)}`,
-    `Saldo kas saat ini: ${money(summary.currentBalance)}`,
+    `Sisa saldo saat ini: ${money(summary.currentBalance)}`,
     "",
     "Bagi Bapak-Bapak yang ingin mengecek rincian pemasukan dan pengeluaran dana kas, dapat melihatnya melalui tautan berikut:",
     "",
