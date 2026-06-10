@@ -1,8 +1,14 @@
 "use client";
 
-export default function PublicTabs({ activeTab, setActiveTab, onLogin }) {
+import Link from "next/link";
+
+export default function PublicTabs({ activeTab, setActiveTab }) {
   return (
     <div className="tab">
+      <Link className="tab-link" href="/">
+        🏠 Beranda
+      </Link>
+
       <button
         className={activeTab === "payment" ? "active" : ""}
         onClick={() => setActiveTab("payment")}
@@ -23,8 +29,6 @@ export default function PublicTabs({ activeTab, setActiveTab, onLogin }) {
       >
         📊 Laporan
       </button>
-
-      <button onClick={onLogin}>🔒 Login</button>
     </div>
   );
 }
