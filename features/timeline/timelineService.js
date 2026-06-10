@@ -173,7 +173,28 @@ export async function updateTimelineImageFromBody(id, body) {
 }
 
 export async function deleteTimelineImageById(id) {
-  const image = await deleteTimelineImage(id);
+  const image = await getTimelineImageById(id);
+  const posts = await listAdminTimelinePosts({ limit: 50 });
+  const post = posts.find((item) => item.id === image.post_id);
+  const isCover = Boolean(
+    post && (
+      (post.cover_image_key && post.cover_image_key === image.image_key) ||
+      (post.cover_image_url && post.cover_image_url === image.image_url)
+    ),
+  );
 
-  return { ok: true, image };
+  const deletedImage = await deleteTimelineImage(id);
+
+  if (isCover) {
+    const fallbackImage = (post.images || [])
+      .filter((item) => item.id !== id)
+      .sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0))[0];
+
+    await updateTimelinePost(image.post_id, {
+      cover_image_key: fallbackImage?.image_key || "",
+      cover_image_url: fallbackImage?.image_url || "",
+    });
+  }
+
+  return { ok: true, image: deletedImage };
 }
