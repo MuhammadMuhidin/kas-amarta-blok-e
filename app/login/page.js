@@ -61,6 +61,7 @@ function getTheme(isDark) {
       inputShadow: "inset 0 1px 0 rgba(255,255,255,.05)",
       badge: "rgba(15,23,42,.72)",
       badgeBorder: "1px solid rgba(250,204,21,.34)",
+      circleBg: "#0f172a",
       stepTrack: "rgba(148,163,184,.25)",
       secondary: "rgba(15,23,42,.72)",
       secondaryBorder: "1px solid rgba(148,163,184,.28)",
@@ -82,6 +83,7 @@ function getTheme(isDark) {
     inputShadow: "0 10px 30px rgba(15,23,42,.05)",
     badge: "rgba(255,255,255,.72)",
     badgeBorder: "1px solid rgba(202,138,4,.26)",
+    circleBg: "#ffffff",
     stepTrack: "rgba(148,163,184,.32)",
     secondary: "rgba(255,255,255,.76)",
     secondaryBorder: "1px solid rgba(148,163,184,.34)",
@@ -278,6 +280,8 @@ export default function Login() {
       <style jsx global>{`
         @keyframes securityPulse{0%,100%{opacity:.92;transform:scale(.996);filter:drop-shadow(0 0 0 rgba(250,204,21,0))}50%{opacity:1;transform:scale(1);filter:drop-shadow(0 0 10px rgba(250,204,21,.30))}}
         @keyframes glowFloat{0%,100%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(0,-10px,0) scale(1.03)}}
+        @keyframes stepFlow{0%{background-position:0% 50%}100%{background-position:200% 50%}}
+        @keyframes stepPulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.35),0 0 22px rgba(37,99,235,.38)}50%{box-shadow:0 0 0 8px rgba(37,99,235,0),0 0 26px rgba(37,99,235,.42)}}
         html,body{overflow:hidden!important;height:100%;overscroll-behavior:none}
         .login-shell::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(96,165,250,.10) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,.10) 1px,transparent 1px);background-size:56px 56px;mask-image:radial-gradient(circle at 50% 50%,#000 0%,transparent 72%);pointer-events:none}
         .login-shell::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 20% 30%,rgba(255,255,255,.14),transparent 20%),radial-gradient(circle at 80% 70%,rgba(250,204,21,.10),transparent 22%);pointer-events:none}
@@ -356,19 +360,28 @@ export default function Login() {
               {SECURITY_STEPS.map((item, index) => {
                 const active = index === stepIndex;
                 const completed = index < stepIndex;
+                const lineActive = index <= stepIndex && index < SECURITY_STEPS.length - 1;
                 return (
                   <div key={item.key} style={styles.stepItem}>
                     <div style={{
                       ...styles.stepCircle,
-                      background: active || completed ? "linear-gradient(135deg,#2563eb,#0ea5e9)" : "transparent",
+                      background: active || completed ? "linear-gradient(135deg,#2563eb,#0ea5e9)" : theme.circleBg,
                       color: active || completed ? "#fff" : theme.muted,
                       border: active || completed ? "1px solid rgba(96,165,250,.78)" : `1px solid ${isDark ? "rgba(148,163,184,.34)" : "rgba(148,163,184,.42)"}`,
                       boxShadow: active ? "0 0 22px rgba(37,99,235,.38)" : "none",
+                      animation: active ? "stepPulse 1.8s ease-in-out infinite" : "none",
                     }}>
                       {item.number}
                     </div>
                     <div className="login-step-label" style={{ ...styles.stepLabel, color: active ? "#2563eb" : theme.muted }}>{item.label}</div>
-                    {index < SECURITY_STEPS.length - 1 && <span style={{ ...styles.stepLine, background: completed ? "linear-gradient(90deg,#2563eb,#0ea5e9)" : theme.stepTrack }} />}
+                    {index < SECURITY_STEPS.length - 1 && (
+                      <span style={{
+                        ...styles.stepLine,
+                        background: lineActive ? "linear-gradient(90deg,#2563eb,#0ea5e9,#60a5fa,#2563eb)" : theme.stepTrack,
+                        backgroundSize: lineActive ? "200% 100%" : "100% 100%",
+                        animation: lineActive ? "stepFlow 1.9s linear infinite" : "none",
+                      }} />
+                    )}
                   </div>
                 );
               })}
@@ -498,7 +511,7 @@ const styles = {
   stepItem: { position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 7 },
   stepCircle: { position: "relative", zIndex: 2, width: 38, height: 38, borderRadius: 999, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 950, fontSize: 14 },
   stepLabel: { fontSize: 12.5, fontWeight: 750 },
-  stepLine: { position: "absolute", zIndex: 1, top: 19, left: "62%", width: "76%", height: 2, borderRadius: 999 },
+  stepLine: { position: "absolute", zIndex: 1, top: 19, left: "calc(50% + 24px)", width: "calc(100% - 48px)", height: 2, borderRadius: 999 },
   divider: { height: 1, width: "100%", margin: "2px 0 12px" },
   formSection: { display: "flex", flexDirection: "column", gap: 12 },
   sectionTitle: { margin: 0, fontSize: 19, fontWeight: 950 },
