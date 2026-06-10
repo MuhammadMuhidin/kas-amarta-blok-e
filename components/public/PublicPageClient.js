@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import CashflowTab from "@/components/public/tabs/CashflowTab";
 import InsightTab from "@/components/public/tabs/InsightTab";
 import PaymentStatusTab from "@/components/public/tabs/PaymentStatusTab";
+import PublicHero from "@/components/public/PublicHero";
 import PublicTabs from "@/components/public/PublicTabs";
 import ReceiptPreviewModal from "@/components/public/ReceiptPreviewModal";
 import ResidentDetailModal from "@/components/public/ResidentDetailModal";
@@ -23,7 +24,7 @@ import {
 } from "@/lib/public/publicCalculations";
 import { formatCashflowNote } from "@/lib/public/publicFormatters";
 
-const perPagePay = 16;
+const perPagePay = 20;
 const perPageInsight = 2;
 const chunk = 20;
 
@@ -45,10 +46,6 @@ export default function PublicPageClient() {
 
   function downloadPDF() {
     router.push("/report");
-  }
-
-  function goToLogin() {
-    router.push("/login");
   }
 
   function openReceiptPreview(receiptUrl, note = "") {
@@ -135,16 +132,17 @@ export default function PublicPageClient() {
           </div>
         )}
 
-        <header className="hero-header timeline-hero">
-          <div className="hero-eyebrow">Amarta Residence • Blok E</div>
-          <p className="hero-desc">
-            Pusat transparansi iuran, pengeluaran,
-            <br />
-            dan laporan kas warga.
-          </p>
-        </header>
+        <PublicHero
+          description={(
+            <>
+              Pusat transparansi iuran, pengeluaran,
+              <br />
+              dan laporan kas warga.
+            </>
+          )}
+        />
 
-        <PublicTabs activeTab={activeTab} setActiveTab={setActiveTab} onLogin={goToLogin} />
+        <PublicTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
         <PaymentStatusTab
           active={activeTab === "payment"}

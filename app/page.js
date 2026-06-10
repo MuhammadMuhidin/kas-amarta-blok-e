@@ -1,4 +1,5 @@
 import Script from "next/script";
+import PublicHero from "@/components/public/PublicHero";
 import TimelineClient from "@/components/timeline/TimelineClient";
 import "@/app/page.css";
 import "@/app/public-theme.css";
@@ -6,15 +7,12 @@ import "@/app/timeline.css";
 import "@/app/timeline-overrides.css";
 
 const timelineInstagramRefinementCss = `
-  .timeline-hero {
-    text-align: center !important;
+  .public-home-hero-wrap {
+    padding-bottom: 0 !important;
   }
 
-  .timeline-hero .hero-eyebrow,
-  .timeline-hero .hero-desc {
-    margin-left: auto !important;
-    margin-right: auto !important;
-    text-align: center !important;
+  .timeline-page > .timeline-hero {
+    display: none !important;
   }
 
   .timeline-story-item.unread .timeline-story-ring {
@@ -358,6 +356,9 @@ export default function ResidentTimelinePage() {
   return (
     <>
       <style>{timelineInstagramRefinementCss}</style>
+      <div className="page-wrap public-home-hero-wrap">
+        <PublicHero description="Ruang informasi kegiatan warga, dan dokumentasi lingkungan." />
+      </div>
       <TimelineClient />
       <Script id="timeline-reaction-count-popover" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: timelineReactionCountScript }} />
     </>
