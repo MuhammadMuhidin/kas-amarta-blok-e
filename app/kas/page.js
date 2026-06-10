@@ -19,10 +19,6 @@ const kasPageRefinementCss = `
     pointer-events: none !important;
   }
 
-  .page-wrap .hero-header {
-    position: relative !important;
-  }
-
   .page-wrap .hero-header,
   .page-wrap .hero-header .hero-eyebrow,
   .page-wrap .hero-header .hero-desc {
@@ -36,13 +32,12 @@ const kasPageRefinementCss = `
   }
 
   .page-wrap .hero-manager-link {
-    position: absolute !important;
-    top: 14px !important;
-    right: 14px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
+    width: fit-content !important;
     min-height: 34px !important;
+    margin: 14px auto 0 !important;
     padding: 7px 12px !important;
     border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border)) !important;
     border-radius: 999px !important;
@@ -142,14 +137,9 @@ const kasPageRefinementCss = `
   }
 
   @media (max-width: 700px) {
-    .page-wrap .hero-header {
-      padding-top: 46px !important;
-    }
-
     .page-wrap .hero-manager-link {
-      top: 10px !important;
-      right: 10px !important;
       min-height: 32px !important;
+      margin-top: 12px !important;
       padding: 7px 10px !important;
       font-size: 11px !important;
     }
