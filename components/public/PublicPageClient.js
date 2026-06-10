@@ -24,7 +24,7 @@ import {
 } from "@/lib/public/publicCalculations";
 import { formatCashflowNote } from "@/lib/public/publicFormatters";
 
-const perPagePay = 10;
+const perPagePay = 20;
 const perPageInsight = 2;
 const chunk = 20;
 
