@@ -19,6 +19,10 @@ const kasPageRefinementCss = `
     pointer-events: none !important;
   }
 
+  .page-wrap .hero-header {
+    position: relative !important;
+  }
+
   .page-wrap .hero-header,
   .page-wrap .hero-header .hero-eyebrow,
   .page-wrap .hero-header .hero-desc {
@@ -29,6 +33,63 @@ const kasPageRefinementCss = `
   .page-wrap .hero-header .hero-desc {
     margin-left: auto !important;
     margin-right: auto !important;
+  }
+
+  .page-wrap .hero-manager-link {
+    position: absolute !important;
+    top: 14px !important;
+    right: 14px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 34px !important;
+    padding: 7px 12px !important;
+    border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border)) !important;
+    border-radius: 999px !important;
+    background: color-mix(in srgb, var(--surface) 88%, transparent) !important;
+    color: var(--text) !important;
+    box-shadow: var(--shadow-soft) !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    text-decoration: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+
+  .page-wrap .hero-manager-link:hover,
+  .page-wrap .hero-manager-link:focus-visible {
+    border-color: var(--primary) !important;
+    background: color-mix(in srgb, var(--primary) 10%, var(--surface)) !important;
+    outline: none !important;
+  }
+
+  .page-wrap .tab .tab-link {
+    width: 100% !important;
+    min-height: 44px !important;
+    padding: 0 10px !important;
+    border-radius: 12px !important;
+    border: 1px solid var(--border) !important;
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: var(--shadow-soft) !important;
+    font-size: var(--font-base) !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    cursor: pointer !important;
+    transition: 0.18s ease !important;
+  }
+
+  .page-wrap .tab .tab-link:hover,
+  .page-wrap .tab .tab-link:focus-visible {
+    transform: translateY(-1px) !important;
+    border-color: var(--primary) !important;
+    outline: none !important;
   }
 
   .page-wrap .modal-box {
@@ -81,6 +142,18 @@ const kasPageRefinementCss = `
   }
 
   @media (max-width: 700px) {
+    .page-wrap .hero-header {
+      padding-top: 46px !important;
+    }
+
+    .page-wrap .hero-manager-link {
+      top: 10px !important;
+      right: 10px !important;
+      min-height: 32px !important;
+      padding: 7px 10px !important;
+      font-size: 11px !important;
+    }
+
     .page-wrap .modal-box {
       width: calc(100vw - 32px) !important;
       max-width: calc(100vw - 32px) !important;
