@@ -13,16 +13,22 @@ import { validateAdminOtp } from "@/lib/adminLoginOtp";
 export const runtime = "nodejs";
 
 const PENDING_ACCESS_ROLE_COOKIE = "admin_pending_access_role";
+const PENDING_OTP_ID_COOKIE = "admin_pending_otp_id";
 
-function webAuthRequired(accessRole) {
+function webAuthRequired({ accessRole, otpContext }) {
   const res = NextResponse.json({ need_webauth: true, access_role: accessRole });
-  res.cookies.set(PENDING_ACCESS_ROLE_COOKIE, accessRole, {
+
+  const cookieOptions = {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
     path: "/",
     maxAge: 300,
-  });
+  };
+
+  res.cookies.set(PENDING_ACCESS_ROLE_COOKIE, accessRole, cookieOptions);
+  res.cookies.set(PENDING_OTP_ID_COOKIE, otpContext.id, cookieOptions);
+
   return res;
 }
 
@@ -33,8 +39,7 @@ export async function POST(req) {
 
     const { role, otp, password, pin } = await req.json();
     const accessRole = assertAdminAccessRole(role);
-
-    await validateAdminOtp({ role: accessRole, otp, consume: false });
+    const otpContext = await validateAdminOtp({ role: accessRole, otp, consume: false });
 
     if (password !== process.env.ADMIN_PASSWORD) {
       await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.loginPasswordFailed);
@@ -60,10 +65,9 @@ export async function POST(req) {
     await clearRateLimit(req, RATE_LIMIT_SCOPES.loginPasswordFailed);
     await clearRateLimit(req, RATE_LIMIT_SCOPES.loginPinFailed);
 
-    if (webAuthEnabled) return webAuthRequired(accessRole);
+    if (webAuthEnabled) return webAuthRequired({ accessRole, otpContext });
 
-    await validateAdminOtp({ role: accessRole, otp, consume: true });
-    return createAuthResponse(req, { accessRole });
+    return createAuthResponse(req, { accessRole, otpContext });
   } catch (err) {
     return NextResponse.json({ error: err.message || "Sign in failed" }, { status: 500 });
   }
