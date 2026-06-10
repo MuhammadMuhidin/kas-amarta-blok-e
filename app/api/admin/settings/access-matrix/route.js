@@ -1,0 +1,81 @@
+import { NextResponse } from "next/server";
+import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import {
+  clearRateLimit,
+  enforceFailureRateLimit,
+  enforceRateLimit,
+  RATE_LIMIT_SCOPES,
+  recordRateLimitFailure,
+} from "@/lib/rateLimit";
+import {
+  getAccessMatrixSettings,
+  updateAccessMatrixSetting,
+} from "@/features/settings/accessMatrixService";
+
+export const runtime = "nodejs";
+
+export async function GET(req) {
+  try {
+    if (!(await isAdmin(req))) return unauthorized();
+
+    const { searchParams } = new URL(req.url);
+    const result = await getAccessMatrixSettings(searchParams.get("role"));
+
+    return NextResponse.json(result);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err.message || "Gagal membaca matrix access" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(req) {
+  try {
+    if (!(await isAdmin(req))) return unauthorized();
+
+    if (!validateCSRF(req)) {
+      return NextResponse.json({ error: "CSRF tidak valid" }, { status: 403 });
+    }
+
+    const settingsLimit = await enforceRateLimit(req, RATE_LIMIT_SCOPES.settingsUpdate, {
+      identity: "session",
+    });
+
+    if (settingsLimit) return settingsLimit;
+
+    const { role, module_key: moduleKey, is_visible: isVisible, pin } = await req.json();
+
+    const pinLimit = await enforceFailureRateLimit(req, RATE_LIMIT_SCOPES.settingsPinFailed, {
+      identity: "session",
+    });
+
+    if (pinLimit) return pinLimit;
+
+    if (pin !== process.env.ADMIN_PIN) {
+      await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.settingsPinFailed, {
+        identity: "session",
+      });
+
+      return NextResponse.json({ error: "PIN tidak valid" }, { status: 403 });
+    }
+
+    await clearRateLimit(req, RATE_LIMIT_SCOPES.settingsPinFailed, {
+      identity: "session",
+    });
+
+    const result = await updateAccessMatrixSetting({
+      req,
+      role,
+      moduleKey,
+      isVisible,
+    });
+
+    return NextResponse.json(result);
+  } catch (err) {
+    return NextResponse.json(
+      { error: err.message || "Gagal update matrix access" },
+      { status: 500 },
+    );
+  }
+}
