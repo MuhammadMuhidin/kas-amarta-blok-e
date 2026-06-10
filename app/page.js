@@ -7,7 +7,9 @@ import "@/app/timeline-overrides.css";
 
 const timelineInstagramRefinementCss = `
   .timeline-hero {
+    position: relative !important;
     text-align: center !important;
+    padding-bottom: 62px !important;
   }
 
   .timeline-hero .hero-eyebrow,
@@ -18,13 +20,14 @@ const timelineInstagramRefinementCss = `
   }
 
   .public-home-manager-link {
-    position: fixed;
-    top: max(14px, env(safe-area-inset-top, 0px));
-    right: 14px;
-    z-index: 9200;
+    position: absolute;
+    left: 50%;
+    bottom: 18px;
+    z-index: 2;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    width: fit-content;
     min-height: 34px;
     padding: 7px 12px;
     border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
@@ -32,8 +35,6 @@ const timelineInstagramRefinementCss = `
     background: color-mix(in srgb, var(--surface) 88%, transparent);
     color: var(--text);
     box-shadow: var(--shadow-soft);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
     font-size: 12px;
     font-weight: 900;
     line-height: 1;
@@ -41,7 +42,7 @@ const timelineInstagramRefinementCss = `
     -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none;
     user-select: none;
-    transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    transform: translateX(-50%);
   }
 
   .public-home-manager-link:hover,
@@ -49,10 +50,6 @@ const timelineInstagramRefinementCss = `
     border-color: var(--primary);
     background: color-mix(in srgb, var(--primary) 10%, var(--surface));
     outline: none;
-  }
-
-  .public-home-manager-link:active {
-    transform: scale(0.96);
   }
 
   .timeline-story-item.unread .timeline-story-ring {
@@ -197,9 +194,12 @@ const timelineInstagramRefinementCss = `
   }
 
   @media (max-width: 700px) {
+    .timeline-hero {
+      padding-bottom: 58px !important;
+    }
+
     .public-home-manager-link {
-      top: max(10px, env(safe-area-inset-top, 0px));
-      right: 10px;
+      bottom: 16px;
       min-height: 32px;
       padding: 7px 10px;
       font-size: 11px;
