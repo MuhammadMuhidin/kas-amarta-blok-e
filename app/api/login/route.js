@@ -59,10 +59,10 @@ export async function POST(req) {
 
     await clearRateLimit(req, RATE_LIMIT_SCOPES.loginPasswordFailed);
     await clearRateLimit(req, RATE_LIMIT_SCOPES.loginPinFailed);
-    await validateAdminOtp({ role: accessRole, otp, consume: true });
 
     if (webAuthEnabled) return webAuthRequired(accessRole);
 
+    await validateAdminOtp({ role: accessRole, otp, consume: true });
     return createAuthResponse(req, { accessRole });
   } catch (err) {
     return NextResponse.json({ error: err.message || "Sign in failed" }, { status: 500 });
