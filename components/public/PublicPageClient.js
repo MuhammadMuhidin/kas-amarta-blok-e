@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CashflowTab from "@/components/public/tabs/CashflowTab";
@@ -45,10 +46,6 @@ export default function PublicPageClient() {
 
   function downloadPDF() {
     router.push("/report");
-  }
-
-  function goToLogin() {
-    router.push("/login");
   }
 
   function openReceiptPreview(receiptUrl, note = "") {
@@ -136,6 +133,9 @@ export default function PublicPageClient() {
         )}
 
         <header className="hero-header timeline-hero">
+          <Link href="/login" className="hero-manager-link" aria-label="Masuk Area Pengurus">
+            🔐 Area Pengurus
+          </Link>
           <div className="hero-eyebrow">Amarta Residence • Blok E</div>
           <p className="hero-desc">
             Pusat transparansi iuran, pengeluaran,
@@ -144,7 +144,7 @@ export default function PublicPageClient() {
           </p>
         </header>
 
-        <PublicTabs activeTab={activeTab} setActiveTab={setActiveTab} onLogin={goToLogin} />
+        <PublicTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
         <PaymentStatusTab
           active={activeTab === "payment"}
