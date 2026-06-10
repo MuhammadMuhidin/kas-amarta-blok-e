@@ -68,12 +68,10 @@ export default function Login() {
     };
   }
 
-  async function requestOtp() {
+  async function requestOtp(e) {
+    e?.preventDefault();
     if (loading || sendingOtp || needPin) return;
-    if (!password.trim()) {
-      notify("Password is required before OTP", "warning");
-      return;
-    }
+    if (!password.trim()) return notify("Password is required", "warning");
 
     setSendingOtp(true);
     try {
@@ -83,10 +81,7 @@ export default function Login() {
         body: JSON.stringify({ role, password }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        notify(data.error || "Gagal mengirim OTP", "error");
-        return;
-      }
+      if (!res.ok) return notify(data.error || "Gagal mengirim OTP", "error");
       setOtpRequested(true);
       setOtp("");
       notify(data.message || "OTP terkirim ke WhatsApp", "success");
@@ -113,10 +108,7 @@ export default function Login() {
         body: JSON.stringify({ role, otp, password, pin: needPin ? pin : undefined }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        notify(data.error || "Sign in failed", "error");
-        return;
-      }
+      if (!res.ok) return notify(data.error || "Sign in failed", "error");
       if (data.need_pin) {
         setNeedPin(true);
         notify("Enter PIN admin", "info");
@@ -185,6 +177,13 @@ export default function Login() {
 
   if (checkingSession) return null;
 
+  const step = needPin ? "pin" : otpRequested ? "otp" : "password";
+  const subtitle = step === "password"
+    ? "Select role and enter password"
+    : step === "otp"
+      ? "Enter OTP from WhatsApp"
+      : "Enter admin PIN";
+
   return (
     <>
       <style jsx global>{`@keyframes securityPulse{0%,100%{opacity:.9;transform:scale(.995);filter:drop-shadow(0 0 0 rgba(250,204,21,0))}50%{opacity:1;transform:scale(1);filter:drop-shadow(0 0 6px rgba(250,204,21,.28))}}`}</style>
@@ -201,63 +200,72 @@ export default function Login() {
       />
 
       <div style={{ ...styles.wrapper, background: isDark ? "linear-gradient(135deg,#020617,#0f172a)" : "linear-gradient(135deg,#e0e7ff,#f8fafc)" }}>
-        <form onSubmit={submit} style={{ ...styles.card, background: isDark ? "#111827" : "#ffffff", border: isDark ? "1px solid #334155" : "1px solid rgba(226,232,240,.9)" }}>
+        <form onSubmit={step === "password" ? requestOtp : submit} style={{ ...styles.card, background: isDark ? "#111827" : "#ffffff", border: isDark ? "1px solid #334155" : "1px solid rgba(226,232,240,.9)" }}>
           <div style={{ ...styles.badge, background: isDark ? "rgba(15,23,42,.92)" : "rgba(255,255,255,.92)", color: "#facc15", border: `1px solid ${isDark ? "#334155" : "#cbd5e1"}` }}>
             Management Access
           </div>
           <h2 style={{ ...styles.title, color: isDark ? "#f8fafc" : "#0f172a" }}>Administrator Sign In</h2>
-          <p style={{ ...styles.subtitle, color: isDark ? "#94a3b8" : "#64748b" }}>Select role, enter password, then request OTP</p>
+          <p style={{ ...styles.subtitle, color: isDark ? "#94a3b8" : "#64748b" }}>{subtitle}</p>
 
-          <select
-            value={role}
-            disabled={loading || sendingOtp || needPin}
-            onChange={(e) => {
-              setRole(e.target.value);
-              resetOtpStep();
-            }}
-            style={commonInputStyle()}
-          >
-            {ADMIN_ACCESS_ROLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-          </select>
-
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            disabled={loading || needPin}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              resetOtpStep();
-            }}
-            style={commonInputStyle()}
-          />
-
-          <button type="button" disabled={loading || sendingOtp || needPin || !password.trim()} onClick={requestOtp} style={{ ...styles.secondaryButton, color: isDark ? "#fff" : "#0f172a", border: isDark ? "1px solid #334155" : "1px solid #cbd5e1", background: isDark ? "#1e293b" : "transparent", opacity: loading || sendingOtp || needPin || !password.trim() ? 0.55 : 1 }}>
-            {sendingOtp ? "Mengirim OTP..." : otpRequested ? "Kirim Ulang OTP" : "Kirim OTP ke WhatsApp"}
-          </button>
-
-          {otpRequested && (
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              placeholder="Kode OTP"
-              value={otp}
-              disabled={loading || needPin}
-              onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              style={commonInputStyle()}
-            />
+          {step === "password" && (
+            <>
+              <select
+                value={role}
+                disabled={loading || sendingOtp}
+                onChange={(e) => {
+                  setRole(e.target.value);
+                  resetOtpStep();
+                }}
+                style={commonInputStyle()}
+              >
+                {ADMIN_ACCESS_ROLES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                disabled={loading || sendingOtp}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  resetOtpStep();
+                }}
+                style={commonInputStyle()}
+              />
+              <button type="submit" disabled={loading || sendingOtp || !password.trim()} style={{ ...styles.button, opacity: loading || sendingOtp || !password.trim() ? 0.75 : 1 }}>
+                {sendingOtp ? "Mengirim OTP..." : "Selanjutnya"}
+              </button>
+            </>
           )}
 
-          {needPin && <input type="password" placeholder="PIN Admin" value={pin} onChange={(e) => setPin(e.target.value)} style={commonInputStyle()} />}
+          {step === "otp" && (
+            <>
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={6}
+                placeholder="Kode OTP"
+                value={otp}
+                disabled={loading}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                style={commonInputStyle()}
+              />
+              <button type="submit" disabled={loading || otp.length !== 6} style={{ ...styles.button, opacity: loading || otp.length !== 6 ? 0.75 : 1 }}>
+                {loading ? "Memverifikasi..." : "Verifikasi OTP"}
+              </button>
+            </>
+          )}
 
-          <button type="submit" disabled={loading || !otpRequested} style={{ ...styles.button, opacity: loading || !otpRequested ? 0.75 : 1 }}>
-            {loading ? "Processing..." : needPin ? "Verify PIN" : "Login"}
-          </button>
-
-          <button type="button" disabled={loading} onClick={() => setConfirmOpen(true)} style={{ ...styles.secondaryButton, color: isDark ? "#fff" : "#0f172a", border: isDark ? "1px solid #334155" : "1px solid #cbd5e1", background: isDark ? "#1e293b" : "transparent", opacity: loading ? 0.75 : 1 }}>
-            Register Passkey
-          </button>
+          {step === "pin" && (
+            <>
+              <input type="password" placeholder="PIN Admin" value={pin} disabled={loading} onChange={(e) => setPin(e.target.value)} style={commonInputStyle()} />
+              <button type="submit" disabled={loading || !pin.trim()} style={{ ...styles.button, opacity: loading || !pin.trim() ? 0.75 : 1 }}>
+                {loading ? "Processing..." : "Kirim"}
+              </button>
+              <button type="button" disabled={loading} onClick={() => setConfirmOpen(true)} style={{ ...styles.secondaryButton, color: isDark ? "#fff" : "#0f172a", border: isDark ? "1px solid #334155" : "1px solid #cbd5e1", background: isDark ? "#1e293b" : "transparent", opacity: loading ? 0.75 : 1 }}>
+                Register Passkey
+              </button>
+            </>
+          )}
         </form>
       </div>
     </>
