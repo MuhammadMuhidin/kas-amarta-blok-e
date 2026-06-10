@@ -8,10 +8,17 @@ export default function useAdminSession() {
   async function checkSession() {
     const res = await fetch("/api/admin/sessions/check", { cache: "no-store" });
 
-    if (res.status !== 401) return true;
+    if (res.status === 401) {
+      router.replace("/login");
+      return null;
+    }
 
-    router.replace("/login");
-    return false;
+    if (!res.ok) {
+      router.replace("/login");
+      return null;
+    }
+
+    return res.json();
   }
 
   return { checkSession };
