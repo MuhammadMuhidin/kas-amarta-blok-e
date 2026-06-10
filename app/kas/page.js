@@ -87,6 +87,19 @@ const kasPageRefinementCss = `
     outline: none !important;
   }
 
+  .page-wrap .pay-slider,
+  .page-wrap .pay-slide-page,
+  .page-wrap .pay-grid,
+  .page-wrap .pay-item {
+    touch-action: pan-x pan-y !important;
+  }
+
+  .page-wrap .pay-slider {
+    overscroll-behavior-x: contain !important;
+    overscroll-behavior-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
   .page-wrap .modal-box {
     width: 100% !important;
     max-width: 820px !important;
