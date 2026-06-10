@@ -1,4 +1,5 @@
 import Script from "next/script";
+import PublicHero from "@/components/public/PublicHero";
 import TimelineClient from "@/components/timeline/TimelineClient";
 import "@/app/page.css";
 import "@/app/public-theme.css";
@@ -6,50 +7,12 @@ import "@/app/timeline.css";
 import "@/app/timeline-overrides.css";
 
 const timelineInstagramRefinementCss = `
-  .timeline-hero {
-    position: relative !important;
-    text-align: center !important;
-    padding-bottom: 62px !important;
+  .public-home-hero-wrap {
+    padding-bottom: 0 !important;
   }
 
-  .timeline-hero .hero-eyebrow,
-  .timeline-hero .hero-desc {
-    margin-left: auto !important;
-    margin-right: auto !important;
-    text-align: center !important;
-  }
-
-  .public-home-manager-link {
-    position: absolute;
-    left: 50%;
-    bottom: 18px;
-    z-index: 2;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: fit-content;
-    min-height: 34px;
-    padding: 7px 12px;
-    border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--surface) 88%, transparent);
-    color: var(--text);
-    box-shadow: var(--shadow-soft);
-    font-size: 12px;
-    font-weight: 900;
-    line-height: 1;
-    text-decoration: none;
-    -webkit-tap-highlight-color: transparent;
-    -webkit-user-select: none;
-    user-select: none;
-    transform: translateX(-50%);
-  }
-
-  .public-home-manager-link:hover,
-  .public-home-manager-link:focus-visible {
-    border-color: var(--primary);
-    background: color-mix(in srgb, var(--primary) 10%, var(--surface));
-    outline: none;
+  .timeline-page > .timeline-hero {
+    display: none !important;
   }
 
   .timeline-story-item.unread .timeline-story-ring {
@@ -191,19 +154,6 @@ const timelineInstagramRefinementCss = `
     content: "🏠";
     font-size: 18px;
     line-height: 1;
-  }
-
-  @media (max-width: 700px) {
-    .timeline-hero {
-      padding-bottom: 58px !important;
-    }
-
-    .public-home-manager-link {
-      bottom: 16px;
-      min-height: 32px;
-      padding: 7px 10px;
-      font-size: 11px;
-    }
   }
 `;
 
@@ -406,7 +356,9 @@ export default function ResidentTimelinePage() {
   return (
     <>
       <style>{timelineInstagramRefinementCss}</style>
-      <a className="public-home-manager-link" href="/login" aria-label="Masuk Area Pengurus">🔐 Area Pengurus</a>
+      <div className="page-wrap public-home-hero-wrap">
+        <PublicHero description="Ruang informasi kegiatan warga, dan dokumentasi lingkungan." />
+      </div>
       <TimelineClient />
       <Script id="timeline-reaction-count-popover" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: timelineReactionCountScript }} />
     </>
