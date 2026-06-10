@@ -17,26 +17,33 @@ async function getSummary() {
   return response.json();
 }
 
-function countPaidHouses(data) {
-  const payments = Array.isArray(data?.payments) ? data.payments : [];
-  const periods = Array.isArray(data?.periods) ? data.periods : [];
-  const currentPeriod = [...periods].sort((a, b) => a.localeCompare(b)).pop();
-
-  if (!currentPeriod) return 0;
-
-  return new Set(
-    payments
-      .filter((payment) => String(payment.period || "").slice(0, 7) === currentPeriod)
-      .map((payment) => String(payment.person_house || payment.house || payment.person_id || ""))
-      .filter(Boolean),
-  ).size;
-}
-
 function getCurrentPeriod(data) {
   const periods = Array.isArray(data?.periods) ? data.periods : [];
   const currentPeriod = [...periods].sort((a, b) => a.localeCompare(b)).pop();
 
   return currentPeriod || new Date().toISOString().slice(0, 7);
+}
+
+function getCurrentPeriodPayments(data) {
+  const payments = Array.isArray(data?.payments) ? data.payments : [];
+  const currentPeriod = getCurrentPeriod(data);
+
+  return payments.filter((payment) => String(payment.period || "").slice(0, 7) === currentPeriod);
+}
+
+function countPaidHouses(data) {
+  return new Set(
+    getCurrentPeriodPayments(data)
+      .map((payment) => String(payment.person_house || payment.house || payment.person_id || ""))
+      .filter(Boolean),
+  ).size;
+}
+
+function getCurrentPaymentIncome(data) {
+  return getCurrentPeriodPayments(data).reduce(
+    (sum, payment) => sum + Number(payment.amount || 0),
+    0,
+  );
 }
 
 function buildText(data) {
@@ -45,11 +52,23 @@ function buildText(data) {
   const summary = data?.insight?.summary || {};
   const expenses = Array.isArray(lastMonth.expenses) ? lastMonth.expenses : [];
   const paidHouseCount = countPaidHouses(data);
+  const currentPaymentIncome = getCurrentPaymentIncome(data);
+  const currentOtherIncome = Math.max(0, Number(currentMonth.income || 0) - currentPaymentIncome);
+  const availableCash = Number(summary.currentIncomePlusLastRemaining || 0);
   const expenseLines = expenses.length
     ? [...expenses]
         .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
         .map((item, index) => `${index + 1}. ${item.note || "-"} ${money(item.amount)}`)
     : [`Tidak ada pengeluaran pada bulan ${lastMonth.month || "lalu"}.`];
+  const incomeLines = [
+    `Pembayaran kas warga: ${money(currentPaymentIncome)} dari ${paidHouseCount} rumah`,
+  ];
+
+  if (currentOtherIncome > 0) {
+    incomeLines.push(`Pemasukan lainnya: ${money(currentOtherIncome)}`);
+  }
+
+  incomeLines.push(`Sisa saldo bulan lalu: ${money(lastMonth.remaining)}`);
 
   return [
     "Assalamu’alaikum, selamat malam Bapak-Bapak.",
@@ -62,7 +81,9 @@ function buildText(data) {
     `Total pengeluaran: ${money(lastMonth.expenseTotal)}`,
     `Sisa saldo bulan lalu: ${money(lastMonth.remaining)}`,
     "",
-    `Kas masuk bulan ${currentMonth.month || "ini"} dari ${paidHouseCount} rumah ditambah sisa saldo bulan lalu: ${money(summary.currentIncomePlusLastRemaining)}`,
+    `Kas tersedia bulan ${currentMonth.month || "ini"} terdiri dari:`,
+    ...incomeLines,
+    `Total kas tersedia: ${money(availableCash)}`,
     "",
     `Pengeluaran bulan ini: ${money(currentMonth.expenseTotal)}`,
     `Saldo kas saat ini: ${money(summary.currentBalance)}`,
