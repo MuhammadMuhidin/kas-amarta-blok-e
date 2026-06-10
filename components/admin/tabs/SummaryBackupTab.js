@@ -2,6 +2,7 @@
 
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
+import { formatJakartaDateTimeLong } from "@/lib/localDate";
 import { useState } from "react";
 
 const pageSize = 10;
@@ -11,6 +12,10 @@ const successColor = "var(--admin-success)";
 
 function formatRupiah(value) {
   return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
+}
+
+function formatBackupDate(value) {
+  return value ? `${formatJakartaDateTimeLong(value, "id-ID")} WIB` : "-";
 }
 
 function getDelta(current, previous, { increaseIsGood = true } = {}) {
@@ -216,7 +221,7 @@ export default function SummaryBackupTab() {
                     >
                       <td className="admin-td">
                         <div style={styles.dateCell}>
-                          <span>{x.created_at}</span>
+                          <span>{formatBackupDate(x.created_at)}</span>
 
                           {i === 0 && (
                             <span style={styles.latestBadge}>Latest</span>
@@ -276,7 +281,7 @@ export default function SummaryBackupTab() {
             <div style={styles.modalHeader}>
               <div>
                 <h3 style={styles.modalTitle}>Summary Backup Detail</h3>
-                <p style={styles.modalSubtitle}>{selectedBackup.created_at}</p>
+                <p style={styles.modalSubtitle}>{formatBackupDate(selectedBackup.created_at)}</p>
               </div>
 
               <button
