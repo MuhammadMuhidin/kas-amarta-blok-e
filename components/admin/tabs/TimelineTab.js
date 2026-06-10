@@ -236,6 +236,21 @@ export default function TimelineTab({ showPopup }) {
     loadPosts();
   }, []);
 
+  useEffect(() => {
+    const hasOpenModal = Boolean(showForm || photoPost || previewPost || deletePost || deleteImageTarget || publishPost);
+    if (!hasOpenModal) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    const originalTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = "hidden";
+    document.body.style.touchAction = "none";
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.touchAction = originalTouchAction;
+    };
+  }, [showForm, photoPost, previewPost, deletePost, deleteImageTarget, publishPost]);
+
   function resetForm() {
     setForm(emptyForm);
     setEditingPost(null);
@@ -521,7 +536,7 @@ export default function TimelineTab({ showPopup }) {
 
       {showForm && (
         <div className={modalStyles.overlay} onClick={saving ? undefined : resetForm}>
-          <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
+          <div className={`${modalStyles.box} timeline-modal-wide`} onClick={(e) => e.stopPropagation()}>
             <div className="timeline-admin-form-header">
               <div>
                 <h3>{editingPost?.id ? "Edit Post" : "Add Post"}</h3>
@@ -547,7 +562,7 @@ export default function TimelineTab({ showPopup }) {
 
       {photoPost && (
         <div className={modalStyles.overlay} onClick={closeMediaModals}>
-          <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
+          <div className={`${modalStyles.box} timeline-modal-wide`} onClick={(e) => e.stopPropagation()}>
             <div className="timeline-admin-form-header">
               <div>
                 <h3>Manage Photos</h3>
@@ -631,7 +646,7 @@ export default function TimelineTab({ showPopup }) {
         </div>
       )}
 
-      {previewPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>{previewPost.title}</h3><p>{formatDate(previewPost.event_date || previewPost.created_at)}</p><p>{previewPost.description}</p><ReactionSummary post={previewPost} /><div className="timeline-preview-grid">{(previewPost.images || []).map((image) => <img key={image.id || image.image_url} src={image.image_url} alt={image.caption || previewPost.title} />)}</div></div></div>}
+      {previewPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={`${modalStyles.box} timeline-modal-wide`} onClick={(e) => e.stopPropagation()}><h3>{previewPost.title}</h3><p>{formatDate(previewPost.event_date || previewPost.created_at)}</p><p>{previewPost.description}</p><ReactionSummary post={previewPost} /><div className="timeline-preview-grid">{(previewPost.images || []).map((image) => <img key={image.id || image.image_url} src={image.image_url} alt={image.caption || previewPost.title} />)}</div></div></div>}
 
       {deletePost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>Delete Post?</h3><p>{deletePost.title}</p><div className="timeline-form-actions"><button type="button" className="admin-small-btn" disabled={Boolean(deletingId)} onClick={closeMediaModals}>Cancel</button><button type="button" className="admin-btn" disabled={Boolean(deletingId)} onClick={deleteSelectedPost}><LoadingButtonContent loading={deletingId === deletePost.id} loadingText="Deleting...">Delete</LoadingButtonContent></button></div></div></div>}
 
