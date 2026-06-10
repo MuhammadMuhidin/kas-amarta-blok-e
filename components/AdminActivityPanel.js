@@ -1,6 +1,5 @@
 "use client";
 
-import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import { formatJakartaDateTimeLong } from "@/lib/localDate";
 import { useEffect, useMemo, useState } from "react";
@@ -16,6 +15,7 @@ const modules = [
   "session",
   "settings-app",
   "settings-auth",
+  "settings-access-matrix",
 ];
 
 const severities = ["", "info", "success", "warning", "error"];
@@ -255,24 +255,30 @@ export default function AdminActivityPanel() {
       </div>
 
       {selectedActivity && (
-        <div className={modalStyles.overlay} role="dialog" aria-modal="true" onClick={() => setSelectedActivity(null)}>
-          <div className={`${modalStyles.box} activity-modal`} onClick={(e) => e.stopPropagation()}>
+        <div className="activity-modal-overlay" role="dialog" aria-modal="true" onClick={() => setSelectedActivity(null)}>
+          <div className="activity-modal" onClick={(e) => e.stopPropagation()}>
             <div className="activity-modal-header">
-              <div><h3>Activity Detail</h3><p>{formatDate(selectedActivity.created_at)}</p></div>
+              <div>
+                <h3>Activity Detail</h3>
+                <p>{formatDate(selectedActivity.created_at)}</p>
+              </div>
               <button type="button" className="activity-modal-close" onClick={() => setSelectedActivity(null)}>×</button>
             </div>
+
             <div className="activity-modal-body">
-              <DetailRow label="Actor" value={selectedActivity.actor} />
               <DetailRow label="Action" value={selectedActivity.message} />
+              <DetailRow label="Actor" value={selectedActivity.actor} />
               <DetailRow label="Module" value={selectedActivity.module} />
               <DetailRow label="Type" value={selectedActivity.type} />
-              <DetailRow label="Status" value={selectedActivity.severity || "info"} />
+              <DetailRow label="Severity" value={selectedActivity.severity} />
               <DetailRow label="Device" value={selectedActivity.device_name} />
               <DetailRow label="Location" value={selectedActivity.location} />
-              <DetailRow label="IP Address" value={selectedActivity.ip} />
-              {selectedActivity.metadata && Object.keys(selectedActivity.metadata || {}).length > 0 && (
-                <div className="activity-modal-meta"><span>Metadata</span><pre>{JSON.stringify(selectedActivity.metadata, null, 2)}</pre></div>
-              )}
+              <DetailRow label="IP" value={selectedActivity.ip} />
+
+              <div className="activity-modal-meta">
+                <span>Metadata</span>
+                <pre>{JSON.stringify(selectedActivity.metadata || {}, null, 2)}</pre>
+              </div>
             </div>
           </div>
         </div>

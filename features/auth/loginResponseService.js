@@ -7,16 +7,26 @@ import {
   createAdminSession,
   getSessionCookieName,
 } from "@/lib/adminSession";
+import { resolveAdminAccessRole } from "@/lib/adminRoles";
+import { consumeAdminOtpById } from "@/lib/adminLoginOtp";
 
-export async function createAuthResponse(req, { clearWebAuthChallenge = false } = {}) {
+export async function createAuthResponse(req, { clearWebAuthChallenge = false, accessRole, otpContext } = {}) {
   const csrfToken = createCSRFToken();
   const sessionDuration = await getAdminSessionDuration();
+  const resolvedAccessRole = resolveAdminAccessRole(accessRole);
+
+  if (otpContext?.id) {
+    await consumeAdminOtpById({ id: otpContext.id, role: otpContext.role || resolvedAccessRole });
+  }
 
   const res = NextResponse.json({
     ok: true,
+    access_role: resolvedAccessRole,
   });
 
-  const token = await createAdminSession(req, sessionDuration);
+  const token = await createAdminSession(req, sessionDuration, {
+    accessRole: resolvedAccessRole,
+  });
 
   res.cookies.set(getSessionCookieName(), token, {
     httpOnly: true,

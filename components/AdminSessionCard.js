@@ -6,6 +6,13 @@ import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+const ACCESS_ROLE_LABELS = {
+  admin: "Administrator",
+  ketua: "Ketua",
+  sekretaris: "Sekretaris",
+  bendahara: "Bendahara",
+};
+
 function getCookie(name) {
   return document.cookie
     .split("; ")
@@ -15,6 +22,10 @@ function getCookie(name) {
 
 function getDeviceName(session) {
   return session.device_name || "Unknown device";
+}
+
+function getAccessRoleLabel(session) {
+  return ACCESS_ROLE_LABELS[session?.access_role] || "Administrator";
 }
 
 function getTimeAgo(date) {
@@ -171,6 +182,10 @@ export default function AdminSessionCard() {
                       {getDeviceName(session)}
                     </div>
 
+                    <div style={styles.roleBadge}>
+                      {getAccessRoleLabel(session)}
+                    </div>
+
                     {session.current && (
                       <div style={styles.currentBadge}>
                         Current Session
@@ -237,6 +252,10 @@ export default function AdminSessionCard() {
               <div style={styles.modalSessionBox}>
                 <div style={styles.sessionDevice}>
                   {getDeviceName(pendingSession)}
+                </div>
+
+                <div style={{ ...styles.roleBadge, marginTop: 8, width: "fit-content" }}>
+                  {getAccessRoleLabel(pendingSession)}
                 </div>
 
                 {pendingSession.location && (
@@ -344,6 +363,17 @@ const styles = {
     fontWeight: 800,
     color: "var(--admin-text)",
   },
+  roleBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "4px 8px",
+    borderRadius: 999,
+    background: "rgba(59, 130, 246, 0.12)",
+    color: "#2563eb",
+    fontSize: 11,
+    fontWeight: 900,
+    letterSpacing: ".03em",
+  },
   currentBadge: {
     display: "inline-flex",
     alignItems: "center",
@@ -420,15 +450,15 @@ const styles = {
   modalDesc: {
     margin: "0 0 16px",
     color: "var(--admin-muted)",
-    fontSize: 14,
     lineHeight: 1.5,
+    fontSize: 13,
   },
   modalSessionBox: {
     marginBottom: 18,
-    padding: 14,
+    padding: 12,
     borderRadius: 14,
-    border: "1px solid var(--admin-border)",
     background: "var(--admin-row)",
+    border: "1px solid var(--admin-border)",
   },
   modalActions: {
     display: "flex",
@@ -436,21 +466,21 @@ const styles = {
     gap: 10,
   },
   cancelButton: {
-    padding: "10px 14px",
-    borderRadius: 10,
     border: "1px solid var(--admin-border)",
+    borderRadius: 10,
+    padding: "10px 14px",
     background: "var(--admin-row)",
     color: "var(--admin-text)",
     fontWeight: 800,
     cursor: "pointer",
   },
   confirmDangerButton: {
-    padding: "10px 14px",
-    borderRadius: 10,
     border: "none",
+    borderRadius: 10,
+    padding: "10px 14px",
     background: "var(--admin-danger)",
     color: "#fff",
-    fontWeight: 900,
+    fontWeight: 800,
     cursor: "pointer",
   },
 };

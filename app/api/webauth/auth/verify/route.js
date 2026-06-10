@@ -13,8 +13,12 @@ import {
   recordRateLimitFailure,
 } from "@/lib/rateLimit";
 import { createAuthResponse } from "@/features/auth/loginResponseService";
+import { resolveAdminAccessRole } from "@/lib/adminRoles";
 
 export const runtime = "nodejs";
+
+const PENDING_ACCESS_ROLE_COOKIE = "admin_pending_access_role";
+const PENDING_OTP_ID_COOKIE = "admin_pending_otp_id";
 
 export async function POST(req) {
   try {
@@ -112,7 +116,21 @@ export async function POST(req) {
       rateLimitOptions,
     );
 
-    return createAuthResponse(req, { clearWebAuthChallenge: true });
+    const accessRole = resolveAdminAccessRole(
+      req.cookies.get(PENDING_ACCESS_ROLE_COOKIE)?.value,
+    );
+    const pendingOtpId = req.cookies.get(PENDING_OTP_ID_COOKIE)?.value;
+
+    const res = await createAuthResponse(req, {
+      clearWebAuthChallenge: true,
+      accessRole,
+      otpContext: pendingOtpId ? { id: pendingOtpId, role: accessRole } : null,
+    });
+
+    res.cookies.delete(PENDING_ACCESS_ROLE_COOKIE);
+    res.cookies.delete(PENDING_OTP_ID_COOKIE);
+
+    return res;
   } catch (err) {
     await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.webauthVerifyFailed);
 

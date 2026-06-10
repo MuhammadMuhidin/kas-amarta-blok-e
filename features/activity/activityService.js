@@ -12,6 +12,7 @@ const modules = new Set([
   "session",
   "settings-app",
   "settings-auth",
+  "settings-access-matrix",
 ]);
 
 const severities = new Set([

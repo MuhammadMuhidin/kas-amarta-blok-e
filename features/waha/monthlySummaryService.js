@@ -17,19 +17,12 @@ async function getSummary() {
   return response.json();
 }
 
-function countPaidHouses(data) {
-  const payments = Array.isArray(data?.payments) ? data.payments : [];
-  const periods = Array.isArray(data?.periods) ? data.periods : [];
-  const currentPeriod = [...periods].sort((a, b) => a.localeCompare(b)).pop();
+function normalize(value) {
+  return String(value || "").trim();
+}
 
-  if (!currentPeriod) return 0;
-
-  return new Set(
-    payments
-      .filter((payment) => String(payment.period || "").slice(0, 7) === currentPeriod)
-      .map((payment) => String(payment.person_house || payment.house || payment.person_id || ""))
-      .filter(Boolean),
-  ).size;
+function normalizeLower(value) {
+  return normalize(value).toLowerCase();
 }
 
 function getCurrentPeriod(data) {
@@ -39,17 +32,83 @@ function getCurrentPeriod(data) {
   return currentPeriod || new Date().toISOString().slice(0, 7);
 }
 
+function getCurrentPeriodPayments(data) {
+  const payments = Array.isArray(data?.payments) ? data.payments : [];
+  const currentPeriod = getCurrentPeriod(data);
+
+  return payments.filter((payment) => String(payment.period || "").slice(0, 7) === currentPeriod);
+}
+
+function getCurrentMonthCashflows(data) {
+  const cashflows = Array.isArray(data?.cashflows) ? data.cashflows : [];
+  const currentPeriod = getCurrentPeriod(data);
+
+  return cashflows.filter((cashflow) => String(cashflow.date || "").slice(0, 7) === currentPeriod);
+}
+
+function countPaidHouses(data) {
+  return new Set(
+    getCurrentPeriodPayments(data)
+      .map((payment) => String(payment.person_house || payment.house || payment.person_id || ""))
+      .filter(Boolean),
+  ).size;
+}
+
+function getCurrentPaymentIncome(data) {
+  return getCurrentPeriodPayments(data).reduce(
+    (sum, payment) => sum + Number(payment.amount || 0),
+    0,
+  );
+}
+
+function isAdvanceExpense(cashflow) {
+  const note = normalizeLower(cashflow?.note);
+  const refId = normalizeLower(cashflow?.ref_id || cashflow?.payment_id);
+
+  return (
+    note.includes("talangan") ||
+    note.includes("advance") ||
+    refId.startsWith("trashadv-")
+  );
+}
+
+function sumCashflows(items) {
+  return items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+}
+
+function getCurrentExpenseBreakdown(data) {
+  const currentCashflows = getCurrentMonthCashflows(data);
+  const expenseCashflows = currentCashflows.filter((cashflow) => cashflow.type === "expense");
+  const trashAdvanceExpense = sumCashflows(expenseCashflows.filter(isAdvanceExpense));
+  const operationalExpense = Math.max(0, sumCashflows(expenseCashflows) - trashAdvanceExpense);
+
+  return {
+    operationalExpense,
+    trashAdvanceExpense,
+  };
+}
+
 function buildText(data) {
   const lastMonth = data?.insight?.lastMonth || {};
   const currentMonth = data?.insight?.currentMonth || {};
   const summary = data?.insight?.summary || {};
   const expenses = Array.isArray(lastMonth.expenses) ? lastMonth.expenses : [];
   const paidHouseCount = countPaidHouses(data);
+  const currentPaymentIncome = getCurrentPaymentIncome(data);
+  const { operationalExpense, trashAdvanceExpense } = getCurrentExpenseBreakdown(data);
   const expenseLines = expenses.length
     ? [...expenses]
         .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
         .map((item, index) => `${index + 1}. ${item.note || "-"} ${money(item.amount)}`)
     : [`Tidak ada pengeluaran pada bulan ${lastMonth.month || "lalu"}.`];
+  const currentSummaryLines = [
+    `- Iuran kas warga: ${money(currentPaymentIncome)} dari ${paidHouseCount} rumah`,
+    `- Pengeluaran operasional: ${money(operationalExpense)}`,
+  ];
+
+  if (trashAdvanceExpense > 0) {
+    currentSummaryLines.push(`- Talangan iuran sampah: ${money(trashAdvanceExpense)}`);
+  }
 
   return [
     "Assalamu’alaikum, selamat malam Bapak-Bapak.",
@@ -59,16 +118,15 @@ function buildText(data) {
     "Rincian pengeluaran bulan lalu:",
     ...expenseLines,
     "",
-    `Total pengeluaran: ${money(lastMonth.expenseTotal)}`,
+    `Total pengeluaran bulan lalu: ${money(lastMonth.expenseTotal)}`,
     `Sisa saldo bulan lalu: ${money(lastMonth.remaining)}`,
     "",
-    `Kas masuk bulan ${currentMonth.month || "ini"} dari ${paidHouseCount} rumah ditambah sisa saldo bulan lalu: ${money(summary.currentIncomePlusLastRemaining)}`,
+    `Rekap kas bulan ${currentMonth.month || "ini"}:`,
+    ...currentSummaryLines,
     "",
-    `Pengeluaran bulan ini: ${money(currentMonth.expenseTotal)}`,
-    `Saldo kas saat ini: ${money(summary.currentBalance)}`,
+    `Sisa saldo saat ini: ${money(summary.currentBalance)}`,
     "",
-    "Bagi Bapak-Bapak yang ingin mengecek rincian pemasukan dan pengeluaran dana kas, dapat melihatnya melalui tautan berikut:",
-    "",
+    "Rincian lengkap:",
     PUBLIC_KAS_URL,
     "",
     "Terima kasih.",
