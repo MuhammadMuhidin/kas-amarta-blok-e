@@ -1,6 +1,7 @@
 "use client";
 
 import AdminSessionCard from "@/components/AdminSessionCard";
+import MatrixAccessCard from "@/components/admin/MatrixAccessCard";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { useEffect, useState } from "react";
@@ -244,6 +245,12 @@ export default function AdminSettings() {
       <SettingRow title="WebAuth Passkey" description="When enabled, login requires passkey/fingerprint verification after the password." checked={config.webAuthEnabled} disabled={saving} onChange={(value) => updateSetting("WEB_AUTH_ENABLED", value)} />
       <SettingRow title="PIN Login" description="When enabled, login requires a PIN after the password. If WebAuth is also enabled, passkey verification is still required after the PIN." checked={config.pinEnabled} disabled={saving} onChange={(value) => updateSetting("PIN_ENABLED", value)} />
       <SelectSettingRow title="Session Duration" description="Admin login session duration before automatic logout. Changes apply from the next login." value={String(config.sessionDuration || 86400)} options={sessionDurationOptions} disabled={saving} isMobile={isMobile} onChange={(value) => updateSetting("SESSION_DURATION", value)} />
+
+      <MatrixAccessCard
+        requestPin={requestPin}
+        disabled={applyingChange}
+        showPopup={(text, type) => showPopup(setPopup, text, type)}
+      />
 
       <AdminSessionCard />
 
