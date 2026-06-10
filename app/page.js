@@ -17,6 +17,44 @@ const timelineInstagramRefinementCss = `
     text-align: center !important;
   }
 
+  .public-home-manager-link {
+    position: fixed;
+    top: max(14px, env(safe-area-inset-top, 0px));
+    right: 14px;
+    z-index: 9200;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 34px;
+    padding: 7px 12px;
+    border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    color: var(--text);
+    box-shadow: var(--shadow-soft);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+  }
+
+  .public-home-manager-link:hover,
+  .public-home-manager-link:focus-visible {
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+    outline: none;
+  }
+
+  .public-home-manager-link:active {
+    transform: scale(0.96);
+  }
+
   .timeline-story-item.unread .timeline-story-ring {
     background: var(--primary) !important;
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 13%, transparent) !important;
@@ -156,6 +194,16 @@ const timelineInstagramRefinementCss = `
     content: "🏠";
     font-size: 18px;
     line-height: 1;
+  }
+
+  @media (max-width: 700px) {
+    .public-home-manager-link {
+      top: max(10px, env(safe-area-inset-top, 0px));
+      right: 10px;
+      min-height: 32px;
+      padding: 7px 10px;
+      font-size: 11px;
+    }
   }
 `;
 
@@ -358,6 +406,7 @@ export default function ResidentTimelinePage() {
   return (
     <>
       <style>{timelineInstagramRefinementCss}</style>
+      <a className="public-home-manager-link" href="/login" aria-label="Masuk Area Pengurus">🔐 Area Pengurus</a>
       <TimelineClient />
       <Script id="timeline-reaction-count-popover" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: timelineReactionCountScript }} />
     </>
