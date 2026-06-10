@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 
-export default function PublicHero({ description, showManagerLink = true }) {
+export default function PublicHero({ description, showManagerLink = true, className = "" }) {
   return (
-    <header className="hero-header timeline-hero public-hero">
+    <header className={`hero-header timeline-hero public-hero ${className}`.trim()}>
       <div className="hero-eyebrow">Amarta Residence • Blok E</div>
       <p className="hero-desc">{description}</p>
       {showManagerLink ? (
