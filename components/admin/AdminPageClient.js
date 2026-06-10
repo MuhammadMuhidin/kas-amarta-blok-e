@@ -13,6 +13,7 @@ import TimelineTab from "@/components/admin/tabs/TimelineTab";
 import Toast from "@/components/Toast";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod } from "@/lib/depositUtils";
+import { ADMIN_MODULES } from "@/lib/adminModules";
 import useAdminCashflowActions from "@/hooks/admin/useAdminCashflowActions";
 import useAdminDepositActions from "@/hooks/admin/useAdminDepositActions";
 import useAdminDerivedState from "@/hooks/admin/useAdminDerivedState";
@@ -24,7 +25,7 @@ import useAdminTabs from "@/hooks/admin/useAdminTabs";
 import useAdminToast from "@/hooks/admin/useAdminToast";
 import useScreenWakeLock from "@/hooks/admin/useScreenWakeLock";
 import AdminLoading from "@/app/admin/loading";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
 function normalize(value) {
@@ -33,13 +34,41 @@ function normalize(value) {
 
 const icon = (codePoint, emoji = false) => `${String.fromCodePoint(codePoint)}${emoji ? String.fromCodePoint(0xfe0f) : ""}`;
 
+const MODULE_ICONS = {
+  overview: icon(0x1F4CC),
+  personal: icon(0x1F464),
+  payment: icon(0x1F4B3),
+  deposit: icon(0x1F4B0),
+  cashflow: icon(0x1F4DD),
+  timeline: icon(0x1F4F8),
+  summary: icon(0x1F6E1, true),
+  monitoring: icon(0x1F5A5, true),
+  activity: icon(0x1F4CB),
+  settings: icon(0x2699, true),
+};
+
+function getAllowedModules(moduleKeys = []) {
+  const allowed = new Set(moduleKeys || []);
+  return ADMIN_MODULES.filter((module) => allowed.has(module.key));
+}
+
 export default function AdminPageClient() {
   const router = useRouter();
   const currentPeriod = getCurrentPeriod();
   const [bootLoading, setBootLoading] = useState(true);
+  const [sessionInfo, setSessionInfo] = useState({ access_role: "admin", modules: ["overview"] });
   const [payment, setPayment] = useState({ period: "", amount: "" });
   const [depositForm, setDepositForm] = useState({ person_id: "", end_period: "" });
   const [bookingBatchLoading, setBookingBatchLoading] = useState(false);
+
+  const allowedModules = useMemo(
+    () => getAllowedModules(sessionInfo.modules),
+    [sessionInfo.modules],
+  );
+  const allowedTabKeys = useMemo(
+    () => allowedModules.map((module) => module.key),
+    [allowedModules],
+  );
 
   const { popup, showPopup } = useAdminToast();
   const { checkSession } = useAdminSession();
@@ -67,7 +96,7 @@ export default function AdminPageClient() {
     tabRefreshKey,
     handleTabClick,
     tabClassName,
-  } = useAdminTabs(refreshTabData);
+  } = useAdminTabs(refreshTabData, allowedTabKeys);
 
   const {
     member,
@@ -180,6 +209,10 @@ export default function AdminPageClient() {
     createCashflow: (payload) => sendJson("/api/sheets/cashflow", "POST", payload),
   });
 
+  function canAccess(moduleKey) {
+    return allowedTabKeys.includes(moduleKey);
+  }
+
   async function refreshBookingState() {
     await Promise.all([loadDeposit(), loadPayment(), loadTrash(), loadCashflow()]);
   }
@@ -198,8 +231,14 @@ export default function AdminPageClient() {
 
   useEffect(() => {
     async function bootstrap() {
-      const validSession = await checkSession();
-      if (!validSession) return;
+      const session = await checkSession();
+      if (!session) return;
+
+      setSessionInfo({
+        access_role: session.access_role || "admin",
+        modules: session.modules?.length ? session.modules : ["overview"],
+      });
+
       try {
         await Promise.all([loadAppConfig(), loadPersonal(), loadPayment(), loadCashflow(), loadTrash(), loadDeposit()]);
       } finally {
@@ -210,8 +249,9 @@ export default function AdminPageClient() {
   }, []);
 
   useEffect(() => {
+    if (!canAccess(tab)) return;
     refreshTabData(tab);
-  }, [tab]);
+  }, [tab, allowedTabKeys.join("|")]);
 
   useEffect(() => {
     const hasRunningBatch = loadingPayment || bookingBatchLoading;
@@ -241,27 +281,28 @@ export default function AdminPageClient() {
           <h1 className="admin-title">Cash Flow Management</h1>
         </div>
         <div className="admin-tabs">
-          <button className={tabClassName("overview")} onClick={() => handleTabClick("overview")}>{icon(0x1F4CC)} Overview</button>
-          <button className={tabClassName("personal")} onClick={() => handleTabClick("personal")}>{icon(0x1F464)} Member</button>
-          <button className={tabClassName("payment")} onClick={() => handleTabClick("payment")}><div className="admin-tab-content"><span>{icon(0x1F4B3)} Payment</span>{pendingCurrentDeposits.length > 0 && <span className="admin-deposit-badge">{pendingCurrentDeposits.length} booking pending</span>}</div></button>
-          <button className={tabClassName("deposit")} onClick={() => handleTabClick("deposit")}>{icon(0x1F4B0)} Booking Payment</button>
-          <button className={tabClassName("cashflow")} onClick={() => handleTabClick("cashflow")}>{icon(0x1F4DD)} Cashflow</button>
-          <button className={tabClassName("timeline")} onClick={() => handleTabClick("timeline")}>{icon(0x1F4F8)} Timeline</button>
-          <button className={tabClassName("summary")} onClick={() => handleTabClick("summary")}>{icon(0x1F6E1, true)} Summary Backup</button>
-          <button className={tabClassName("monitoring")} onClick={() => handleTabClick("monitoring")}><div className="admin-tab-content"><span>{icon(0x1F5A5, true)} Monitoring</span>{monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}</div></button>
-          <button className={tabClassName("activity")} onClick={() => handleTabClick("activity")}>{icon(0x1F4CB)} Activity</button>
-          <button className={tabClassName("settings")} onClick={() => handleTabClick("settings")}>{icon(0x2699, true)} Settings</button>
+          {allowedModules.map((module) => (
+            <button key={module.key} className={tabClassName(module.key)} onClick={() => handleTabClick(module.key)}>
+              {(module.key === "payment" || module.key === "monitoring") ? (
+                <div className="admin-tab-content">
+                  <span>{MODULE_ICONS[module.key]} {module.label}</span>
+                  {module.key === "payment" && pendingCurrentDeposits.length > 0 && <span className="admin-deposit-badge">{pendingCurrentDeposits.length} booking pending</span>}
+                  {module.key === "monitoring" && monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}
+                </div>
+              ) : `${MODULE_ICONS[module.key]} ${module.label}`}
+            </button>
+          ))}
         </div>
-        {tab === "overview" && <OverviewTab key={`overview-${tabRefreshKey}`} personal={personal} payments={payments} trashRecords={trashRecords} cashflows={cashflows} sortedDeposits={sortedDeposits} currentPeriod={currentPeriod} appConfig={appConfig} dailyBackup={{ ok: true }} monitoringIssueCount={monitoringIssueCount} getDepositStatus={getDepositStatus} onNavigate={handleTabClick} onTrashAdvanceComplete={refreshOverviewState} />}
-        {tab === "personal" && <PersonalTab key={`personal-${tabRefreshKey}`} member={member} setMember={setMember} addMember={addMember} loadingAdd={loadingAdd} memberFilter={memberFilter} toggleMemberFilter={toggleMemberFilter} stats={stats} memberSearch={memberSearch} setMemberSearch={setMemberSearch} searchedPersonal={searchedPersonal} rowClassName={rowClassName} onUpdateMember={updateMemberInline} />}
-        {tab === "payment" && <PaymentTab key={`payment-${tabRefreshKey}`} configError={configError} recordPayment={recordPayment} payment={payment} setPayment={setPayment} personal={personal} payments={payments} selected={selected} toggleHouse={toggleHouse} resetSelected={resetSelected} normalize={normalize} isHousePaidForPeriod={isHousePaidForPeriod} loadingPayment={loadingPayment} paymentProgress={paymentProgress} wakeLock={wakeLock} onPaymentProofReviewed={refreshPaymentProofState} />}
-        {tab === "deposit" && <DepositTab key={`deposit-${tabRefreshKey}`} saveDeposit={saveDeposit} depositForm={depositForm} setDepositForm={setDepositForm} activePersons={activePersons} depositAmount={depositAmount} selectedDepositPerson={selectedDepositPerson} appConfig={appConfig} nextSixPeriods={nextSixPeriods} selectedDepositPeriods={selectedDepositPeriods} savingDeposit={savingDeposit} sortedDeposits={sortedDeposits} getDepositStatus={getDepositStatus} payingDepositId={payingDepositId} payments={payments} normalize={normalize} payDeposit={payDeposit} onBatchComplete={refreshBookingState} onBatchStatusChange={setBookingBatchLoading} wakeLock={wakeLock} />}
-        {tab === "cashflow" && <CashflowTab key={`cashflow-${tabRefreshKey}`} addCashflow={addCashflow} cashflow={cashflow} setCashflow={setCashflow} loadingCashflow={loadingCashflow} />}
-        {tab === "timeline" && <TimelineTab key={`timeline-${tabRefreshKey}`} showPopup={showPopup} />}
-        {tab === "summary" && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
-        {tab === "monitoring" && <MonitoringTab key={`monitoring-${tabRefreshKey}`} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} trashAdvanceReimbursementIntegrity={trashAdvanceReimbursementIntegrity} depositPaymentIntegrity={depositPaymentIntegrity} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
-        {tab === "activity" && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
-        {tab === "settings" && <SettingsTab key={`settings-${tabRefreshKey}`} />}
+        {tab === "overview" && canAccess("overview") && <OverviewTab key={`overview-${tabRefreshKey}`} personal={personal} payments={payments} trashRecords={trashRecords} cashflows={cashflows} sortedDeposits={sortedDeposits} currentPeriod={currentPeriod} appConfig={appConfig} dailyBackup={{ ok: true }} monitoringIssueCount={monitoringIssueCount} getDepositStatus={getDepositStatus} onNavigate={handleTabClick} onTrashAdvanceComplete={refreshOverviewState} />}
+        {tab === "personal" && canAccess("personal") && <PersonalTab key={`personal-${tabRefreshKey}`} member={member} setMember={setMember} addMember={addMember} loadingAdd={loadingAdd} memberFilter={memberFilter} toggleMemberFilter={toggleMemberFilter} stats={stats} memberSearch={memberSearch} setMemberSearch={setMemberSearch} searchedPersonal={searchedPersonal} rowClassName={rowClassName} onUpdateMember={updateMemberInline} />}
+        {tab === "payment" && canAccess("payment") && <PaymentTab key={`payment-${tabRefreshKey}`} configError={configError} recordPayment={recordPayment} payment={payment} setPayment={setPayment} personal={personal} payments={payments} selected={selected} toggleHouse={toggleHouse} resetSelected={resetSelected} normalize={normalize} isHousePaidForPeriod={isHousePaidForPeriod} loadingPayment={loadingPayment} paymentProgress={paymentProgress} wakeLock={wakeLock} onPaymentProofReviewed={refreshPaymentProofState} />}
+        {tab === "deposit" && canAccess("deposit") && <DepositTab key={`deposit-${tabRefreshKey}`} saveDeposit={saveDeposit} depositForm={depositForm} setDepositForm={setDepositForm} activePersons={activePersons} depositAmount={depositAmount} selectedDepositPerson={selectedDepositPerson} appConfig={appConfig} nextSixPeriods={nextSixPeriods} selectedDepositPeriods={selectedDepositPeriods} savingDeposit={savingDeposit} sortedDeposits={sortedDeposits} getDepositStatus={getDepositStatus} payingDepositId={payingDepositId} payments={payments} normalize={normalize} payDeposit={payDeposit} onBatchComplete={refreshBookingState} onBatchStatusChange={setBookingBatchLoading} wakeLock={wakeLock} />}
+        {tab === "cashflow" && canAccess("cashflow") && <CashflowTab key={`cashflow-${tabRefreshKey}`} addCashflow={addCashflow} cashflow={cashflow} setCashflow={setCashflow} loadingCashflow={loadingCashflow} />}
+        {tab === "timeline" && canAccess("timeline") && <TimelineTab key={`timeline-${tabRefreshKey}`} showPopup={showPopup} />}
+        {tab === "summary" && canAccess("summary") && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
+        {tab === "monitoring" && canAccess("monitoring") && <MonitoringTab key={`monitoring-${tabRefreshKey}`} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} trashAdvanceReimbursementIntegrity={trashAdvanceReimbursementIntegrity} depositPaymentIntegrity={depositPaymentIntegrity} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
+        {tab === "activity" && canAccess("activity") && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
+        {tab === "settings" && canAccess("settings") && <SettingsTab key={`settings-${tabRefreshKey}`} />}
       </div>
     </>
   );
