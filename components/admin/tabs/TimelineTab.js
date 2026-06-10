@@ -52,16 +52,6 @@ function buildPostPayload(form) {
   };
 }
 
-function getPostPreviewUrl(postId) {
-  if (typeof window === "undefined") return `/?post=${postId}`;
-
-  const url = new URL(window.location.origin);
-  url.pathname = "/";
-  url.searchParams.set("post", postId);
-
-  return url.toString();
-}
-
 function getPostImages(post) {
   return Array.isArray(post?.images) ? post.images.filter((image) => image?.image_url) : [];
 }
@@ -627,16 +617,11 @@ export default function TimelineTab({ showPopup }) {
                 <div className="admin-empty-state">Belum ada foto untuk post ini.</div>
               )}
             </section>
-
-            <div className="timeline-form-actions">
-              <a className="admin-small-btn" href={getPostPreviewUrl(photoPost.id)} target="_blank" rel="noreferrer">Open Public Preview</a>
-              <button type="button" className="admin-small-btn" disabled={uploading || Boolean(imageActionId)} onClick={closeMediaModals}>Close</button>
-            </div>
           </div>
         </div>
       )}
 
-      {previewPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>{previewPost.title}</h3><p>{formatDate(previewPost.event_date || previewPost.created_at)}</p><p>{previewPost.description}</p><ReactionSummary post={previewPost} /><div className="timeline-preview-grid">{(previewPost.images || []).map((image) => <img key={image.id || image.image_url} src={image.image_url} alt={image.caption || previewPost.title} />)}</div><div className="timeline-form-actions"><a className="admin-small-btn" href={getPostPreviewUrl(previewPost.id)} target="_blank" rel="noreferrer">Open Public Preview</a><button type="button" className="admin-small-btn" onClick={closeMediaModals}>Close</button></div></div></div>}
+      {previewPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>{previewPost.title}</h3><p>{formatDate(previewPost.event_date || previewPost.created_at)}</p><p>{previewPost.description}</p><ReactionSummary post={previewPost} /><div className="timeline-preview-grid">{(previewPost.images || []).map((image) => <img key={image.id || image.image_url} src={image.image_url} alt={image.caption || previewPost.title} />)}</div></div></div>}
 
       {deletePost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>Delete Post?</h3><p>{deletePost.title}</p><div className="timeline-form-actions"><button type="button" className="admin-small-btn" disabled={Boolean(deletingId)} onClick={closeMediaModals}>Cancel</button><button type="button" className="admin-btn" disabled={Boolean(deletingId)} onClick={deleteSelectedPost}><LoadingButtonContent loading={deletingId === deletePost.id} loadingText="Deleting...">Delete</LoadingButtonContent></button></div></div></div>}
 
