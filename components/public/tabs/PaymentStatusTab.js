@@ -48,34 +48,31 @@ export default function PaymentStatusTab({
           return (
             <div className="pay-slide-page" key={pageIndex}>
               <div className="pay-grid">
-                {items.map((person, index) => (
-                  <div
-                    key={index}
-                    className="pay-item"
-                    onClick={() => setSelectedResident(person)}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between" }}>
-                      <span>{person.house}</span>
+                {items.map((person, index) => {
+                  const status = person.paymentStatus || {};
 
-                      <span
-                        style={{
-                          fontWeight: 700,
-                          color: person.notApplicable
-                            ? "#6c757d"
-                            : person.paid
-                              ? "#28a745"
-                              : "#dc3545",
-                        }}
-                      >
-                        {person.notApplicable
-                          ? "Belum Bergabung"
-                          : person.paid
-                            ? "Sudah Bayar"
-                            : "Belum Bayar"}
-                      </span>
+                  return (
+                    <div
+                      key={index}
+                      className="pay-item"
+                      onClick={() => setSelectedResident(person)}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                        <span>{person.house}</span>
+
+                        <span
+                          style={{
+                            fontWeight: 700,
+                            color: status.color || "#6c757d",
+                            textAlign: "right",
+                          }}
+                        >
+                          {status.label || "-"}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
