@@ -1,4 +1,5 @@
 import { generateId } from "@/lib/id";
+import { getJakartaDateString } from "@/lib/localDate";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import {
   findTrashByPaymentId,
@@ -52,7 +53,7 @@ export async function createTrashPayment({ supabase, req, body }) {
   }
 
   const trashId = generateId("TRASH-");
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getJakartaDateString();
 
   await insertTrash(supabase, {
     id: trashId,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { getJakartaDateString } from "@/lib/localDate";
 import {
   enforceRateLimit,
   RATE_LIMIT_SCOPES,
@@ -80,7 +81,7 @@ export async function PATCH(req) {
     }
 
     const supabase = getSupabaseAdmin();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = getJakartaDateString();
     const result = await processDepositAction({ supabase, req, body, today });
 
     return NextResponse.json(result.body, { status: result.status });

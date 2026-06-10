@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const initialSummary = {
   payments: [],
   cashflows: [],
   persons: [],
   periods: [],
+  payment_confirmations: [],
 };
 
 export default function usePublicSummary(fetchUrl = "/api/sheets/summary") {
@@ -15,42 +16,44 @@ export default function usePublicSummary(fetchUrl = "/api/sheets/summary") {
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [error, setError] = useState("");
 
+  const load = useCallback(async ({ silent = false } = {}) => {
+    if (!silent) setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch(`${fetchUrl}?t=${Date.now()}`, {
+        cache: "no-store",
+      });
+
+      if (!res.ok) throw new Error("Failed to load data");
+
+      const json = await res.json();
+      setData(json || initialSummary);
+
+      if (json?.periods?.length > 0) {
+        setSelectedPeriod((current) => current || [...json.periods].sort().pop());
+      }
+    } catch (err) {
+      setError(err.message || "Gagal memuat data");
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [fetchUrl]);
+
   useEffect(() => {
     let active = true;
 
-    async function load() {
-      setLoading(true);
-      setError("");
-
-      try {
-        const res = await fetch(`${fetchUrl}?t=${Date.now()}`, {
-          cache: "no-store",
-        });
-
-        if (!res.ok) throw new Error("Failed to load data");
-
-        const json = await res.json();
-
-        if (!active) return;
-
-        setData(json || initialSummary);
-
-        if (json?.periods?.length > 0) {
-          setSelectedPeriod([...json.periods].sort().pop());
-        }
-      } catch (err) {
-        if (active) setError(err.message || "Gagal memuat data");
-      } finally {
-        if (active) setLoading(false);
-      }
+    async function run() {
+      if (!active) return;
+      await load();
     }
 
-    load();
+    run();
 
     return () => {
       active = false;
     };
-  }, [fetchUrl]);
+  }, [load]);
 
   return {
     data,
@@ -59,5 +62,6 @@ export default function usePublicSummary(fetchUrl = "/api/sheets/summary") {
     error,
     selectedPeriod,
     setSelectedPeriod,
+    reload: () => load({ silent: true }),
   };
 }

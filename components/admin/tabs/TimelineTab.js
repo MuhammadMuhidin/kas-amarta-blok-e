@@ -3,6 +3,7 @@
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import { readJson, sendFormData, sendJson } from "@/components/admin/adminClientApi";
+import { formatJakartaDate } from "@/lib/localDate";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const emptyForm = {
@@ -26,16 +27,7 @@ function normalize(value) {
 }
 
 function formatDate(value) {
-  if (!value) return "-";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return date.toLocaleDateString("en-US", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  return formatJakartaDate(value, "id-ID");
 }
 
 function buildPostPayload(form) {
@@ -238,367 +230,156 @@ export default function TimelineTab({ showPopup }) {
       if (!validateBeforePublish(nextPost)) return;
     }
 
-    setSaving(true);
     try {
-      if (editingPost) {
-        await sendJson(`/api/admin/timeline/posts/${editingPost.id}`, "PATCH", payload);
-        showPopup?.("Post updated successfully", "success");
-      } else {
-        await sendJson("/api/admin/timeline/posts", "POST", { ...payload, published: false });
-        showPopup?.("Post created as draft", "success");
-      }
+      setSaving(true);
+      if (editingPost?.id) await sendJson(`/api/admin/timeline/posts/${editingPost.id}`, "PATCH", payload);
+      else await sendJson("/api/admin/timeline/posts", "POST", payload);
+      showPopup?.("Timeline post saved", "success");
       resetForm();
       await loadPosts();
     } catch (err) {
-      const message = err.message || "Failed to save post";
-      setError(message);
-      showPopup?.(message, "error");
+      setError(err.message || "Failed to save post");
+      showPopup?.(err.message || "Failed to save post", "error");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleTogglePublish() {
-    if (!publishPost) return;
-    if (!publishPost.published && !validateBeforePublish(publishPost)) {
-      setPublishPost(null);
-      return;
-    }
-
-    setSaving(true);
-    setError("");
-    try {
-      await sendJson(`/api/admin/timeline/posts/${publishPost.id}`, "PATCH", { published: !publishPost.published });
-      showPopup?.(publishPost.published ? "Post saved as draft" : "Post published", "success");
-      setPublishPost(null);
-      await loadPosts();
-    } catch (err) {
-      const message = err.message || "Failed to change post status";
-      setError(message);
-      showPopup?.(message, "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleUpload(e) {
+  async function uploadPhotos(e) {
     e.preventDefault();
-    if (!photoPost) return;
+    if (!photoPost?.id || imageFiles.length === 0) return;
 
-    if (!imageFiles.length) {
-      setError("Select activity photos first");
-      return;
-    }
-
-    setUploading(true);
-    setError("");
     try {
+      setUploading(true);
       const formData = new FormData();
-      formData.append("post_id", photoPost.id);
       imageFiles.forEach((file) => formData.append("images", file));
       formData.append("caption", imageCaption);
       formData.append("set_as_cover", setAsCover ? "true" : "false");
-      formData.append("sort_order", String(photoPost.images?.length || 0));
-
-      await sendFormData("/api/admin/timeline/upload", "POST", formData);
-      showPopup?.(`${imageFiles.length} photos uploaded successfully`, "success");
+      await sendFormData(`/api/admin/timeline/posts/${photoPost.id}/images`, "POST", formData);
+      showPopup?.("Photos uploaded", "success");
       resetPhotoState();
       await loadPosts();
     } catch (err) {
-      const message = err.message || "Failed to upload photo";
-      setError(message);
-      showPopup?.(message, "error");
+      setError(err.message || "Failed to upload photos");
+      showPopup?.(err.message || "Failed to upload photos", "error");
     } finally {
       setUploading(false);
     }
   }
 
-  async function handleSetCover(image) {
-    if (!image?.id) return;
+  async function deleteSelectedPost() {
+    if (!deletePost?.id || deletingId) return;
 
-    setSaving(true);
-    setError("");
     try {
-      await sendJson(`/api/admin/timeline/images/${image.id}`, "PATCH", { set_as_cover: true });
-      showPopup?.("Cover updated successfully", "success");
-      setPhotoPost((current) => current ? { ...current, cover_image_key: image.image_key, cover_image_url: image.image_url } : current);
-      await loadPosts();
-    } catch (err) {
-      const message = err.message || "Failed to update cover";
-      setError(message);
-      showPopup?.(message, "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDeleteImage(image) {
-    if (!image?.id || !photoPost?.id) return;
-
-    setSaving(true);
-    setError("");
-    try {
-      const remainingImages = (photoPost.images || []).filter((item) => item.id !== image.id);
-      const isCurrentCover = photoPost.cover_image_key === image.image_key || photoPost.cover_image_url === image.image_url;
-      const nextCover = isCurrentCover ? remainingImages[0] : null;
-
-      await sendJson(`/api/admin/timeline/images/${image.id}`, "DELETE", {});
-
-      if (isCurrentCover) {
-        await sendJson(`/api/admin/timeline/posts/${photoPost.id}`, "PATCH", {
-          cover_image_key: nextCover?.image_key || "",
-          cover_image_url: nextCover?.image_url || "",
-        });
-      }
-
-      showPopup?.("Photo deleted successfully", "success");
-      setPhotoPost((current) => current ? {
-        ...current,
-        images: remainingImages,
-        cover_image_key: isCurrentCover ? (nextCover?.image_key || "") : current.cover_image_key,
-        cover_image_url: isCurrentCover ? (nextCover?.image_url || "") : current.cover_image_url,
-      } : current);
-      await loadPosts();
-    } catch (err) {
-      const message = err.message || "Failed to delete photo";
-      setError(message);
-      showPopup?.(message, "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete() {
-    if (!deletePost) return;
-
-    setDeletingId(deletePost.id);
-    setError("");
-    try {
-      await sendJson(`/api/admin/timeline/posts/${deletePost.id}`, "DELETE", {});
-      showPopup?.("Post deleted successfully", "success");
+      setDeletingId(deletePost.id);
+      await sendJson(`/api/admin/timeline/posts/${deletePost.id}`, "DELETE");
+      showPopup?.("Timeline post deleted", "success");
       setDeletePost(null);
       await loadPosts();
     } catch (err) {
-      const message = err.message || "Failed to delete post";
-      setError(message);
-      showPopup?.(message, "error");
+      setError(err.message || "Failed to delete post");
+      showPopup?.(err.message || "Failed to delete post", "error");
     } finally {
       setDeletingId("");
     }
   }
 
+  async function publishSelectedPost() {
+    if (!publishPost?.id || saving) return;
+    if (!validateBeforePublish(publishPost)) return;
+
+    try {
+      setSaving(true);
+      await sendJson(`/api/admin/timeline/posts/${publishPost.id}`, "PATCH", { published: true });
+      showPopup?.("Timeline post published", "success");
+      setPublishPost(null);
+      await loadPosts();
+    } catch (err) {
+      setError(err.message || "Failed to publish post");
+      showPopup?.(err.message || "Failed to publish post", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function closeMediaModals() {
+    if (uploading || deletingId || saving) return;
+    resetPhotoState();
+    setPreviewPost(null);
+    setDeletePost(null);
+    setPublishPost(null);
+  }
+
   return (
-    <>
-      <div className="activity-panel">
-        <div className="activity-header">
-          <div>
-            <div className="activity-kicker">Resident Documentation</div>
-            <h2 className="activity-title">Activity Posts</h2>
-            <p className="activity-subtitle">Manage resident activity documentation before displaying it on the main page.</p>
-          </div>
-          <button className="admin-small-btn admin-refresh-btn" type="button" onClick={loadPosts} disabled={loading}>
-            <LoadingButtonContent loading={loading}>Refresh</LoadingButtonContent>
-          </button>
+    <div className="admin-card timeline-admin">
+      <div className="timeline-admin-header">
+        <div>
+          <h3>Timeline Management</h3>
+          <p>Create and manage public activity posts.</p>
         </div>
-
-        {error ? <div className="admin-error-box">{error}</div> : null}
-        <TimelineSummary posts={posts} />
-
-        <div className="admin-card">
-          <div className="timeline-admin-form-header">
-            <div>
-              <h3>{editingPost ? `Editing: ${editingPost.title}` : "Timeline Content Studio"}</h3>
-              <p>Create a post, complete the content, add photos, preview it, then publish.</p>
-            </div>
-            {showForm ? (
-              <button type="button" className="admin-small-btn timeline-form-toggle" onClick={resetForm} disabled={saving}>Close Form</button>
-            ) : (
-              <button type="button" className="admin-small-btn timeline-form-toggle" onClick={openCreateForm}>+ Create Post</button>
-            )}
-          </div>
-
-          {showForm ? (
-            <form className="admin-form admin-collapsible-panel" onSubmit={handleSubmit}>
-              <input className="admin-input" placeholder="Activity title" value={form.title} onChange={(e) => setForm((current) => ({ ...current, title: e.target.value }))} />
-              <textarea className="admin-input timeline-admin-textarea" placeholder="Activity description" value={form.description} onChange={(e) => setForm((current) => ({ ...current, description: e.target.value }))} />
-              <div className="timeline-admin-grid">
-                <input className="admin-input" placeholder="Category, example: Community Cleanup" value={form.category} onChange={(e) => setForm((current) => ({ ...current, category: e.target.value }))} />
-                <input className="admin-input" type="date" value={form.event_date} onChange={(e) => setForm((current) => ({ ...current, event_date: e.target.value }))} />
-              </div>
-              <label className="timeline-admin-check">
-                <input type="checkbox" checked={form.published} onChange={(e) => setForm((current) => ({ ...current, published: e.target.checked }))} />
-                <span>Publish to main page</span>
-              </label>
-              <button className="admin-btn" disabled={saving}>
-                <LoadingButtonContent loading={saving} loadingText="Saving...">{editingPost ? "Save Changes" : "Save Draft"}</LoadingButtonContent>
-              </button>
-            </form>
-          ) : null}
-        </div>
-
-        <div className="admin-card">
-          <div className="timeline-admin-form-header">
-            <div>
-              <h3>Post List</h3>
-              <p>Showing {filteredPosts.length} of {posts.length} posts.</p>
-            </div>
-          </div>
-
-          <div className="timeline-admin-grid" style={{ marginBottom: 12 }}>
-            <input className="admin-input" placeholder="Search title, category, date..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-            <div className="timeline-admin-actions">
-              {statusFilters.map((item) => (
-                <button key={item.value} type="button" className={statusFilter === item.value ? "admin-small-btn timeline-filter-btn timeline-filter-btn-active active" : "admin-small-btn timeline-filter-btn"} onClick={() => setStatusFilter(item.value)}>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {loading ? (
-            <p>Loading posts...</p>
-          ) : posts.length === 0 ? (
-            <div className="admin-empty-state">No resident activity posts yet.</div>
-          ) : filteredPosts.length === 0 ? (
-            <div className="admin-empty-state">No posts match the selected filter.</div>
-          ) : (
-            <div className="admin-table-wrapper">
-              <table className="admin-table timeline-admin-table">
-                <thead>
-                  <tr>
-                    <th className="admin-th">Post</th>
-                    <th className="admin-th">Status</th>
-                    <th className="admin-th">Photo</th>
-                    <th className="admin-th">Reaction</th>
-                    <th className="admin-th">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPosts.map((post, index) => {
-                    const cover = getPostCover(post);
-                    const photoCount = post.images?.length || 0;
-                    const state = getReadiness(post);
-
-                    return (
-                      <tr key={post.id} className={index % 2 ? "admin-row-alt timeline-admin-row" : "timeline-admin-row"}>
-                        <td className="admin-td timeline-admin-title-cell">
-                          <div className="timeline-admin-post-cell">
-                            <div className="timeline-admin-thumb" aria-hidden="true">
-                              {cover ? <img src={cover.image_url} alt="" /> : <span>📸</span>}
-                            </div>
-                            <div>
-                              <strong>{post.title}</strong>
-                              <span>{post.category || "Uncategorized"} • {formatDate(post.event_date || post.created_at)}</span>
-                              {!state.ready && state.missing.length ? <span>Missing: {state.missing.join(", ")}</span> : null}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="admin-td"><StatusBadge state={state} /></td>
-                        <td className="admin-td"><span className={photoCount > 0 ? "timeline-admin-photo-badge ready" : "timeline-admin-photo-badge warning"}>{photoCount > 0 ? `${photoCount} photos` : "No photos yet"}</span></td>
-                        <td className="admin-td">{Number(post.reaction_total ?? post.like_count ?? 0).toLocaleString("id-ID")}</td>
-                        <td className="admin-td">
-                          <div className="timeline-admin-actions">
-                            <button className="admin-small-btn" type="button" onClick={() => setPreviewPost(post)}>Preview</button>
-                            <button className="admin-small-btn" type="button" onClick={() => openEdit(post)}>Edit</button>
-                            <button className="admin-small-btn" type="button" onClick={() => setPhotoPost(post)}>Manage Photos</button>
-                            <button className="admin-small-btn" type="button" disabled={saving} onClick={() => setPublishPost(post)}>{post.published ? "Save as Draft" : "Publish"}</button>
-                            <button className="admin-small-btn timeline-danger-btn" type="button" onClick={() => setDeletePost(post)}>Delete</button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <button type="button" className="admin-btn" onClick={openCreateForm}>Add Post</button>
       </div>
 
-      {photoPost ? (
-        <div className={modalStyles.overlay} onClick={resetPhotoState}>
-          <div className={`${modalStyles.box} timeline-admin-modal`} onClick={(e) => e.stopPropagation()}>
-            <h3>Manage Post Photos</h3>
-            <p>{photoPost.title}</p>
+      {error && <div className="admin-error-box">{error}</div>}
 
-            {photoPost.images?.length ? (
-              <div className="timeline-admin-photo-grid">
-                {photoPost.images.map((image) => {
-                  const isCover = photoPost.cover_image_key === image.image_key || photoPost.cover_image_url === image.image_url;
-                  return (
-                    <div key={image.id} className="timeline-admin-photo-item">
-                      <img src={image.image_url} alt="" />
-                      {isCover ? <span className="timeline-admin-photo-badge ready">Cover</span> : null}
-                      <button type="button" className="admin-small-btn" onClick={() => handleSetCover(image)} disabled={saving || isCover}>Set as Cover</button>
-                      <button type="button" className="admin-small-btn timeline-danger-btn" onClick={() => handleDeleteImage(image)} disabled={saving}>Delete Photo</button>
-                    </div>
-                  );
-                })}
+      <TimelineSummary posts={posts} />
+
+      <div className="timeline-admin-toolbar">
+        <input className="admin-input" type="search" placeholder="Search timeline..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+        <select className="admin-input" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          {statusFilters.map((item)=><option key={item.value} value={item.value}>{item.label}</option>)}
+        </select>
+      </div>
+
+      {showForm && (
+        <form className="timeline-form" onSubmit={handleSubmit}>
+          <input className="admin-input" placeholder="Title" value={form.title} onChange={(e)=>setForm({...form,title:e.target.value})} />
+          <textarea className="admin-input" placeholder="Description" rows={4} value={form.description} onChange={(e)=>setForm({...form,description:e.target.value})} />
+          <input className="admin-input" placeholder="Category" value={form.category} onChange={(e)=>setForm({...form,category:e.target.value})} />
+          <input className="admin-input" type="date" value={form.event_date} onChange={(e)=>setForm({...form,event_date:e.target.value})} />
+          <label className="timeline-check"><input type="checkbox" checked={form.published} onChange={(e)=>setForm({...form,published:e.target.checked})} /> Publish immediately</label>
+          <div className="timeline-form-actions">
+            <button type="button" className="admin-small-btn" disabled={saving} onClick={resetForm}>Cancel</button>
+            <button type="submit" className="admin-btn" disabled={saving}>
+              <LoadingButtonContent loading={saving} loadingText="Saving...">Save Post</LoadingButtonContent>
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? <p>Loading timeline...</p> : (
+        <div className="timeline-admin-list">
+          {filteredPosts.map((post)=>{
+            const state = getReadiness(post);
+            const cover = getPostCover(post);
+            return <div key={post.id} className="timeline-admin-item">
+              <div className="timeline-admin-cover">{cover ? <img src={cover.image_url} alt={post.title || "Timeline cover"} /> : <span>No Photo</span>}</div>
+              <div className="timeline-admin-content">
+                <div className="timeline-admin-title-row"><h4>{post.title || "Untitled"}</h4><StatusBadge state={state} /></div>
+                <p>{post.description || "No description"}</p>
+                <div className="timeline-admin-meta">{post.category || "Uncategorized"} • {formatDate(post.event_date || post.created_at)} • {post.images?.length || 0} photo</div>
+                {state.missing.length > 0 && <div className="timeline-admin-missing">Missing: {state.missing.join(", ")}</div>}
+                <div className="timeline-admin-actions">
+                  <button type="button" className="admin-small-btn" onClick={()=>openEdit(post)}>Edit</button>
+                  <button type="button" className="admin-small-btn" onClick={()=>setPhotoPost(post)}>Photos</button>
+                  <button type="button" className="admin-small-btn" onClick={()=>setPreviewPost(post)}>Preview</button>
+                  {!post.published && <button type="button" className="admin-small-btn" onClick={()=>setPublishPost(post)}>Publish</button>}
+                  <button type="button" className="admin-small-btn" onClick={()=>setDeletePost(post)} style={{borderColor:"var(--admin-expense)",color:"var(--admin-expense)"}}>Delete</button>
+                </div>
               </div>
-            ) : <div className="admin-empty-state">This post has no photos yet.</div>}
-
-            <form className="admin-form admin-collapsible-panel" onSubmit={handleUpload}>
-              <input ref={fileInputRef} className="admin-input" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={(e) => setImageFiles(Array.from(e.target.files || []))} />
-              {imageFiles.length ? <div className="admin-deposit-meta timeline-selected-files">{imageFiles.length} photos selected.</div> : null}
-              <input className="admin-input" placeholder="Optional general caption" value={imageCaption} onChange={(e) => setImageCaption(e.target.value)} />
-              <label className="timeline-admin-check">
-                <input type="checkbox" checked={setAsCover} onChange={(e) => setSetAsCover(e.target.checked)} />
-                <span>Use the first photo as the cover</span>
-              </label>
-              <button className="admin-btn" disabled={uploading}>
-                <LoadingButtonContent loading={uploading} loadingText="Uploading...">Upload {imageFiles.length || ""} Photos</LoadingButtonContent>
-              </button>
-              <button type="button" className="admin-small-btn" onClick={resetPhotoState} disabled={uploading}>Close</button>
-            </form>
-          </div>
+            </div>;
+          })}
+          {filteredPosts.length === 0 && <div className="admin-empty-state">No timeline posts found.</div>}
         </div>
-      ) : null}
+      )}
 
-      {previewPost ? (
-        <div className={modalStyles.overlay} onClick={() => setPreviewPost(null)}>
-          <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
-            <h3>Post Preview</h3>
-            {getPostCover(previewPost) ? <img className="timeline-admin-preview-image" src={getPostCover(previewPost).image_url} alt="" /> : null}
-            <p>{previewPost.category || "Uncategorized"} • {formatDate(previewPost.event_date || previewPost.created_at)}</p>
-            <h2>{previewPost.title}</h2>
-            <p style={{ whiteSpace: "pre-wrap", lineHeight: 1.6 }}>{previewPost.description || "No description yet."}</p>
-            <div className="timeline-admin-confirm-actions">
-              <button type="button" className="admin-small-btn" onClick={() => window.open(getPostPreviewUrl(previewPost.id), "_blank", "noopener,noreferrer")}>Open Public Page</button>
-              <button type="button" className="admin-small-btn" onClick={() => setPreviewPost(null)}>Close</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {photoPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e)=>e.stopPropagation()}><h3>Upload Photos</h3><p>{photoPost.title}</p><form onSubmit={uploadPhotos} className="timeline-form"><input ref={fileInputRef} className="admin-input" type="file" multiple accept="image/*" onChange={(e)=>setImageFiles(Array.from(e.target.files || []))} /><input className="admin-input" placeholder="Caption" value={imageCaption} onChange={(e)=>setImageCaption(e.target.value)} /><label className="timeline-check"><input type="checkbox" checked={setAsCover} onChange={(e)=>setSetAsCover(e.target.checked)} /> Set first image as cover</label><div className="timeline-form-actions"><button type="button" className="admin-small-btn" disabled={uploading} onClick={closeMediaModals}>Cancel</button><button className="admin-btn" disabled={uploading || imageFiles.length===0}><LoadingButtonContent loading={uploading} loadingText="Uploading...">Upload</LoadingButtonContent></button></div></form></div></div>}
 
-      {publishPost ? (
-        <div className={modalStyles.overlay} onClick={() => setPublishPost(null)}>
-          <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
-            <h3>{publishPost.published ? "Save as Draft?" : "Publish Post?"}</h3>
-            <p>{publishPost.published ? `Post "${publishPost.title}" will be hidden from the residents' main page.` : `Post "${publishPost.title}" will appear on the residents' main page.`}</p>
-            <div className="timeline-admin-confirm-actions">
-              <button type="button" className="admin-small-btn" onClick={() => setPublishPost(null)} disabled={saving}>Cancel</button>
-              <button type="button" className="admin-small-btn" onClick={handleTogglePublish} disabled={saving}>
-                <LoadingButtonContent loading={saving} loadingText="Saving...">{publishPost.published ? "Save as Draft" : "Publish"}</LoadingButtonContent>
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      {previewPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e)=>e.stopPropagation()}><h3>{previewPost.title}</h3><p>{formatDate(previewPost.event_date || previewPost.created_at)}</p><p>{previewPost.description}</p><div className="timeline-preview-grid">{(previewPost.images || []).map((image)=><img key={image.id || image.image_url} src={image.image_url} alt={image.caption || previewPost.title} />)}</div><div className="timeline-form-actions"><a className="admin-small-btn" href={getPostPreviewUrl(previewPost.id)} target="_blank" rel="noreferrer">Open Public Preview</a><button type="button" className="admin-small-btn" onClick={closeMediaModals}>Close</button></div></div></div>}
 
-      {deletePost ? (
-        <div className={modalStyles.overlay} onClick={() => setDeletePost(null)}>
-          <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
-            <h3>Delete Post?</h3>
-            <p>{`Post "${deletePost.title}" will be deleted along with related photos and reactions in the database.`}</p>
-            <div className="timeline-admin-confirm-actions">
-              <button type="button" className="admin-small-btn" onClick={() => setDeletePost(null)} disabled={!!deletingId}>Cancel</button>
-              <button type="button" className="admin-small-btn timeline-danger-btn" onClick={handleDelete} disabled={!!deletingId}>
-                <LoadingButtonContent loading={deletingId === deletePost.id} loadingText="Deleting...">Delete</LoadingButtonContent>
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </>
+      {deletePost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e)=>e.stopPropagation()}><h3>Delete Post?</h3><p>{deletePost.title}</p><div className="timeline-form-actions"><button type="button" className="admin-small-btn" disabled={Boolean(deletingId)} onClick={closeMediaModals}>Cancel</button><button type="button" className="admin-btn" disabled={Boolean(deletingId)} onClick={deleteSelectedPost}><LoadingButtonContent loading={deletingId===deletePost.id} loadingText="Deleting...">Delete</LoadingButtonContent></button></div></div></div>}
+
+      {publishPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e)=>e.stopPropagation()}><h3>Publish Post?</h3><p>{publishPost.title}</p><div className="timeline-form-actions"><button type="button" className="admin-small-btn" disabled={saving} onClick={closeMediaModals}>Cancel</button><button type="button" className="admin-btn" disabled={saving} onClick={publishSelectedPost}><LoadingButtonContent loading={saving} loadingText="Publishing...">Publish</LoadingButtonContent></button></div></div></div>}
+    </div>
   );
 }

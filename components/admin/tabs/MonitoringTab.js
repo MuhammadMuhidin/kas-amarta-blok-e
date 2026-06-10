@@ -2,6 +2,7 @@ import { useEffect,useMemo,useState } from "react";
 import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod } from "@/lib/depositUtils";
+import { formatJakartaDateTimeLong } from "@/lib/localDate";
 
 function IssueTable({title,rows,columns}) {
   if (!rows?.length) return null;
@@ -86,9 +87,8 @@ function getSettlement({cashflows,deposits,trashRecords,payments}) {
 }
 
 function fmtTime(value) {
-  const d = new Date(value);
-  if (!value || value==="unknown" || Number.isNaN(d.getTime())) return value || "unknown";
-  return d.toLocaleString("en-US",{dateStyle:"medium",timeStyle:"short"});
+  if (!value || value==="unknown") return value || "unknown";
+  return `${formatJakartaDateTimeLong(value, "id-ID")} WIB`;
 }
 
 function BuildBadge({loading,buildInfo}) {
@@ -172,7 +172,7 @@ function getReceiptStorageView(loading, data) {
   return { value: "Unreachable", meta: [data.message || "R2 public receipts are not reachable.", data.status_code ? `HTTP ${data.status_code}` : "Residents may not be able to open receipts."], error: true };
 }
 
-export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,trashAdvanceReimbursementIntegrity = [],depositPaymentIntegrity = [],suspiciousData,onRepairComplete}) {
+export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,trashAdvanceReimbursementIntegrity,depositPaymentIntegrity,suspiciousData,onRepairComplete}) {
   const [buildInfo,setBuildInfo] = useState(null);
   const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
   const [loadingSettlement,setLoadingSettlement] = useState(false);
