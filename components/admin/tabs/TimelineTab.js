@@ -488,22 +488,6 @@ export default function TimelineTab({ showPopup }) {
         </select>
       </div>
 
-      {showForm && (
-        <form className="timeline-form" onSubmit={handleSubmit}>
-          <input className="admin-input" placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-          <textarea className="admin-input" placeholder="Description" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
-          <input className="admin-input" placeholder="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
-          <input className="admin-input" type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
-          <label className="timeline-check"><input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} /> Publish immediately</label>
-          <div className="timeline-form-actions">
-            <button type="button" className="admin-small-btn" disabled={saving} onClick={resetForm}>Cancel</button>
-            <button type="submit" className="admin-btn" disabled={saving}>
-              <LoadingButtonContent loading={saving} loadingText="Saving...">Save Post</LoadingButtonContent>
-            </button>
-          </div>
-        </form>
-      )}
-
       {loading ? <p>Loading timeline...</p> : (
         <div className="timeline-admin-list">
           {filteredPosts.map((post) => {
@@ -532,6 +516,32 @@ export default function TimelineTab({ showPopup }) {
             </div>;
           })}
           {filteredPosts.length === 0 && <div className="admin-empty-state">No timeline posts found.</div>}
+        </div>
+      )}
+
+      {showForm && (
+        <div className={modalStyles.overlay} onClick={saving ? undefined : resetForm}>
+          <div className={modalStyles.box} onClick={(e) => e.stopPropagation()}>
+            <div className="timeline-admin-form-header">
+              <div>
+                <h3>{editingPost?.id ? "Edit Post" : "Add Post"}</h3>
+                <p>{editingPost?.id ? editingPost.title || "Untitled" : "Buat postingan kegiatan baru."}</p>
+              </div>
+            </div>
+            <form className="timeline-form" onSubmit={handleSubmit}>
+              <input className="admin-input" placeholder="Title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+              <textarea className="admin-input" placeholder="Description" rows={4} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+              <input className="admin-input" placeholder="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+              <input className="admin-input" type="date" value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} />
+              <label className="timeline-check"><input type="checkbox" checked={form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} /> Publish immediately</label>
+              <div className="timeline-form-actions">
+                <button type="button" className="admin-small-btn" disabled={saving} onClick={resetForm}>Cancel</button>
+                <button type="submit" className="admin-btn" disabled={saving}>
+                  <LoadingButtonContent loading={saving} loadingText="Saving...">Save Post</LoadingButtonContent>
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
