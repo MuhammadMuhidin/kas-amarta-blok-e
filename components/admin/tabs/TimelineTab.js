@@ -22,12 +22,24 @@ const statusFilters = [
   { value: "draft", label: "Draft" },
 ];
 
+const reactionItems = [
+  { key: "like", emoji: "👍", label: "Suka" },
+  { key: "care", emoji: "❤️", label: "Peduli" },
+  { key: "thanks", emoji: "🙏", label: "Terima kasih" },
+  { key: "appreciate", emoji: "👏", label: "Apresiasi" },
+  { key: "informative", emoji: "💡", label: "Informatif" },
+];
+
 function normalize(value) {
   return String(value || "").trim();
 }
 
 function formatDate(value) {
   return formatJakartaDate(value, "id-ID");
+}
+
+function formatNumber(value) {
+  return Number(value || 0).toLocaleString("id-ID");
 }
 
 function buildPostPayload(form) {
@@ -123,11 +135,30 @@ function StatusBadge({ state }) {
   );
 }
 
+function ReactionSummary({ post }) {
+  const counts = post?.reaction_counts || {};
+  const total = Number(post?.reaction_total ?? post?.like_count ?? 0);
+
+  return (
+    <div className="timeline-admin-reactions" aria-label={`${formatNumber(total)} total reactions`}>
+      <span className="timeline-admin-reaction-total">💬 {formatNumber(total)}</span>
+      <div className="timeline-admin-reaction-breakdown">
+        {reactionItems.map((reaction) => (
+          <span key={reaction.key} title={reaction.label}>
+            <span aria-hidden="true">{reaction.emoji}</span> {formatNumber(counts[reaction.key] || 0)}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function TimelineSummary({ posts }) {
   const publishedCount = posts.filter((post) => post.published).length;
   const readyCount = posts.filter((post) => getReadiness(post).value === "ready").length;
   const incompleteCount = posts.filter((post) => getReadiness(post).value === "incomplete").length;
   const draftCount = posts.filter((post) => !post.published).length;
+  const reactionCount = posts.reduce((sum, post) => sum + Number(post.reaction_total ?? post.like_count ?? 0), 0);
 
   return (
     <div className="admin-summary-cards timeline-admin-summary">
@@ -136,6 +167,7 @@ function TimelineSummary({ posts }) {
       <div className="admin-summary-card"><strong>{readyCount}</strong><span>Ready to Publish</span></div>
       <div className="admin-summary-card"><strong>{incompleteCount}</strong><span>Incomplete</span></div>
       <div className="admin-summary-card"><strong>{draftCount}</strong><span>Draft</span></div>
+      <div className="admin-summary-card"><strong>{formatNumber(reactionCount)}</strong><span>Reactions</span></div>
     </div>
   );
 }
@@ -154,6 +186,7 @@ export default function TimelineTab({ showPopup }) {
   const [photoPost, setPhotoPost] = useState(null);
   const [previewPost, setPreviewPost] = useState(null);
   const [deletePost, setDeletePost] = useState(null);
+  const [deleteImageTarget, setDeleteImageTarget] = useState(null);
   const [publishPost, setPublishPost] = useState(null);
   const [imageFiles, setImageFiles] = useState([]);
   const [imageCaption, setImageCaption] = useState("");
@@ -357,15 +390,37 @@ export default function TimelineTab({ showPopup }) {
     await updateImage(image, { set_as_cover: true }, "Cover photo updated");
   }
 
+  async function moveImage(image, direction) {
+    if (!image?.id || imageActionId) return;
+    const images = getPostImages(photoPost).slice().sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
+    const currentIndex = images.findIndex((item) => item.id === image.id);
+    const targetIndex = currentIndex + direction;
+    const targetImage = images[targetIndex];
+
+    if (currentIndex < 0 || !targetImage) return;
+
+    try {
+      setImageActionId(image.id);
+      await sendJson(`/api/admin/timeline/images/${image.id}`, "PATCH", { sort_order: Number(targetImage.sort_order || targetIndex) });
+      await sendJson(`/api/admin/timeline/images/${targetImage.id}`, "PATCH", { sort_order: Number(image.sort_order || currentIndex) });
+      showPopup?.("Photo order updated", "success");
+      await loadPosts({ keepPhotoPostId: photoPost?.id || image.post_id, silent: true });
+    } catch (err) {
+      setError(err.message || "Failed to move photo");
+      showPopup?.(err.message || "Failed to move photo", "error");
+    } finally {
+      setImageActionId("");
+    }
+  }
+
   async function deleteImage(image) {
     if (!image?.id || imageActionId) return;
-    const confirmed = window.confirm("Hapus foto kegiatan ini?");
-    if (!confirmed) return;
 
     try {
       setImageActionId(image.id);
       await sendJson(`/api/admin/timeline/images/${image.id}`, "DELETE", {});
       showPopup?.("Photo deleted", "success");
+      setDeleteImageTarget(null);
       await loadPosts({ keepPhotoPostId: photoPost?.id || image.post_id, silent: true });
     } catch (err) {
       setError(err.message || "Failed to delete photo");
@@ -392,19 +447,20 @@ export default function TimelineTab({ showPopup }) {
     }
   }
 
-  async function publishSelectedPost() {
-    if (!publishPost?.id || saving) return;
-    if (!validateBeforePublish(publishPost)) return;
+  async function togglePublish(post, published) {
+    if (!post?.id || saving) return;
+    const nextPost = { ...post, published };
+    if (published && !validateBeforePublish(nextPost)) return;
 
     try {
       setSaving(true);
-      await sendJson(`/api/admin/timeline/posts/${publishPost.id}`, "PATCH", { published: true });
-      showPopup?.("Timeline post published", "success");
+      await sendJson(`/api/admin/timeline/posts/${post.id}`, "PATCH", { published });
+      showPopup?.(published ? "Timeline post published" : "Timeline post unpublished", "success");
       setPublishPost(null);
       await loadPosts();
     } catch (err) {
-      setError(err.message || "Failed to publish post");
-      showPopup?.(err.message || "Failed to publish post", "error");
+      setError(err.message || "Failed to update publish status");
+      showPopup?.(err.message || "Failed to update publish status", "error");
     } finally {
       setSaving(false);
     }
@@ -415,10 +471,11 @@ export default function TimelineTab({ showPopup }) {
     resetPhotoState();
     setPreviewPost(null);
     setDeletePost(null);
+    setDeleteImageTarget(null);
     setPublishPost(null);
   }
 
-  const photoImages = getPostImages(photoPost);
+  const photoImages = getPostImages(photoPost).slice().sort((a, b) => Number(a.sort_order || 0) - Number(b.sort_order || 0));
 
   return (
     <div className="admin-card timeline-admin">
@@ -468,12 +525,17 @@ export default function TimelineTab({ showPopup }) {
                 <div className="timeline-admin-title-row"><h4>{post.title || "Untitled"}</h4><StatusBadge state={state} /></div>
                 <p>{post.description || "No description"}</p>
                 <div className="timeline-admin-meta">{post.category || "Uncategorized"} • {formatDate(post.event_date || post.created_at)} • {post.images?.length || 0} photo</div>
+                <ReactionSummary post={post} />
                 {state.missing.length > 0 && <div className="timeline-admin-missing">Missing: {state.missing.join(", ")}</div>}
                 <div className="timeline-admin-actions">
                   <button type="button" className="admin-small-btn" onClick={() => openEdit(post)}>Edit</button>
                   <button type="button" className="admin-small-btn" onClick={() => openPhotos(post)}>Photos</button>
                   <button type="button" className="admin-small-btn" onClick={() => setPreviewPost(post)}>Preview</button>
-                  {!post.published && <button type="button" className="admin-small-btn" onClick={() => setPublishPost(post)}>Publish</button>}
+                  {post.published ? (
+                    <button type="button" className="admin-small-btn" disabled={saving} onClick={() => togglePublish(post, false)}>Unpublish</button>
+                  ) : (
+                    <button type="button" className="admin-small-btn" disabled={saving} onClick={() => setPublishPost(post)}>Publish</button>
+                  )}
                   <button type="button" className="admin-small-btn" onClick={() => setDeletePost(post)} style={{ borderColor: "var(--admin-expense)", color: "var(--admin-expense)" }}>Delete</button>
                 </div>
               </div>
@@ -512,7 +574,7 @@ export default function TimelineTab({ showPopup }) {
               <h4>Existing Photos</h4>
               {photoImages.length > 0 ? (
                 <div className="timeline-admin-photo-grid timeline-admin-photo-manage-grid">
-                  {photoImages.map((image) => {
+                  {photoImages.map((image, index) => {
                     const draft = imageDrafts[image.id] || { caption: image.caption || "", sort_order: String(image.sort_order ?? 0) };
                     const isCover = imageIsCover(photoPost, image);
                     const busy = imageActionId === image.id;
@@ -542,6 +604,10 @@ export default function TimelineTab({ showPopup }) {
                             [image.id]: { ...draft, sort_order: e.target.value },
                           }))}
                         />
+                        <div className="timeline-admin-photo-move-actions">
+                          <button type="button" className="admin-small-btn" disabled={busy || index === 0} onClick={() => moveImage(image, -1)}>↑ Up</button>
+                          <button type="button" className="admin-small-btn" disabled={busy || index === photoImages.length - 1} onClick={() => moveImage(image, 1)}>↓ Down</button>
+                        </div>
                         <div className="timeline-admin-photo-actions">
                           <button type="button" className="admin-small-btn" disabled={busy} onClick={() => saveImageDetails(image)}>
                             <LoadingButtonContent loading={busy} loadingText="Saving...">Save</LoadingButtonContent>
@@ -549,7 +615,7 @@ export default function TimelineTab({ showPopup }) {
                           <button type="button" className="admin-small-btn" disabled={busy || isCover} onClick={() => setImageAsCover(image)}>
                             Set Cover
                           </button>
-                          <button type="button" className="admin-small-btn" disabled={busy} onClick={() => deleteImage(image)} style={{ borderColor: "var(--admin-expense)", color: "var(--admin-expense)" }}>
+                          <button type="button" className="admin-small-btn" disabled={busy} onClick={() => setDeleteImageTarget(image)} style={{ borderColor: "var(--admin-expense)", color: "var(--admin-expense)" }}>
                             Delete
                           </button>
                         </div>
@@ -570,11 +636,13 @@ export default function TimelineTab({ showPopup }) {
         </div>
       )}
 
-      {previewPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>{previewPost.title}</h3><p>{formatDate(previewPost.event_date || previewPost.created_at)}</p><p>{previewPost.description}</p><div className="timeline-preview-grid">{(previewPost.images || []).map((image) => <img key={image.id || image.image_url} src={image.image_url} alt={image.caption || previewPost.title} />)}</div><div className="timeline-form-actions"><a className="admin-small-btn" href={getPostPreviewUrl(previewPost.id)} target="_blank" rel="noreferrer">Open Public Preview</a><button type="button" className="admin-small-btn" onClick={closeMediaModals}>Close</button></div></div></div>}
+      {previewPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>{previewPost.title}</h3><p>{formatDate(previewPost.event_date || previewPost.created_at)}</p><p>{previewPost.description}</p><ReactionSummary post={previewPost} /><div className="timeline-preview-grid">{(previewPost.images || []).map((image) => <img key={image.id || image.image_url} src={image.image_url} alt={image.caption || previewPost.title} />)}</div><div className="timeline-form-actions"><a className="admin-small-btn" href={getPostPreviewUrl(previewPost.id)} target="_blank" rel="noreferrer">Open Public Preview</a><button type="button" className="admin-small-btn" onClick={closeMediaModals}>Close</button></div></div></div>}
 
       {deletePost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>Delete Post?</h3><p>{deletePost.title}</p><div className="timeline-form-actions"><button type="button" className="admin-small-btn" disabled={Boolean(deletingId)} onClick={closeMediaModals}>Cancel</button><button type="button" className="admin-btn" disabled={Boolean(deletingId)} onClick={deleteSelectedPost}><LoadingButtonContent loading={deletingId === deletePost.id} loadingText="Deleting...">Delete</LoadingButtonContent></button></div></div></div>}
 
-      {publishPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>Publish Post?</h3><p>{publishPost.title}</p><div className="timeline-form-actions"><button type="button" className="admin-small-btn" disabled={saving} onClick={closeMediaModals}>Cancel</button><button type="button" className="admin-btn" disabled={saving} onClick={publishSelectedPost}><LoadingButtonContent loading={saving} loadingText="Publishing...">Publish</LoadingButtonContent></button></div></div></div>}
+      {deleteImageTarget && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>Delete Photo?</h3><p>{deleteImageTarget.caption || photoPost?.title || "Foto kegiatan"}</p>{deleteImageTarget.image_url ? <img className="timeline-admin-preview-image" src={deleteImageTarget.image_url} alt={deleteImageTarget.caption || "Foto kegiatan"} /> : null}<div className="timeline-form-actions"><button type="button" className="admin-small-btn" disabled={Boolean(imageActionId)} onClick={() => setDeleteImageTarget(null)}>Cancel</button><button type="button" className="admin-btn" disabled={Boolean(imageActionId)} onClick={() => deleteImage(deleteImageTarget)}><LoadingButtonContent loading={imageActionId === deleteImageTarget.id} loadingText="Deleting...">Delete Photo</LoadingButtonContent></button></div></div></div>}
+
+      {publishPost && <div className={modalStyles.overlay} onClick={closeMediaModals}><div className={modalStyles.box} onClick={(e) => e.stopPropagation()}><h3>Publish Post?</h3><p>{publishPost.title}</p><div className="timeline-form-actions"><button type="button" className="admin-small-btn" disabled={saving} onClick={closeMediaModals}>Cancel</button><button type="button" className="admin-btn" disabled={saving} onClick={() => togglePublish(publishPost, true)}><LoadingButtonContent loading={saving} loadingText="Publishing...">Publish</LoadingButtonContent></button></div></div></div>}
     </div>
   );
 }
