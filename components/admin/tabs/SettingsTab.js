@@ -54,6 +54,7 @@ export default function AdminSettings() {
   const [appConfig, setAppConfig] = useState(null);
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
+  const [savingMatrix, setSavingMatrix] = useState(false);
   const [popup, setPopup] = useState(null);
   const [isMobile, setIsMobile] = useState(false);
   const [theme, setTheme] = useState("default");
@@ -165,13 +166,13 @@ export default function AdminSettings() {
   }
 
   async function confirmPin() {
-    if (!pendingAction || saving || savingConfig) return;
+    if (!pendingAction || saving || savingConfig || savingMatrix) return;
     await pendingAction(pinValue);
     setPinModal(false);
     setPendingAction(null);
   }
 
-  const applyingChange = saving || savingConfig;
+  const applyingChange = saving || savingConfig || savingMatrix;
 
   return (
     <div style={styles.card}>
@@ -249,6 +250,7 @@ export default function AdminSettings() {
       <MatrixAccessCard
         requestPin={requestPin}
         disabled={applyingChange}
+        onSavingChange={setSavingMatrix}
         showPopup={(text, type) => showPopup(setPopup, text, type)}
       />
 

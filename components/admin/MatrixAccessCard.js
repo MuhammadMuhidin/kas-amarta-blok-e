@@ -10,7 +10,7 @@ function getCookie(name) {
     ?.split("=")[1];
 }
 
-export default function MatrixAccessCard({ requestPin, disabled, showPopup }) {
+export default function MatrixAccessCard({ requestPin, disabled, showPopup, onSavingChange }) {
   const [selectedRole, setSelectedRole] = useState("ketua");
   const [roles, setRoles] = useState([]);
   const [modules, setModules] = useState([]);
@@ -43,6 +43,8 @@ export default function MatrixAccessCard({ requestPin, disabled, showPopup }) {
     requestPin(async (pin) => {
       try {
         setSavingKey(module.key);
+        onSavingChange?.(true);
+
         const csrf = getCookie("csrf_token");
         const res = await fetch("/api/admin/settings/access-matrix", {
           method: "PATCH",
@@ -58,13 +60,13 @@ export default function MatrixAccessCard({ requestPin, disabled, showPopup }) {
 
         if (!res.ok) throw new Error(data.error || "Failed to update access matrix");
 
-        setSelectedRole(data.role);
-        setModules(data.modules || []);
+        await loadMatrix(data.role || selectedRole);
         showPopup("Matrix access updated successfully", "success");
       } catch (err) {
         showPopup(err.message || "Failed to update access matrix", "error");
       } finally {
         setSavingKey("");
+        onSavingChange?.(false);
       }
     });
   }
