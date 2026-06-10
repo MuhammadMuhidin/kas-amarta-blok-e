@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CashflowTab from "@/components/public/tabs/CashflowTab";
 import InsightTab from "@/components/public/tabs/InsightTab";
 import PaymentStatusTab from "@/components/public/tabs/PaymentStatusTab";
+import PublicHero from "@/components/public/PublicHero";
 import PublicTabs from "@/components/public/PublicTabs";
 import ReceiptPreviewModal from "@/components/public/ReceiptPreviewModal";
 import ResidentDetailModal from "@/components/public/ResidentDetailModal";
@@ -132,17 +132,15 @@ export default function PublicPageClient() {
           </div>
         )}
 
-        <header className="hero-header timeline-hero">
-          <Link href="/login" className="hero-manager-link" aria-label="Masuk Area Pengurus">
-            🔐 Area Pengurus
-          </Link>
-          <div className="hero-eyebrow">Amarta Residence • Blok E</div>
-          <p className="hero-desc">
-            Pusat transparansi iuran, pengeluaran,
-            <br />
-            dan laporan kas warga.
-          </p>
-        </header>
+        <PublicHero
+          description={(
+            <>
+              Pusat transparansi iuran, pengeluaran,
+              <br />
+              dan laporan kas warga.
+            </>
+          )}
+        />
 
         <PublicTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
