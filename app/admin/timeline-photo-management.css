@@ -1,3 +1,7 @@
+.timeline-modal-wide {
+  max-width: min(760px, calc(100vw - 32px));
+}
+
 .timeline-admin-reactions {
   display: flex;
   align-items: center;
@@ -119,6 +123,10 @@
 }
 
 @media (max-width: 640px) {
+  .timeline-modal-wide {
+    max-width: calc(100vw - 32px);
+  }
+
   .timeline-admin-reactions,
   .timeline-admin-reaction-breakdown {
     align-items: stretch;
