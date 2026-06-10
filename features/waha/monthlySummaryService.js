@@ -61,17 +61,6 @@ function getCurrentPaymentIncome(data) {
   );
 }
 
-function isReimbursementIncome(cashflow) {
-  const note = normalizeLower(cashflow?.note);
-  const refId = normalizeLower(cashflow?.ref_id || cashflow?.payment_id);
-
-  return (
-    note.includes("pengembalian talangan") ||
-    note.includes("reimbursement") ||
-    refId.startsWith("trashadv-")
-  );
-}
-
 function isAdvanceExpense(cashflow) {
   const note = normalizeLower(cashflow?.note);
   const refId = normalizeLower(cashflow?.ref_id || cashflow?.payment_id);
@@ -87,25 +76,15 @@ function sumCashflows(items) {
   return items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 }
 
-function getCurrentCashflowBreakdown(data) {
+function getCurrentExpenseBreakdown(data) {
   const currentCashflows = getCurrentMonthCashflows(data);
-  const incomeCashflows = currentCashflows.filter((cashflow) => cashflow.type === "income");
   const expenseCashflows = currentCashflows.filter((cashflow) => cashflow.type === "expense");
-  const reimbursementIncome = sumCashflows(incomeCashflows.filter(isReimbursementIncome));
-  const currentPaymentIncome = getCurrentPaymentIncome(data);
-  const nonDuesIncome = Math.max(
-    0,
-    sumCashflows(incomeCashflows) - currentPaymentIncome - reimbursementIncome,
-  );
-  const advanceExpense = sumCashflows(expenseCashflows.filter(isAdvanceExpense));
-  const operationalExpense = Math.max(0, sumCashflows(expenseCashflows) - advanceExpense);
+  const trashAdvanceExpense = sumCashflows(expenseCashflows.filter(isAdvanceExpense));
+  const operationalExpense = Math.max(0, sumCashflows(expenseCashflows) - trashAdvanceExpense);
 
   return {
-    currentPaymentIncome,
-    reimbursementIncome,
-    nonDuesIncome,
-    advanceExpense,
     operationalExpense,
+    trashAdvanceExpense,
   };
 }
 
@@ -115,47 +94,20 @@ function buildText(data) {
   const summary = data?.insight?.summary || {};
   const expenses = Array.isArray(lastMonth.expenses) ? lastMonth.expenses : [];
   const paidHouseCount = countPaidHouses(data);
-  const {
-    currentPaymentIncome,
-    reimbursementIncome,
-    nonDuesIncome,
-    advanceExpense,
-    operationalExpense,
-  } = getCurrentCashflowBreakdown(data);
-  const availableCash = Number(summary.currentIncomePlusLastRemaining || 0);
+  const currentPaymentIncome = getCurrentPaymentIncome(data);
+  const { operationalExpense, trashAdvanceExpense } = getCurrentExpenseBreakdown(data);
   const expenseLines = expenses.length
     ? [...expenses]
         .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
         .map((item, index) => `${index + 1}. ${item.note || "-"} ${money(item.amount)}`)
     : [`Tidak ada pengeluaran pada bulan ${lastMonth.month || "lalu"}.`];
-  const incomeLines = [
-    `- Pembayaran kas warga: ${money(currentPaymentIncome)} dari ${paidHouseCount} rumah`,
+  const currentSummaryLines = [
+    `- Iuran kas warga: ${money(currentPaymentIncome)} dari ${paidHouseCount} rumah`,
+    `- Pengeluaran operasional: ${money(operationalExpense)}`,
   ];
-  const currentExpenseLines = [];
-  const notes = [];
 
-  if (reimbursementIncome > 0) {
-    incomeLines.push(`- Pengembalian talangan: ${money(reimbursementIncome)}`);
-    notes.push("Pengembalian talangan adalah dana kas yang sebelumnya dipakai sementara dan sudah dikembalikan oleh warga terkait.");
-  }
-
-  if (nonDuesIncome > 0) {
-    incomeLines.push(`- Pemasukan non-iuran: ${money(nonDuesIncome)}`);
-  }
-
-  incomeLines.push(`- Saldo awal bulan: ${money(lastMonth.remaining)}`);
-
-  if (operationalExpense > 0) {
-    currentExpenseLines.push(`- Pengeluaran operasional: ${money(operationalExpense)}`);
-  }
-
-  if (advanceExpense > 0) {
-    currentExpenseLines.push(`- Talangan sementara: ${money(advanceExpense)}`);
-    notes.push("Talangan sementara dicatat sebagai pengeluaran kas, namun bukan beban akhir karena akan dikembalikan oleh warga terkait.");
-  }
-
-  if (!currentExpenseLines.length) {
-    currentExpenseLines.push("- Tidak ada pengeluaran bulan ini.");
+  if (trashAdvanceExpense > 0) {
+    currentSummaryLines.push(`- Talangan iuran sampah: ${money(trashAdvanceExpense)}`);
   }
 
   return [
@@ -166,22 +118,15 @@ function buildText(data) {
     "Rincian pengeluaran bulan lalu:",
     ...expenseLines,
     "",
-    `Total pengeluaran: ${money(lastMonth.expenseTotal)}`,
+    `Total pengeluaran bulan lalu: ${money(lastMonth.expenseTotal)}`,
     `Sisa saldo bulan lalu: ${money(lastMonth.remaining)}`,
     "",
-    `Kas tersedia bulan ${currentMonth.month || "ini"} terdiri dari:`,
-    ...incomeLines,
+    `Rekap kas bulan ${currentMonth.month || "ini"}:`,
+    ...currentSummaryLines,
     "",
-    `Total kas tersedia: ${money(availableCash)}`,
-    "",
-    "Pengeluaran bulan ini:",
-    ...currentExpenseLines,
-    `Total pengeluaran bulan ini: ${money(currentMonth.expenseTotal)}`,
     `Sisa saldo saat ini: ${money(summary.currentBalance)}`,
-    ...(notes.length ? ["", "Catatan:", ...notes.map((note) => `- ${note}`)] : []),
     "",
-    "Bagi Bapak-Bapak yang ingin mengecek rincian pemasukan dan pengeluaran dana kas, dapat melihatnya melalui tautan berikut:",
-    "",
+    "Rincian lengkap:",
     PUBLIC_KAS_URL,
     "",
     "Terima kasih.",
