@@ -13,8 +13,11 @@ import {
   recordRateLimitFailure,
 } from "@/lib/rateLimit";
 import { createAuthResponse } from "@/features/auth/loginResponseService";
+import { resolveAdminAccessRole } from "@/lib/adminRoles";
 
 export const runtime = "nodejs";
+
+const PENDING_ACCESS_ROLE_COOKIE = "admin_pending_access_role";
 
 export async function POST(req) {
   try {
@@ -112,7 +115,18 @@ export async function POST(req) {
       rateLimitOptions,
     );
 
-    return createAuthResponse(req, { clearWebAuthChallenge: true });
+    const accessRole = resolveAdminAccessRole(
+      req.cookies.get(PENDING_ACCESS_ROLE_COOKIE)?.value,
+    );
+
+    const res = await createAuthResponse(req, {
+      clearWebAuthChallenge: true,
+      accessRole,
+    });
+
+    res.cookies.delete(PENDING_ACCESS_ROLE_COOKIE);
+
+    return res;
   } catch (err) {
     await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.webauthVerifyFailed);
 
