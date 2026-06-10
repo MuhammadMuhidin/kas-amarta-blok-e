@@ -1,0 +1,87 @@
+.timeline-photo-upload-form {
+  display: grid;
+  gap: 10px;
+}
+
+.timeline-photo-manage-section {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.timeline-photo-manage-section h4,
+.timeline-form h4 {
+  margin: 0;
+  color: var(--admin-text);
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.timeline-admin-photo-manage-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  margin: 0;
+}
+
+.timeline-admin-photo-manage-item {
+  align-content: start;
+  background: var(--admin-card);
+}
+
+.timeline-admin-photo-preview-wrap {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-row);
+}
+
+.timeline-admin-photo-preview-wrap img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border: 0;
+  border-radius: 0;
+  display: block;
+}
+
+.timeline-admin-cover-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+}
+
+.timeline-admin-photo-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.timeline-admin-photo-actions .admin-small-btn {
+  min-width: 0;
+  width: 100%;
+  padding: 8px;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .timeline-admin-photo-manage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .timeline-admin-photo-actions {
+    grid-template-columns: 1fr;
+  }
+}
