@@ -1,3 +1,36 @@
+.timeline-admin-reactions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.timeline-admin-reaction-total,
+.timeline-admin-reaction-breakdown span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  background: var(--admin-card);
+  color: var(--admin-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.timeline-admin-reaction-breakdown {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .timeline-photo-upload-form {
   display: grid;
   gap: 10px;
@@ -63,13 +96,22 @@
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
 }
 
-.timeline-admin-photo-actions {
+.timeline-admin-photo-actions,
+.timeline-admin-photo-move-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
-.timeline-admin-photo-actions .admin-small-btn {
+.timeline-admin-photo-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.timeline-admin-photo-move-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.timeline-admin-photo-actions .admin-small-btn,
+.timeline-admin-photo-move-actions .admin-small-btn {
   min-width: 0;
   width: 100%;
   padding: 8px;
@@ -77,11 +119,17 @@
 }
 
 @media (max-width: 640px) {
+  .timeline-admin-reactions,
+  .timeline-admin-reaction-breakdown {
+    align-items: stretch;
+  }
+
   .timeline-admin-photo-manage-grid {
     grid-template-columns: 1fr;
   }
 
-  .timeline-admin-photo-actions {
+  .timeline-admin-photo-actions,
+  .timeline-admin-photo-move-actions {
     grid-template-columns: 1fr;
   }
 }
