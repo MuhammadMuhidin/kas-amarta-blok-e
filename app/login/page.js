@@ -8,21 +8,21 @@ import Toast from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import { ADMIN_ACCESS_ROLES } from "@/lib/adminRoles";
 
-function getLoginErrorMessage(message, fallback = "Proses login gagal") {
+function getLoginErrorMessage(message, fallback = "Login failed") {
   const text = String(message || "").trim();
   const normalized = text.toLowerCase();
 
   if (!text) return fallback;
-  if (normalized.includes("wrong password")) return "Password salah";
-  if (normalized.includes("wrong pin")) return "PIN salah";
-  if (normalized.includes("otp harus 6 digit")) return "OTP harus 6 digit";
-  if (normalized.includes("otp tidak valid")) return "OTP tidak valid";
-  if (normalized.includes("otp sudah expired")) return "OTP sudah kedaluwarsa";
+  if (normalized.includes("wrong password")) return "Wrong password";
+  if (normalized.includes("wrong pin")) return "Wrong PIN";
+  if (normalized.includes("otp harus 6 digit")) return "OTP must be 6 digits";
+  if (normalized.includes("otp tidak valid")) return "Invalid OTP";
+  if (normalized.includes("otp sudah expired")) return "OTP has expired";
   if (normalized.includes("otp tidak ditemukan") || normalized.includes("belum dikirim")) {
-    return "OTP tidak ditemukan atau belum dikirim";
+    return "OTP was not found or has not been sent";
   }
   if (normalized.includes("too many") || normalized.includes("rate limit")) {
-    return "Terlalu banyak percobaan. Coba lagi nanti";
+    return "Too many attempts. Please try again later";
   }
   if (normalized.includes("passkey") || normalized.includes("webauth")) return text;
 
@@ -92,7 +92,7 @@ export default function Login() {
   async function requestOtp(e) {
     e?.preventDefault();
     if (loading || sendingOtp || needPin) return;
-    if (!password.trim()) return notify("Password wajib diisi", "warning");
+    if (!password.trim()) return notify("Password is required", "warning");
 
     setSendingOtp(true);
     try {
@@ -102,12 +102,12 @@ export default function Login() {
         body: JSON.stringify({ role, password }),
       });
       const data = await res.json();
-      if (!res.ok) return notify(getLoginErrorMessage(data.error, "Gagal mengirim OTP"), "error");
+      if (!res.ok) return notify(getLoginErrorMessage(data.error, "Failed to send OTP"), "error");
       setOtpRequested(true);
       setOtp("");
-      notify(data.message || "OTP terkirim ke WhatsApp", "success");
+      notify(data.message || "OTP sent to WhatsApp", "success");
     } catch (err) {
-      notify(getLoginErrorMessage(err.message, "Gagal mengirim OTP"), "error");
+      notify(getLoginErrorMessage(err.message, "Failed to send OTP"), "error");
     } finally {
       setSendingOtp(false);
     }
@@ -116,10 +116,10 @@ export default function Login() {
   async function submit(e) {
     e.preventDefault();
     if (loading) return;
-    if (!password.trim()) return notify("Password wajib diisi", "warning");
-    if (!otpRequested) return notify("Minta OTP terlebih dahulu", "warning");
-    if (!otp.trim()) return notify("OTP wajib diisi", "warning");
-    if (needPin && !pin.trim()) return notify("PIN wajib diisi", "warning");
+    if (!password.trim()) return notify("Password is required", "warning");
+    if (!otpRequested) return notify("Please request an OTP first", "warning");
+    if (!otp.trim()) return notify("OTP is required", "warning");
+    if (needPin && !pin.trim()) return notify("PIN is required", "warning");
 
     setLoading(true);
     try {
@@ -129,21 +129,21 @@ export default function Login() {
         body: JSON.stringify({ role, otp, password, pin: needPin ? pin : undefined }),
       });
       const data = await res.json();
-      if (!res.ok) return notify(getLoginErrorMessage(data.error, "Login gagal"), "error");
+      if (!res.ok) return notify(getLoginErrorMessage(data.error, "Login failed"), "error");
       if (data.need_pin) {
         setNeedPin(true);
-        notify("Masukkan PIN admin", "info");
+        notify("Enter admin PIN", "info");
         return;
       }
       if (data.need_webauth) {
-        notify("Verifikasi passkey diperlukan", "info");
+        notify("Passkey verification is required", "info");
         await loginWithWebAuth();
         return;
       }
-      notify("Login berhasil", "success");
+      notify("Login successful", "success");
       router.replace("/admin");
     } catch (err) {
-      notify(getLoginErrorMessage(err.message, "Login gagal"), "error");
+      notify(getLoginErrorMessage(err.message, "Login failed"), "error");
     } finally {
       setLoading(false);
     }
@@ -153,7 +153,7 @@ export default function Login() {
     try {
       const optionsRes = await fetch("/api/webauth/auth/options");
       const options = await optionsRes.json();
-      if (!optionsRes.ok) return notify(getLoginErrorMessage(options.error, "Passkey belum tersedia"), "error");
+      if (!optionsRes.ok) return notify(getLoginErrorMessage(options.error, "Passkey is not available"), "error");
 
       const credential = await startAuthentication(options);
       const verifyRes = await fetch("/api/webauth/auth/verify", {
@@ -162,12 +162,12 @@ export default function Login() {
         body: JSON.stringify(credential),
       });
       const verifyData = await verifyRes.json();
-      if (!verifyRes.ok) return notify(getLoginErrorMessage(verifyData.error, "Verifikasi passkey gagal"), "error");
+      if (!verifyRes.ok) return notify(getLoginErrorMessage(verifyData.error, "Passkey verification failed"), "error");
 
-      notify("Passkey berhasil diverifikasi", "success");
+      notify("Passkey verified successfully", "success");
       router.replace("/admin");
     } catch (err) {
-      notify(getLoginErrorMessage(err.message, "Verifikasi passkey dibatalkan"), "error");
+      notify(getLoginErrorMessage(err.message, "Passkey verification cancelled"), "error");
     }
   }
 
@@ -175,10 +175,10 @@ export default function Login() {
     setConfirmOpen(false);
     setLoading(true);
     try {
-      notify("Menyiapkan passkey", "info");
+      notify("Preparing passkey", "info");
       const optionsRes = await fetch("/api/webauth/register/options");
       const options = await optionsRes.json();
-      if (!optionsRes.ok) return notify(getLoginErrorMessage(options.error, "Gagal menyiapkan passkey"), "error");
+      if (!optionsRes.ok) return notify(getLoginErrorMessage(options.error, "Failed to prepare passkey"), "error");
 
       const credential = await startRegistration(options);
       const verifyRes = await fetch("/api/webauth/register/verify", {
@@ -187,10 +187,10 @@ export default function Login() {
         body: JSON.stringify(credential),
       });
       const verifyData = await verifyRes.json();
-      if (!verifyRes.ok) return notify(getLoginErrorMessage(verifyData.error, "Registrasi passkey gagal"), "error");
-      notify("Registrasi passkey berhasil", "success");
+      if (!verifyRes.ok) return notify(getLoginErrorMessage(verifyData.error, "Passkey registration failed"), "error");
+      notify("Passkey registered successfully", "success");
     } catch (err) {
-      notify(getLoginErrorMessage(err.message, "Registrasi passkey dibatalkan"), "error");
+      notify(getLoginErrorMessage(err.message, "Passkey registration cancelled"), "error");
     } finally {
       setLoading(false);
     }
@@ -200,10 +200,10 @@ export default function Login() {
 
   const step = needPin ? "pin" : otpRequested ? "otp" : "password";
   const subtitle = step === "password"
-    ? "Pilih role dan masukkan password"
+    ? "Select a role and enter your password"
     : step === "otp"
-      ? "Masukkan OTP dari WhatsApp"
-      : "Masukkan PIN admin";
+      ? "Enter the OTP sent to WhatsApp"
+      : "Enter your admin PIN";
 
   return (
     <>
@@ -212,10 +212,10 @@ export default function Login() {
       <ConfirmModal
         open={confirmOpen}
         isDark={isDark}
-        title="Daftarkan passkey baru?"
-        message="Passkey lama akan diganti."
-        confirmText="Daftarkan"
-        cancelText="Batal"
+        title="Register new passkey?"
+        message="The existing passkey will be replaced."
+        confirmText="Register"
+        cancelText="Cancel"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={handleConfirmRegister}
       />
@@ -223,9 +223,9 @@ export default function Login() {
       <div style={{ ...styles.wrapper, background: isDark ? "linear-gradient(135deg,#020617,#0f172a)" : "linear-gradient(135deg,#e0e7ff,#f8fafc)" }}>
         <form onSubmit={step === "password" ? requestOtp : submit} style={{ ...styles.card, background: isDark ? "#111827" : "#ffffff", border: isDark ? "1px solid #334155" : "1px solid rgba(226,232,240,.9)" }}>
           <div style={{ ...styles.badge, background: isDark ? "rgba(15,23,42,.92)" : "rgba(255,255,255,.92)", color: "#facc15", border: `1px solid ${isDark ? "#334155" : "#cbd5e1"}` }}>
-            Akses Pengurus
+            Management Access
           </div>
-          <h2 style={{ ...styles.title, color: isDark ? "#f8fafc" : "#0f172a" }}>Login Pengurus</h2>
+          <h2 style={{ ...styles.title, color: isDark ? "#f8fafc" : "#0f172a" }}>Administrator Sign In</h2>
           <p style={{ ...styles.subtitle, color: isDark ? "#94a3b8" : "#64748b" }}>{subtitle}</p>
 
           {step === "password" && (
@@ -253,7 +253,7 @@ export default function Login() {
                 style={commonInputStyle()}
               />
               <button type="submit" disabled={loading || sendingOtp || !password.trim()} style={{ ...styles.button, opacity: loading || sendingOtp || !password.trim() ? 0.75 : 1 }}>
-                {sendingOtp ? "Mengirim OTP..." : "Selanjutnya"}
+                {sendingOtp ? "Sending OTP..." : "Continue"}
               </button>
             </>
           )}
@@ -264,26 +264,26 @@ export default function Login() {
                 type="text"
                 inputMode="numeric"
                 maxLength={6}
-                placeholder="Kode OTP"
+                placeholder="OTP Code"
                 value={otp}
                 disabled={loading}
                 onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 style={commonInputStyle()}
               />
               <button type="submit" disabled={loading || otp.length !== 6} style={{ ...styles.button, opacity: loading || otp.length !== 6 ? 0.75 : 1 }}>
-                {loading ? "Memverifikasi..." : "Verifikasi OTP"}
+                {loading ? "Verifying..." : "Verify OTP"}
               </button>
             </>
           )}
 
           {step === "pin" && (
             <>
-              <input type="password" placeholder="PIN Admin" value={pin} disabled={loading} onChange={(e) => setPin(e.target.value)} style={commonInputStyle()} />
+              <input type="password" placeholder="Admin PIN" value={pin} disabled={loading} onChange={(e) => setPin(e.target.value)} style={commonInputStyle()} />
               <button type="submit" disabled={loading || !pin.trim()} style={{ ...styles.button, opacity: loading || !pin.trim() ? 0.75 : 1 }}>
-                {loading ? "Memproses..." : "Kirim"}
+                {loading ? "Processing..." : "Submit"}
               </button>
               <button type="button" disabled={loading} onClick={() => setConfirmOpen(true)} style={{ ...styles.secondaryButton, color: isDark ? "#fff" : "#0f172a", border: isDark ? "1px solid #334155" : "1px solid #cbd5e1", background: isDark ? "#1e293b" : "transparent", opacity: loading ? 0.75 : 1 }}>
-                Daftarkan Passkey
+                Register Passkey
               </button>
             </>
           )}
