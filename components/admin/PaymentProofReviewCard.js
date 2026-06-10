@@ -100,9 +100,12 @@ function ProofDetailModal({ proof, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-box" style={styles.modal} onClick={(event) => event.stopPropagation()}>
         <div className="modal-header">
-          <div style={styles.modalTitleGroup}>
-            <div className="modal-title">Bukti Pembayaran {proof.person_house}</div>
-            <div className="modal-section">{formatPeriod(proof.period)} • {proof.person_name || "-"}</div>
+          <div style={styles.modalHeaderTop}>
+            <div style={styles.modalTitleGroup}>
+              <div className="modal-title">Bukti Pembayaran {proof.person_house}</div>
+              <div className="modal-section">{formatPeriod(proof.period)} • {proof.person_name || "-"}</div>
+            </div>
+            <button type="button" className="activity-modal-close" style={styles.modalCloseButton} onClick={onClose} aria-label="Close modal">×</button>
           </div>
         </div>
         <ProofAmountBreakdown proof={proof} />
@@ -283,6 +286,7 @@ const styles = {
   modal: { width: "min(100%, 760px)", maxHeight: "calc(100dvh - 24px)", display: "grid", gap: 14, overflow: "auto" },
   modalHeaderTop: { width: "100%", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 },
   modalTitleGroup: { display: "grid", gap: 6 },
+  modalCloseButton: { width: 34, height: 34, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", fontSize: 22, lineHeight: 1, fontWeight: 800, cursor: "pointer", flexShrink: 0 },
   previewFrame: { display: "grid", placeItems: "center", minHeight: 240, borderRadius: 12, border: "1px solid var(--admin-border)", background: "var(--admin-row)", overflow: "hidden" },
   previewImage: { width: "100%", maxHeight: "70dvh", objectFit: "contain", display: "block" },
   breakdownCard: { display: "grid", gap: 10, padding: 12, borderRadius: 12, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
