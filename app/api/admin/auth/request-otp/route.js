@@ -4,7 +4,12 @@ import { getAdminAccessRoleLabel, assertAdminAccessRole } from "@/lib/adminRoles
 import { getAdminRoleContact } from "@/lib/adminRoleContacts";
 import { normalizePhoneToWaChatId, sendWaMessage } from "@/lib/waClient";
 import { recordAdminActivity } from "@/lib/adminActivity";
-import { enforceRateLimit, RATE_LIMIT_SCOPES } from "@/lib/rateLimit";
+import {
+  enforceFailureRateLimit,
+  enforceRateLimit,
+  RATE_LIMIT_SCOPES,
+  recordRateLimitFailure,
+} from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,8 +24,25 @@ export async function POST(req) {
   let role = "";
 
   try {
+    const passwordLimit = await enforceFailureRateLimit(req, RATE_LIMIT_SCOPES.loginPasswordFailed);
+    if (passwordLimit) return passwordLimit;
+
     const body = await req.json();
     role = assertAdminAccessRole(body?.role);
+    const password = String(body?.password || "");
+
+    if (password !== process.env.ADMIN_PASSWORD) {
+      await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.loginPasswordFailed);
+      await recordAdminActivity(req, {
+        type: "otp-request",
+        module: "login",
+        severity: "error",
+        message: `OTP login request blocked by wrong password for ${role}`,
+        metadata: { role },
+      });
+
+      return NextResponse.json({ error: "Wrong password" }, { status: 401 });
+    }
 
     const limit = await enforceRateLimit(req, RATE_LIMIT_SCOPES.adminLoginOtpRequest, {
       targetId: role,
