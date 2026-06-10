@@ -57,14 +57,16 @@ export default function PaymentStatusTab({
                       className="pay-item"
                       onClick={() => setSelectedResident(person)}
                     >
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-                        <span>{person.house}</span>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+                        <span style={{ flexShrink: 0, whiteSpace: "nowrap" }}>{person.house}</span>
 
                         <span
                           style={{
+                            minWidth: 0,
                             fontWeight: 700,
                             color: status.color || "#6c757d",
                             textAlign: "right",
+                            lineHeight: 1.25,
                           }}
                         >
                           {status.label || "-"}
