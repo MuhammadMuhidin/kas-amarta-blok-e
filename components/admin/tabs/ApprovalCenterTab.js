@@ -6,6 +6,21 @@ import { useEffect, useMemo, useState } from "react";
 
 const APPROVAL_REQUESTS_API = "/api/admin/approval-requests";
 
+const approvalCenterCss = `
+  .approval-center-card,
+  .approval-center-card .admin-status-card,
+  .approval-center-card .admin-table-wrapper {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+  }
+
+  .approval-center-card .admin-table-wrapper {
+    overflow-x: auto !important;
+  }
+`;
+
 function formatTime(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -80,7 +95,8 @@ export default function ApprovalCenterTab() {
   return (
     <>
       <Toast show={!!toast} type={toast?.type} message={toast?.message} />
-      <div className="admin-card" style={styles.card}>
+      <style jsx global>{approvalCenterCss}</style>
+      <div className="admin-card approval-center-card" style={styles.card}>
         <div className="activity-header" style={styles.header}>
           <div>
             <div className="activity-kicker">Approval Workflow</div>
@@ -117,14 +133,14 @@ function SummaryCard({ label, value }) {
 }
 
 function Section({ title, description, compact = false, children }) {
-  return <section className="admin-status-card" style={compact ? styles.compactSection : styles.section}><div className="admin-status-label">{title}</div>{description && <div className="admin-status-meta" style={styles.sectionDescription}>{description}</div>}{children}</section>;
+  return <section className="admin-status-card approval-center-section" style={compact ? styles.compactSection : styles.section}><div className="admin-status-label">{title}</div>{description && <div className="admin-status-meta" style={styles.sectionDescription}>{description}</div>}{children}</section>;
 }
 
 function RequestTable({ rows, runningId, onAction, showActions = false }) {
   if (!rows.length) return <div className="admin-empty-state" style={styles.emptyState}>Tidak ada pengajuan.</div>;
 
   return (
-    <div className="admin-table-wrapper" style={styles.tableWrapper}>
+    <div className="admin-table-wrapper approval-center-table-wrapper" style={styles.tableWrapper}>
       <table className="admin-table">
         <thead>
           <tr>
@@ -177,6 +193,10 @@ const styles = {
     display: "grid",
     gap: 12,
     marginTop: 14,
+    height: "auto",
+    minHeight: 0,
+    maxHeight: "none",
+    overflow: "visible",
   },
   section: {
     margin: 0,
