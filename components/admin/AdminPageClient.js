@@ -186,7 +186,7 @@ export default function AdminPageClient() {
     <>
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
       <div className="admin-wrapper">
-        <div className="admin-header">
+        <div className="admin-header" style={{ marginBottom: 10 }}>
           <button className="admin-home-btn" onClick={() => router.push("/")}>{icon(0x1F3E0)} Home</button>
           <h1 className="admin-title">Cash Flow Management</h1>
         </div>
