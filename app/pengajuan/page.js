@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import PublicBottomNav from "@/components/public/PublicBottomNav";
 import { useEffect, useMemo, useState } from "react";
 
 const APPROVAL_REQUESTS_API = "/api/approval-requests";
@@ -11,14 +11,25 @@ function money(value) {
 
 function prettyStatus(status = "") {
   const map = {
-    submitted: "Submitted",
-    waiting_payment_validation: "Waiting Payment Validation",
-    waiting_approval: "Waiting Approval",
-    completed: "Completed",
-    rejected: "Rejected",
-    cancelled: "Cancelled",
+    submitted: "Terkirim",
+    waiting_payment_validation: "Menunggu Validasi Pembayaran",
+    waiting_approval: "Menunggu Persetujuan",
+    completed: "Selesai",
+    rejected: "Ditolak",
+    cancelled: "Dibatalkan",
   };
   return map[status] || status || "-";
+}
+
+function prettyAction(action = "") {
+  const map = {
+    submit: "Dikirim",
+    approve: "Disetujui",
+    reject: "Ditolak",
+    cancel: "Dibatalkan",
+    payment_validated: "Pembayaran Divalidasi",
+  };
+  return map[action] || action || "-";
 }
 
 function getStatusClass(status) {
@@ -119,25 +130,52 @@ export default function PengajuanPage() {
       <style jsx global>{requestPageCss}</style>
       {message ? <div className={`request-toast ${message.type === "error" ? "is-error" : "is-success"}`}>{message.text}</div> : null}
 
-      <section className="request-hero">
-        <Link href="/" className="request-back">← Back to Home</Link>
-        <div className="request-eyebrow">Amarta Residence • Blok E</div>
-        <h1>Pengajuan Warga</h1>
-        <p>Ajukan kebutuhan warga secara mandiri, pantau statusnya, dan tunggu approval pengurus sesuai alur.</p>
-        <div className="request-hero-grid">
-          <div><strong>1</strong><span>Pilih Jenis</span></div>
-          <div><strong>2</strong><span>Isi Data</span></div>
-          <div><strong>3</strong><span>Cek Status</span></div>
+      <section className="request-card request-check-card">
+        <div className="request-card-header">
+          <div>
+            <span className="request-kicker">Cek Status</span>
+            <h2>Cek Status Pengajuan</h2>
+          </div>
         </div>
+        <p className="request-muted">Gunakan nomor pengajuan dan nomor rumah / WhatsApp sebagai verifikasi.</p>
+        <form onSubmit={checkStatus} className="request-check-grid">
+          <input className="request-input" placeholder="Contoh: APR-202606-0001" value={checkForm.request_no} onChange={(e) => setCheckForm((prev) => ({ ...prev, request_no: e.target.value }))} />
+          <input className="request-input" placeholder="Nomor rumah / WhatsApp" value={checkForm.key} onChange={(e) => setCheckForm((prev) => ({ ...prev, key: e.target.value }))} />
+          <button type="submit" className="request-secondary-btn">Cek Status</button>
+        </form>
+
+        {statusResult?.request ? (
+          <div className="request-status-panel">
+            <div className="request-status-top">
+              <div>
+                <span className="request-kicker">{statusResult.request.request_no}</span>
+                <h3>{statusResult.request.master_name}</h3>
+              </div>
+              <StatusBadge status={statusResult.request.status} />
+            </div>
+            <div className="request-meta-grid">
+              <div><span>Persetujuan Saat Ini</span><strong>{statusResult.request.current_approver_role || "-"}</strong></div>
+              <div><span>Diajukan Pada</span><strong>{formatTime(statusResult.request.submitted_at)}</strong></div>
+            </div>
+            <div className="request-timeline">
+              {(statusResult.actions || []).map((action) => (
+                <div key={action.id} className="request-timeline-item">
+                  <span />
+                  <div><strong>{prettyAction(action.action)}</strong><small>{action.role} • {formatTime(action.created_at)}</small>{action.note ? <p>{action.note}</p> : null}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       <section className="request-card request-master-card">
         <div className="request-card-header">
           <div>
-            <span className="request-kicker">New Request</span>
-            <h2>Submit Pengajuan Baru</h2>
+            <span className="request-kicker">Pengajuan Baru</span>
+            <h2>Buat Pengajuan Baru</h2>
           </div>
-          {selectedMaster?.payment_required ? <span className="request-price">{money(selectedMaster.payment_amount)}</span> : <span className="request-price muted">Free</span>}
+          {selectedMaster?.payment_required ? <span className="request-price">{money(selectedMaster.payment_amount)}</span> : <span className="request-price muted">Gratis</span>}
         </div>
 
         <form onSubmit={submitRequest} className="request-form">
@@ -148,7 +186,7 @@ export default function PengajuanPage() {
           </label>
 
           {selectedMaster?.description ? <div className="request-info">{selectedMaster.description}</div> : null}
-          {selectedMaster?.payment_required ? <div className="request-payment"><strong>Payment Required</strong><span>{selectedMaster.payment_instruction}</span></div> : null}
+          {selectedMaster?.payment_required ? <div className="request-payment"><strong>Perlu Pembayaran</strong><span>{selectedMaster.payment_instruction}</span></div> : null}
 
           {(selectedMaster?.fields_schema || []).map((field) => (
             <label key={field.key} className="request-label">
@@ -161,7 +199,7 @@ export default function PengajuanPage() {
             </label>
           ))}
 
-          <button type="submit" className="request-primary-btn" disabled={submitting || !selectedMaster}>{submitting ? "Submitting..." : "Submit Pengajuan"}</button>
+          <button type="submit" className="request-primary-btn" disabled={submitting || !selectedMaster}>{submitting ? "Mengirim..." : "Kirim Pengajuan"}</button>
         </form>
 
         {submitResult?.request ? (
@@ -178,44 +216,7 @@ export default function PengajuanPage() {
         ) : null}
       </section>
 
-      <section className="request-card">
-        <div className="request-card-header">
-          <div>
-            <span className="request-kicker">Tracking</span>
-            <h2>Cek Status Pengajuan</h2>
-          </div>
-        </div>
-        <p className="request-muted">Gunakan nomor pengajuan dan nomor rumah / WhatsApp sebagai verifikasi.</p>
-        <form onSubmit={checkStatus} className="request-check-grid">
-          <input className="request-input" placeholder="APR-202606-0001" value={checkForm.request_no} onChange={(e) => setCheckForm((prev) => ({ ...prev, request_no: e.target.value }))} />
-          <input className="request-input" placeholder="Nomor rumah / WhatsApp" value={checkForm.key} onChange={(e) => setCheckForm((prev) => ({ ...prev, key: e.target.value }))} />
-          <button type="submit" className="request-secondary-btn">Cek Status</button>
-        </form>
-
-        {statusResult?.request ? (
-          <div className="request-status-panel">
-            <div className="request-status-top">
-              <div>
-                <span className="request-kicker">{statusResult.request.request_no}</span>
-                <h3>{statusResult.request.master_name}</h3>
-              </div>
-              <StatusBadge status={statusResult.request.status} />
-            </div>
-            <div className="request-meta-grid">
-              <div><span>Current Approver</span><strong>{statusResult.request.current_approver_role || "-"}</strong></div>
-              <div><span>Submitted</span><strong>{formatTime(statusResult.request.submitted_at)}</strong></div>
-            </div>
-            <div className="request-timeline">
-              {(statusResult.actions || []).map((action) => (
-                <div key={action.id} className="request-timeline-item">
-                  <span />
-                  <div><strong>{action.action}</strong><small>{action.role} • {formatTime(action.created_at)}</small>{action.note ? <p>{action.note}</p> : null}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
-      </section>
+      <PublicBottomNav />
     </main>
   );
 }
@@ -232,7 +233,7 @@ const requestPageCss = `
   .request-page {
     max-width: 980px;
     margin: 0 auto;
-    padding: 18px 14px calc(104px + env(safe-area-inset-bottom, 0px));
+    padding: 12px 14px calc(104px + env(safe-area-inset-bottom, 0px));
     font-family: var(--public-font-family, Inter, system-ui, sans-serif);
     color: var(--text);
   }
@@ -251,7 +252,6 @@ const requestPageCss = `
   .request-toast.is-success { background: color-mix(in srgb, var(--success) 14%, var(--surface)); border: 1px solid color-mix(in srgb, var(--success) 36%, var(--border)); color: var(--text); }
   .request-toast.is-error { background: color-mix(in srgb, var(--danger) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--danger) 34%, var(--border)); color: var(--text); }
 
-  .request-hero,
   .request-card {
     position: relative;
     overflow: hidden;
@@ -262,37 +262,13 @@ const requestPageCss = `
     box-shadow: 0 18px 48px color-mix(in srgb, var(--primary) 11%, transparent), var(--shadow-soft);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-  }
-
-  .request-hero {
-    padding: 24px 18px;
+    padding: 18px;
     margin-bottom: 14px;
-    text-align: center;
-    isolation: isolate;
   }
 
-  .request-hero::before,
-  .request-hero::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    border-radius: 999px;
-    pointer-events: none;
-  }
+  .request-master-card { border-color: color-mix(in srgb, var(--success) 18%, var(--border)); }
+  .request-check-card { border-color: color-mix(in srgb, var(--primary) 22%, var(--border)); }
 
-  .request-hero::before { width: 180px; height: 180px; top: -84px; right: -58px; background: color-mix(in srgb, var(--primary) 20%, transparent); }
-  .request-hero::after { width: 140px; height: 140px; left: -52px; bottom: -68px; background: color-mix(in srgb, var(--success) 16%, transparent); }
-
-  .request-back {
-    display: inline-flex;
-    margin-bottom: 12px;
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 13px;
-    font-weight: 900;
-  }
-
-  .request-eyebrow,
   .request-kicker {
     color: var(--primary);
     font-size: 11px;
@@ -300,48 +276,6 @@ const requestPageCss = `
     letter-spacing: .11em;
     text-transform: uppercase;
   }
-
-  .request-hero h1 {
-    margin: 8px 0;
-    font-size: clamp(30px, 8vw, 56px);
-    line-height: 1;
-    letter-spacing: -0.055em;
-  }
-
-  .request-hero p,
-  .request-muted {
-    margin: 0;
-    color: var(--muted);
-    font-size: 15px;
-    font-weight: 750;
-    line-height: 1.55;
-  }
-
-  .request-hero-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-    margin-top: 18px;
-  }
-
-  .request-hero-grid div {
-    padding: 10px 8px;
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    background: color-mix(in srgb, var(--surface) 80%, transparent);
-    display: grid;
-    gap: 3px;
-  }
-
-  .request-hero-grid strong { color: var(--primary); font-size: 22px; line-height: 1; }
-  .request-hero-grid span { color: var(--muted); font-size: 11px; font-weight: 900; }
-
-  .request-card {
-    padding: 18px;
-    margin-bottom: 14px;
-  }
-
-  .request-master-card { border-color: color-mix(in srgb, var(--success) 18%, var(--border)); }
 
   .request-card-header,
   .request-status-top {
@@ -361,6 +295,14 @@ const requestPageCss = `
 
   .request-card h2 { font-size: 24px; }
   .request-status-top h3 { font-size: 20px; }
+
+  .request-muted {
+    margin: 0;
+    color: var(--muted);
+    font-size: 15px;
+    font-weight: 750;
+    line-height: 1.55;
+  }
 
   .request-price {
     flex-shrink: 0;
@@ -544,10 +486,8 @@ const requestPageCss = `
   .request-timeline-item p { margin: 6px 0 0; color: var(--muted); }
 
   @media (max-width: 700px) {
-    .request-page { padding: 12px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
-    .request-hero { padding: 20px 14px; border-radius: 24px; }
+    .request-page { padding: 10px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
     .request-card { padding: 15px; border-radius: 22px; }
-    .request-hero-grid { grid-template-columns: 1fr 1fr 1fr; }
     .request-card-header { align-items: stretch; }
   }
 `;
