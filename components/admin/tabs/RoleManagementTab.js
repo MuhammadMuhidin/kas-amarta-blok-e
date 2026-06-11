@@ -54,6 +54,13 @@ function getStatusClass(status) {
   return statusClassMap[key] || "admin-deposit-status-waiting";
 }
 
+function getEffectiveOtpStatus(row) {
+  const status = String(row?.status || "none").trim().toLowerCase();
+  const expiresAt = new Date(row?.expires_at || "").getTime();
+  const canExpireByTime = ["pending", "sent"].includes(status) && Number.isFinite(expiresAt) && Date.now() >= expiresAt;
+  return canExpireByTime ? "expired" : status;
+}
+
 function StatusBadge({ children, status }) {
   return <span className={`admin-deposit-status ${getStatusClass(status || children)}`}>{children}</span>;
 }
@@ -126,16 +133,16 @@ function RoleActivityLogCard({ rows }) {
 }
 
 function OtpLoginMonitorCard({ rows, onExpire }) {
-  return <SectionCard title="OTP Login Monitor" description="Status OTP terakhir per role. Kode OTP tidak ditampilkan."><MiniTable columns={["Role", "Status", "Attempt", "Expires", "Action"]} rows={rows} emptyText="No OTP login records found." renderRow={(row, index) => <tr key={row.role} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{row.label}</td><td className="admin-td"><StatusBadge status={row.status}>{row.status}</StatusBadge></td><td className="admin-td">{row.attempt_count}/{row.max_attempts}</td><td className="admin-td">{formatTime(row.expires_at)}</td><td className="admin-td">{row.can_expire ? <ActionButton tone="muted" onClick={() => onExpire(row)}>Expire</ActionButton> : <span className="activity-muted">No action</span>}</td></tr>} /></SectionCard>;
+  return <SectionCard title="OTP Login Monitor" description="Status OTP terakhir per role. Expired dihitung dari expires_at, jadi tampilan tetap akurat meski row DB belum tersentuh proses validasi."><MiniTable columns={["Role", "Status", "Attempt", "Expires", "Action"]} rows={rows} emptyText="No OTP login records found." renderRow={(row, index) => {
+    const effectiveStatus = getEffectiveOtpStatus(row);
+    const canExpire = row.can_expire && effectiveStatus !== "expired";
+    return <tr key={row.role} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{row.label}</td><td className="admin-td"><StatusBadge status={effectiveStatus}>{effectiveStatus}</StatusBadge></td><td className="admin-td">{row.attempt_count}/{row.max_attempts}</td><td className="admin-td">{formatTime(row.expires_at)}</td><td className="admin-td">{canExpire ? <ActionButton tone="muted" onClick={() => onExpire(row)}>Expire</ActionButton> : <span className="activity-muted">No action</span>}</td></tr>;
+  }} /></SectionCard>;
 }
 
 function SecurityHealthCard({ health }) {
   const status = String(health?.overall_status || "Attention").toLowerCase();
   return <SectionCard title="Security Health" description="Kesehatan akses role, kontak OTP, session, PIN, dan passkey."><div style={styles.healthHeader}><div><div className="admin-status-value" style={styles.healthStatus}>{health?.overall_status || "Attention"}</div><div className="admin-status-meta">Overall role security status</div></div><StatusBadge status={status}>{health?.overall_status || "Attention"}</StatusBadge></div><div className="admin-monitor-grid" style={styles.healthGrid}><InfoPill label="OTP Contacts" value={`${health?.contact_ready_count || 0}/${health?.contact_total || 0}`} /><InfoPill label="Active Sessions" value={health?.active_session_count || 0} /><InfoPill label="Pending OTP" value={health?.pending_otp_count || 0} /><InfoPill label="Session Duration" value={formatDuration(health?.session_duration)} /></div><div className="admin-deposit-chips" style={styles.healthPills}><StatusBadge status={health?.pin_enabled ? "active" : "inactive"}>PIN {health?.pin_enabled ? "enabled" : "disabled"}</StatusBadge><StatusBadge status={health?.web_auth_enabled ? "active" : "inactive"}>Passkey {health?.web_auth_enabled ? "enabled" : "disabled"}</StatusBadge><StatusBadge status={health?.passkey_count > 0 ? "active" : "attention"}>{health?.passkey_count || 0} passkey</StatusBadge></div>{health?.warnings?.length ? <div className="admin-error-box" style={styles.warningBox}>{health.warnings.map((warning) => <div key={warning}>• {warning}</div>)}</div> : <EmptyState>No role security warning.</EmptyState>}</SectionCard>;
-}
-
-function DangerZoneCard({ rows, onDanger }) {
-  return <SectionCard title="Danger Zone" description="Aksi sensitif role. Semua action wajib PIN admin dan tercatat di audit log."><div style={styles.dangerList}>{(rows || []).map((item) => <div key={item.key} className="admin-status-card" style={styles.dangerItem}><div><div className="admin-status-value" style={styles.dangerTitle}>{item.label}</div><div className="admin-status-meta">{item.description}</div></div><div style={styles.dangerActionGroup}><StatusBadge status={item.count ? "attention" : "none"}>{item.count}</StatusBadge><span className="activity-muted">{item.status}</span><ActionButton tone="danger" disabled={!item.action || item.count === 0} onClick={() => onDanger(item)}>Run</ActionButton></div></div>)}</div></SectionCard>;
 }
 
 function ActionModal({ pendingAction, pin, setPin, running, contactForm, setContactForm, onCancel, onConfirm }) {
@@ -203,10 +210,6 @@ export default function RoleManagementTab() {
     openAction({ type: "expire_role_otp", title: `Expire OTP - ${row.label}`, description: "OTP pending/sent untuk role ini akan dibuat expired.", payload: () => ({ action: "expire_role_otp", role: row.role }) });
   }
 
-  function openDanger(item) {
-    openAction({ type: "danger", title: item.label, description: item.description, payload: () => ({ action: item.action }) });
-  }
-
   function getActionPayload() {
     if (pendingAction?.type === "edit_contact") return { action: "update_contact", role: contactForm.role, phone: contactForm.phone, active: contactForm.role === "admin" ? true : contactForm.active };
     return pendingAction?.payload?.() || {};
@@ -239,7 +242,7 @@ export default function RoleManagementTab() {
   if (loading) return <div className="admin-card">Loading role management...</div>;
   if (error) return <div className="admin-error-box">{error}</div>;
 
-  return <><Toast show={!!toast} type={toast?.type} message={toast?.message} /><div className="admin-card"><div className="activity-header" style={styles.pageHeader}><div><div className="activity-kicker">Role Control</div><h3 className="activity-title" style={styles.pageTitle}>Role Management</h3><p className="activity-subtitle">Kelola role, OTP receiver, session aktif, audit, dan kontrol keamanan role.</p></div><button type="button" className="admin-small-btn admin-refresh-btn" onClick={loadRoleManagement}>Refresh</button></div><div className="admin-summary-cards" style={styles.summaryCards}><SummaryCard label="Roles" value={topStats.roleCount} /><SummaryCard label="OTP Contacts" value={`${topStats.contactReady}/${topStats.contactTotal}`} /><SummaryCard label="Active Sessions" value={topStats.sessionCount} /><SummaryCard label="Security Health" value={cards.security_health?.overall_status || "-"} /></div><div style={styles.sectionGridOne}><RoleOverviewCard rows={cards.role_overview || []} /><RoleContactCard rows={cards.role_contacts || []} onEdit={openEditContact} onToggle={openToggleRole} /><SecurityHealthCard health={cards.security_health || {}} /></div><div style={styles.sectionGridTwo}><ActiveRoleSessionsCard rows={cards.active_sessions || []} roles={roles} onRevoke={openRevokeSession} onRevokeRole={openRevokeRole} /><OtpLoginMonitorCard rows={cards.otp_login_monitor || []} onExpire={openExpireOtp} /></div><div style={styles.sectionGridTwo}><RoleAccessSummaryCard rows={cards.role_access_summary || []} /><RoleActivityLogCard rows={cards.role_activity_log || []} /></div><DangerZoneCard rows={cards.danger_zone || []} onDanger={openDanger} /></div><ActionModal pendingAction={pendingAction} pin={pin} setPin={setPin} running={running} contactForm={contactForm} setContactForm={setContactForm} onCancel={closeAction} onConfirm={confirmAction} /></>;
+  return <><Toast show={!!toast} type={toast?.type} message={toast?.message} /><div className="admin-card"><div className="activity-header" style={styles.pageHeader}><div><div className="activity-kicker">Role Control</div><h3 className="activity-title" style={styles.pageTitle}>Role Management</h3><p className="activity-subtitle">Kelola role, OTP receiver, session aktif, audit, dan kontrol keamanan role.</p></div><button type="button" className="admin-small-btn admin-refresh-btn" onClick={loadRoleManagement}>Refresh</button></div><div className="admin-summary-cards" style={styles.summaryCards}><SummaryCard label="Roles" value={topStats.roleCount} /><SummaryCard label="OTP Contacts" value={`${topStats.contactReady}/${topStats.contactTotal}`} /><SummaryCard label="Active Sessions" value={topStats.sessionCount} /><SummaryCard label="Security Health" value={cards.security_health?.overall_status || "-"} /></div><div style={styles.sectionGridOne}><RoleOverviewCard rows={cards.role_overview || []} /><RoleContactCard rows={cards.role_contacts || []} onEdit={openEditContact} onToggle={openToggleRole} /><SecurityHealthCard health={cards.security_health || {}} /></div><div style={styles.sectionGridTwo}><ActiveRoleSessionsCard rows={cards.active_sessions || []} roles={roles} onRevoke={openRevokeSession} onRevokeRole={openRevokeRole} /><OtpLoginMonitorCard rows={cards.otp_login_monitor || []} onExpire={openExpireOtp} /></div><div style={styles.sectionGridTwo}><RoleAccessSummaryCard rows={cards.role_access_summary || []} /><RoleActivityLogCard rows={cards.role_activity_log || []} /></div></div><ActionModal pendingAction={pendingAction} pin={pin} setPin={setPin} running={running} contactForm={contactForm} setContactForm={setContactForm} onCancel={closeAction} onConfirm={confirmAction} /></>;
 }
 
 function SummaryCard({ label, value }) {
@@ -286,10 +289,6 @@ const styles = {
   healthGrid: { gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", marginBottom: 12 },
   healthPills: { marginBottom: 12 },
   warningBox: { marginBottom: 0, lineHeight: 1.6 },
-  dangerList: { display: "grid", gap: 10 },
-  dangerItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", background: "var(--admin-card)" },
-  dangerTitle: { marginBottom: 0, fontSize: 15 },
-  dangerActionGroup: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8, flexWrap: "wrap" },
 };
 
 const modalTitleStyle = { fontSize: 22, fontWeight: 800, lineHeight: 1.15, marginBottom: 10 };
