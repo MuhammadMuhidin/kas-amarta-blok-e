@@ -283,12 +283,12 @@ export default function AdminPageClient() {
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
       <style jsx global>{`
         .admin-wrapper {
-          max-width: 1180px;
+          max-width: 900px;
           overflow-x: hidden;
         }
 
         .admin-header {
-          margin-bottom: 12px;
+          margin-bottom: 10px;
         }
 
         .admin-title {
@@ -297,44 +297,60 @@ export default function AdminPageClient() {
 
         .admin-tabs {
           width: 100%;
-          display: flex;
-          align-items: stretch;
+          display: grid;
+          grid-template-columns: 1fr;
           gap: 8px;
           margin-bottom: 18px;
-          flex-wrap: nowrap;
-          overflow-x: auto;
-          overflow-y: hidden;
-          padding: 0 0 8px;
-          scroll-snap-type: x proximity;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: thin;
+          overflow: visible;
+          padding: 0;
         }
 
         .admin-tab {
-          display: inline-flex;
+          width: 100%;
+          min-height: 42px;
+          padding: 10px 14px;
+          border: 1px solid var(--admin-border);
+          border-radius: 12px;
+          background: var(--admin-button);
+          color: var(--admin-text);
+          display: flex;
           align-items: center;
-          justify-content: center;
-          min-height: 40px;
-          width: auto;
-          padding: 9px 12px;
-          white-space: nowrap;
-          flex: 0 0 auto;
-          scroll-snap-align: start;
+          justify-content: flex-start;
+          text-align: left;
+          white-space: normal;
           font-size: 14px;
-          line-height: 1.2;
+          font-weight: 700;
+          line-height: 1.25;
+          box-sizing: border-box;
         }
 
         .admin-home-tab {
           order: -1;
         }
 
+        .admin-tab-active {
+          background: var(--admin-primary);
+          color: #020617;
+          border-color: var(--admin-primary);
+        }
+
         .admin-tab-content {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 8px;
           flex-wrap: nowrap;
-          white-space: nowrap;
+          white-space: normal;
+        }
+
+        .admin-tab-content > span:first-child {
+          min-width: 0;
         }
 
         .admin-deposit-badge {
-          max-width: 130px;
+          flex: 0 0 auto;
+          max-width: 132px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -346,43 +362,29 @@ export default function AdminPageClient() {
           }
 
           .admin-header {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
+          }
+
+          .admin-title {
+            display: none;
           }
 
           .admin-tabs {
-            flex-direction: row;
-            flex-wrap: nowrap;
-            gap: 6px;
+            grid-template-columns: 1fr;
+            gap: 7px;
             margin-bottom: 14px;
-            padding-bottom: 6px;
           }
 
           .admin-tab {
-            width: auto;
-            min-height: 38px;
-            padding: 8px 10px;
-            border: 1px solid var(--admin-border);
-            border-radius: 999px;
-            background: var(--admin-button);
+            width: 100%;
+            min-height: 40px;
+            padding: 9px 13px;
+            border-radius: 12px;
             font-size: 13px;
-            justify-content: center;
-            text-align: center;
-          }
-
-          .admin-tab-active {
-            background: var(--admin-primary);
-            color: #020617;
-            border-color: var(--admin-primary);
-          }
-
-          .admin-tab-content {
-            width: auto;
-            justify-content: center;
-            gap: 6px;
           }
 
           .admin-deposit-badge {
-            max-width: 92px;
+            max-width: 110px;
             padding-inline: 6px;
           }
         }
