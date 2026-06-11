@@ -12,7 +12,7 @@ const ADMIN_LOGIN_OTPS_TABLE = dbTable("admin_login_otps");
 const ADMIN_ACTIVITIES_TABLE = dbTable("admin_activities");
 
 const ROLE_VALUES = ADMIN_ACCESS_ROLES.map((role) => role.value);
-const NON_ADMIN_ROLES = ROLE_VALUES.filter((role) => role !== "admin");
+const MAX_OTP_ATTEMPTS = 5;
 
 function normalize(value) {
   return String(value || "").trim().toLowerCase();
@@ -42,6 +42,19 @@ function assertNonAdminRole(value) {
 function safeNumber(value) {
   const number = Number(value || 0);
   return Number.isFinite(number) ? number : 0;
+}
+
+function isPastDate(value) {
+  const time = new Date(value || "").getTime();
+  return Number.isFinite(time) && Date.now() >= time;
+}
+
+function getEffectiveOtpStatus(row) {
+  const status = normalize(row?.status || "none");
+  if (["pending", "sent"].includes(status) && isPastDate(row?.expires_at)) {
+    return "expired";
+  }
+  return status || "none";
 }
 
 function emptyRoleMap() {
@@ -113,7 +126,7 @@ async function readActivities(supabase) {
       .from(ADMIN_ACTIVITIES_TABLE)
       .select("id,type,module,severity,message,metadata,actor,device_name,ip,location,created_at")
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(8);
 
     if (error) throw error;
     return data || [];
@@ -222,26 +235,22 @@ function buildOtpMonitor(otpLogs) {
     return {
       role: role.value,
       label: role.label,
-      status: latest?.status || "none",
+      status: getEffectiveOtpStatus(latest),
+      raw_status: latest?.status || "none",
       attempt_count: safeNumber(latest?.attempt_count),
-      max_attempts: 5,
+      max_attempts: MAX_OTP_ATTEMPTS,
       expires_at: latest?.expires_at || "",
       used_at: latest?.used_at || "",
       created_at: latest?.created_at || "",
-      can_expire: latest ? ["pending", "sent"].includes(latest.status) : false,
     };
   });
 }
 
 function buildSecurityHealth({ contacts, sessions, otpMonitor, authHealth }) {
   const missingContacts = contacts.filter((contact) => !contact.phone || !contact.active);
-  const pendingOtp = otpMonitor.filter((otp) => ["pending", "sent"].includes(otp.status));
-  const expiredOtp = otpMonitor.filter((otp) => otp.status === "expired");
   const failedOtp = otpMonitor.filter((otp) => otp.status === "failed" || otp.attempt_count >= otp.max_attempts);
   const warnings = [
     ...missingContacts.map((contact) => `${contact.label} belum punya kontak OTP aktif`),
-    ...pendingOtp.map((otp) => `${otp.label} masih punya OTP ${otp.status}`),
-    ...expiredOtp.map((otp) => `${otp.label} punya OTP expired terakhir`),
     ...failedOtp.map((otp) => `${otp.label} punya OTP gagal/terkunci`),
   ];
 
@@ -254,8 +263,6 @@ function buildSecurityHealth({ contacts, sessions, otpMonitor, authHealth }) {
     contact_ready_count: contacts.filter((contact) => contact.phone && contact.active).length,
     contact_total: contacts.length,
     active_session_count: sessions.length,
-    pending_otp_count: pendingOtp.length,
-    expired_otp_count: expiredOtp.length,
     failed_otp_count: failedOtp.length,
     web_auth_enabled: authHealth.web_auth_enabled,
     pin_enabled: authHealth.pin_enabled,
@@ -263,38 +270,6 @@ function buildSecurityHealth({ contacts, sessions, otpMonitor, authHealth }) {
     session_duration: authHealth.session_duration,
     warnings: warnings.slice(0, 8),
   };
-}
-
-function buildDangerZone({ sessions, otpMonitor }) {
-  const nonCurrentSessions = sessions.filter((session) => !session.current);
-  const pendingOtp = otpMonitor.filter((otp) => ["pending", "sent"].includes(otp.status));
-
-  return [
-    {
-      key: "revoke_sessions",
-      label: "Revoke all non-current sessions",
-      count: nonCurrentSessions.length,
-      action: "revoke_all_non_current_sessions",
-      status: nonCurrentSessions.length ? "Ready" : "No extra active session",
-      description: "Putuskan semua session role selain session admin yang sedang dipakai.",
-    },
-    {
-      key: "expire_otp",
-      label: "Expire all pending OTP",
-      count: pendingOtp.length,
-      action: "expire_all_pending_otp",
-      status: pendingOtp.length ? "Ready" : "No pending OTP",
-      description: "Expire semua OTP role yang masih pending/sent.",
-    },
-    {
-      key: "disable_role_login",
-      label: "Disable non-admin role login",
-      count: NON_ADMIN_ROLES.length,
-      action: "disable_non_admin_roles",
-      status: "Admin only",
-      description: "Nonaktifkan login Ketua, Sekretaris, dan Bendahara lewat role_contacts.active=false.",
-    },
-  ];
 }
 
 export async function getRoleManagementOverview(req) {
@@ -333,10 +308,6 @@ export async function getRoleManagementOverview(req) {
         otpMonitor,
         authHealth,
       }),
-      danger_zone: buildDangerZone({
-        sessions,
-        otpMonitor,
-      }),
     },
   };
 }
@@ -344,7 +315,7 @@ export async function getRoleManagementOverview(req) {
 export async function updateRoleContact({ req, role, phone, active }) {
   const selectedRole = assertRole(role);
   const cleanPhone = clean(phone);
-  const nextActive = Boolean(active);
+  const nextActive = selectedRole === "admin" ? true : Boolean(active);
   const supabase = getSupabaseAdmin();
 
   const { data: existing, error: readError } = await supabase
@@ -428,62 +399,6 @@ export async function setRoleLoginStatus({ req, role, active }) {
   return { ok: true };
 }
 
-export async function expireRoleOtp({ req, role }) {
-  const selectedRole = assertRole(role);
-  const supabase = getSupabaseAdmin();
-
-  const { data, error } = await supabase
-    .from(ADMIN_LOGIN_OTPS_TABLE)
-    .update({ status: "expired" })
-    .eq("role", selectedRole)
-    .in("status", ["pending", "sent"])
-    .is("used_at", null)
-    .select("id");
-
-  if (error) throw new Error(error.message || "Gagal expire OTP role");
-
-  await recordAdminActivity(req, {
-    type: "expire",
-    module: "role-management",
-    severity: "warning",
-    message: `Expire pending OTP for ${selectedRole}`,
-    metadata: {
-      access_role: "admin",
-      target_role: selectedRole,
-      affected: data?.length || 0,
-    },
-  });
-
-  return { ok: true, affected: data?.length || 0 };
-}
-
-export async function expireAllPendingOtp({ req }) {
-  const supabase = getSupabaseAdmin();
-
-  const { data, error } = await supabase
-    .from(ADMIN_LOGIN_OTPS_TABLE)
-    .update({ status: "expired" })
-    .in("role", ROLE_VALUES)
-    .in("status", ["pending", "sent"])
-    .is("used_at", null)
-    .select("id");
-
-  if (error) throw new Error(error.message || "Gagal expire semua OTP pending");
-
-  await recordAdminActivity(req, {
-    type: "expire",
-    module: "role-management",
-    severity: "warning",
-    message: "Expire all pending role OTP",
-    metadata: {
-      access_role: "admin",
-      affected: data?.length || 0,
-    },
-  });
-
-  return { ok: true, affected: data?.length || 0 };
-}
-
 export async function revokeManagedSession({ req, id }) {
   const sessions = await getAdminSessions(req);
   const targetSession = sessions.find((session) => String(session.id) === String(id));
@@ -533,51 +448,4 @@ export async function revokeRoleSessions({ req, role }) {
   });
 
   return { ok: true, affected: targets.length };
-}
-
-export async function revokeAllNonCurrentSessions({ req }) {
-  const sessions = await getAdminSessions(req);
-  const targets = sessions.filter((session) => !session.current);
-
-  for (const session of targets) {
-    await revokeAdminSession(session.id);
-  }
-
-  await recordAdminActivity(req, {
-    type: "revoke",
-    module: "role-management",
-    severity: "warning",
-    message: "Revoke all non-current role sessions",
-    metadata: {
-      access_role: "admin",
-      affected: targets.length,
-    },
-  });
-
-  return { ok: true, affected: targets.length };
-}
-
-export async function disableNonAdminRoleLogins({ req }) {
-  const supabase = getSupabaseAdmin();
-
-  const { data, error } = await supabase
-    .from(ROLE_CONTACTS_TABLE)
-    .update({ active: false })
-    .in("role", NON_ADMIN_ROLES)
-    .select("role");
-
-  if (error) throw new Error(error.message || "Gagal disable login role non-admin");
-
-  await recordAdminActivity(req, {
-    type: "disable",
-    module: "role-management",
-    severity: "warning",
-    message: "Disable all non-admin role logins",
-    metadata: {
-      access_role: "admin",
-      affected: data?.length || 0,
-    },
-  });
-
-  return { ok: true, affected: data?.length || 0 };
 }
