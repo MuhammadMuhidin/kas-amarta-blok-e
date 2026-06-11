@@ -53,9 +53,10 @@ const MODULE_ICONS = {
   settings: icon(0x2699, true),
 };
 
-const adminMobileMenuCss = `
+const adminMenuStabilityCss = `
   @media (max-width: 640px) {
     .admin-wrapper {
+      padding: 14px !important;
       overflow-x: hidden !important;
     }
 
@@ -68,39 +69,62 @@ const adminMobileMenuCss = `
       display: none !important;
     }
 
-    .admin-wrapper .admin-home-btn,
-    .admin-wrapper .admin-tab {
-      width: 100% !important;
+    .admin-wrapper .admin-home-btn {
+      width: auto !important;
       max-width: 100% !important;
-      min-height: 48px !important;
+      min-height: 0 !important;
       box-sizing: border-box !important;
-      display: flex !important;
+      display: inline-flex !important;
       align-items: center !important;
-      justify-content: flex-start !important;
-      padding: 10px 18px !important;
-      border: 0 !important;
-      border-radius: 16px !important;
-      background: transparent !important;
+      justify-content: center !important;
+      padding: 8px 12px !important;
+      border: 1px solid var(--admin-border) !important;
+      border-radius: 8px !important;
+      background: var(--admin-button) !important;
       color: var(--admin-text) !important;
-      font-size: 18px !important;
-      font-weight: 700 !important;
-      text-align: left !important;
-      white-space: normal !important;
+      font-size: 14px !important;
+      font-weight: 600 !important;
+      text-align: center !important;
+      white-space: nowrap !important;
     }
 
     .admin-wrapper .admin-tabs {
       display: flex !important;
-      flex-direction: column !important;
-      align-items: stretch !important;
+      flex-direction: row !important;
+      align-items: center !important;
       gap: 8px !important;
       margin: 0 0 14px !important;
       width: 100% !important;
       max-width: 100% !important;
-      overflow: hidden !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      flex-wrap: nowrap !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: none !important;
+    }
+
+    .admin-wrapper .admin-tabs::-webkit-scrollbar {
+      display: none !important;
     }
 
     .admin-wrapper .admin-tab {
+      width: auto !important;
+      max-width: none !important;
+      min-height: 42px !important;
+      box-sizing: border-box !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
       flex: 0 0 auto !important;
+      padding: 9px 14px !important;
+      border: 1px solid var(--admin-border) !important;
+      border-radius: 999px !important;
+      background: var(--admin-button) !important;
+      color: var(--admin-text) !important;
+      font-size: 14px !important;
+      font-weight: 700 !important;
+      text-align: center !important;
+      white-space: nowrap !important;
     }
 
     .admin-wrapper .admin-tab-active {
@@ -110,8 +134,9 @@ const adminMobileMenuCss = `
     }
 
     .admin-wrapper .admin-tab-content {
-      width: 100% !important;
-      justify-content: flex-start !important;
+      width: auto !important;
+      justify-content: center !important;
+      flex-wrap: nowrap !important;
     }
   }
 `;
@@ -322,7 +347,7 @@ export default function AdminPageClient() {
   return (
     <>
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
-      <style jsx global>{adminMobileMenuCss}</style>
+      <style jsx global>{adminMenuStabilityCss}</style>
       <div className="admin-wrapper">
         <div className="admin-header">
           <button className="admin-home-btn" onClick={() => router.push("/")}>{icon(0x1F3E0)} Home</button>
