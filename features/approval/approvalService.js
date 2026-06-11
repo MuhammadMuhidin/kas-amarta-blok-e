@@ -63,12 +63,12 @@ function getFirstStep(flowSchema = []) {
   return ensureFlow(flowSchema)[0] || null;
 }
 
-function getNextStep(flowSchema = [], currentStep) {
-  return ensureFlow(flowSchema).find((step) => Number(step.step) > Number(currentStep || 0)) || null;
-}
-
 function getStep(flowSchema = [], currentStep) {
   return ensureFlow(flowSchema).find((step) => Number(step.step) === Number(currentStep || 0)) || null;
+}
+
+function getNextStep(flowSchema = [], currentStep) {
+  return ensureFlow(flowSchema).find((step) => Number(step.step) > Number(currentStep || 0)) || null;
 }
 
 function buildRequestStatus(master) {
@@ -77,7 +77,7 @@ function buildRequestStatus(master) {
     return {
       status: "completed",
       current_step: null,
-      current_role: null,
+      current_approver_role: null,
       payment_status: master.payment_required ? "pending" : "not_required",
     };
   }
@@ -85,7 +85,7 @@ function buildRequestStatus(master) {
   return {
     status: master.payment_required && firstStep.action === "validate_payment" ? "waiting_payment_validation" : "waiting_approval",
     current_step: firstStep.step,
-    current_role: firstStep.role,
+    current_approver_role: firstStep.role,
     payment_status: master.payment_required ? "pending" : "not_required",
   };
 }
@@ -99,6 +99,17 @@ function validateFormData(master, formData = {}) {
   if (missing.length) {
     throw new Error(`Field wajib belum diisi: ${missing.join(", ")}`);
   }
+}
+
+function mapMaster(row = {}) {
+  return {
+    ...row,
+    fields_schema: Array.isArray(row.fields_schema) ? row.fields_schema : DEFAULT_FIELDS_SCHEMA,
+    flow_schema: Array.isArray(row.flow_schema) ? row.flow_schema : DEFAULT_FLOW_SCHEMA,
+    payment_amount: safeNumber(row.payment_amount),
+    payment_required: Boolean(row.payment_required),
+    active: row.active !== false,
+  };
 }
 
 async function generateRequestNo(supabase) {
@@ -117,17 +128,6 @@ async function generateRequestNo(supabase) {
   return `APR-${yearMonth}-${String((count || 0) + 1).padStart(4, "0")}`;
 }
 
-function mapMaster(row = {}) {
-  return {
-    ...row,
-    fields_schema: Array.isArray(row.fields_schema) ? row.fields_schema : DEFAULT_FIELDS_SCHEMA,
-    flow_schema: Array.isArray(row.flow_schema) ? row.flow_schema : DEFAULT_FLOW_SCHEMA,
-    payment_amount: safeNumber(row.payment_amount),
-    payment_required: Boolean(row.payment_required),
-    active: row.active !== false,
-  };
-}
-
 export async function getApprovalMasters({ activeOnly = false } = {}) {
   const supabase = getSupabaseAdmin();
   let query = supabase
@@ -139,15 +139,13 @@ export async function getApprovalMasters({ activeOnly = false } = {}) {
 
   const { data, error } = await query;
   if (error) throw new Error(error.message || "Gagal membaca master approval");
-
   return (data || []).map(mapMaster);
 }
 
 export async function getMasterManagementOverview() {
-  const masters = await getApprovalMasters();
   return {
     ok: true,
-    masters,
+    masters: await getApprovalMasters(),
     default_fields_schema: DEFAULT_FIELDS_SCHEMA,
     default_flow_schema: DEFAULT_FLOW_SCHEMA,
   };
@@ -204,21 +202,24 @@ export async function getApprovalCenterOverview({ accessRole = "admin" } = {}) {
     .limit(80);
 
   if (role !== "admin") {
-    query = query.or(`current_role.eq.${role},status.in.(completed,rejected)`);
+    query = query.or(`current_approver_role.eq.${role},status.in.(completed,rejected)`);
   }
 
   const { data, error } = await query;
   if (error) throw new Error(error.message || "Gagal membaca approval center");
 
   const rows = data || [];
-  const inbox = role === "admin" ? rows.filter((row) => !["completed", "rejected", "cancelled"].includes(row.status)) : rows.filter((row) => row.current_role === role);
+  const openStatuses = ["completed", "rejected", "cancelled"];
+  const inbox = role === "admin"
+    ? rows.filter((row) => !openStatuses.includes(row.status))
+    : rows.filter((row) => row.current_approver_role === role);
 
   return {
     ok: true,
     access_role: role,
     summary: {
       inbox: inbox.length,
-      processing: rows.filter((row) => !["completed", "rejected", "cancelled"].includes(row.status)).length,
+      processing: rows.filter((row) => !openStatuses.includes(row.status)).length,
       completed: rows.filter((row) => row.status === "completed").length,
       rejected: rows.filter((row) => row.status === "rejected").length,
     },
@@ -243,6 +244,7 @@ export async function submitApprovalRequest(payload = {}) {
 
   const { data: masters, error: masterError } = await masterQuery;
   if (masterError) throw new Error(masterError.message || "Gagal membaca master approval");
+
   const master = mapMaster(masters?.[0]);
   if (!master?.id) throw new Error("Jenis pengajuan tidak ditemukan atau nonaktif");
 
@@ -252,7 +254,6 @@ export async function submitApprovalRequest(payload = {}) {
   const requestNo = await generateRequestNo(supabase);
   const status = buildRequestStatus(master);
   const now = new Date().toISOString();
-
   const row = {
     request_no: requestNo,
     master_id: master.id,
@@ -263,7 +264,7 @@ export async function submitApprovalRequest(payload = {}) {
     requester_phone: clean(formData.requester_phone || payload.requester_phone),
     status: status.status,
     current_step: status.current_step,
-    current_role: status.current_role,
+    current_approver_role: status.current_approver_role,
     amount: master.payment_required ? master.payment_amount : 0,
     payment_status: status.payment_status,
     form_data: formData,
@@ -293,7 +294,7 @@ export async function submitApprovalRequest(payload = {}) {
     request: data,
     payment_instruction: master.payment_instruction,
     message: master.payment_required
-      ? `Pengajuan berhasil. Silakan transfer Rp${master.payment_amount.toLocaleString("id-ID")} dan tunggu validasi ${status.current_role || "pengurus"}.`
+      ? `Pengajuan berhasil. Silakan transfer Rp${master.payment_amount.toLocaleString("id-ID")} dan tunggu validasi ${status.current_approver_role || "pengurus"}.`
       : "Pengajuan berhasil dan sedang menunggu approval pengurus.",
   };
 }
@@ -345,7 +346,7 @@ export async function actOnApprovalRequest({ req, accessRole = "admin", id, acti
   if (readError) throw new Error(readError.message || "Gagal membaca pengajuan");
   if (!request) throw new Error("Pengajuan tidak ditemukan");
   if (["completed", "rejected", "cancelled"].includes(request.status)) throw new Error("Pengajuan sudah selesai");
-  if (role !== "admin" && request.current_role !== role) throw new Error("Pengajuan ini belum masuk ke role kamu");
+  if (role !== "admin" && request.current_approver_role !== role) throw new Error("Pengajuan ini belum masuk ke role kamu");
 
   if (selectedAction === "reject") {
     const { error } = await supabase
@@ -390,7 +391,7 @@ export async function actOnApprovalRequest({ req, accessRole = "admin", id, acti
   const updatePayload = {
     status: nextStatus,
     current_step: nextStep?.step || null,
-    current_role: nextStep?.role || null,
+    current_approver_role: nextStep?.role || null,
     updated_at: now,
   };
 
@@ -398,9 +399,7 @@ export async function actOnApprovalRequest({ req, accessRole = "admin", id, acti
     updatePayload.payment_status = "paid";
   }
 
-  if (nextStatus === "completed") {
-    updatePayload.completed_at = now;
-  }
+  if (nextStatus === "completed") updatePayload.completed_at = now;
 
   const { error } = await supabase
     .from(APPROVAL_REQUESTS_TABLE)
