@@ -1,3 +1,4 @@
+import PublicBottomNav from "@/components/public/PublicBottomNav";
 import PublicThemePicker from "@/components/public/PublicThemePicker";
 
 const publicThemeBootScript = `
@@ -143,6 +144,7 @@ export default function RootLayout({ children }) {
       <body style={{ margin: 0 }}>
         <PublicThemePicker />
         {children}
+        <PublicBottomNav global />
       </body>
     </html>
   );
