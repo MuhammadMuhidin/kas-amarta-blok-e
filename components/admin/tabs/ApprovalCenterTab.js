@@ -4,6 +4,8 @@ import Toast from "@/components/Toast";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import { useEffect, useState } from "react";
 
+const APPROVAL_REQUESTS_API = "/api/admin/approval-requests";
+
 function formatTime(value) {
   if (!value) return "-";
   const date = new Date(value);
@@ -40,7 +42,7 @@ export default function ApprovalCenterTab() {
   async function loadData() {
     try {
       setLoading(true);
-      setData(await readJson("/api/admin/approval-center"));
+      setData(await readJson(APPROVAL_REQUESTS_API));
     } catch (err) {
       showToast(err.message || "Gagal membaca Approval Center", "error");
     } finally {
@@ -54,7 +56,7 @@ export default function ApprovalCenterTab() {
 
     try {
       setRunningId(`${row.id}-${action}`);
-      await sendJson("/api/admin/approval-center", "PATCH", { id: row.id, action, note });
+      await sendJson(APPROVAL_REQUESTS_API, "PATCH", { id: row.id, action, note });
       showToast(action === "reject" ? "Pengajuan ditolak" : "Pengajuan diproses");
       await loadData();
     } catch (err) {
@@ -122,7 +124,7 @@ function RequestTable({ rows, runningId, onAction, showActions = false }) {
             <th className="admin-th">Jenis</th>
             <th className="admin-th">Pemohon</th>
             <th className="admin-th">Status</th>
-            <th className="admin-th">Role</th>
+            <th className="admin-th">Approver</th>
             <th className="admin-th">Amount</th>
             <th className="admin-th">Tanggal</th>
             {showActions && <th className="admin-th">Action</th>}
@@ -135,7 +137,7 @@ function RequestTable({ rows, runningId, onAction, showActions = false }) {
               <td className="admin-td">{row.master_name}</td>
               <td className="admin-td">{row.requester_name || "-"}<div className="activity-muted">{row.requester_house || "-"}</div></td>
               <td className="admin-td"><StatusBadge status={row.status} /></td>
-              <td className="admin-td">{row.current_role || "-"}</td>
+              <td className="admin-td">{row.current_approver_role || "-"}</td>
               <td className="admin-td">{row.amount ? money(row.amount) : "-"}</td>
               <td className="admin-td">{formatTime(row.created_at)}</td>
               {showActions && <td className="admin-td"><div style={styles.actions}><button type="button" className="admin-small-btn" disabled={!!runningId} onClick={() => onAction(row, row.status === "waiting_payment_validation" ? "validate_payment" : "approve")}>{runningId === `${row.id}-approve` ? "Processing..." : row.status === "waiting_payment_validation" ? "Validasi" : "Approve"}</button><button type="button" className="admin-small-btn" disabled={!!runningId} onClick={() => onAction(row, "reject")}>Reject</button></div></td>}
