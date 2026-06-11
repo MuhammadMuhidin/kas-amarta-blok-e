@@ -8,11 +8,9 @@ export default function PublicHero({ description, showManagerLink = true, classN
       <div className="hero-eyebrow">Amarta Residence • Blok E</div>
       <p className="hero-desc">{description}</p>
       {showManagerLink ? (
-        <div className="public-hero-actions">
-          <Link href="/login" className="hero-manager-link" aria-label="Masuk Area Pengurus">
-            🔐 Area Pengurus
-          </Link>
-        </div>
+        <Link href="/login" className="hero-manager-link" aria-label="Masuk Area Pengurus">
+          🔐 Area Pengurus
+        </Link>
       ) : null}
 
       <style jsx global>{`
@@ -27,21 +25,13 @@ export default function PublicHero({ description, showManagerLink = true, classN
           text-align: center !important;
         }
 
-        .public-hero .public-hero-actions {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          flex-wrap: wrap;
-          gap: 8px;
-          margin: 14px auto 0;
-        }
-
         .public-hero .hero-manager-link {
           display: inline-flex;
           align-items: center;
           justify-content: center;
           width: fit-content;
           min-height: 34px;
+          margin: 14px auto 0;
           padding: 7px 12px;
           border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
           border-radius: 999px;
@@ -65,13 +55,9 @@ export default function PublicHero({ description, showManagerLink = true, classN
         }
 
         @media (max-width: 700px) {
-          .public-hero .public-hero-actions {
-            gap: 7px;
-            margin-top: 12px;
-          }
-
           .public-hero .hero-manager-link {
             min-height: 32px;
+            margin-top: 12px;
             padding: 7px 10px;
             font-size: 11px;
           }
