@@ -53,6 +53,72 @@ const MODULE_ICONS = {
   settings: icon(0x2699, true),
 };
 
+const adminMobileMenuCss = `
+  @media (max-width: 640px) {
+    .admin-wrapper .admin-header {
+      gap: 10px !important;
+      margin-bottom: 20px !important;
+    }
+
+    .admin-wrapper .admin-title {
+      display: block !important;
+    }
+
+    .admin-wrapper .admin-home-btn {
+      width: auto !important;
+      min-height: auto !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 8px 12px !important;
+      border: 1px solid var(--admin-border) !important;
+      border-radius: 8px !important;
+      background: var(--admin-button) !important;
+      color: var(--admin-text) !important;
+      font-size: 14px !important;
+      font-weight: 400 !important;
+      text-align: center !important;
+    }
+
+    .admin-wrapper .admin-tabs {
+      display: flex !important;
+      flex-direction: row !important;
+      flex-wrap: wrap !important;
+      gap: 10px !important;
+      margin-bottom: 20px !important;
+    }
+
+    .admin-wrapper .admin-tab {
+      width: auto !important;
+      min-height: auto !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex: 0 0 auto !important;
+      padding: 10px 18px !important;
+      border: 1px solid var(--admin-border) !important;
+      border-radius: 10px !important;
+      background: var(--admin-button) !important;
+      color: var(--admin-text) !important;
+      font-size: 14px !important;
+      font-weight: 400 !important;
+      text-align: center !important;
+    }
+
+    .admin-wrapper .admin-tab-active {
+      background: var(--admin-primary) !important;
+      color: #020617 !important;
+      border-color: var(--admin-primary) !important;
+      font-weight: 600 !important;
+    }
+
+    .admin-wrapper .admin-tab-content {
+      width: auto !important;
+      justify-content: center !important;
+    }
+  }
+`;
+
 function getAllowedModules(moduleKeys = []) {
   const allowed = new Set(moduleKeys || []);
   return ADMIN_MODULES.filter((module) => allowed.has(module.key));
@@ -67,14 +133,8 @@ export default function AdminPageClient() {
   const [depositForm, setDepositForm] = useState({ person_id: "", end_period: "" });
   const [bookingBatchLoading, setBookingBatchLoading] = useState(false);
 
-  const allowedModules = useMemo(
-    () => getAllowedModules(sessionInfo.modules),
-    [sessionInfo.modules],
-  );
-  const allowedTabKeys = useMemo(
-    () => allowedModules.map((module) => module.key),
-    [allowedModules],
-  );
+  const allowedModules = useMemo(() => getAllowedModules(sessionInfo.modules), [sessionInfo.modules]);
+  const allowedTabKeys = useMemo(() => allowedModules.map((module) => module.key), [allowedModules]);
 
   const { popup, showPopup } = useAdminToast();
   const { checkSession } = useAdminSession();
@@ -97,12 +157,7 @@ export default function AdminPageClient() {
     refreshTabData,
   } = useAdminLoaders({ setPayment });
 
-  const {
-    tab,
-    tabRefreshKey,
-    handleTabClick,
-    tabClassName,
-  } = useAdminTabs(refreshTabData, allowedTabKeys);
+  const { tab, tabRefreshKey, handleTabClick, tabClassName } = useAdminTabs(refreshTabData, allowedTabKeys);
 
   const {
     member,
@@ -181,13 +236,7 @@ export default function AdminPageClient() {
 
   const wakeLock = useScreenWakeLock(loadingPayment || bookingBatchLoading);
 
-  const {
-    savingDeposit,
-    payingDepositId,
-    getDepositStatus,
-    saveDeposit,
-    payDeposit,
-  } = useAdminDepositActions({
+  const { savingDeposit, payingDepositId, getDepositStatus, saveDeposit, payDeposit } = useAdminDepositActions({
     currentPeriod,
     normalize,
     depositForm,
@@ -204,12 +253,7 @@ export default function AdminPageClient() {
     payDepositBooking: (payload) => sendJson("/api/sheets/deposit", "PATCH", payload),
   });
 
-  const {
-    cashflow,
-    setCashflow,
-    loadingCashflow,
-    addCashflow,
-  } = useAdminCashflowActions({
+  const { cashflow, setCashflow, loadingCashflow, addCashflow } = useAdminCashflowActions({
     loadCashflow,
     showPopup,
     createCashflow: (payload) => sendJson("/api/sheets/cashflow", "POST", payload),
@@ -281,6 +325,7 @@ export default function AdminPageClient() {
   return (
     <>
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
+      <style jsx global>{adminMobileMenuCss}</style>
       <div className="admin-wrapper">
         <div className="admin-header">
           <button className="admin-home-btn" onClick={() => router.push("/")}>{icon(0x1F3E0)} Home</button>
