@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+const APPROVAL_REQUESTS_API = "/api/approval-requests";
+
 function money(value) {
   return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 }
@@ -43,7 +45,7 @@ export default function PengajuanPage() {
 
   async function loadMasters() {
     try {
-      const res = await fetch("/api/approval", { cache: "no-store" });
+      const res = await fetch(APPROVAL_REQUESTS_API, { cache: "no-store" });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Gagal membaca master pengajuan");
       setMasters(result.masters || []);
@@ -64,7 +66,7 @@ export default function PengajuanPage() {
     try {
       setSubmitting(true);
       setSubmitResult(null);
-      const res = await fetch("/api/approval", {
+      const res = await fetch(APPROVAL_REQUESTS_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ master_code: selectedMaster.code, form_data: formData }),
@@ -86,7 +88,7 @@ export default function PengajuanPage() {
     try {
       setStatusResult(null);
       const params = new URLSearchParams({ request_no: checkForm.request_no, key: checkForm.key });
-      const res = await fetch(`/api/approval?${params.toString()}`, { cache: "no-store" });
+      const res = await fetch(`${APPROVAL_REQUESTS_API}?${params.toString()}`, { cache: "no-store" });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Gagal cek status");
       setStatusResult(result);
@@ -109,60 +111,29 @@ export default function PengajuanPage() {
       </section>
 
       <section className="admin-card" style={styles.section}>
-        <div className="activity-header">
-          <div>
-            <div className="activity-kicker">Buat Pengajuan</div>
-            <h3 className="activity-title">Pengajuan Baru</h3>
-          </div>
-        </div>
-
+        <div className="activity-header"><div><div className="activity-kicker">Buat Pengajuan</div><h3 className="activity-title">Pengajuan Baru</h3></div></div>
         <form onSubmit={submitRequest} style={styles.grid}>
           <label style={styles.label}>Jenis Pengajuan
             <select className="admin-input" value={selectedCode} onChange={(e) => { setSelectedCode(e.target.value); setFormData({}); setSubmitResult(null); }}>
               {masters.map((master) => <option key={master.code} value={master.code}>{master.name}</option>)}
             </select>
           </label>
-
           {selectedMaster?.description && <div className="admin-empty-state" style={styles.info}>{selectedMaster.description}</div>}
           {selectedMaster?.payment_required && <div className="admin-error-box" style={styles.info}>Biaya: <strong>{money(selectedMaster.payment_amount)}</strong><br />{selectedMaster.payment_instruction}</div>}
-
           {(selectedMaster?.fields_schema || []).map((field) => <label key={field.key} style={styles.label}>{field.label}{field.required ? " *" : ""}{field.type === "textarea" ? <textarea className="admin-input" rows={3} value={formData[field.key] || ""} onChange={(e) => updateForm(field.key, e.target.value)} /> : <input className="admin-input" value={formData[field.key] || ""} onChange={(e) => updateForm(field.key, e.target.value)} />}</label>)}
-
           <button type="submit" className="admin-small-btn" disabled={submitting || !selectedMaster}>{submitting ? "Submitting..." : "Submit Pengajuan"}</button>
         </form>
-
-        {submitResult?.request && <div className="admin-success-box" style={styles.result}>
-          <strong>Pengajuan berhasil dibuat.</strong><br />
-          Nomor pengajuan: <strong>{submitResult.request.request_no}</strong><br />
-          Status: <StatusBadge status={submitResult.request.status} /><br />
-          {submitResult.request.amount > 0 && <>Nominal: <strong>{money(submitResult.request.amount)}</strong><br /></>}
-          {submitResult.payment_instruction && <span>{submitResult.payment_instruction}</span>}
-        </div>}
+        {submitResult?.request && <div className="admin-success-box" style={styles.result}><strong>Pengajuan berhasil dibuat.</strong><br />Nomor pengajuan: <strong>{submitResult.request.request_no}</strong><br />Status: <StatusBadge status={submitResult.request.status} /><br />{submitResult.request.amount > 0 && <>Nominal: <strong>{money(submitResult.request.amount)}</strong><br /></>}{submitResult.payment_instruction && <span>{submitResult.payment_instruction}</span>}</div>}
       </section>
 
       <section className="admin-card" style={styles.section}>
-        <div className="activity-header">
-          <div>
-            <div className="activity-kicker">Cek Status</div>
-            <h3 className="activity-title">Status Pengajuan</h3>
-            <p className="activity-subtitle">Masukkan nomor pengajuan dan nomor rumah / WhatsApp sebagai verifikasi.</p>
-          </div>
-        </div>
-
+        <div className="activity-header"><div><div className="activity-kicker">Cek Status</div><h3 className="activity-title">Status Pengajuan</h3><p className="activity-subtitle">Masukkan nomor pengajuan dan nomor rumah / WhatsApp sebagai verifikasi.</p></div></div>
         <form onSubmit={checkStatus} style={styles.checkGrid}>
           <input className="admin-input" placeholder="APR-202606-0001" value={checkForm.request_no} onChange={(e) => setCheckForm((prev) => ({ ...prev, request_no: e.target.value }))} />
           <input className="admin-input" placeholder="Nomor rumah / WhatsApp" value={checkForm.key} onChange={(e) => setCheckForm((prev) => ({ ...prev, key: e.target.value }))} />
           <button type="submit" className="admin-small-btn">Cek Status</button>
         </form>
-
-        {statusResult?.request && <div className="admin-status-card" style={styles.result}>
-          <div className="admin-status-label">{statusResult.request.request_no}</div>
-          <h3 style={{ marginTop: 6 }}>{statusResult.request.master_name}</h3>
-          <StatusBadge status={statusResult.request.status} />
-          <div className="admin-status-meta" style={{ marginTop: 10 }}>Current role: {statusResult.request.current_role || "-"}</div>
-          <div className="admin-status-meta">Submitted: {formatTime(statusResult.request.submitted_at)}</div>
-          <div style={styles.timeline}>{(statusResult.actions || []).map((action) => <div key={action.id} className="admin-empty-state" style={{ margin: 0 }}><strong>{action.action}</strong> • {action.role} • {formatTime(action.created_at)}{action.note ? <div>{action.note}</div> : null}</div>)}</div>
-        </div>}
+        {statusResult?.request && <div className="admin-status-card" style={styles.result}><div className="admin-status-label">{statusResult.request.request_no}</div><h3 style={{ marginTop: 6 }}>{statusResult.request.master_name}</h3><StatusBadge status={statusResult.request.status} /><div className="admin-status-meta" style={{ marginTop: 10 }}>Current approver: {statusResult.request.current_approver_role || "-"}</div><div className="admin-status-meta">Submitted: {formatTime(statusResult.request.submitted_at)}</div><div style={styles.timeline}>{(statusResult.actions || []).map((action) => <div key={action.id} className="admin-empty-state" style={{ margin: 0 }}><strong>{action.action}</strong> • {action.role} • {formatTime(action.created_at)}{action.note ? <div>{action.note}</div> : null}</div>)}</div></div>}
       </section>
     </main>
   );
