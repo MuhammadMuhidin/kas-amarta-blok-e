@@ -7,17 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 const APPROVAL_REQUESTS_API = "/api/admin/approval-requests";
 
 const approvalCenterCss = `
-  body.admin-approval-center-page,
-  body.admin-approval-center-page .admin-wrapper,
-  .approval-center-card,
-  .approval-center-card .admin-status-card,
-  .approval-center-card .admin-table-wrapper {
-    height: auto !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    overflow-y: visible !important;
-  }
-
   .approval-center-card,
   .approval-center-section,
   .approval-center-table-wrapper {
@@ -25,8 +14,40 @@ const approvalCenterCss = `
     box-sizing: border-box !important;
   }
 
-  .approval-center-card .admin-table-wrapper {
+  .approval-center-card {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .approval-center-section {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .approval-center-table-wrapper {
+    width: 100% !important;
     overflow-x: auto !important;
+    overflow-y: visible !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .approval-center-table {
+    min-width: 860px !important;
+  }
+
+  .approval-center-cell-label {
+    display: none;
+  }
+
+  .approval-center-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
   }
 
   @media (max-width: 640px) {
@@ -36,42 +57,51 @@ const approvalCenterCss = `
     }
 
     .approval-center-table-wrapper {
-      overflow-x: hidden !important;
+      overflow-x: visible !important;
     }
 
     .approval-center-table {
+      display: block !important;
       width: 100% !important;
       min-width: 0 !important;
       border-collapse: separate !important;
-      border-spacing: 0 10px !important;
+      border-spacing: 0 !important;
+      background: transparent !important;
     }
 
     .approval-center-table thead {
       display: none !important;
     }
 
-    .approval-center-table tbody,
-    .approval-center-table tr,
-    .approval-center-table td {
-      display: block !important;
+    .approval-center-table tbody {
+      display: grid !important;
+      gap: 10px !important;
       width: 100% !important;
-      min-width: 0 !important;
-      box-sizing: border-box !important;
     }
 
     .approval-center-table tr {
+      display: grid !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
       padding: 12px !important;
       border: 1px solid var(--admin-border) !important;
       border-radius: 14px !important;
       background: var(--admin-card) !important;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
     }
 
     .approval-center-table .admin-td {
+      display: block !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
       padding: 7px 0 !important;
       border-bottom: 1px solid var(--admin-border) !important;
       text-align: left !important;
       white-space: normal !important;
       word-break: break-word !important;
+      overflow-wrap: anywhere !important;
     }
 
     .approval-center-table .admin-td:last-child {
@@ -92,6 +122,10 @@ const approvalCenterCss = `
     .approval-center-actions {
       justify-content: flex-start !important;
     }
+
+    .approval-center-actions .admin-small-btn {
+      flex: 1 1 120px !important;
+    }
   }
 `;
 
@@ -111,6 +145,12 @@ function getStatusClass(status) {
   if (["rejected", "cancelled"].includes(status)) return "admin-deposit-status-missed";
   if (["waiting_payment_validation", "waiting_approval", "submitted"].includes(status)) return "admin-deposit-status-pending";
   return "admin-deposit-status-waiting";
+}
+
+function getActionButtonLabel(row, runningId) {
+  const actionKey = row.status === "waiting_payment_validation" ? "validate_payment" : "approve";
+  if (runningId === `${row.id}-${actionKey}`) return "Processing...";
+  return row.status === "waiting_payment_validation" ? "Validasi" : "Approve";
 }
 
 function StatusBadge({ status }) {
@@ -166,11 +206,6 @@ export default function ApprovalCenterTab() {
 
   useEffect(() => {
     loadData();
-  }, []);
-
-  useEffect(() => {
-    document.body.classList.add("admin-approval-center-page");
-    return () => document.body.classList.remove("admin-approval-center-page");
   }, []);
 
   if (loading) return <div className="admin-card">Loading Approval Center...</div>;
@@ -238,18 +273,28 @@ function RequestTable({ rows, runningId, onAction, showActions = false }) {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, index) => (
-            <tr key={row.id} className={index % 2 ? "admin-row-alt" : ""}>
-              <Cell label="No">{row.request_no}</Cell>
-              <Cell label="Jenis">{row.master_name}</Cell>
-              <Cell label="Pemohon">{row.requester_name || "-"}<div className="activity-muted">{row.requester_house || "-"}</div></Cell>
-              <Cell label="Status"><StatusBadge status={row.status} /></Cell>
-              <Cell label="Approver">{row.current_approver_role || "-"}</Cell>
-              <Cell label="Amount">{row.amount ? money(row.amount) : "-"}</Cell>
-              <Cell label="Tanggal">{formatTime(row.created_at)}</Cell>
-              {showActions && <Cell label="Action"><div className="approval-center-actions" style={styles.actions}><button type="button" className="admin-small-btn" disabled={!!runningId} onClick={() => onAction(row, row.status === "waiting_payment_validation" ? "validate_payment" : "approve")}>{runningId === `${row.id}-approve` ? "Processing..." : row.status === "waiting_payment_validation" ? "Validasi" : "Approve"}</button><button type="button" className="admin-small-btn" disabled={!!runningId} onClick={() => onAction(row, "reject")}>Reject</button></div></Cell>}
-            </tr>
-          ))}
+          {rows.map((row, index) => {
+            const primaryAction = row.status === "waiting_payment_validation" ? "validate_payment" : "approve";
+            return (
+              <tr key={row.id} className={index % 2 ? "admin-row-alt" : ""}>
+                <Cell label="No">{row.request_no}</Cell>
+                <Cell label="Jenis">{row.master_name}</Cell>
+                <Cell label="Pemohon">{row.requester_name || "-"}<div className="activity-muted">{row.requester_house || "-"}</div></Cell>
+                <Cell label="Status"><StatusBadge status={row.status} /></Cell>
+                <Cell label="Approver">{row.current_approver_role || "-"}</Cell>
+                <Cell label="Amount">{row.amount ? money(row.amount) : "-"}</Cell>
+                <Cell label="Tanggal">{formatTime(row.created_at)}</Cell>
+                {showActions && (
+                  <Cell label="Action">
+                    <div className="approval-center-actions" style={styles.actions}>
+                      <button type="button" className="admin-small-btn" disabled={!!runningId} onClick={() => onAction(row, primaryAction)}>{getActionButtonLabel(row, runningId)}</button>
+                      <button type="button" className="admin-small-btn" disabled={!!runningId} onClick={() => onAction(row, "reject")}>{runningId === `${row.id}-reject` ? "Processing..." : "Reject"}</button>
+                    </div>
+                  </Cell>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
