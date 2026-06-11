@@ -66,15 +66,10 @@ export default function AdminPageClient() {
   const [payment, setPayment] = useState({ period: "", amount: "" });
   const [depositForm, setDepositForm] = useState({ person_id: "", end_period: "" });
   const [bookingBatchLoading, setBookingBatchLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const allowedModules = useMemo(
-    () => getAllowedModules(sessionInfo.modules),
-    [sessionInfo.modules],
-  );
-  const allowedTabKeys = useMemo(
-    () => allowedModules.map((module) => module.key),
-    [allowedModules],
-  );
+  const allowedModules = useMemo(() => getAllowedModules(sessionInfo.modules), [sessionInfo.modules]);
+  const allowedTabKeys = useMemo(() => allowedModules.map((module) => module.key), [allowedModules]);
 
   const { popup, showPopup } = useAdminToast();
   const { checkSession } = useAdminSession();
@@ -97,12 +92,7 @@ export default function AdminPageClient() {
     refreshTabData,
   } = useAdminLoaders({ setPayment });
 
-  const {
-    tab,
-    tabRefreshKey,
-    handleTabClick,
-    tabClassName,
-  } = useAdminTabs(refreshTabData, allowedTabKeys);
+  const { tab, tabRefreshKey, handleTabClick, tabClassName } = useAdminTabs(refreshTabData, allowedTabKeys);
 
   const {
     member,
@@ -181,13 +171,7 @@ export default function AdminPageClient() {
 
   const wakeLock = useScreenWakeLock(loadingPayment || bookingBatchLoading);
 
-  const {
-    savingDeposit,
-    payingDepositId,
-    getDepositStatus,
-    saveDeposit,
-    payDeposit,
-  } = useAdminDepositActions({
+  const { savingDeposit, payingDepositId, getDepositStatus, saveDeposit, payDeposit } = useAdminDepositActions({
     currentPeriod,
     normalize,
     depositForm,
@@ -204,12 +188,7 @@ export default function AdminPageClient() {
     payDepositBooking: (payload) => sendJson("/api/sheets/deposit", "PATCH", payload),
   });
 
-  const {
-    cashflow,
-    setCashflow,
-    loadingCashflow,
-    addCashflow,
-  } = useAdminCashflowActions({
+  const { cashflow, setCashflow, loadingCashflow, addCashflow } = useAdminCashflowActions({
     loadCashflow,
     showPopup,
     createCashflow: (payload) => sendJson("/api/sheets/cashflow", "POST", payload),
@@ -217,6 +196,16 @@ export default function AdminPageClient() {
 
   function canAccess(moduleKey) {
     return allowedTabKeys.includes(moduleKey);
+  }
+
+  function goHome() {
+    setMenuOpen(false);
+    router.push("/");
+  }
+
+  function openTab(moduleKey) {
+    handleTabClick(moduleKey);
+    setMenuOpen(false);
   }
 
   async function refreshBookingState() {
@@ -283,24 +272,107 @@ export default function AdminPageClient() {
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
       <style jsx global>{`
         .admin-wrapper {
-          max-width: 900px;
+          width: 100%;
+          max-width: none;
+          min-height: 100vh;
+          margin: 0;
+          padding: 0;
           overflow-x: hidden;
         }
 
+        .admin-shell {
+          width: 100%;
+          max-width: 1180px;
+          min-height: 100vh;
+          margin: 0 auto;
+          padding: 16px;
+          display: grid;
+          grid-template-columns: 260px minmax(0, 1fr);
+          gap: 16px;
+          box-sizing: border-box;
+        }
+
+        .admin-sidebar {
+          position: sticky;
+          top: 16px;
+          align-self: start;
+          max-height: calc(100vh - 32px);
+          overflow-y: auto;
+          -webkit-overflow-scrolling: touch;
+          padding: 12px;
+          border: 1px solid var(--admin-border);
+          border-radius: 20px;
+          background: var(--admin-card);
+          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+          box-sizing: border-box;
+        }
+
+        .admin-sidebar-head {
+          padding: 8px 8px 12px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .admin-sidebar-title {
+          margin: 0;
+          color: var(--admin-text);
+          font-size: 15px;
+          font-weight: 800;
+          line-height: 1.2;
+        }
+
+        .admin-sidebar-close,
+        .admin-mobile-menu-btn {
+          min-height: 36px;
+          border: 1px solid var(--admin-border);
+          border-radius: 12px;
+          background: var(--admin-button);
+          color: var(--admin-text);
+          font: inherit;
+          font-weight: 800;
+          cursor: pointer;
+        }
+
+        .admin-sidebar-close {
+          display: none;
+          width: 36px;
+          padding: 0;
+        }
+
+        .admin-main {
+          min-width: 0;
+        }
+
         .admin-header {
-          margin-bottom: 10px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 14px;
+        }
+
+        .admin-mobile-menu-btn {
+          display: none;
+          padding: 0 12px;
         }
 
         .admin-title {
           font-size: clamp(22px, 4vw, 28px);
+          margin: 0;
+        }
+
+        .admin-menu-backdrop {
+          display: none;
         }
 
         .admin-tabs {
           width: 100%;
           display: grid;
           grid-template-columns: 1fr;
-          gap: 8px;
-          margin-bottom: 18px;
+          gap: 7px;
+          margin: 0;
           overflow: visible;
           padding: 0;
         }
@@ -308,9 +380,9 @@ export default function AdminPageClient() {
         .admin-tab {
           width: 100%;
           min-height: 42px;
-          padding: 10px 14px;
+          padding: 10px 12px;
           border: 1px solid var(--admin-border);
-          border-radius: 12px;
+          border-radius: 14px;
           background: var(--admin-button);
           color: var(--admin-text);
           display: flex;
@@ -319,7 +391,7 @@ export default function AdminPageClient() {
           text-align: left;
           white-space: normal;
           font-size: 14px;
-          font-weight: 700;
+          font-weight: 750;
           line-height: 1.25;
           box-sizing: border-box;
         }
@@ -332,6 +404,7 @@ export default function AdminPageClient() {
           background: var(--admin-primary);
           color: #020617;
           border-color: var(--admin-primary);
+          font-weight: 850;
         }
 
         .admin-tab-content {
@@ -350,76 +423,123 @@ export default function AdminPageClient() {
 
         .admin-deposit-badge {
           flex: 0 0 auto;
-          max-width: 132px;
+          max-width: 122px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        @media (max-width: 640px) {
-          .admin-wrapper {
+        @media (max-width: 760px) {
+          .admin-shell {
+            display: block;
             padding: 14px;
           }
 
-          .admin-header {
-            margin-bottom: 8px;
+          .admin-main {
+            width: 100%;
+          }
+
+          .admin-mobile-menu-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
           }
 
           .admin-title {
-            display: none;
+            font-size: 20px;
           }
 
-          .admin-tabs {
-            grid-template-columns: 1fr;
-            gap: 7px;
-            margin-bottom: 14px;
+          .admin-sidebar {
+            position: fixed;
+            z-index: 10020;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: min(320px, 84vw);
+            max-height: none;
+            padding: 14px 12px calc(18px + env(safe-area-inset-bottom, 0px));
+            border-radius: 0 22px 22px 0;
+            transform: translateX(-105%);
+            transition: transform 0.2s ease;
+          }
+
+          .admin-shell-menu-open .admin-sidebar {
+            transform: translateX(0);
+          }
+
+          .admin-sidebar-close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .admin-menu-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 10010;
+            border: 0;
+            background: rgba(2, 6, 23, 0.58);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+          }
+
+          .admin-shell-menu-open .admin-menu-backdrop {
+            display: block;
           }
 
           .admin-tab {
-            width: 100%;
             min-height: 40px;
-            padding: 9px 13px;
+            padding: 9px 12px;
             border-radius: 12px;
             font-size: 13px;
-          }
-
-          .admin-deposit-badge {
-            max-width: 110px;
-            padding-inline: 6px;
           }
         }
       `}</style>
       <div className="admin-wrapper">
-        <div className="admin-header">
-          <h1 className="admin-title">Cash Flow Management</h1>
+        <div className={`admin-shell${menuOpen ? " admin-shell-menu-open" : ""}`}>
+          <button type="button" className="admin-menu-backdrop" aria-label="Tutup menu admin" onClick={() => setMenuOpen(false)} />
+
+          <aside className="admin-sidebar" aria-label="Menu admin">
+            <div className="admin-sidebar-head">
+              <h2 className="admin-sidebar-title">Menu Admin</h2>
+              <button type="button" className="admin-sidebar-close" aria-label="Tutup menu admin" onClick={() => setMenuOpen(false)}>×</button>
+            </div>
+            <div className="admin-tabs" aria-label="Admin navigation">
+              <button type="button" className="admin-tab admin-home-tab" onClick={goHome}>{icon(0x1F3E0)} Home</button>
+              {allowedModules.map((module) => (
+                <button key={module.key} type="button" className={tabClassName(module.key)} onClick={() => openTab(module.key)}>
+                  {(module.key === "payment" || module.key === "monitoring") ? (
+                    <div className="admin-tab-content">
+                      <span>{MODULE_ICONS[module.key]} {module.label}</span>
+                      {module.key === "payment" && pendingCurrentDeposits.length > 0 && <span className="admin-deposit-badge">{pendingCurrentDeposits.length} booking pending</span>}
+                      {module.key === "monitoring" && monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}
+                    </div>
+                  ) : `${MODULE_ICONS[module.key]} ${module.label}`}
+                </button>
+              ))}
+            </div>
+          </aside>
+
+          <main className="admin-main">
+            <div className="admin-header">
+              <button type="button" className="admin-mobile-menu-btn" onClick={() => setMenuOpen(true)}>☰ Menu</button>
+              <h1 className="admin-title">Cash Flow Management</h1>
+            </div>
+            {tab === "overview" && canAccess("overview") && <OverviewTab key={`overview-${tabRefreshKey}`} personal={personal} payments={payments} trashRecords={trashRecords} cashflows={cashflows} sortedDeposits={sortedDeposits} currentPeriod={currentPeriod} appConfig={appConfig} dailyBackup={{ ok: true }} monitoringIssueCount={monitoringIssueCount} getDepositStatus={getDepositStatus} onNavigate={handleTabClick} onTrashAdvanceComplete={refreshOverviewState} />}
+            {tab === "personal" && canAccess("personal") && <PersonalTab key={`personal-${tabRefreshKey}`} member={member} setMember={setMember} addMember={addMember} loadingAdd={loadingAdd} memberFilter={memberFilter} toggleMemberFilter={toggleMemberFilter} stats={stats} memberSearch={memberSearch} setMemberSearch={setMemberSearch} searchedPersonal={searchedPersonal} rowClassName={rowClassName} onUpdateMember={updateMemberInline} />}
+            {tab === "payment" && canAccess("payment") && <PaymentTab key={`payment-${tabRefreshKey}`} configError={configError} recordPayment={recordPayment} payment={payment} setPayment={setPayment} personal={personal} payments={payments} selected={selected} toggleHouse={toggleHouse} resetSelected={resetSelected} normalize={normalize} isHousePaidForPeriod={isHousePaidForPeriod} loadingPayment={loadingPayment} paymentProgress={paymentProgress} wakeLock={wakeLock} onPaymentProofReviewed={refreshPaymentProofState} />}
+            {tab === "deposit" && canAccess("deposit") && <DepositTab key={`deposit-${tabRefreshKey}`} saveDeposit={saveDeposit} depositForm={depositForm} setDepositForm={setDepositForm} activePersons={activePersons} depositAmount={depositAmount} selectedDepositPerson={selectedDepositPerson} appConfig={appConfig} nextSixPeriods={nextSixPeriods} selectedDepositPeriods={selectedDepositPeriods} savingDeposit={savingDeposit} sortedDeposits={sortedDeposits} getDepositStatus={getDepositStatus} payingDepositId={payingDepositId} payments={payments} normalize={normalize} payDeposit={payDeposit} onBatchComplete={refreshBookingState} onBatchStatusChange={setBookingBatchLoading} wakeLock={wakeLock} />}
+            {tab === "cashflow" && canAccess("cashflow") && <CashflowTab key={`cashflow-${tabRefreshKey}`} addCashflow={addCashflow} cashflow={cashflow} setCashflow={setCashflow} loadingCashflow={loadingCashflow} />}
+            {tab === "timeline" && canAccess("timeline") && <TimelineTab key={`timeline-${tabRefreshKey}`} showPopup={showPopup} />}
+            {tab === "summary" && canAccess("summary") && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
+            {tab === "monitoring" && canAccess("monitoring") && <MonitoringTab key={`monitoring-${tabRefreshKey}`} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} trashAdvanceReimbursementIntegrity={trashAdvanceReimbursementIntegrity} depositPaymentIntegrity={depositPaymentIntegrity} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
+            {tab === "activity" && canAccess("activity") && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
+            {tab === "master_management" && canAccess("master_management") && <MasterManagementTab key={`master-management-${tabRefreshKey}`} />}
+            {tab === "approval_center" && canAccess("approval_center") && <ApprovalCenterTab key={`approval-center-${tabRefreshKey}`} />}
+            {tab === "role_management" && canAccess("role_management") && <RoleManagementTab key={`role-management-${tabRefreshKey}`} />}
+            {tab === "settings" && canAccess("settings") && <SettingsTab key={`settings-${tabRefreshKey}`} />}
+          </main>
         </div>
-        <div className="admin-tabs" aria-label="Admin navigation">
-          <button type="button" className="admin-tab admin-home-tab" onClick={() => router.push("/")}>{icon(0x1F3E0)} Home</button>
-          {allowedModules.map((module) => (
-            <button key={module.key} type="button" className={tabClassName(module.key)} onClick={() => handleTabClick(module.key)}>
-              {(module.key === "payment" || module.key === "monitoring") ? (
-                <div className="admin-tab-content">
-                  <span>{MODULE_ICONS[module.key]} {module.label}</span>
-                  {module.key === "payment" && pendingCurrentDeposits.length > 0 && <span className="admin-deposit-badge">{pendingCurrentDeposits.length} booking pending</span>}
-                  {module.key === "monitoring" && monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}
-                </div>
-              ) : `${MODULE_ICONS[module.key]} ${module.label}`}
-            </button>
-          ))}
-        </div>
-        {tab === "overview" && canAccess("overview") && <OverviewTab key={`overview-${tabRefreshKey}`} personal={personal} payments={payments} trashRecords={trashRecords} cashflows={cashflows} sortedDeposits={sortedDeposits} currentPeriod={currentPeriod} appConfig={appConfig} dailyBackup={{ ok: true }} monitoringIssueCount={monitoringIssueCount} getDepositStatus={getDepositStatus} onNavigate={handleTabClick} onTrashAdvanceComplete={refreshOverviewState} />}
-        {tab === "personal" && canAccess("personal") && <PersonalTab key={`personal-${tabRefreshKey}`} member={member} setMember={setMember} addMember={addMember} loadingAdd={loadingAdd} memberFilter={memberFilter} toggleMemberFilter={toggleMemberFilter} stats={stats} memberSearch={memberSearch} setMemberSearch={setMemberSearch} searchedPersonal={searchedPersonal} rowClassName={rowClassName} onUpdateMember={updateMemberInline} />}
-        {tab === "payment" && canAccess("payment") && <PaymentTab key={`payment-${tabRefreshKey}`} configError={configError} recordPayment={recordPayment} payment={payment} setPayment={setPayment} personal={personal} payments={payments} selected={selected} toggleHouse={toggleHouse} resetSelected={resetSelected} normalize={normalize} isHousePaidForPeriod={isHousePaidForPeriod} loadingPayment={loadingPayment} paymentProgress={paymentProgress} wakeLock={wakeLock} onPaymentProofReviewed={refreshPaymentProofState} />}
-        {tab === "deposit" && canAccess("deposit") && <DepositTab key={`deposit-${tabRefreshKey}`} saveDeposit={saveDeposit} depositForm={depositForm} setDepositForm={setDepositForm} activePersons={activePersons} depositAmount={depositAmount} selectedDepositPerson={selectedDepositPerson} appConfig={appConfig} nextSixPeriods={nextSixPeriods} selectedDepositPeriods={selectedDepositPeriods} savingDeposit={savingDeposit} sortedDeposits={sortedDeposits} getDepositStatus={getDepositStatus} payingDepositId={payingDepositId} payments={payments} normalize={normalize} payDeposit={payDeposit} onBatchComplete={refreshBookingState} onBatchStatusChange={setBookingBatchLoading} wakeLock={wakeLock} />}
-        {tab === "cashflow" && canAccess("cashflow") && <CashflowTab key={`cashflow-${tabRefreshKey}`} addCashflow={addCashflow} cashflow={cashflow} setCashflow={setCashflow} loadingCashflow={loadingCashflow} />}
-        {tab === "timeline" && canAccess("timeline") && <TimelineTab key={`timeline-${tabRefreshKey}`} showPopup={showPopup} />}
-        {tab === "summary" && canAccess("summary") && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
-        {tab === "monitoring" && canAccess("monitoring") && <MonitoringTab key={`monitoring-${tabRefreshKey}`} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} trashAdvanceReimbursementIntegrity={trashAdvanceReimbursementIntegrity} depositPaymentIntegrity={depositPaymentIntegrity} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
-        {tab === "activity" && canAccess("activity") && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
-        {tab === "master_management" && canAccess("master_management") && <MasterManagementTab key={`master-management-${tabRefreshKey}`} />}
-        {tab === "approval_center" && canAccess("approval_center") && <ApprovalCenterTab key={`approval-center-${tabRefreshKey}`} />}
-        {tab === "role_management" && canAccess("role_management") && <RoleManagementTab key={`role-management-${tabRefreshKey}`} />}
-        {tab === "settings" && canAccess("settings") && <SettingsTab key={`settings-${tabRefreshKey}`} />}
       </div>
     </>
   );
