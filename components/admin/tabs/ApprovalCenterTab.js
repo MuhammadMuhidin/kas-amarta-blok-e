@@ -18,8 +18,80 @@ const approvalCenterCss = `
     overflow-y: visible !important;
   }
 
+  .approval-center-card,
+  .approval-center-section,
+  .approval-center-table-wrapper {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   .approval-center-card .admin-table-wrapper {
     overflow-x: auto !important;
+  }
+
+  @media (max-width: 640px) {
+    .approval-center-card {
+      padding: 14px !important;
+      overflow-x: hidden !important;
+    }
+
+    .approval-center-table-wrapper {
+      overflow-x: hidden !important;
+    }
+
+    .approval-center-table {
+      width: 100% !important;
+      min-width: 0 !important;
+      border-collapse: separate !important;
+      border-spacing: 0 10px !important;
+    }
+
+    .approval-center-table thead {
+      display: none !important;
+    }
+
+    .approval-center-table tbody,
+    .approval-center-table tr,
+    .approval-center-table td {
+      display: block !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+    }
+
+    .approval-center-table tr {
+      padding: 12px !important;
+      border: 1px solid var(--admin-border) !important;
+      border-radius: 14px !important;
+      background: var(--admin-card) !important;
+    }
+
+    .approval-center-table .admin-td {
+      padding: 7px 0 !important;
+      border-bottom: 1px solid var(--admin-border) !important;
+      text-align: left !important;
+      white-space: normal !important;
+      word-break: break-word !important;
+    }
+
+    .approval-center-table .admin-td:last-child {
+      border-bottom: 0 !important;
+      padding-bottom: 0 !important;
+    }
+
+    .approval-center-cell-label {
+      display: block !important;
+      margin-bottom: 3px !important;
+      color: var(--admin-muted) !important;
+      font-size: 11px !important;
+      font-weight: 900 !important;
+      letter-spacing: 0.04em !important;
+      text-transform: uppercase !important;
+    }
+
+    .approval-center-actions {
+      justify-content: flex-start !important;
+    }
   }
 `;
 
@@ -43,6 +115,10 @@ function getStatusClass(status) {
 
 function StatusBadge({ status }) {
   return <span className={`admin-deposit-status ${getStatusClass(status)}`}>{status || "-"}</span>;
+}
+
+function Cell({ label, children }) {
+  return <td className="admin-td"><span className="approval-center-cell-label">{label}</span>{children}</td>;
 }
 
 export default function ApprovalCenterTab() {
@@ -148,7 +224,7 @@ function RequestTable({ rows, runningId, onAction, showActions = false }) {
 
   return (
     <div className="admin-table-wrapper approval-center-table-wrapper" style={styles.tableWrapper}>
-      <table className="admin-table">
+      <table className="admin-table approval-center-table">
         <thead>
           <tr>
             <th className="admin-th">No</th>
@@ -164,14 +240,14 @@ function RequestTable({ rows, runningId, onAction, showActions = false }) {
         <tbody>
           {rows.map((row, index) => (
             <tr key={row.id} className={index % 2 ? "admin-row-alt" : ""}>
-              <td className="admin-td">{row.request_no}</td>
-              <td className="admin-td">{row.master_name}</td>
-              <td className="admin-td">{row.requester_name || "-"}<div className="activity-muted">{row.requester_house || "-"}</div></td>
-              <td className="admin-td"><StatusBadge status={row.status} /></td>
-              <td className="admin-td">{row.current_approver_role || "-"}</td>
-              <td className="admin-td">{row.amount ? money(row.amount) : "-"}</td>
-              <td className="admin-td">{formatTime(row.created_at)}</td>
-              {showActions && <td className="admin-td"><div style={styles.actions}><button type="button" className="admin-small-btn" disabled={!!runningId} onClick={() => onAction(row, row.status === "waiting_payment_validation" ? "validate_payment" : "approve")}>{runningId === `${row.id}-approve` ? "Processing..." : row.status === "waiting_payment_validation" ? "Validasi" : "Approve"}</button><button type="button" className="admin-small-btn" disabled={!!runningId} onClick={() => onAction(row, "reject")}>Reject</button></div></td>}
+              <Cell label="No">{row.request_no}</Cell>
+              <Cell label="Jenis">{row.master_name}</Cell>
+              <Cell label="Pemohon">{row.requester_name || "-"}<div className="activity-muted">{row.requester_house || "-"}</div></Cell>
+              <Cell label="Status"><StatusBadge status={row.status} /></Cell>
+              <Cell label="Approver">{row.current_approver_role || "-"}</Cell>
+              <Cell label="Amount">{row.amount ? money(row.amount) : "-"}</Cell>
+              <Cell label="Tanggal">{formatTime(row.created_at)}</Cell>
+              {showActions && <Cell label="Action"><div className="approval-center-actions" style={styles.actions}><button type="button" className="admin-small-btn" disabled={!!runningId} onClick={() => onAction(row, row.status === "waiting_payment_validation" ? "validate_payment" : "approve")}>{runningId === `${row.id}-approve` ? "Processing..." : row.status === "waiting_payment_validation" ? "Validasi" : "Approve"}</button><button type="button" className="admin-small-btn" disabled={!!runningId} onClick={() => onAction(row, "reject")}>Reject</button></div></Cell>}
             </tr>
           ))}
         </tbody>
