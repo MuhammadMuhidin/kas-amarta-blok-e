@@ -82,7 +82,6 @@ export default function ApprovalCenterTab() {
             <h3 className="activity-title">Approval Center</h3>
             <p className="activity-subtitle">Inbox pengurus untuk validasi pembayaran, approve, reject, dan monitoring pengajuan warga.</p>
           </div>
-          <button type="button" className="admin-small-btn admin-refresh-btn" onClick={loadData}>Refresh</button>
         </div>
 
         <div className="admin-summary-cards" style={styles.summaryCards}>
