@@ -29,13 +29,13 @@ function findRole(value) {
 
 function assertRole(value) {
   const role = findRole(value);
-  if (!role) throw new Error("Role tidak valid");
+  if (!role) throw new Error("Invalid role");
   return role;
 }
 
 function assertNonAdminRole(value) {
   const role = assertRole(value);
-  if (role === "admin") throw new Error("Administrator tidak bisa dinonaktifkan dari Role Management");
+  if (role === "admin") throw new Error("Administrator login cannot be disabled from Role Management");
   return role;
 }
 
@@ -51,9 +51,7 @@ function isPastDate(value) {
 
 function getEffectiveOtpStatus(row) {
   const status = normalize(row?.status || "none");
-  if (["pending", "sent"].includes(status) && isPastDate(row?.expires_at)) {
-    return "expired";
-  }
+  if (["pending", "sent"].includes(status) && isPastDate(row?.expires_at)) return "expired";
   return status || "none";
 }
 
@@ -63,12 +61,10 @@ function emptyRoleMap() {
 
 function groupByRole(rows = [], getRole) {
   const grouped = emptyRoleMap();
-
   for (const row of rows || []) {
     const role = findRole(getRole(row));
     if (role) grouped[role].push(row);
   }
-
   return grouped;
 }
 
@@ -213,7 +209,6 @@ function buildRoleContacts(contacts) {
 
   return ADMIN_ACCESS_ROLES.map((role) => {
     const contact = contactsByRole.get(role.value) || {};
-
     return {
       role: role.value,
       label: role.label,
@@ -231,7 +226,6 @@ function buildOtpMonitor(otpLogs) {
 
   return ADMIN_ACCESS_ROLES.map((role) => {
     const latest = otpByRole[role.value]?.[0] || null;
-
     return {
       role: role.value,
       label: role.label,
@@ -250,13 +244,13 @@ function buildSecurityHealth({ contacts, sessions, otpMonitor, authHealth }) {
   const missingContacts = contacts.filter((contact) => !contact.phone || !contact.active);
   const failedOtp = otpMonitor.filter((otp) => otp.status === "failed" || otp.attempt_count >= otp.max_attempts);
   const warnings = [
-    ...missingContacts.map((contact) => `${contact.label} belum punya kontak OTP aktif`),
-    ...failedOtp.map((otp) => `${otp.label} punya OTP gagal/terkunci`),
+    ...missingContacts.map((contact) => `${contact.label} does not have an active OTP contact`),
+    ...failedOtp.map((otp) => `${otp.label} has failed or locked OTP attempts`),
   ];
 
-  if (!authHealth.pin_enabled) warnings.push("PIN login global belum aktif");
-  if (!authHealth.web_auth_enabled) warnings.push("Passkey global belum aktif");
-  if (authHealth.passkey_count < 1) warnings.push("Belum ada passkey aktif");
+  if (!authHealth.pin_enabled) warnings.push("Global PIN login is disabled");
+  if (!authHealth.web_auth_enabled) warnings.push("Global passkey login is disabled");
+  if (authHealth.passkey_count < 1) warnings.push("No active passkey is registered");
 
   return {
     overall_status: warnings.length ? "Attention" : "Strong",
@@ -274,7 +268,6 @@ function buildSecurityHealth({ contacts, sessions, otpMonitor, authHealth }) {
 
 export async function getRoleManagementOverview(req) {
   const supabase = getSupabaseAdmin();
-
   const [contactsRaw, sessions, otpLogs, activities, authHealth, accessSummary] = await Promise.all([
     readRoleContacts(supabase),
     getAdminSessions(req),
@@ -291,23 +284,13 @@ export async function getRoleManagementOverview(req) {
     ok: true,
     roles: ADMIN_ACCESS_ROLES,
     cards: {
-      role_overview: buildRoleOverview({
-        contacts: contactsRaw,
-        sessions,
-        activities,
-        accessSummary,
-      }),
+      role_overview: buildRoleOverview({ contacts: contactsRaw, sessions, activities, accessSummary }),
       role_contacts: contacts,
       active_sessions: sessions,
       role_access_summary: accessSummary,
       role_activity_log: activities,
       otp_login_monitor: otpMonitor,
-      security_health: buildSecurityHealth({
-        contacts,
-        sessions,
-        otpMonitor,
-        authHealth,
-      }),
+      security_health: buildSecurityHealth({ contacts, sessions, otpMonitor, authHealth }),
     },
   };
 }
@@ -324,21 +307,19 @@ export async function updateRoleContact({ req, role, phone, active }) {
     .eq("role", selectedRole)
     .limit(1);
 
-  if (readError) throw new Error(readError.message || "Gagal membaca role contact");
+  if (readError) throw new Error(readError.message || "Failed to read role contact");
 
   if (existing?.length) {
     const { error } = await supabase
       .from(ROLE_CONTACTS_TABLE)
       .update({ phone: cleanPhone, active: nextActive })
       .eq("role", selectedRole);
-
-    if (error) throw new Error(error.message || "Gagal update role contact");
+    if (error) throw new Error(error.message || "Failed to update role contact");
   } else {
     const { error } = await supabase
       .from(ROLE_CONTACTS_TABLE)
       .insert({ role: selectedRole, phone: cleanPhone, active: nextActive });
-
-    if (error) throw new Error(error.message || "Gagal membuat role contact");
+    if (error) throw new Error(error.message || "Failed to create role contact");
   }
 
   await recordAdminActivity(req, {
@@ -346,12 +327,7 @@ export async function updateRoleContact({ req, role, phone, active }) {
     module: "role-management",
     severity: "success",
     message: `Update OTP receiver for ${selectedRole}`,
-    metadata: {
-      access_role: "admin",
-      target_role: selectedRole,
-      active: nextActive,
-      has_phone: Boolean(cleanPhone),
-    },
+    metadata: { access_role: "admin", target_role: selectedRole, active: nextActive, has_phone: Boolean(cleanPhone) },
   });
 
   return { ok: true };
@@ -367,21 +343,19 @@ export async function setRoleLoginStatus({ req, role, active }) {
     .eq("role", selectedRole)
     .limit(1);
 
-  if (readError) throw new Error(readError.message || "Gagal membaca status role login");
+  if (readError) throw new Error(readError.message || "Failed to read role login status");
 
   if (existing?.length) {
     const { error } = await supabase
       .from(ROLE_CONTACTS_TABLE)
       .update({ active: Boolean(active) })
       .eq("role", selectedRole);
-
-    if (error) throw new Error(error.message || "Gagal mengubah status role login");
+    if (error) throw new Error(error.message || "Failed to update role login status");
   } else {
     const { error } = await supabase
       .from(ROLE_CONTACTS_TABLE)
       .insert({ role: selectedRole, phone: "", active: Boolean(active) });
-
-    if (error) throw new Error(error.message || "Gagal membuat status role login");
+    if (error) throw new Error(error.message || "Failed to create role login status");
   }
 
   await recordAdminActivity(req, {
@@ -389,11 +363,7 @@ export async function setRoleLoginStatus({ req, role, active }) {
     module: "role-management",
     severity: Boolean(active) ? "success" : "warning",
     message: `${Boolean(active) ? "Enable" : "Disable"} role login ${selectedRole}`,
-    metadata: {
-      access_role: "admin",
-      target_role: selectedRole,
-      active: Boolean(active),
-    },
+    metadata: { access_role: "admin", target_role: selectedRole, active: Boolean(active) },
   });
 
   return { ok: true };
@@ -403,11 +373,10 @@ export async function revokeManagedSession({ req, id }) {
   const sessions = await getAdminSessions(req);
   const targetSession = sessions.find((session) => String(session.id) === String(id));
 
-  if (!targetSession) throw new Error("Session tidak ditemukan");
-  if (targetSession.current) throw new Error("Session aktif saat ini tidak bisa direvoke dari Role Management");
+  if (!targetSession) throw new Error("Session not found");
+  if (targetSession.current) throw new Error("The current session cannot be revoked from Role Management");
 
   await revokeAdminSession(id);
-
   await recordAdminActivity(req, {
     type: "revoke",
     module: "role-management",
@@ -431,20 +400,14 @@ export async function revokeRoleSessions({ req, role }) {
   const sessions = await getAdminSessions(req);
   const targets = sessions.filter((session) => session.access_role === selectedRole && !session.current);
 
-  for (const session of targets) {
-    await revokeAdminSession(session.id);
-  }
+  for (const session of targets) await revokeAdminSession(session.id);
 
   await recordAdminActivity(req, {
     type: "revoke",
     module: "role-management",
     severity: "warning",
     message: `Revoke all sessions for ${selectedRole}`,
-    metadata: {
-      access_role: "admin",
-      target_role: selectedRole,
-      affected: targets.length,
-    },
+    metadata: { access_role: "admin", target_role: selectedRole, affected: targets.length },
   });
 
   return { ok: true, affected: targets.length };
