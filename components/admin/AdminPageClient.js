@@ -208,6 +208,23 @@ export default function AdminPageClient() {
     setMenuOpen(false);
   }
 
+  function renderTabContent(module) {
+    return (
+      <div className="admin-tab-content">
+        <span className="admin-tab-main">
+          <span className="admin-tab-icon" aria-hidden="true">{MODULE_ICONS[module.key]}</span>
+          <span className="admin-tab-label">{module.label}</span>
+        </span>
+        {module.key === "payment" && pendingCurrentDeposits.length > 0 && (
+          <span className="admin-deposit-badge">{pendingCurrentDeposits.length} booking pending</span>
+        )}
+        {module.key === "monitoring" && monitoringIssueCount > 0 && (
+          <span className="admin-monitoring-badge">{monitoringIssueCount}</span>
+        )}
+      </div>
+    );
+  }
+
   async function refreshBookingState() {
     await Promise.all([loadDeposit(), loadPayment(), loadTrash(), loadCashflow()]);
   }
@@ -379,7 +396,7 @@ export default function AdminPageClient() {
 
         .admin-tab {
           width: 100%;
-          min-height: 42px;
+          min-height: 44px;
           padding: 10px 12px;
           border: 1px solid var(--admin-border);
           border-radius: 14px;
@@ -409,16 +426,34 @@ export default function AdminPageClient() {
 
         .admin-tab-content {
           width: 100%;
-          display: flex;
+          min-height: 22px;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
           align-items: center;
-          justify-content: space-between;
           gap: 8px;
-          flex-wrap: nowrap;
-          white-space: normal;
         }
 
-        .admin-tab-content > span:first-child {
+        .admin-tab-main {
           min-width: 0;
+          display: grid;
+          grid-template-columns: 24px minmax(0, 1fr);
+          align-items: center;
+          gap: 8px;
+        }
+
+        .admin-tab-icon {
+          width: 24px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+        }
+
+        .admin-tab-label {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .admin-deposit-badge {
@@ -505,16 +540,17 @@ export default function AdminPageClient() {
               <button type="button" className="admin-sidebar-close" aria-label="Tutup menu admin" onClick={() => setMenuOpen(false)}>×</button>
             </div>
             <div className="admin-tabs" aria-label="Admin navigation">
-              <button type="button" className="admin-tab admin-home-tab" onClick={goHome}>{icon(0x1F3E0)} Home</button>
+              <button type="button" className="admin-tab admin-home-tab" onClick={goHome}>
+                <div className="admin-tab-content">
+                  <span className="admin-tab-main">
+                    <span className="admin-tab-icon" aria-hidden="true">{icon(0x1F3E0)}</span>
+                    <span className="admin-tab-label">Home</span>
+                  </span>
+                </div>
+              </button>
               {allowedModules.map((module) => (
                 <button key={module.key} type="button" className={tabClassName(module.key)} onClick={() => openTab(module.key)}>
-                  {(module.key === "payment" || module.key === "monitoring") ? (
-                    <div className="admin-tab-content">
-                      <span>{MODULE_ICONS[module.key]} {module.label}</span>
-                      {module.key === "payment" && pendingCurrentDeposits.length > 0 && <span className="admin-deposit-badge">{pendingCurrentDeposits.length} booking pending</span>}
-                      {module.key === "monitoring" && monitoringIssueCount > 0 && <span className="admin-monitoring-badge">{monitoringIssueCount}</span>}
-                    </div>
-                  ) : `${MODULE_ICONS[module.key]} ${module.label}`}
+                  {renderTabContent(module)}
                 </button>
               ))}
             </div>
