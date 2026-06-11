@@ -148,7 +148,7 @@ const themes = [
 
 const publicThemeKeys = Object.keys(themes[0].vars);
 const reloadFlag = "public-theme-hard-reload";
-const publicThemePaths = new Set(["/", "/kas"]);
+const publicThemePaths = new Set(["/", "/kas", "/pengajuan"]);
 
 function normalizeTheme(themeId) {
   return themeId === "ios" ? "ledger" : themeId;
