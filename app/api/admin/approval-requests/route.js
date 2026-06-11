@@ -53,12 +53,19 @@ function uniqueRows(rows = []) {
   return [...map.values()];
 }
 
+function canBeInbox(row, role) {
+  if (!row || terminal(row.status) || !clean(row.current_approver_role)) return false;
+  return role === "admin" || clean(row.current_approver_role).toLowerCase() === role;
+}
+
 function normalizeCenterPayload(payload = {}) {
+  const role = clean(payload.access_role).toLowerCase() || "admin";
   const rows = uniqueRows([...(payload.inbox || []), ...(payload.requests || [])]);
-  const safeInbox = rows.filter((row) => !terminal(row.status) && clean(row.current_approver_role));
+  const safeInbox = rows.filter((row) => canBeInbox(row, role));
 
   return {
     ...payload,
+    access_role: role,
     inbox: safeInbox,
     requests: rows,
     summary: {
@@ -70,10 +77,42 @@ function normalizeCenterPayload(payload = {}) {
   };
 }
 
+async function includeParticipatedRows(payload = {}) {
+  const role = clean(payload.access_role).toLowerCase() || "admin";
+  if (role === "admin") return payload;
+
+  const supabase = getSupabaseAdmin();
+  const { data: roleActions, error: actionError } = await supabase
+    .from(APPROVAL_ACTIONS_TABLE)
+    .select("request_id")
+    .eq("role", role);
+
+  if (actionError) throw new Error(actionError.message || "Gagal membaca riwayat approval role");
+
+  const existing = new Set([...(payload.inbox || []), ...(payload.requests || [])].map((row) => row.id));
+  const missingIds = [...new Set((roleActions || []).map((row) => row.request_id).filter(Boolean))]
+    .filter((id) => !existing.has(id));
+
+  if (!missingIds.length) return payload;
+
+  const { data: participatedRows, error } = await supabase
+    .from(APPROVAL_REQUESTS_TABLE)
+    .select("*")
+    .in("id", missingIds);
+
+  if (error) throw new Error(error.message || "Gagal membaca pengajuan yang pernah diproses role");
+
+  return {
+    ...payload,
+    requests: uniqueRows([...(payload.requests || []), ...(participatedRows || [])]),
+  };
+}
+
 async function withActions(payload) {
-  const rows = uniqueRows([...(payload.inbox || []), ...(payload.requests || [])]);
+  const expandedPayload = await includeParticipatedRows(payload);
+  const rows = uniqueRows([...(expandedPayload.inbox || []), ...(expandedPayload.requests || [])]);
   const ids = rows.map((row) => row.id).filter(Boolean);
-  if (!ids.length) return normalizeCenterPayload(payload);
+  if (!ids.length) return normalizeCenterPayload(expandedPayload);
 
   const supabase = getSupabaseAdmin();
   const { data: actions } = await supabase
@@ -90,9 +129,9 @@ async function withActions(payload) {
 
   const attach = (row) => ({ ...row, approval_actions: grouped.get(row.id) || [] });
   return normalizeCenterPayload({
-    ...payload,
-    inbox: (payload.inbox || []).map(attach),
-    requests: (payload.requests || []).map(attach),
+    ...expandedPayload,
+    inbox: (expandedPayload.inbox || []).map(attach),
+    requests: (expandedPayload.requests || []).map(attach),
   });
 }
 
