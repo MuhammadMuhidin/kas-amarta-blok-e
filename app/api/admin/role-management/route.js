@@ -8,11 +8,7 @@ import {
   recordRateLimitFailure,
 } from "@/lib/rateLimit";
 import {
-  disableNonAdminRoleLogins,
-  expireAllPendingOtp,
-  expireRoleOtp,
   getRoleManagementOverview,
-  revokeAllNonCurrentSessions,
   revokeManagedSession,
   revokeRoleSessions,
   setRoleLoginStatus,
@@ -70,28 +66,12 @@ async function runAction(req, body) {
     });
   }
 
-  if (action === "expire_role_otp") {
-    return expireRoleOtp({ req, role: body.role });
-  }
-
-  if (action === "expire_all_pending_otp") {
-    return expireAllPendingOtp({ req });
-  }
-
   if (action === "revoke_session") {
     return revokeManagedSession({ req, id: body.id });
   }
 
   if (action === "revoke_role_sessions") {
     return revokeRoleSessions({ req, role: body.role });
-  }
-
-  if (action === "revoke_all_non_current_sessions") {
-    return revokeAllNonCurrentSessions({ req });
-  }
-
-  if (action === "disable_non_admin_roles") {
-    return disableNonAdminRoleLogins({ req });
   }
 
   throw new Error("Action role management tidak valid");
