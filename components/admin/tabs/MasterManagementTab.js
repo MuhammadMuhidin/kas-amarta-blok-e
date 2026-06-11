@@ -170,7 +170,7 @@ export default function MasterManagementTab() {
         </section>
       </div>
 
-      <AdminConfirmModal open={!!editForm} title="Edit Approval Master" description={editForm ? `Update value untuk ${editForm.name || editForm.code}.` : ""} confirmText="Update Master" cancelText="Cancel" loading={saving} loadingText="Saving..." onCancel={() => !saving && setEditForm(null)} onConfirm={saveEdit}>{editForm && <MasterFormFields value={editForm} onChange={setEditForm} />}</AdminConfirmModal>
+      <AdminConfirmModal open={!!editForm} title="Edit Approval Master" description={editForm ? `Update value untuk ${editForm.name || editForm.code}.` : ""} confirmText="Update Master" cancelText="Cancel" loading={saving} loadingText="Saving..." onCancel={() => !saving && setEditForm(null)} onConfirm={saveEdit}>{editForm && <form className="admin-form admin-collapsible-panel" style={styles.editModalForm} onSubmit={(event) => { event.preventDefault(); saveEdit(); }}><MasterFormFields value={editForm} onChange={setEditForm} /></form>}</AdminConfirmModal>
     </>
   );
 }
@@ -181,6 +181,7 @@ const styles = {
   subtitle: { marginTop: 6, maxWidth: 620 },
   collapseButton: { display: "inline-flex", alignItems: "center", justifyContent: "center", flex: "0 0 auto", width: 32, height: 32, padding: 0, border: "none", borderRadius: 8, background: "transparent", color: "inherit", cursor: "pointer", font: "inherit", fontSize: 18, fontWeight: 900, lineHeight: 1 },
   formPanel: { marginBottom: 18 },
+  editModalForm: { marginBottom: 0 },
   masterFormGrid: { display: "grid", gap: 14 },
   checkboxLabel: { display: "flex", alignItems: "center", gap: 8, color: "var(--admin-muted)", fontSize: 13, fontWeight: 800 },
   formGroupTitle: { marginTop: 4, color: "var(--admin-muted)", fontSize: 12, fontWeight: 900, letterSpacing: "0.06em", textTransform: "uppercase" },
