@@ -2,7 +2,7 @@
 
 import Toast from "@/components/Toast";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const APPROVAL_REQUESTS_API = "/api/admin/approval-requests";
 
@@ -33,6 +33,11 @@ export default function ApprovalCenterTab() {
   const [loading, setLoading] = useState(true);
   const [runningId, setRunningId] = useState("");
   const [toast, setToast] = useState(null);
+
+  const visibleRequests = useMemo(() => {
+    const inboxIds = new Set((data.inbox || []).map((row) => row.id));
+    return (data.requests || []).filter((row) => !inboxIds.has(row.id));
+  }, [data.inbox, data.requests]);
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -75,8 +80,8 @@ export default function ApprovalCenterTab() {
   return (
     <>
       <Toast show={!!toast} type={toast?.type} message={toast?.message} />
-      <div className="admin-card">
-        <div className="activity-header">
+      <div className="admin-card" style={styles.card}>
+        <div className="activity-header" style={styles.header}>
           <div>
             <div className="activity-kicker">Approval Workflow</div>
             <h3 className="activity-title">Approval Center</h3>
@@ -91,31 +96,35 @@ export default function ApprovalCenterTab() {
           <SummaryCard label="Ditolak" value={data.summary?.rejected || 0} />
         </div>
 
-        <Section title="Inbox Saya" description="Hanya pengajuan yang sedang menunggu role kamu.">
-          <RequestTable rows={data.inbox || []} runningId={runningId} onAction={runAction} showActions />
-        </Section>
+        <div style={styles.sections}>
+          <Section title="Inbox Saya" description="Pengajuan yang sedang menunggu role kamu." compact={!data.inbox?.length}>
+            <RequestTable rows={data.inbox || []} runningId={runningId} onAction={runAction} showActions />
+          </Section>
 
-        <Section title="Semua Pengajuan Terbaru" description="Daftar pengajuan terbaru untuk monitoring.">
-          <RequestTable rows={data.requests || []} runningId={runningId} onAction={runAction} />
-        </Section>
+          {visibleRequests.length > 0 ? (
+            <Section title="Pengajuan Terbaru" description="Daftar pengajuan terbaru untuk monitoring.">
+              <RequestTable rows={visibleRequests} runningId={runningId} onAction={runAction} />
+            </Section>
+          ) : null}
+        </div>
       </div>
     </>
   );
 }
 
 function SummaryCard({ label, value }) {
-  return <div className="admin-summary-card"><div className="admin-status-label">{label}</div><div className="admin-status-value" style={{ marginBottom: 0 }}>{value}</div></div>;
+  return <div className="admin-summary-card" style={styles.summaryCard}><div className="admin-status-label">{label}</div><div className="admin-status-value" style={{ marginBottom: 0 }}>{value}</div></div>;
 }
 
-function Section({ title, description, children }) {
-  return <section className="admin-status-card" style={styles.section}><div className="admin-status-label">{title}</div>{description && <div className="admin-status-meta" style={{ marginBottom: 12 }}>{description}</div>}{children}</section>;
+function Section({ title, description, compact = false, children }) {
+  return <section className="admin-status-card" style={compact ? styles.compactSection : styles.section}><div className="admin-status-label">{title}</div>{description && <div className="admin-status-meta" style={styles.sectionDescription}>{description}</div>}{children}</section>;
 }
 
 function RequestTable({ rows, runningId, onAction, showActions = false }) {
-  if (!rows.length) return <div className="admin-empty-state">Tidak ada pengajuan.</div>;
+  if (!rows.length) return <div className="admin-empty-state" style={styles.emptyState}>Tidak ada pengajuan.</div>;
 
   return (
-    <div className="admin-table-wrapper">
+    <div className="admin-table-wrapper" style={styles.tableWrapper}>
       <table className="admin-table">
         <thead>
           <tr>
@@ -149,7 +158,57 @@ function RequestTable({ rows, runningId, onAction, showActions = false }) {
 }
 
 const styles = {
-  summaryCards: { marginBottom: 16 },
-  section: { marginTop: 14, marginBottom: 0 },
-  actions: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" },
+  card: {
+    height: "auto",
+    minHeight: 0,
+    maxHeight: "none",
+    overflow: "visible",
+  },
+  header: {
+    marginBottom: 14,
+  },
+  summaryCards: {
+    marginBottom: 0,
+  },
+  summaryCard: {
+    cursor: "default",
+  },
+  sections: {
+    display: "grid",
+    gap: 12,
+    marginTop: 14,
+  },
+  section: {
+    margin: 0,
+    height: "auto",
+    minHeight: 0,
+    maxHeight: "none",
+    overflow: "visible",
+  },
+  compactSection: {
+    margin: 0,
+    padding: 14,
+    height: "auto",
+    minHeight: 0,
+    maxHeight: "none",
+    overflow: "visible",
+  },
+  sectionDescription: {
+    marginBottom: 10,
+  },
+  tableWrapper: {
+    overflowX: "auto",
+    overflowY: "visible",
+    maxHeight: "none",
+  },
+  emptyState: {
+    margin: 0,
+    padding: "14px 12px",
+  },
+  actions: {
+    display: "flex",
+    gap: 8,
+    justifyContent: "center",
+    flexWrap: "wrap",
+  },
 };
