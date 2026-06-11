@@ -44,7 +44,7 @@ function Badge({ active }) {
 export default function MasterManagementTab() {
   const [data, setData] = useState({ masters: [] });
   const [form, setForm] = useState(emptyForm);
-  const [showAddMaster, setShowAddMaster] = useState(false);
+  const [showMasterModal, setShowMasterModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
@@ -73,11 +73,15 @@ export default function MasterManagementTab() {
     setForm(emptyForm);
   }
 
-  function toggleAddMaster() {
-    setShowAddMaster((prev) => {
-      if (prev) resetForm();
-      return !prev;
-    });
+  function openCreateModal() {
+    resetForm();
+    setShowMasterModal(true);
+  }
+
+  function closeModal() {
+    if (saving) return;
+    setShowMasterModal(false);
+    resetForm();
   }
 
   function edit(master) {
@@ -94,8 +98,7 @@ export default function MasterManagementTab() {
       fields_schema: JSON.stringify(master.fields_schema || fields, null, 2),
       flow_schema: JSON.stringify(master.flow_schema || flow, null, 2),
     });
-    setShowAddMaster(true);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    setShowMasterModal(true);
   }
 
   async function save(event) {
@@ -106,8 +109,7 @@ export default function MasterManagementTab() {
       JSON.parse(form.flow_schema || "[]");
       await sendJson(APPROVAL_MASTERS_API, "POST", form);
       showToast(form.id ? "Approval master updated" : "Approval master created");
-      resetForm();
-      setShowAddMaster(false);
+      closeModal();
       await loadData();
     } catch (err) {
       showToast(err.message || "Failed to save approval master", "error");
@@ -125,6 +127,7 @@ export default function MasterManagementTab() {
   return (
     <>
       <Toast show={!!toast} type={toast?.type} message={toast?.message} />
+      <style jsx global>{modalCss}</style>
       <div className="admin-card">
         <div style={styles.sectionHeader}>
           <div>
@@ -132,56 +135,8 @@ export default function MasterManagementTab() {
             <p className="activity-subtitle" style={styles.subtitle}>Create reusable approval templates, payment rules, required fields, and approval flows.</p>
           </div>
 
-          <button
-            type="button"
-            className={showAddMaster ? "admin-collapse-toggle admin-collapse-toggle-open" : "admin-collapse-toggle"}
-            style={styles.collapseButton}
-            aria-label={showAddMaster ? "Collapse add master form" : "Expand add master form"}
-            aria-expanded={showAddMaster}
-            onClick={toggleAddMaster}
-          >
-            {showAddMaster ? "▴" : "▾"}
-          </button>
+          <button type="button" className="admin-small-btn" onClick={openCreateModal}>Add Master</button>
         </div>
-
-        {showAddMaster && (
-          <form onSubmit={save} className="admin-form admin-collapsible-panel">
-            <input className="admin-input" placeholder="Code" value={form.code} onChange={(e) => setField("code", e.target.value)} />
-            <input className="admin-input" placeholder="Name" value={form.name} onChange={(e) => setField("name", e.target.value)} />
-            <input className="admin-input" placeholder="Category" value={form.category} onChange={(e) => setField("category", e.target.value)} />
-            <textarea className="admin-input" placeholder="Description" rows={2} value={form.description} onChange={(e) => setField("description", e.target.value)} />
-
-            <label style={styles.checkboxLabel}>
-              <input type="checkbox" checked={form.active} onChange={(e) => setField("active", e.target.checked)} />
-              Active master
-            </label>
-
-            <div style={styles.formGroupTitle}>Payment Rule</div>
-
-            <label style={styles.checkboxLabel}>
-              <input type="checkbox" checked={form.payment_required} onChange={(e) => setField("payment_required", e.target.checked)} />
-              Payment required
-            </label>
-
-            <input className="admin-input" type="number" placeholder="Payment Amount" value={form.payment_amount} onChange={(e) => setField("payment_amount", e.target.value)} />
-            <textarea className="admin-input" placeholder="Payment Instruction" rows={2} value={form.payment_instruction} onChange={(e) => setField("payment_instruction", e.target.value)} />
-
-            <div style={styles.formGroupTitle}>Fields Schema JSON</div>
-            <textarea className="admin-input" rows={8} value={form.fields_schema} onChange={(e) => setField("fields_schema", e.target.value)} spellCheck={false} />
-
-            <div style={styles.formGroupTitle}>Flow Schema JSON</div>
-            <textarea className="admin-input" rows={8} value={form.flow_schema} onChange={(e) => setField("flow_schema", e.target.value)} spellCheck={false} />
-
-            <div style={styles.formActions}>
-              <button type="button" className="admin-small-btn" onClick={resetForm} disabled={saving}>Reset</button>
-              <button className="admin-btn" disabled={saving}>
-                <LoadingButtonContent loading={saving} loadingText="Saving...">
-                  {form.id ? "Update Master" : "Add Master"}
-                </LoadingButtonContent>
-              </button>
-            </div>
-          </form>
-        )}
 
         <section className="admin-status-card" style={styles.listSection}>
           <div className="admin-status-label">Approval Master List</div>
@@ -213,15 +168,138 @@ export default function MasterManagementTab() {
           </div>
         </section>
       </div>
+
+      {showMasterModal ? (
+        <div className="admin-master-modal-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeModal(); }}>
+          <section className="admin-master-modal-box" role="dialog" aria-modal="true" aria-label={form.id ? "Edit approval master" : "Add approval master"}>
+            <div className="admin-master-modal-header">
+              <div>
+                <div className="activity-kicker">Approval Master</div>
+                <h3 className="activity-title" style={{ margin: 0 }}>{form.id ? "Edit Approval Master" : "Add Approval Master"}</h3>
+              </div>
+              <button type="button" className="admin-master-modal-close" onClick={closeModal} disabled={saving} aria-label="Close modal">×</button>
+            </div>
+
+            <form onSubmit={save} className="admin-form admin-master-modal-form">
+              <input className="admin-input" placeholder="Code" value={form.code} onChange={(e) => setField("code", e.target.value)} />
+              <input className="admin-input" placeholder="Name" value={form.name} onChange={(e) => setField("name", e.target.value)} />
+              <input className="admin-input" placeholder="Category" value={form.category} onChange={(e) => setField("category", e.target.value)} />
+              <textarea className="admin-input" placeholder="Description" rows={2} value={form.description} onChange={(e) => setField("description", e.target.value)} />
+
+              <label style={styles.checkboxLabel}>
+                <input type="checkbox" checked={form.active} onChange={(e) => setField("active", e.target.checked)} />
+                Active master
+              </label>
+
+              <div style={styles.formGroupTitle}>Payment Rule</div>
+
+              <label style={styles.checkboxLabel}>
+                <input type="checkbox" checked={form.payment_required} onChange={(e) => setField("payment_required", e.target.checked)} />
+                Payment required
+              </label>
+
+              <input className="admin-input" type="number" placeholder="Payment Amount" value={form.payment_amount} onChange={(e) => setField("payment_amount", e.target.value)} />
+              <textarea className="admin-input" placeholder="Payment Instruction" rows={2} value={form.payment_instruction} onChange={(e) => setField("payment_instruction", e.target.value)} />
+
+              <div style={styles.formGroupTitle}>Fields Schema JSON</div>
+              <textarea className="admin-input admin-json-input" rows={8} value={form.fields_schema} onChange={(e) => setField("fields_schema", e.target.value)} spellCheck={false} />
+
+              <div style={styles.formGroupTitle}>Flow Schema JSON</div>
+              <textarea className="admin-input admin-json-input" rows={8} value={form.flow_schema} onChange={(e) => setField("flow_schema", e.target.value)} spellCheck={false} />
+
+              <div style={styles.formActions}>
+                <button type="button" className="admin-small-btn" onClick={closeModal} disabled={saving}>Cancel</button>
+                <button className="admin-btn" disabled={saving}>
+                  <LoadingButtonContent loading={saving} loadingText="Saving...">
+                    {form.id ? "Update Master" : "Add Master"}
+                  </LoadingButtonContent>
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
     </>
   );
 }
+
+const modalCss = `
+  .admin-master-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10040;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 12px;
+    background: rgba(2, 6, 23, 0.62);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  .admin-master-modal-box {
+    width: min(860px, calc(100vw - 24px));
+    max-height: calc(100dvh - 36px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--admin-border);
+    border-radius: 20px;
+    background: var(--admin-card);
+    color: var(--admin-text);
+    box-shadow: 0 22px 64px rgba(0, 0, 0, 0.34);
+    padding: 18px;
+  }
+
+  .admin-master-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .admin-master-modal-close {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--admin-border);
+    border-radius: 999px;
+    background: var(--admin-button);
+    color: var(--admin-text);
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .admin-master-modal-form {
+    margin-bottom: 0;
+  }
+
+  .admin-json-input {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  @media (max-width: 700px) {
+    .admin-master-modal-overlay {
+      align-items: stretch;
+      padding: 10px;
+    }
+
+    .admin-master-modal-box {
+      width: calc(100vw - 20px);
+      max-height: calc(100dvh - 20px);
+      border-radius: 18px;
+      padding: 14px;
+    }
+  }
+`;
 
 const styles = {
   sectionHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 14 },
   sectionTitle: { margin: 0 },
   subtitle: { marginTop: 6, maxWidth: 620 },
-  collapseButton: { display: "inline-flex", alignItems: "center", justifyContent: "center", width: 32, height: 32, padding: 0, border: "none", borderRadius: 8, background: "transparent", color: "inherit", cursor: "pointer", font: "inherit", fontSize: 18, fontWeight: 900, lineHeight: 1 },
   checkboxLabel: { display: "flex", alignItems: "center", gap: 8, color: "var(--admin-muted)", fontSize: 13, fontWeight: 800 },
   formGroupTitle: { marginTop: 4, color: "var(--admin-muted)", fontSize: 12, fontWeight: 900, letterSpacing: "0.06em", textTransform: "uppercase" },
   formActions: { display: "grid", gridTemplateColumns: "auto minmax(160px, 1fr)", gap: 10 },
