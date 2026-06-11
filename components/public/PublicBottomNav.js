@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const ENABLED_PATHS = new Set(["/", "/kas", "/pengajuan"]);
+const ENABLED_PATHS = new Set(["/", "/pengajuan"]);
 
 const bottomNavCss = `
   body:has(.public-bottom-nav) .public-theme-button {
