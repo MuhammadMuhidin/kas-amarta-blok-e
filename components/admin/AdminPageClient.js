@@ -7,6 +7,7 @@ import MonitoringTab from "@/components/admin/tabs/MonitoringTab";
 import OverviewTab from "@/components/admin/tabs/OverviewTab";
 import PaymentTab from "@/components/admin/tabs/PaymentTab";
 import PersonalTab from "@/components/admin/tabs/PersonalTab";
+import RoleManagementTab from "@/components/admin/tabs/RoleManagementTab";
 import SettingsTab from "@/components/admin/tabs/SettingsTab";
 import SummaryBackupTab from "@/components/admin/tabs/SummaryBackupTab";
 import TimelineTab from "@/components/admin/tabs/TimelineTab";
@@ -44,6 +45,7 @@ const MODULE_ICONS = {
   summary: icon(0x1F6E1, true),
   monitoring: icon(0x1F5A5, true),
   activity: icon(0x1F4CB),
+  role_management: icon(0x1F9E9),
   settings: icon(0x2699, true),
 };
 
@@ -302,6 +304,7 @@ export default function AdminPageClient() {
         {tab === "summary" && canAccess("summary") && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
         {tab === "monitoring" && canAccess("monitoring") && <MonitoringTab key={`monitoring-${tabRefreshKey}`} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} trashAdvanceReimbursementIntegrity={trashAdvanceReimbursementIntegrity} depositPaymentIntegrity={depositPaymentIntegrity} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
         {tab === "activity" && canAccess("activity") && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
+        {tab === "role_management" && canAccess("role_management") && <RoleManagementTab key={`role-management-${tabRefreshKey}`} />}
         {tab === "settings" && canAccess("settings") && <SettingsTab key={`settings-${tabRefreshKey}`} />}
       </div>
     </>
