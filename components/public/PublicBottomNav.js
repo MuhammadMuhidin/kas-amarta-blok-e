@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+const ENABLED_PATHS = new Set(["/", "/pengajuan"]);
+
 const bottomNavCss = `
   body:has(.public-bottom-nav) .public-theme-button {
     width: 1px !important;
@@ -16,6 +18,10 @@ const bottomNavCss = `
     overflow: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
+  }
+
+  body:has(.public-bottom-nav) .timeline-page > .timeline-bottom-nav {
+    display: none !important;
   }
 
   .public-bottom-nav {
@@ -90,8 +96,10 @@ const bottomNavCss = `
   }
 `;
 
-export default function PublicBottomNav() {
+export default function PublicBottomNav({ global = false } = {}) {
   const pathname = usePathname();
+
+  if (!global || !ENABLED_PATHS.has(pathname)) return null;
 
   function scrollToTop() {
     window.scrollTo({ top: 0, behavior: "smooth" });
