@@ -6,6 +6,7 @@ import { resolveAdminAccessRole } from "@/lib/adminRoles";
 const APPROVAL_MASTERS_TABLE = dbTable("approval_masters");
 const APPROVAL_REQUESTS_TABLE = dbTable("approval_requests");
 const APPROVAL_ACTIONS_TABLE = dbTable("approval_actions");
+const TERMINAL_STATUSES = ["completed", "rejected", "cancelled"];
 
 const DEFAULT_FIELDS_SCHEMA = [
   { key: "requester_name", label: "Nama Warga", type: "text", required: true },
@@ -21,6 +22,10 @@ const DEFAULT_FLOW_SCHEMA = [
 
 function clean(value) {
   return String(value || "").trim();
+}
+
+function isTerminalStatus(status) {
+  return TERMINAL_STATUSES.includes(clean(status).toLowerCase());
 }
 
 function normalizeCode(value) {
@@ -209,17 +214,16 @@ export async function getApprovalCenterOverview({ accessRole = "admin" } = {}) {
   if (error) throw new Error(error.message || "Gagal membaca approval center");
 
   const rows = data || [];
-  const openStatuses = ["completed", "rejected", "cancelled"];
   const inbox = role === "admin"
-    ? rows.filter((row) => !openStatuses.includes(row.status))
-    : rows.filter((row) => row.current_approver_role === role);
+    ? rows.filter((row) => !isTerminalStatus(row.status))
+    : rows.filter((row) => row.current_approver_role === role && !isTerminalStatus(row.status));
 
   return {
     ok: true,
     access_role: role,
     summary: {
       inbox: inbox.length,
-      processing: rows.filter((row) => !openStatuses.includes(row.status)).length,
+      processing: rows.filter((row) => !isTerminalStatus(row.status)).length,
       completed: rows.filter((row) => row.status === "completed").length,
       rejected: rows.filter((row) => row.status === "rejected").length,
     },
@@ -345,13 +349,18 @@ export async function actOnApprovalRequest({ req, accessRole = "admin", id, acti
 
   if (readError) throw new Error(readError.message || "Gagal membaca pengajuan");
   if (!request) throw new Error("Pengajuan tidak ditemukan");
-  if (["completed", "rejected", "cancelled"].includes(request.status)) throw new Error("Pengajuan sudah selesai");
+  if (isTerminalStatus(request.status)) throw new Error("Pengajuan sudah selesai");
   if (role !== "admin" && request.current_approver_role !== role) throw new Error("Pengajuan ini belum masuk ke role kamu");
 
   if (selectedAction === "reject") {
     const { error } = await supabase
       .from(APPROVAL_REQUESTS_TABLE)
-      .update({ status: "rejected", updated_at: new Date().toISOString() })
+      .update({
+        status: "rejected",
+        current_step: null,
+        current_approver_role: null,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", request.id);
 
     if (error) throw new Error(error.message || "Gagal reject pengajuan");
