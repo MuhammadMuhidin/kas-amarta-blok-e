@@ -1,7 +1,8 @@
 "use client";
 
-import PublicBottomNav from "@/components/public/PublicBottomNav";
 import { useEffect, useMemo, useState } from "react";
+import "@/app/page.css";
+import "@/app/public-theme.css";
 
 const APPROVAL_REQUESTS_API = "/api/approval-requests";
 
@@ -175,7 +176,12 @@ export default function PengajuanPage() {
             <span className="request-kicker">Pengajuan Baru</span>
             <h2>Buat Pengajuan Baru</h2>
           </div>
-          {selectedMaster?.payment_required ? <span className="request-price">{money(selectedMaster.payment_amount)}</span> : <span className="request-price muted">Gratis</span>}
+          {selectedMaster?.payment_required ? (
+            <span className="request-price" aria-label={`Biaya pengajuan ${money(selectedMaster.payment_amount)}`}>
+              <small>Biaya Pengajuan</small>
+              <strong>{money(selectedMaster.payment_amount)}</strong>
+            </span>
+          ) : <span className="request-price muted">Gratis</span>}
         </div>
 
         <form onSubmit={submitRequest} className="request-form">
@@ -215,26 +221,25 @@ export default function PengajuanPage() {
           </div>
         ) : null}
       </section>
-
-      <PublicBottomNav />
     </main>
   );
 }
 
 const requestPageCss = `
   body:has(.request-page) {
-    background:
-      radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 18%, transparent), transparent 34vw),
-      radial-gradient(circle at 100% 8%, color-mix(in srgb, var(--success) 14%, transparent), transparent 32vw),
-      var(--bg) !important;
+    background: var(--bg) !important;
     color: var(--text);
+    font-family: Inter, Arial, sans-serif;
+    font-size: var(--font-base);
   }
 
   .request-page {
-    max-width: 980px;
+    width: 100%;
+    max-width: 1060px;
     margin: 0 auto;
-    padding: 12px 14px calc(104px + env(safe-area-inset-bottom, 0px));
-    font-family: var(--public-font-family, Inter, system-ui, sans-serif);
+    padding: 12px 10px calc(104px + env(safe-area-inset-bottom, 0px));
+    font-family: Inter, Arial, sans-serif;
+    font-size: var(--font-base);
     color: var(--text);
   }
 
@@ -244,8 +249,9 @@ const requestPageCss = `
     z-index: 50;
     margin-bottom: 12px;
     padding: 12px 14px;
-    border-radius: 16px;
-    font-weight: 900;
+    border-radius: var(--radius);
+    font-size: var(--font-base);
+    font-weight: 800;
     box-shadow: var(--shadow-soft);
   }
 
@@ -255,15 +261,13 @@ const requestPageCss = `
   .request-card {
     position: relative;
     overflow: hidden;
-    border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
-    background: color-mix(in srgb, var(--surface) 92%, transparent);
+    border: 1px solid var(--border);
+    background: var(--surface);
     color: var(--text);
-    border-radius: 28px;
-    box-shadow: 0 18px 48px color-mix(in srgb, var(--primary) 11%, transparent), var(--shadow-soft);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    padding: 18px;
-    margin-bottom: 14px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-soft);
+    padding: 12px 14px;
+    margin-bottom: 10px;
   }
 
   .request-master-card { border-color: color-mix(in srgb, var(--success) 18%, var(--border)); }
@@ -271,9 +275,9 @@ const requestPageCss = `
 
   .request-kicker {
     color: var(--primary);
-    font-size: 11px;
-    font-weight: 950;
-    letter-spacing: .11em;
+    font-size: var(--font-small);
+    font-weight: 800;
+    letter-spacing: .04em;
     text-transform: uppercase;
   }
 
@@ -282,40 +286,71 @@ const requestPageCss = `
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 12px;
-    margin-bottom: 14px;
+    gap: 10px;
+    margin-bottom: 12px;
   }
 
   .request-card h2,
   .request-status-top h3 {
-    margin: 4px 0 0;
+    margin: 3px 0 0;
     color: var(--text);
-    line-height: 1.12;
+    line-height: 1.2;
+    font-weight: 800;
   }
 
-  .request-card h2 { font-size: 24px; }
-  .request-status-top h3 { font-size: 20px; }
+  .request-card h2 { font-size: 19px; }
+  .request-status-top h3 { font-size: 19px; }
 
   .request-muted {
     margin: 0;
     color: var(--muted);
-    font-size: 15px;
-    font-weight: 750;
-    line-height: 1.55;
+    font-size: var(--font-base);
+    font-weight: 500;
+    line-height: 1.45;
   }
 
   .request-price {
-    flex-shrink: 0;
+    flex: 0 0 auto;
+    min-width: 124px;
+    max-width: min(44vw, 170px);
     padding: 7px 10px;
-    border-radius: 999px;
+    border-radius: var(--radius-sm);
     border: 1px solid color-mix(in srgb, var(--success) 38%, var(--border));
-    background: color-mix(in srgb, var(--success) 13%, var(--surface));
+    background: color-mix(in srgb, var(--success) 11%, var(--surface));
     color: var(--text);
-    font-size: 13px;
-    font-weight: 950;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    text-align: right;
+    line-height: 1.15;
   }
 
-  .request-price.muted { border-color: var(--border); background: var(--surface-soft); color: var(--muted); }
+  .request-price small {
+    color: var(--muted);
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .request-price strong {
+    color: var(--success);
+    font-size: var(--font-base);
+    font-weight: 800;
+    white-space: nowrap;
+  }
+
+  .request-price.muted {
+    min-width: auto;
+    border-color: var(--border);
+    background: var(--surface-soft);
+    color: var(--muted);
+    font-size: var(--font-base);
+    font-weight: 800;
+  }
 
   .request-form,
   .request-check-grid {
@@ -330,23 +365,32 @@ const requestPageCss = `
 
   .request-label {
     display: grid;
-    gap: 7px;
+    gap: 6px;
     color: var(--muted);
-    font-size: 13px;
-    font-weight: 900;
+    font-size: var(--font-small);
+    font-weight: 700;
   }
 
   .request-input {
     width: 100%;
+    min-height: 44px;
     box-sizing: border-box;
     border: 1px solid var(--border);
-    border-radius: 16px;
-    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
     color: var(--text);
-    padding: 13px 14px;
+    padding: 0 12px;
     outline: none;
-    font: inherit;
-    font-weight: 800;
+    font-family: Inter, Arial, sans-serif;
+    font-size: var(--font-base);
+    font-weight: 500;
+  }
+
+  textarea.request-input {
+    min-height: 92px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    resize: vertical;
   }
 
   .request-input:focus {
@@ -359,10 +403,11 @@ const requestPageCss = `
   .request-success-panel,
   .request-status-panel {
     border: 1px solid var(--border);
-    border-radius: 20px;
-    background: color-mix(in srgb, var(--surface-soft) 82%, transparent);
-    padding: 14px;
+    border-radius: var(--radius);
+    background: var(--surface-soft);
+    padding: 12px 14px;
     color: var(--text);
+    font-size: var(--font-base);
   }
 
   .request-payment {
@@ -371,25 +416,27 @@ const requestPageCss = `
     border-color: color-mix(in srgb, var(--primary) 24%, var(--border));
   }
 
-  .request-payment span { color: var(--muted); font-size: 13px; font-weight: 750; line-height: 1.5; }
+  .request-payment span { color: var(--muted); font-size: var(--font-base); font-weight: 500; line-height: 1.45; }
 
   .request-primary-btn,
   .request-secondary-btn {
-    min-height: 46px;
-    border: 0;
-    border-radius: 16px;
-    background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 70%, var(--success)));
+    min-height: 44px;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius-sm);
+    background: var(--primary);
     color: var(--tab-active-text);
-    font: inherit;
-    font-weight: 950;
+    font-family: Inter, Arial, sans-serif;
+    font-size: var(--font-base);
+    font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 12px 24px color-mix(in srgb, var(--primary) 18%, transparent);
+    box-shadow: var(--shadow-soft);
   }
 
   .request-secondary-btn {
-    background: var(--text);
-    color: var(--surface);
-    box-shadow: none;
+    border-color: var(--border);
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: var(--shadow-soft);
   }
 
   .request-primary-btn:disabled { opacity: .6; cursor: not-allowed; }
@@ -410,20 +457,21 @@ const requestPageCss = `
     place-items: center;
     background: var(--success);
     color: var(--tab-active-text);
-    font-weight: 950;
+    font-weight: 800;
   }
 
-  .request-success-panel p { margin: 5px 0; color: var(--muted); font-size: 13px; font-weight: 800; }
-  .request-success-panel small { display: block; margin-top: 8px; color: var(--muted); line-height: 1.5; }
+  .request-success-panel p { margin: 5px 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; }
+  .request-success-panel small { display: block; margin-top: 8px; color: var(--muted); line-height: 1.45; font-size: var(--font-small); }
 
   .request-status {
     display: inline-flex;
     width: fit-content;
     align-items: center;
-    padding: 6px 10px;
+    padding: 5px 9px;
     border-radius: 999px;
-    font-size: 12px;
-    font-weight: 950;
+    font-size: var(--font-small);
+    font-weight: 700;
+    line-height: 1.2;
   }
 
   .request-status.is-success { background: color-mix(in srgb, var(--success) 15%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, var(--success) 36%, var(--border)); }
@@ -441,16 +489,16 @@ const requestPageCss = `
   }
 
   .request-meta-grid div {
-    padding: 11px;
-    border-radius: 16px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
     background: var(--surface);
     border: 1px solid var(--border);
     display: grid;
     gap: 4px;
   }
 
-  .request-meta-grid span { color: var(--muted); font-size: 11px; font-weight: 900; text-transform: uppercase; }
-  .request-meta-grid strong { color: var(--text); font-size: 13px; }
+  .request-meta-grid span { color: var(--muted); font-size: var(--font-small); font-weight: 700; text-transform: uppercase; }
+  .request-meta-grid strong { color: var(--text); font-size: var(--font-base); }
 
   .request-timeline {
     display: grid;
@@ -476,18 +524,22 @@ const requestPageCss = `
 
   .request-timeline-item div {
     padding: 10px 12px;
-    border-radius: 16px;
+    border-radius: var(--radius-sm);
     border: 1px solid var(--border);
     background: var(--surface);
   }
 
-  .request-timeline-item strong { display: block; color: var(--text); text-transform: capitalize; }
-  .request-timeline-item small { display: block; color: var(--muted); margin-top: 3px; }
-  .request-timeline-item p { margin: 6px 0 0; color: var(--muted); }
+  .request-timeline-item strong { display: block; color: var(--text); text-transform: capitalize; font-size: var(--font-base); }
+  .request-timeline-item small { display: block; color: var(--muted); margin-top: 3px; font-size: var(--font-small); }
+  .request-timeline-item p { margin: 6px 0 0; color: var(--muted); font-size: var(--font-base); }
 
   @media (max-width: 700px) {
-    .request-page { padding: 10px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
-    .request-card { padding: 15px; border-radius: 22px; }
-    .request-card-header { align-items: stretch; }
+    .request-page { padding: 12px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
+    .request-card { padding: 12px 14px; border-radius: var(--radius); }
+    .request-card h2 { font-size: 17px; }
+    .request-status-top h3 { font-size: 17px; }
+    .request-card-header { align-items: flex-start; }
+    .request-price { min-width: 116px; max-width: 142px; padding: 7px 9px; }
+    .request-price small { font-size: 10px; }
   }
 `;
