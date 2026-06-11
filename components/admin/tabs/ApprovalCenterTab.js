@@ -7,6 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 const APPROVAL_REQUESTS_API = "/api/admin/approval-requests";
 
 const approvalCenterCss = `
+  body.admin-approval-center-page,
+  body.admin-approval-center-page .admin-wrapper,
   .approval-center-card,
   .approval-center-card .admin-status-card,
   .approval-center-card .admin-table-wrapper {
@@ -88,6 +90,11 @@ export default function ApprovalCenterTab() {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
+    document.body.classList.add("admin-approval-center-page");
+    return () => document.body.classList.remove("admin-approval-center-page");
   }, []);
 
   if (loading) return <div className="admin-card">Loading Approval Center...</div>;
@@ -174,61 +181,15 @@ function RequestTable({ rows, runningId, onAction, showActions = false }) {
 }
 
 const styles = {
-  card: {
-    height: "auto",
-    minHeight: 0,
-    maxHeight: "none",
-    overflow: "visible",
-  },
-  header: {
-    marginBottom: 14,
-  },
-  summaryCards: {
-    marginBottom: 0,
-  },
-  summaryCard: {
-    cursor: "default",
-  },
-  sections: {
-    display: "grid",
-    gap: 12,
-    marginTop: 14,
-    height: "auto",
-    minHeight: 0,
-    maxHeight: "none",
-    overflow: "visible",
-  },
-  section: {
-    margin: 0,
-    height: "auto",
-    minHeight: 0,
-    maxHeight: "none",
-    overflow: "visible",
-  },
-  compactSection: {
-    margin: 0,
-    padding: 14,
-    height: "auto",
-    minHeight: 0,
-    maxHeight: "none",
-    overflow: "visible",
-  },
-  sectionDescription: {
-    marginBottom: 10,
-  },
-  tableWrapper: {
-    overflowX: "auto",
-    overflowY: "visible",
-    maxHeight: "none",
-  },
-  emptyState: {
-    margin: 0,
-    padding: "14px 12px",
-  },
-  actions: {
-    display: "flex",
-    gap: 8,
-    justifyContent: "center",
-    flexWrap: "wrap",
-  },
+  card: { height: "auto", minHeight: 0, maxHeight: "none", overflow: "visible" },
+  header: { marginBottom: 14 },
+  summaryCards: { marginBottom: 0 },
+  summaryCard: { cursor: "default" },
+  sections: { display: "grid", gap: 12, marginTop: 14, height: "auto", minHeight: 0, maxHeight: "none", overflow: "visible" },
+  section: { margin: 0, height: "auto", minHeight: 0, maxHeight: "none", overflow: "visible" },
+  compactSection: { margin: 0, padding: 14, height: "auto", minHeight: 0, maxHeight: "none", overflow: "visible" },
+  sectionDescription: { marginBottom: 10 },
+  tableWrapper: { overflowX: "auto", overflowY: "visible", maxHeight: "none" },
+  emptyState: { margin: 0, padding: "14px 12px" },
+  actions: { display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap" },
 };
