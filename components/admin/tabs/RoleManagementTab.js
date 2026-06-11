@@ -54,13 +54,6 @@ function getStatusClass(status) {
   return statusClassMap[key] || "admin-deposit-status-waiting";
 }
 
-function getEffectiveOtpStatus(row) {
-  const status = String(row?.status || "none").trim().toLowerCase();
-  const expiresAt = new Date(row?.expires_at || "").getTime();
-  const canExpireByTime = ["pending", "sent"].includes(status) && Number.isFinite(expiresAt) && Date.now() >= expiresAt;
-  return canExpireByTime ? "expired" : status;
-}
-
 function StatusBadge({ children, status }) {
   return <span className={`admin-deposit-status ${getStatusClass(status || children)}`}>{children}</span>;
 }
@@ -133,15 +126,12 @@ function RoleActivityLogCard({ rows }) {
 }
 
 function OtpLoginMonitorCard({ rows }) {
-  return <SectionCard title="OTP Login Monitor" description="Read-only monitor. Status expired dihitung dari expires_at, bukan dari tombol manual."><MiniTable columns={["Role", "Status", "Attempt", "Expires"]} rows={rows} emptyText="No OTP login records found." renderRow={(row, index) => {
-    const effectiveStatus = getEffectiveOtpStatus(row);
-    return <tr key={row.role} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{row.label}</td><td className="admin-td"><StatusBadge status={effectiveStatus}>{effectiveStatus}</StatusBadge></td><td className="admin-td">{row.attempt_count}/{row.max_attempts}</td><td className="admin-td">{formatTime(row.expires_at)}</td></tr>;
-  }} /></SectionCard>;
+  return <SectionCard title="OTP Login Monitor" description="Read-only monitor. Status expired dihitung dari expires_at di server, bukan dari tombol manual."><MiniTable columns={["Role", "Status", "Attempt", "Expires"]} rows={rows} emptyText="No OTP login records found." renderRow={(row, index) => <tr key={row.role} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{row.label}</td><td className="admin-td"><StatusBadge status={row.status}>{row.status}</StatusBadge></td><td className="admin-td">{row.attempt_count}/{row.max_attempts}</td><td className="admin-td">{formatTime(row.expires_at)}</td></tr>} /></SectionCard>;
 }
 
 function SecurityHealthCard({ health }) {
   const status = String(health?.overall_status || "Attention").toLowerCase();
-  return <SectionCard title="Security Health" description="Kesehatan akses role, kontak OTP, session, PIN, dan passkey."><div style={styles.healthHeader}><div><div className="admin-status-value" style={styles.healthStatus}>{health?.overall_status || "Attention"}</div><div className="admin-status-meta">Overall role security status</div></div><StatusBadge status={status}>{health?.overall_status || "Attention"}</StatusBadge></div><div className="admin-monitor-grid" style={styles.healthGrid}><InfoPill label="OTP Contacts" value={`${health?.contact_ready_count || 0}/${health?.contact_total || 0}`} /><InfoPill label="Active Sessions" value={health?.active_session_count || 0} /><InfoPill label="Pending OTP" value={health?.pending_otp_count || 0} /><InfoPill label="Session Duration" value={formatDuration(health?.session_duration)} /></div><div className="admin-deposit-chips" style={styles.healthPills}><StatusBadge status={health?.pin_enabled ? "active" : "inactive"}>PIN {health?.pin_enabled ? "enabled" : "disabled"}</StatusBadge><StatusBadge status={health?.web_auth_enabled ? "active" : "inactive"}>Passkey {health?.web_auth_enabled ? "enabled" : "disabled"}</StatusBadge><StatusBadge status={health?.passkey_count > 0 ? "active" : "attention"}>{health?.passkey_count || 0} passkey</StatusBadge></div>{health?.warnings?.length ? <div className="admin-error-box" style={styles.warningBox}>{health.warnings.map((warning) => <div key={warning}>• {warning}</div>)}</div> : <EmptyState>No role security warning.</EmptyState>}</SectionCard>;
+  return <SectionCard title="Security Health" description="Kesehatan akses role, kontak OTP, session, PIN, dan passkey."><div style={styles.healthHeader}><div><div className="admin-status-value" style={styles.healthStatus}>{health?.overall_status || "Attention"}</div><div className="admin-status-meta">Overall role security status</div></div><StatusBadge status={status}>{health?.overall_status || "Attention"}</StatusBadge></div><div className="admin-monitor-grid" style={styles.healthGrid}><InfoPill label="OTP Contacts" value={`${health?.contact_ready_count || 0}/${health?.contact_total || 0}`} /><InfoPill label="Active Sessions" value={health?.active_session_count || 0} /><InfoPill label="Failed OTP" value={health?.failed_otp_count || 0} /><InfoPill label="Session Duration" value={formatDuration(health?.session_duration)} /></div><div className="admin-deposit-chips" style={styles.healthPills}><StatusBadge status={health?.pin_enabled ? "active" : "inactive"}>PIN {health?.pin_enabled ? "enabled" : "disabled"}</StatusBadge><StatusBadge status={health?.web_auth_enabled ? "active" : "inactive"}>Passkey {health?.web_auth_enabled ? "enabled" : "disabled"}</StatusBadge><StatusBadge status={health?.passkey_count > 0 ? "active" : "attention"}>{health?.passkey_count || 0} passkey</StatusBadge></div>{health?.warnings?.length ? <div className="admin-error-box" style={styles.warningBox}>{health.warnings.map((warning) => <div key={warning}>• {warning}</div>)}</div> : <EmptyState>No role security warning.</EmptyState>}</SectionCard>;
 }
 
 function ActionModal({ pendingAction, pin, setPin, running, contactForm, setContactForm, onCancel, onConfirm }) {
