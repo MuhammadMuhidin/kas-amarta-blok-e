@@ -281,6 +281,112 @@ export default function AdminPageClient() {
   return (
     <>
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
+      <style jsx global>{`
+        .admin-wrapper {
+          max-width: 1180px;
+          overflow-x: hidden;
+        }
+
+        .admin-header {
+          margin-bottom: 12px;
+        }
+
+        .admin-title {
+          font-size: clamp(22px, 4vw, 28px);
+        }
+
+        .admin-tabs {
+          width: 100%;
+          display: flex;
+          align-items: stretch;
+          gap: 8px;
+          margin-bottom: 18px;
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          overflow-y: hidden;
+          padding: 0 0 8px;
+          scroll-snap-type: x proximity;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+        }
+
+        .admin-tab {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 40px;
+          width: auto;
+          padding: 9px 12px;
+          white-space: nowrap;
+          flex: 0 0 auto;
+          scroll-snap-align: start;
+          font-size: 14px;
+          line-height: 1.2;
+        }
+
+        .admin-home-tab {
+          order: -1;
+        }
+
+        .admin-tab-content {
+          flex-wrap: nowrap;
+          white-space: nowrap;
+        }
+
+        .admin-deposit-badge {
+          max-width: 130px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        @media (max-width: 640px) {
+          .admin-wrapper {
+            padding: 14px;
+          }
+
+          .admin-header {
+            margin-bottom: 10px;
+          }
+
+          .admin-tabs {
+            flex-direction: row;
+            flex-wrap: nowrap;
+            gap: 6px;
+            margin-bottom: 14px;
+            padding-bottom: 6px;
+          }
+
+          .admin-tab {
+            width: auto;
+            min-height: 38px;
+            padding: 8px 10px;
+            border: 1px solid var(--admin-border);
+            border-radius: 999px;
+            background: var(--admin-button);
+            font-size: 13px;
+            justify-content: center;
+            text-align: center;
+          }
+
+          .admin-tab-active {
+            background: var(--admin-primary);
+            color: #020617;
+            border-color: var(--admin-primary);
+          }
+
+          .admin-tab-content {
+            width: auto;
+            justify-content: center;
+            gap: 6px;
+          }
+
+          .admin-deposit-badge {
+            max-width: 92px;
+            padding-inline: 6px;
+          }
+        }
+      `}</style>
       <div className="admin-wrapper">
         <div className="admin-header">
           <h1 className="admin-title">Cash Flow Management</h1>
