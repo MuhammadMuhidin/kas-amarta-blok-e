@@ -1,8 +1,10 @@
 "use client";
 
 import AdminActivityPanel from "@/components/AdminActivityPanel";
+import ApprovalCenterTab from "@/components/admin/tabs/ApprovalCenterTab";
 import CashflowTab from "@/components/admin/tabs/CashflowTab";
 import DepositTab from "@/components/admin/tabs/DepositTab";
+import MasterManagementTab from "@/components/admin/tabs/MasterManagementTab";
 import MonitoringTab from "@/components/admin/tabs/MonitoringTab";
 import OverviewTab from "@/components/admin/tabs/OverviewTab";
 import PaymentTab from "@/components/admin/tabs/PaymentTab";
@@ -45,6 +47,8 @@ const MODULE_ICONS = {
   summary: icon(0x1F6E1, true),
   monitoring: icon(0x1F5A5, true),
   activity: icon(0x1F4CB),
+  master_management: icon(0x1F5C2, true),
+  approval_center: icon(0x2705, true),
   role_management: icon(0x1F9E9),
   settings: icon(0x2699, true),
 };
@@ -304,6 +308,8 @@ export default function AdminPageClient() {
         {tab === "summary" && canAccess("summary") && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
         {tab === "monitoring" && canAccess("monitoring") && <MonitoringTab key={`monitoring-${tabRefreshKey}`} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} trashAdvanceReimbursementIntegrity={trashAdvanceReimbursementIntegrity} depositPaymentIntegrity={depositPaymentIntegrity} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
         {tab === "activity" && canAccess("activity") && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
+        {tab === "master_management" && canAccess("master_management") && <MasterManagementTab key={`master-management-${tabRefreshKey}`} />}
+        {tab === "approval_center" && canAccess("approval_center") && <ApprovalCenterTab key={`approval-center-${tabRefreshKey}`} />}
         {tab === "role_management" && canAccess("role_management") && <RoleManagementTab key={`role-management-${tabRefreshKey}`} />}
         {tab === "settings" && canAccess("settings") && <SettingsTab key={`settings-${tabRefreshKey}`} />}
       </div>
