@@ -2,6 +2,7 @@
 
 import AdminPageClient from "@/components/admin/AdminPageClient";
 import "./page.css";
+import "./navigation.css";
 import "./timeline.css";
 import "./timeline-photo-management.css";
 import "./interactions.css";
