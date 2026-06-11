@@ -53,94 +53,6 @@ const MODULE_ICONS = {
   settings: icon(0x2699, true),
 };
 
-const adminMenuStabilityCss = `
-  @media (max-width: 640px) {
-    .admin-wrapper {
-      padding: 14px !important;
-      overflow-x: hidden !important;
-    }
-
-    .admin-wrapper .admin-header {
-      gap: 0 !important;
-      margin-bottom: 8px !important;
-    }
-
-    .admin-wrapper .admin-title {
-      display: none !important;
-    }
-
-    .admin-wrapper .admin-home-btn {
-      width: auto !important;
-      max-width: 100% !important;
-      min-height: 0 !important;
-      box-sizing: border-box !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      padding: 8px 12px !important;
-      border: 1px solid var(--admin-border) !important;
-      border-radius: 8px !important;
-      background: var(--admin-button) !important;
-      color: var(--admin-text) !important;
-      font-size: 14px !important;
-      font-weight: 600 !important;
-      text-align: center !important;
-      white-space: nowrap !important;
-    }
-
-    .admin-wrapper .admin-tabs {
-      display: flex !important;
-      flex-direction: row !important;
-      align-items: center !important;
-      gap: 8px !important;
-      margin: 0 0 14px !important;
-      width: 100% !important;
-      max-width: 100% !important;
-      overflow-x: auto !important;
-      overflow-y: hidden !important;
-      flex-wrap: nowrap !important;
-      -webkit-overflow-scrolling: touch !important;
-      scrollbar-width: none !important;
-    }
-
-    .admin-wrapper .admin-tabs::-webkit-scrollbar {
-      display: none !important;
-    }
-
-    .admin-wrapper .admin-tab {
-      width: auto !important;
-      max-width: none !important;
-      min-height: 42px !important;
-      box-sizing: border-box !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      flex: 0 0 auto !important;
-      padding: 9px 14px !important;
-      border: 1px solid var(--admin-border) !important;
-      border-radius: 999px !important;
-      background: var(--admin-button) !important;
-      color: var(--admin-text) !important;
-      font-size: 14px !important;
-      font-weight: 700 !important;
-      text-align: center !important;
-      white-space: nowrap !important;
-    }
-
-    .admin-wrapper .admin-tab-active {
-      background: var(--admin-primary) !important;
-      color: #020617 !important;
-      border-color: var(--admin-primary) !important;
-    }
-
-    .admin-wrapper .admin-tab-content {
-      width: auto !important;
-      justify-content: center !important;
-      flex-wrap: nowrap !important;
-    }
-  }
-`;
-
 function getAllowedModules(moduleKeys = []) {
   const allowed = new Set(moduleKeys || []);
   return ADMIN_MODULES.filter((module) => allowed.has(module.key));
@@ -161,38 +73,10 @@ export default function AdminPageClient() {
   const { popup, showPopup } = useAdminToast();
   const { checkSession } = useAdminSession();
 
-  const {
-    personal,
-    setPersonal,
-    payments,
-    trashRecords,
-    deposits,
-    cashflows,
-    appConfig,
-    configError,
-    loadAppConfig,
-    loadPersonal,
-    loadPayment,
-    loadTrash,
-    loadDeposit,
-    loadCashflow,
-    refreshTabData,
-  } = useAdminLoaders({ setPayment });
-
+  const { personal, setPersonal, payments, trashRecords, deposits, cashflows, appConfig, configError, loadAppConfig, loadPersonal, loadPayment, loadTrash, loadDeposit, loadCashflow, refreshTabData } = useAdminLoaders({ setPayment });
   const { tab, tabRefreshKey, handleTabClick, tabClassName } = useAdminTabs(refreshTabData, allowedTabKeys);
 
-  const {
-    member,
-    setMember,
-    memberFilter,
-    memberSearch,
-    setMemberSearch,
-    loadingAdd,
-    toggleMemberFilter,
-    rowClassName,
-    addMember,
-    updateMemberInline,
-  } = useAdminMemberActions({
+  const { member, setMember, memberFilter, memberSearch, setMemberSearch, loadingAdd, toggleMemberFilter, rowClassName, addMember, updateMemberInline } = useAdminMemberActions({
     personal,
     setPersonal,
     loadPersonal,
@@ -203,45 +87,9 @@ export default function AdminPageClient() {
     currentPeriod,
   });
 
-  const {
-    activePersons,
-    stats,
-    searchedPersonal,
-    sortedDeposits,
-    pendingCurrentDeposits,
-    nextSixPeriods,
-    selectedDepositPerson,
-    selectedDepositPeriods,
-    depositAmount,
-    paymentCashflowIntegrity,
-    trashMismatch,
-    trashAdvanceReimbursementIntegrity,
-    depositPaymentIntegrity,
-    suspiciousData,
-    monitoringIssueCount,
-  } = useAdminDerivedState({
-    personal,
-    payments,
-    trashRecords,
-    deposits,
-    cashflows,
-    appConfig,
-    memberFilter,
-    memberSearch,
-    depositForm,
-    currentPeriod,
-    normalize,
-  });
+  const { activePersons, stats, searchedPersonal, sortedDeposits, pendingCurrentDeposits, nextSixPeriods, selectedDepositPerson, selectedDepositPeriods, depositAmount, paymentCashflowIntegrity, trashMismatch, trashAdvanceReimbursementIntegrity, depositPaymentIntegrity, suspiciousData, monitoringIssueCount } = useAdminDerivedState({ personal, payments, trashRecords, deposits, cashflows, appConfig, memberFilter, memberSearch, depositForm, currentPeriod, normalize });
 
-  const {
-    selected,
-    loadingPayment,
-    paymentProgress,
-    toggleHouse,
-    resetSelected,
-    isHousePaidForPeriod,
-    recordPayment,
-  } = useAdminPaymentActions({
+  const { selected, loadingPayment, paymentProgress, toggleHouse, resetSelected, isHousePaidForPeriod, recordPayment } = useAdminPaymentActions({
     personal,
     payments,
     appConfig,
@@ -305,12 +153,7 @@ export default function AdminPageClient() {
     async function bootstrap() {
       const session = await checkSession();
       if (!session) return;
-
-      setSessionInfo({
-        access_role: session.access_role || "admin",
-        modules: session.modules?.length ? session.modules : ["overview"],
-      });
-
+      setSessionInfo({ access_role: session.access_role || "admin", modules: session.modules?.length ? session.modules : ["overview"] });
       try {
         await Promise.all([loadAppConfig(), loadPersonal(), loadPayment(), loadCashflow(), loadTrash(), loadDeposit()]);
       } finally {
@@ -328,18 +171,13 @@ export default function AdminPageClient() {
   useEffect(() => {
     const hasRunningBatch = loadingPayment || bookingBatchLoading;
     if (!hasRunningBatch) return undefined;
-
     function handleBeforeUnload(event) {
       event.preventDefault();
       event.returnValue = "";
       return "";
     }
-
     window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [loadingPayment, bookingBatchLoading]);
 
   if (bootLoading) return <AdminLoading />;
@@ -347,7 +185,6 @@ export default function AdminPageClient() {
   return (
     <>
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
-      <style jsx global>{adminMenuStabilityCss}</style>
       <div className="admin-wrapper">
         <div className="admin-header">
           <button className="admin-home-btn" onClick={() => router.push("/")}>{icon(0x1F3E0)} Home</button>
