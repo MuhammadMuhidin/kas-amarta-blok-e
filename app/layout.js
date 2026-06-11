@@ -3,7 +3,7 @@ import PublicThemePicker from "@/components/public/PublicThemePicker";
 const publicThemeBootScript = `
 (function () {
   try {
-    var publicPaths = { "/": true, "/kas": true };
+    var publicPaths = { "/": true, "/kas": true, "/pengajuan": true };
     var pathname = window.location.pathname;
 
     if (!publicPaths[pathname]) return;
