@@ -1,24 +1,42 @@
 import { getAuthConfigs, getActiveCredentials } from "@/lib/webauth";
-import { getAdminSessions } from "@/lib/adminSession";
+import { getAdminSessions, revokeAdminSession } from "@/lib/adminSession";
 import { ADMIN_ACCESS_ROLES } from "@/lib/adminRoles";
 import { ADMIN_MODULES } from "@/lib/adminModules";
 import { getAllowedAdminModules } from "@/lib/adminAccessMatrix";
 import { dbTable } from "@/lib/dbTable";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { recordAdminActivity } from "@/lib/adminActivity";
 
 const ROLE_CONTACTS_TABLE = dbTable("role_contacts");
 const ADMIN_LOGIN_OTPS_TABLE = dbTable("admin_login_otps");
 const ADMIN_ACTIVITIES_TABLE = dbTable("admin_activities");
 
 const ROLE_VALUES = ADMIN_ACCESS_ROLES.map((role) => role.value);
+const NON_ADMIN_ROLES = ROLE_VALUES.filter((role) => role !== "admin");
 
 function normalize(value) {
   return String(value || "").trim().toLowerCase();
 }
 
+function clean(value) {
+  return String(value || "").trim();
+}
+
 function findRole(value) {
   const role = normalize(value);
   return ROLE_VALUES.includes(role) ? role : "";
+}
+
+function assertRole(value) {
+  const role = findRole(value);
+  if (!role) throw new Error("Role tidak valid");
+  return role;
+}
+
+function assertNonAdminRole(value) {
+  const role = assertRole(value);
+  if (role === "admin") throw new Error("Administrator tidak bisa dinonaktifkan dari Role Management");
+  return role;
 }
 
 function safeNumber(value) {
@@ -190,6 +208,7 @@ function buildRoleContacts(contacts) {
       phone: contact.phone || "",
       active: contact.active === true,
       updated_at: contact.updated_at || "",
+      can_disable: role.value !== "admin",
     };
   });
 }
@@ -209,6 +228,7 @@ function buildOtpMonitor(otpLogs) {
       expires_at: latest?.expires_at || "",
       used_at: latest?.used_at || "",
       created_at: latest?.created_at || "",
+      can_expire: latest ? ["pending", "sent"].includes(latest.status) : false,
     };
   });
 }
@@ -252,24 +272,27 @@ function buildDangerZone({ sessions, otpMonitor }) {
   return [
     {
       key: "revoke_sessions",
-      label: "Revoke non-current sessions",
+      label: "Revoke all non-current sessions",
       count: nonCurrentSessions.length,
-      status: nonCurrentSessions.length ? "Available from Active Role Sessions" : "No extra active session",
-      description: "Gunakan kontrol revoke session existing agar tidak menambah destructive flow baru.",
+      action: "revoke_all_non_current_sessions",
+      status: nonCurrentSessions.length ? "Ready" : "No extra active session",
+      description: "Putuskan semua session role selain session admin yang sedang dipakai.",
     },
     {
       key: "expire_otp",
-      label: "Expire pending OTP",
+      label: "Expire all pending OTP",
       count: pendingOtp.length,
-      status: pendingOtp.length ? "Manual review" : "No pending OTP",
-      description: "OTP pending masih dipantau read-only di patch ini.",
+      action: "expire_all_pending_otp",
+      status: pendingOtp.length ? "Ready" : "No pending OTP",
+      description: "Expire semua OTP role yang masih pending/sent.",
     },
     {
       key: "disable_role_login",
-      label: "Disable role login",
-      count: 0,
-      status: "Not implemented",
-      description: "Butuh kolom status role/contact sebelum aman dijadikan aksi.",
+      label: "Disable non-admin role login",
+      count: NON_ADMIN_ROLES.length,
+      action: "disable_non_admin_roles",
+      status: "Admin only",
+      description: "Nonaktifkan login Ketua, Sekretaris, dan Bendahara lewat role_contacts.active=false.",
     },
   ];
 }
@@ -316,4 +339,245 @@ export async function getRoleManagementOverview(req) {
       }),
     },
   };
+}
+
+export async function updateRoleContact({ req, role, phone, active }) {
+  const selectedRole = assertRole(role);
+  const cleanPhone = clean(phone);
+  const nextActive = Boolean(active);
+  const supabase = getSupabaseAdmin();
+
+  const { data: existing, error: readError } = await supabase
+    .from(ROLE_CONTACTS_TABLE)
+    .select("role")
+    .eq("role", selectedRole)
+    .limit(1);
+
+  if (readError) throw new Error(readError.message || "Gagal membaca role contact");
+
+  if (existing?.length) {
+    const { error } = await supabase
+      .from(ROLE_CONTACTS_TABLE)
+      .update({ phone: cleanPhone, active: nextActive })
+      .eq("role", selectedRole);
+
+    if (error) throw new Error(error.message || "Gagal update role contact");
+  } else {
+    const { error } = await supabase
+      .from(ROLE_CONTACTS_TABLE)
+      .insert({ role: selectedRole, phone: cleanPhone, active: nextActive });
+
+    if (error) throw new Error(error.message || "Gagal membuat role contact");
+  }
+
+  await recordAdminActivity(req, {
+    type: "update",
+    module: "role-management",
+    severity: "success",
+    message: `Update OTP receiver for ${selectedRole}`,
+    metadata: {
+      access_role: "admin",
+      target_role: selectedRole,
+      active: nextActive,
+      has_phone: Boolean(cleanPhone),
+    },
+  });
+
+  return { ok: true };
+}
+
+export async function setRoleLoginStatus({ req, role, active }) {
+  const selectedRole = Boolean(active) ? assertRole(role) : assertNonAdminRole(role);
+  const supabase = getSupabaseAdmin();
+
+  const { data: existing, error: readError } = await supabase
+    .from(ROLE_CONTACTS_TABLE)
+    .select("role,phone")
+    .eq("role", selectedRole)
+    .limit(1);
+
+  if (readError) throw new Error(readError.message || "Gagal membaca status role login");
+
+  if (existing?.length) {
+    const { error } = await supabase
+      .from(ROLE_CONTACTS_TABLE)
+      .update({ active: Boolean(active) })
+      .eq("role", selectedRole);
+
+    if (error) throw new Error(error.message || "Gagal mengubah status role login");
+  } else {
+    const { error } = await supabase
+      .from(ROLE_CONTACTS_TABLE)
+      .insert({ role: selectedRole, phone: "", active: Boolean(active) });
+
+    if (error) throw new Error(error.message || "Gagal membuat status role login");
+  }
+
+  await recordAdminActivity(req, {
+    type: Boolean(active) ? "enable" : "disable",
+    module: "role-management",
+    severity: Boolean(active) ? "success" : "warning",
+    message: `${Boolean(active) ? "Enable" : "Disable"} role login ${selectedRole}`,
+    metadata: {
+      access_role: "admin",
+      target_role: selectedRole,
+      active: Boolean(active),
+    },
+  });
+
+  return { ok: true };
+}
+
+export async function expireRoleOtp({ req, role }) {
+  const selectedRole = assertRole(role);
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from(ADMIN_LOGIN_OTPS_TABLE)
+    .update({ status: "expired" })
+    .eq("role", selectedRole)
+    .in("status", ["pending", "sent"])
+    .is("used_at", null)
+    .select("id");
+
+  if (error) throw new Error(error.message || "Gagal expire OTP role");
+
+  await recordAdminActivity(req, {
+    type: "expire",
+    module: "role-management",
+    severity: "warning",
+    message: `Expire pending OTP for ${selectedRole}`,
+    metadata: {
+      access_role: "admin",
+      target_role: selectedRole,
+      affected: data?.length || 0,
+    },
+  });
+
+  return { ok: true, affected: data?.length || 0 };
+}
+
+export async function expireAllPendingOtp({ req }) {
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from(ADMIN_LOGIN_OTPS_TABLE)
+    .update({ status: "expired" })
+    .in("role", ROLE_VALUES)
+    .in("status", ["pending", "sent"])
+    .is("used_at", null)
+    .select("id");
+
+  if (error) throw new Error(error.message || "Gagal expire semua OTP pending");
+
+  await recordAdminActivity(req, {
+    type: "expire",
+    module: "role-management",
+    severity: "warning",
+    message: "Expire all pending role OTP",
+    metadata: {
+      access_role: "admin",
+      affected: data?.length || 0,
+    },
+  });
+
+  return { ok: true, affected: data?.length || 0 };
+}
+
+export async function revokeManagedSession({ req, id }) {
+  const sessions = await getAdminSessions(req);
+  const targetSession = sessions.find((session) => String(session.id) === String(id));
+
+  if (!targetSession) throw new Error("Session tidak ditemukan");
+  if (targetSession.current) throw new Error("Session aktif saat ini tidak bisa direvoke dari Role Management");
+
+  await revokeAdminSession(id);
+
+  await recordAdminActivity(req, {
+    type: "revoke",
+    module: "role-management",
+    severity: "warning",
+    message: `Revoke role session ${id}`,
+    metadata: {
+      access_role: "admin",
+      target_role: targetSession.access_role || null,
+      session_id: id,
+      device_name: targetSession.device_name || null,
+      ip: targetSession.ip || null,
+      location: targetSession.location || null,
+    },
+  });
+
+  return { ok: true };
+}
+
+export async function revokeRoleSessions({ req, role }) {
+  const selectedRole = assertRole(role);
+  const sessions = await getAdminSessions(req);
+  const targets = sessions.filter((session) => session.access_role === selectedRole && !session.current);
+
+  for (const session of targets) {
+    await revokeAdminSession(session.id);
+  }
+
+  await recordAdminActivity(req, {
+    type: "revoke",
+    module: "role-management",
+    severity: "warning",
+    message: `Revoke all sessions for ${selectedRole}`,
+    metadata: {
+      access_role: "admin",
+      target_role: selectedRole,
+      affected: targets.length,
+    },
+  });
+
+  return { ok: true, affected: targets.length };
+}
+
+export async function revokeAllNonCurrentSessions({ req }) {
+  const sessions = await getAdminSessions(req);
+  const targets = sessions.filter((session) => !session.current);
+
+  for (const session of targets) {
+    await revokeAdminSession(session.id);
+  }
+
+  await recordAdminActivity(req, {
+    type: "revoke",
+    module: "role-management",
+    severity: "warning",
+    message: "Revoke all non-current role sessions",
+    metadata: {
+      access_role: "admin",
+      affected: targets.length,
+    },
+  });
+
+  return { ok: true, affected: targets.length };
+}
+
+export async function disableNonAdminRoleLogins({ req }) {
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from(ROLE_CONTACTS_TABLE)
+    .update({ active: false })
+    .in("role", NON_ADMIN_ROLES)
+    .select("role");
+
+  if (error) throw new Error(error.message || "Gagal disable login role non-admin");
+
+  await recordAdminActivity(req, {
+    type: "disable",
+    module: "role-management",
+    severity: "warning",
+    message: "Disable all non-admin role logins",
+    metadata: {
+      access_role: "admin",
+      affected: data?.length || 0,
+    },
+  });
+
+  return { ok: true, affected: data?.length || 0 };
 }
