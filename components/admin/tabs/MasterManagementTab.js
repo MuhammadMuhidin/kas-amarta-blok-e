@@ -4,6 +4,8 @@ import Toast from "@/components/Toast";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import { useEffect, useState } from "react";
 
+const APPROVAL_MASTERS_API = "/api/admin/approval-masters";
+
 const fields = [
   { key: "requester_name", label: "Nama Warga", type: "text", required: true },
   { key: "requester_house", label: "Nomor Rumah", type: "text", required: true },
@@ -53,7 +55,7 @@ export default function MasterManagementTab() {
   async function loadData() {
     try {
       setLoading(true);
-      setData(await readJson("/api/admin/master-management"));
+      setData(await readJson(APPROVAL_MASTERS_API));
     } catch (err) {
       showToast(err.message || "Gagal membaca master", "error");
     } finally {
@@ -88,7 +90,7 @@ export default function MasterManagementTab() {
       setSaving(true);
       JSON.parse(form.fields_schema || "[]");
       JSON.parse(form.flow_schema || "[]");
-      await sendJson("/api/admin/master-management", "POST", form);
+      await sendJson(APPROVAL_MASTERS_API, "POST", form);
       showToast("Master approval berhasil disimpan");
       setForm(emptyForm);
       await loadData();
