@@ -22,6 +22,10 @@ function number(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function terminal(status) {
+  return DONE.includes(clean(status).toLowerCase());
+}
+
 function flowSteps(value = []) {
   return [...(Array.isArray(value) ? value : [])]
     .map((step, index) => ({
@@ -41,14 +45,35 @@ function nextStep(master, stepNo) {
   return flowSteps(master?.flow_schema || []).find((step) => step.step > number(stepNo)) || null;
 }
 
-function terminal(status) {
-  return DONE.includes(clean(status).toLowerCase());
+function uniqueRows(rows = []) {
+  const map = new Map();
+  for (const row of rows) {
+    if (row?.id) map.set(row.id, row);
+  }
+  return [...map.values()];
+}
+
+function normalizeCenterPayload(payload = {}) {
+  const rows = uniqueRows([...(payload.inbox || []), ...(payload.requests || [])]);
+  const safeInbox = rows.filter((row) => !terminal(row.status) && clean(row.current_approver_role));
+
+  return {
+    ...payload,
+    inbox: safeInbox,
+    requests: rows,
+    summary: {
+      inbox: safeInbox.length,
+      processing: rows.filter((row) => !terminal(row.status)).length,
+      completed: rows.filter((row) => row.status === "completed").length,
+      rejected: rows.filter((row) => row.status === "rejected").length,
+    },
+  };
 }
 
 async function withActions(payload) {
-  const rows = [...(payload.inbox || []), ...(payload.requests || [])];
-  const ids = [...new Set(rows.map((row) => row.id).filter(Boolean))];
-  if (!ids.length) return payload;
+  const rows = uniqueRows([...(payload.inbox || []), ...(payload.requests || [])]);
+  const ids = rows.map((row) => row.id).filter(Boolean);
+  if (!ids.length) return normalizeCenterPayload(payload);
 
   const supabase = getSupabaseAdmin();
   const { data: actions } = await supabase
@@ -64,11 +89,11 @@ async function withActions(payload) {
   }
 
   const attach = (row) => ({ ...row, approval_actions: grouped.get(row.id) || [] });
-  return {
+  return normalizeCenterPayload({
     ...payload,
     inbox: (payload.inbox || []).map(attach),
     requests: (payload.requests || []).map(attach),
-  };
+  });
 }
 
 async function actOnRequest({ accessRole, id, action, note }) {
