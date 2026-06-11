@@ -9,6 +9,7 @@ export default function AdminConfirmModal({
   confirmText = "Confirm",
   cancelText = "Cancel",
   loading = false,
+  loadingText = "Sending...",
   children,
   onCancel,
   onConfirm
@@ -30,7 +31,7 @@ export default function AdminConfirmModal({
           <AdminActionButton onClick={onCancel} disabled={loading}>
             {cancelText}
           </AdminActionButton>
-          <AdminActionButton onClick={onConfirm} loading={loading} loadingText="Sending...">
+          <AdminActionButton onClick={onConfirm} loading={loading} loadingText={loadingText}>
             {confirmText}
           </AdminActionButton>
         </div>
