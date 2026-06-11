@@ -7,19 +7,13 @@ export default function PublicHero({ description, showManagerLink = true, classN
     <header className={`hero-header timeline-hero public-hero ${className}`.trim()}>
       <div className="hero-eyebrow">Amarta Residence • Blok E</div>
       <p className="hero-desc">{description}</p>
-      <div className="public-hero-actions">
-        <Link href="/" className="hero-public-link" aria-label="Kas Warga">
-          💰 Kas Warga
-        </Link>
-        <Link href="/pengajuan" className="hero-public-link" aria-label="Pengajuan Warga">
-          ✅ Pengajuan
-        </Link>
-        {showManagerLink ? (
+      {showManagerLink ? (
+        <div className="public-hero-actions">
           <Link href="/login" className="hero-manager-link" aria-label="Masuk Area Pengurus">
             🔐 Area Pengurus
           </Link>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
 
       <style jsx global>{`
         .public-hero {
@@ -42,7 +36,6 @@ export default function PublicHero({ description, showManagerLink = true, classN
           margin: 14px auto 0;
         }
 
-        .public-hero .hero-public-link,
         .public-hero .hero-manager-link {
           display: inline-flex;
           align-items: center;
@@ -64,8 +57,6 @@ export default function PublicHero({ description, showManagerLink = true, classN
           user-select: none;
         }
 
-        .public-hero .hero-public-link:hover,
-        .public-hero .hero-public-link:focus-visible,
         .public-hero .hero-manager-link:hover,
         .public-hero .hero-manager-link:focus-visible {
           border-color: var(--primary);
@@ -79,7 +70,6 @@ export default function PublicHero({ description, showManagerLink = true, classN
             margin-top: 12px;
           }
 
-          .public-hero .hero-public-link,
           .public-hero .hero-manager-link {
             min-height: 32px;
             padding: 7px 10px;
