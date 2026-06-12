@@ -6,7 +6,6 @@ import "@/app/page.css";
 import "@/app/public-theme.css";
 
 const APPROVAL_REQUESTS_API = "/api/approval-requests";
-const TERMINAL_STATUSES = ["completed", "rejected", "cancelled"];
 
 const ROLE_LABELS = {
   admin: "Administrator",
@@ -85,10 +84,6 @@ function sentenceContinuation(value) {
   const text = clean(value);
   if (!text) return "";
   return `${text.charAt(0).toLowerCase()}${text.slice(1)}`;
-}
-
-function terminal(status = "") {
-  return TERMINAL_STATUSES.includes(clean(status).toLowerCase());
 }
 
 function flowTitle(step = {}, state = "pending") {
@@ -269,7 +264,7 @@ function ProgressTracker({ request, flowSchema, actions }) {
   );
 }
 
-function StatusDetailModal({ result, onClose, onRefresh, refreshing }) {
+function StatusDetailModal({ result, onClose }) {
   if (!result?.request) return null;
   const request = result.request;
   const actions = result.actions || [];
@@ -287,7 +282,6 @@ function StatusDetailModal({ result, onClose, onRefresh, refreshing }) {
           </div>
           <div className="request-modal-actions">
             <StatusBadge status={request.status} />
-            <button type="button" className="request-refresh-btn" onClick={onRefresh} disabled={refreshing}>{refreshing ? "Memuat..." : "Cek Ulang"}</button>
             <button type="button" className="request-modal-close" onClick={onClose} aria-label="Close status detail">×</button>
           </div>
         </div>
@@ -352,7 +346,6 @@ export default function PengajuanPage() {
   const [checkForm, setCheckForm] = useState({ request_no: "" });
   const [statusResult, setStatusResult] = useState(null);
   const [statusChecking, setStatusChecking] = useState(false);
-  const [statusRefreshing, setStatusRefreshing] = useState(false);
   const [message, setMessage] = useState(null);
 
   const selectedMaster = useMemo(() => masters.find((item) => item.code === selectedCode) || null, [masters, selectedCode]);
@@ -402,14 +395,12 @@ export default function PengajuanPage() {
     }
   }
 
-  async function fetchStatus(requestNo, { silent = false } = {}) {
+  async function fetchStatus(requestNo) {
     const no = clean(requestNo);
     if (!no) throw new Error("Nomor pengajuan wajib diisi");
 
     try {
-      if (silent) setStatusRefreshing(true);
-      else setStatusChecking(true);
-
+      setStatusChecking(true);
       const params = new URLSearchParams({ request_no: no });
       const res = await fetch(`${APPROVAL_REQUESTS_API}?${params.toString()}`, { cache: "no-store" });
       const result = await res.json();
@@ -418,8 +409,7 @@ export default function PengajuanPage() {
       setCheckForm((prev) => ({ ...prev, request_no: result.request?.request_no || no || prev.request_no }));
       return result;
     } finally {
-      if (silent) setStatusRefreshing(false);
-      else setStatusChecking(false);
+      setStatusChecking(false);
     }
   }
 
@@ -452,15 +442,6 @@ export default function PengajuanPage() {
     try {
       setStatusResult(null);
       await fetchStatus(checkForm.request_no);
-    } catch (err) {
-      showMessage(err.message, "error");
-    }
-  }
-
-  async function refreshStatus() {
-    const no = statusResult?.request?.request_no || checkForm.request_no;
-    try {
-      await fetchStatus(no, { silent: true });
     } catch (err) {
       showMessage(err.message, "error");
     }
@@ -501,20 +482,11 @@ export default function PengajuanPage() {
     };
   }, [statusResult]);
 
-  useEffect(() => {
-    const no = statusResult?.request?.request_no;
-    if (!no || terminal(statusResult?.request?.status)) return undefined;
-    const interval = setInterval(() => {
-      fetchStatus(no, { silent: true }).catch(() => {});
-    }, 45000);
-    return () => clearInterval(interval);
-  }, [statusResult?.request?.request_no, statusResult?.request?.status]);
-
   return (
     <main className="request-page">
       <style jsx global>{requestPageCss}</style>
       <Toast show={!!message} type={message?.type} message={message?.text} />
-      <StatusDetailModal result={statusResult} onClose={() => setStatusResult(null)} onRefresh={refreshStatus} refreshing={statusRefreshing} />
+      <StatusDetailModal result={statusResult} onClose={() => setStatusResult(null)} />
 
       <section className="request-card request-check-card">
         <div className="request-card-header">
@@ -669,14 +641,10 @@ const requestPageCss = `
   .request-guidance strong { color: var(--text); font-weight: 800; }
 
   .request-primary-btn,
-  .request-secondary-btn,
-  .request-refresh-btn { min-height: 44px; border: 1px solid var(--primary); border-radius: var(--radius-sm); background: var(--primary); color: var(--tab-active-text); font-family: Inter, Arial, sans-serif; font-size: var(--font-base); font-weight: 700; cursor: pointer; box-shadow: var(--shadow-soft); white-space: nowrap; }
-  .request-secondary-btn,
-  .request-refresh-btn { border-color: var(--border); background: var(--surface); color: var(--text); box-shadow: var(--shadow-soft); padding: 0 16px; }
-  .request-refresh-btn { min-height: 34px; padding: 0 12px; font-size: var(--font-small); }
+  .request-secondary-btn { min-height: 44px; border: 1px solid var(--primary); border-radius: var(--radius-sm); background: var(--primary); color: var(--tab-active-text); font-family: Inter, Arial, sans-serif; font-size: var(--font-base); font-weight: 700; cursor: pointer; box-shadow: var(--shadow-soft); white-space: nowrap; }
+  .request-secondary-btn { border-color: var(--border); background: var(--surface); color: var(--text); box-shadow: var(--shadow-soft); padding: 0 16px; }
   .request-primary-btn:disabled,
-  .request-secondary-btn:disabled,
-  .request-refresh-btn:disabled { opacity: .6; cursor: not-allowed; }
+  .request-secondary-btn:disabled { opacity: .6; cursor: not-allowed; }
 
   .request-success-panel { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; margin-top: 0; border-color: color-mix(in srgb, var(--success) 34%, var(--border)); }
   .request-success-icon { width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; background: var(--success); color: var(--tab-active-text); font-weight: 800; }
@@ -746,7 +714,7 @@ const requestPageCss = `
   .request-modal-overlay { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: start center; overflow-y: auto; overscroll-behavior: contain; padding: 14px 14px calc(110px + env(safe-area-inset-bottom, 0px)); background: rgba(15, 23, 42, .55); backdrop-filter: blur(4px); }
   .request-modal-box { width: min(720px, 100%); max-height: calc(100dvh - 28px); overflow: auto; overscroll-behavior: contain; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-soft); padding: 14px; }
   .request-modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
-  .request-modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 0 0 auto; flex-wrap: wrap; }
+  .request-modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 0 0 auto; }
   .request-modal-close { width: 34px; height: 34px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font-size: 24px; line-height: 1; cursor: pointer; }
   .request-modal-section-title { margin-top: 12px; color: var(--text); font-size: var(--font-base); font-weight: 800; }
   .request-empty-state { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-soft); color: var(--muted); font-weight: 700; }
