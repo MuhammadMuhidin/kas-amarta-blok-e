@@ -90,13 +90,13 @@ function RoleContactCard({ rows, onEdit, onToggle }) {
   return <SectionCard title="Role Contact / OTP Receiver" description="WhatsApp destination used for role-based OTP delivery."><MiniTable columns={["Role", "Name", "WhatsApp", "Status", "Action"]} rows={rows} emptyText="No role contacts found." renderRow={(row, index) => <tr key={row.role} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{row.label}</td><td className="admin-td">{row.display_name || "-"}</td><td className="admin-td">{maskPhone(row.phone)}</td><td className="admin-td"><StatusBadge status={row.active ? "active" : "inactive"}>{row.active ? "Active" : "Inactive"}</StatusBadge></td><td className="admin-td"><div style={styles.rowActions}><ActionButton onClick={() => onEdit(row)}>Edit</ActionButton>{row.role !== "admin" && <ActionButton tone={row.active ? "muted" : "default"} onClick={() => onToggle(row)}>{row.active ? "Disable" : "Enable"}</ActionButton>}</div></td></tr>} /></SectionCard>;
 }
 
-function ActiveRoleSessionsCard({ rows, roles, onRevoke, onRevokeRole }) {
+function ActiveRoleSessionsCard({ rows, roles, onRevoke, onRevokeRole, running }) {
   const rolesWithSessions = useMemo(() => {
     const roleSet = new Set(rows.map((row) => row.access_role).filter(Boolean));
     return roles.filter((role) => roleSet.has(role.value));
   }, [rows, roles]);
 
-  return <SectionCard title="Active Role Sessions" description="Devices that currently hold role-based admin access." action={rolesWithSessions.length > 0 && <div style={styles.rowActions}>{rolesWithSessions.map((role) => <ActionButton key={role.value} tone="muted" onClick={() => onRevokeRole(role)}>Revoke {role.label}</ActionButton>)}</div>}><MiniTable columns={["Role", "Device", "Location", "Last Active", "Action"]} rows={rows} emptyText="No active role sessions." renderRow={(row, index) => <tr key={row.id} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{getRoleLabel(roles, row.access_role)}</td><td className="admin-td">{row.device_name || "Unknown device"}</td><td className="admin-td">{row.location || row.ip || "-"}</td><td className="admin-td">{formatTime(row.last_active)}</td><td className="admin-td">{row.current ? <StatusBadge status="current">Current</StatusBadge> : <ActionButton tone="danger" onClick={() => onRevoke(row)}>Revoke</ActionButton>}</td></tr>} /></SectionCard>;
+  return <SectionCard title="Active Role Sessions" description="Devices that currently hold role-based admin access." action={rolesWithSessions.length > 0 && <div style={styles.rowActions}>{rolesWithSessions.map((role) => <ActionButton key={role.value} tone="muted" disabled={running} onClick={() => onRevokeRole(role)}>Revoke {role.label}</ActionButton>)}</div>}><MiniTable columns={["Role", "Device", "Location", "Last Active", "Action"]} rows={rows} emptyText="No active role sessions." renderRow={(row, index) => <tr key={row.id} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{getRoleLabel(roles, row.access_role)}</td><td className="admin-td">{row.device_name || "Unknown device"}</td><td className="admin-td">{row.location || row.ip || "-"}</td><td className="admin-td">{formatTime(row.last_active)}</td><td className="admin-td">{row.current ? <StatusBadge status="current">Current</StatusBadge> : <ActionButton tone="danger" disabled={running} onClick={() => onRevoke(row)}>Revoke</ActionButton>}</td></tr>} /></SectionCard>;
 }
 
 function RoleActivityLogCard({ rows }) {
@@ -162,15 +162,29 @@ export default function RoleManagementTab() {
   }
 
   function openToggleRole(row) {
-    openAction({ type: "toggle_role", title: `${row.active ? "Disable" : "Enable"} ${row.label} Login`, description: row.active ? "This role will not be able to receive OTP or log in until it is enabled again." : "This role will be enabled again for OTP delivery and login.", payload: () => ({ action: "set_role_login", role: row.role, active: !row.active }) });
+    openAction({ type: "toggle_role", title: `${row.active ? "Disable" : "Enable"} ${row.label} Login`, description: row.active ? "This role will not be able to receive OTP or log in until it is enabled again. Existing sessions for this role will be revoked automatically." : "This role will be enabled again for OTP delivery and login.", payload: () => ({ action: "set_role_login", role: row.role, active: !row.active }) });
+  }
+
+  async function runDirectAction(payload, successMessage = "Role management action completed") {
+    if (running) return;
+    try {
+      setRunning(true);
+      await sendJson(ROLE_MANAGEMENT_API, "PATCH", payload);
+      showToast(successMessage, "success");
+      await loadRoleManagement();
+    } catch (err) {
+      showToast(err.message || "Failed to run role management action", "error");
+    } finally {
+      setRunning(false);
+    }
   }
 
   function openRevokeSession(row) {
-    openAction({ type: "revoke_session", title: "Revoke Session", description: `${row.device_name || "Unknown device"} will lose access and must log in again.`, payload: () => ({ action: "revoke_session", id: row.id }) });
+    runDirectAction({ action: "revoke_session", id: row.id }, "Session revoked");
   }
 
   function openRevokeRole(role) {
-    openAction({ type: "revoke_role_sessions", title: `Revoke Sessions - ${role.label}`, description: `All active sessions for ${role.label}, except the current admin session, will be revoked.`, payload: () => ({ action: "revoke_role_sessions", role: role.value }) });
+    runDirectAction({ action: "revoke_role_sessions", role: role.value }, `${role.label} sessions revoked`);
   }
 
   function getActionPayload() {
@@ -203,7 +217,7 @@ export default function RoleManagementTab() {
   if (loading) return <div className="admin-card">Loading Role Management...</div>;
   if (error) return <div className="admin-error-box">{error}</div>;
 
-  return <><Toast show={!!toast} type={toast?.type} message={toast?.message} /><div className="admin-card"><div className="activity-header" style={styles.pageHeader}><div><div className="activity-kicker">Role Control</div><h3 className="activity-title" style={styles.pageTitle}>Role Management</h3><p className="activity-subtitle">Manage role access, OTP receivers, active sessions, audit events, and role security controls.</p></div><div style={styles.headerActions}><button type="button" className="admin-small-btn" onClick={() => setShowRoleOverview(true)}>View Role Overview</button><button type="button" className="admin-small-btn admin-refresh-btn" onClick={loadRoleManagement}>Refresh</button></div></div><div className="admin-summary-cards" style={styles.summaryCards}><SummaryCard label="Roles" value={topStats.roleCount} /><SummaryCard label="OTP Contacts" value={`${topStats.contactReady}/${topStats.contactTotal}`} /><SummaryCard label="Active Sessions" value={topStats.sessionCount} /><SummaryCard label="Security Health" value={cards.security_health?.overall_status || "-"} /></div><div style={styles.sectionGridOne}><RoleContactCard rows={cards.role_contacts || []} onEdit={openEditContact} onToggle={openToggleRole} /><SecurityHealthCard health={cards.security_health || {}} /></div><div style={styles.sectionGridTwo}><ActiveRoleSessionsCard rows={cards.active_sessions || []} roles={roles} onRevoke={openRevokeSession} onRevokeRole={openRevokeRole} /><OtpLoginMonitorCard rows={cards.otp_login_monitor || []} /></div><div style={styles.sectionGridOne}><RoleActivityLogCard rows={cards.role_activity_log || []} /></div></div><RoleOverviewModal open={showRoleOverview} rows={cards.role_overview || []} accessRows={cards.role_access_summary || []} onClose={() => setShowRoleOverview(false)} /><ActionModal pendingAction={pendingAction} pin={pin} setPin={setPin} running={running} contactForm={contactForm} setContactForm={setContactForm} onCancel={closeAction} onConfirm={confirmAction} /></>;
+  return <><Toast show={!!toast} type={toast?.type} message={toast?.message} /><div className="admin-card"><div className="activity-header" style={styles.pageHeader}><div><div className="activity-kicker">Role Control</div><h3 className="activity-title" style={styles.pageTitle}>Role Management</h3><p className="activity-subtitle">Manage role access, OTP receivers, active sessions, audit events, and role security controls.</p></div><div style={styles.headerActions}><button type="button" className="admin-small-btn" onClick={() => setShowRoleOverview(true)}>View Role Overview</button><button type="button" className="admin-small-btn admin-refresh-btn" onClick={loadRoleManagement}>Refresh</button></div></div><div className="admin-summary-cards" style={styles.summaryCards}><SummaryCard label="Roles" value={topStats.roleCount} /><SummaryCard label="OTP Contacts" value={`${topStats.contactReady}/${topStats.contactTotal}`} /><SummaryCard label="Active Sessions" value={topStats.sessionCount} /><SummaryCard label="Security Health" value={cards.security_health?.overall_status || "-"} /></div><div style={styles.sectionGridOne}><RoleContactCard rows={cards.role_contacts || []} onEdit={openEditContact} onToggle={openToggleRole} /><SecurityHealthCard health={cards.security_health || {}} /></div><div style={styles.sectionGridTwo}><ActiveRoleSessionsCard rows={cards.active_sessions || []} roles={roles} onRevoke={openRevokeSession} onRevokeRole={openRevokeRole} running={running} /><OtpLoginMonitorCard rows={cards.otp_login_monitor || []} /></div><div style={styles.sectionGridOne}><RoleActivityLogCard rows={cards.role_activity_log || []} /></div></div><RoleOverviewModal open={showRoleOverview} rows={cards.role_overview || []} accessRows={cards.role_access_summary || []} onClose={() => setShowRoleOverview(false)} /><ActionModal pendingAction={pendingAction} pin={pin} setPin={setPin} running={running} contactForm={contactForm} setContactForm={setContactForm} onCancel={closeAction} onConfirm={confirmAction} /></>;
 }
 
 function SummaryCard({ label, value }) {
