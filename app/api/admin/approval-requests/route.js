@@ -209,6 +209,8 @@ export async function GET(req) {
       accessRole: session?.access_role || "admin",
       offset: searchParams.get("offset"),
       limit: searchParams.get("limit"),
+      filter: searchParams.get("filter"),
+      search: searchParams.get("q") || searchParams.get("search"),
     });
     return NextResponse.json(await withActions(payload));
   } catch (err) {
