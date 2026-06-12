@@ -11,6 +11,11 @@ export default function AdminLayout({ children }) {
       <AdminThemeBoot />
       <AdminMobileDrawer />
       <AdminBuildInfoBadge />
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `.admin-wrapper > .admin-header:first-child{display:none;}`,
+        }}
+      />
       {children}
     </>
   );
