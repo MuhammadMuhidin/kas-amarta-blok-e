@@ -306,15 +306,14 @@ export async function getRoleManagementOverview(req) {
   };
 }
 
-export async function updateRoleContact({ req, role, phone, active }) {
+export async function updateRoleContact({ req, role, phone }) {
   const selectedRole = assertRole(role);
   const cleanPhone = clean(phone);
-  const nextActive = selectedRole === "admin" ? true : Boolean(active);
   const supabase = getSupabaseAdmin();
 
   const { data: existing, error: readError } = await supabase
     .from(ROLE_CONTACTS_TABLE)
-    .select("role")
+    .select("role,active")
     .eq("role", selectedRole)
     .limit(1);
 
@@ -323,13 +322,13 @@ export async function updateRoleContact({ req, role, phone, active }) {
   if (existing?.length) {
     const { error } = await supabase
       .from(ROLE_CONTACTS_TABLE)
-      .update({ phone: cleanPhone, active: nextActive })
+      .update({ phone: cleanPhone })
       .eq("role", selectedRole);
     if (error) throw new Error(error.message || "Failed to update role contact");
   } else {
     const { error } = await supabase
       .from(ROLE_CONTACTS_TABLE)
-      .insert({ role: selectedRole, phone: cleanPhone, active: nextActive });
+      .insert({ role: selectedRole, phone: cleanPhone, active: selectedRole === "admin" });
     if (error) throw new Error(error.message || "Failed to create role contact");
   }
 
@@ -338,7 +337,12 @@ export async function updateRoleContact({ req, role, phone, active }) {
     module: "role-management",
     severity: "success",
     message: `Update OTP receiver for ${selectedRole}`,
-    metadata: { access_role: "admin", target_role: selectedRole, active: nextActive, has_phone: Boolean(cleanPhone) },
+    metadata: {
+      access_role: "admin",
+      target_role: selectedRole,
+      active: existing?.[0]?.active ?? selectedRole === "admin",
+      has_phone: Boolean(cleanPhone),
+    },
   });
 
   return { ok: true };
