@@ -85,7 +85,7 @@ function StatusDetailModal({ result, onClose }) {
         <div className="request-meta-grid">
           <div><span>Nomor Pengajuan</span><strong>{request.request_no || "-"}</strong></div>
           <div><span>Status</span><strong>{prettyStatus(request.status)}</strong></div>
-          <div><span>Approval Saat Ini Ada Di</span><strong>{currentApprovalPosition(request)}</strong></div>
+          <div><span>Approval Saat Ini</span><strong>{currentApprovalPosition(request)}</strong></div>
           <div><span>Nominal</span><strong>{Number(request.amount || 0) > 0 ? money(request.amount) : "-"}</strong></div>
           <div><span>Nama Pemohon</span><strong>{request.requester_name || "-"}</strong></div>
           <div><span>Nomor Rumah</span><strong>{request.requester_house || "-"}</strong></div>
