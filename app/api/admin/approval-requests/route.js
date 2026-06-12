@@ -4,6 +4,7 @@ import { getCurrentAdminSession } from "@/lib/adminSession";
 import { getApprovalCenterOverview } from "@/features/approval/approvalService";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { dbTable } from "@/lib/dbTable";
+import { recordAdminActivity } from "@/lib/adminActivity";
 import { notifyRequesterFinal, notifyRoleNextStep } from "@/lib/approvalWhatsApp";
 
 export const runtime = "nodejs";
@@ -116,11 +117,13 @@ async function withActions(payload) {
   if (!ids.length) return normalizeCenterPayload(expandedPayload);
 
   const supabase = getSupabaseAdmin();
-  const { data: actions } = await supabase
+  const { data: actions, error } = await supabase
     .from(APPROVAL_ACTIONS_TABLE)
     .select("*")
     .in("request_id", ids)
     .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message || "Gagal membaca riwayat approval");
 
   const grouped = new Map();
   for (const action of actions || []) {
@@ -136,7 +139,7 @@ async function withActions(payload) {
   });
 }
 
-async function actOnRequest({ accessRole, id, action, note }) {
+async function actOnRequest({ req, accessRole, id, action, note }) {
   const supabase = getSupabaseAdmin();
   const role = clean(accessRole).toLowerCase() || "admin";
   const selectedAction = clean(action) || "approve";
@@ -201,13 +204,23 @@ async function actOnRequest({ accessRole, id, action, note }) {
 
   if (error) throw new Error(error.message || "Gagal memproses pengajuan");
 
-  await supabase.from(APPROVAL_ACTIONS_TABLE).insert({
+  const { error: actionError } = await supabase.from(APPROVAL_ACTIONS_TABLE).insert({
     request_id: request.id,
     step: request.current_step || 0,
     role,
     actor: role,
     action: actionName,
     note: clean(note),
+  });
+
+  if (actionError) throw new Error(actionError.message || "Gagal menyimpan riwayat approval");
+
+  await recordAdminActivity(req, {
+    type: isReject ? "reject" : "approve",
+    module: "approval-center",
+    severity: isReject ? "warning" : "success",
+    message: `${isReject ? "Reject" : updatedRequest.status === "completed" ? "Complete" : "Approve"} approval ${request.request_no}`,
+    metadata: { access_role: role, request_no: request.request_no, next_status: updatedRequest.status },
   });
 
   const notification = terminal(updatedRequest.status)
@@ -235,7 +248,7 @@ export async function PATCH(req) {
 
     const session = await getCurrentAdminSession(req);
     const body = await req.json();
-    return NextResponse.json(await actOnRequest({ accessRole: session?.access_role || "admin", id: body.id, action: body.action, note: body.note }));
+    return NextResponse.json(await actOnRequest({ req, accessRole: session?.access_role || "admin", id: body.id, action: body.action, note: body.note }));
   } catch (err) {
     return NextResponse.json({ error: err.message || "Gagal memproses approval request" }, { status: 500 });
   }
