@@ -18,6 +18,8 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const PINLESS_ACTIONS = new Set(["revoke_session", "revoke_role_sessions"]);
+
 async function assertAdminPin(req, pin) {
   const pinLimit = await enforceFailureRateLimit(
     req,
@@ -46,8 +48,12 @@ async function assertAdminPin(req, pin) {
   return null;
 }
 
+function getAction(body) {
+  return String(body?.action || "").trim();
+}
+
 async function runAction(req, body) {
-  const action = String(body?.action || "").trim();
+  const action = getAction(body);
 
   if (action === "update_contact") {
     return updateRoleContact({
@@ -109,8 +115,12 @@ export async function PATCH(req) {
     if (actionLimit) return actionLimit;
 
     const body = await req.json();
-    const pinError = await assertAdminPin(req, body?.pin);
-    if (pinError) return pinError;
+    const action = getAction(body);
+
+    if (!PINLESS_ACTIONS.has(action)) {
+      const pinError = await assertAdminPin(req, body?.pin);
+      if (pinError) return pinError;
+    }
 
     const result = await runAction(req, body);
 
