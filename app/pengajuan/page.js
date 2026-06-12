@@ -63,6 +63,12 @@ function currentApprovalPosition(request = {}) {
   return "-";
 }
 
+function sentenceContinuation(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  return `${text.charAt(0).toLowerCase()}${text.slice(1)}`;
+}
+
 function StatusDetailModal({ result, onClose }) {
   if (!result?.request) return null;
   const request = result.request;
@@ -299,8 +305,12 @@ export default function PengajuanPage() {
             </select>
           </label>
 
-          {selectedMaster?.description ? <div className="request-info">{selectedMaster.description}</div> : null}
-          {selectedMaster?.payment_required ? <div className="request-payment"><strong>Perlu Pembayaran</strong><span>{selectedMaster.payment_instruction}</span></div> : null}
+          {(selectedMaster?.description || selectedMaster?.payment_required) ? (
+            <div className="request-guidance">
+              {selectedMaster?.description ? <p><strong>Keterangan:</strong> {selectedMaster.description}</p> : null}
+              {selectedMaster?.payment_required ? <p><strong>Perlu pembayaran:</strong>{selectedMaster.payment_instruction ? ` ${sentenceContinuation(selectedMaster.payment_instruction)}` : " silakan ikuti instruksi pembayaran."}</p> : null}
+            </div>
+          ) : null}
 
           {(selectedMaster?.fields_schema || []).map((field) => (
             <label key={field.key} className="request-label">
@@ -386,13 +396,13 @@ const requestPageCss = `
   textarea.request-input { min-height: 92px; padding-top: 10px; padding-bottom: 10px; resize: vertical; }
   .request-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 13%, transparent); }
 
-  .request-info,
-  .request-payment,
+  .request-guidance,
   .request-success-panel,
   .request-status-panel { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-soft); padding: 12px 14px; color: var(--text); font-size: var(--font-base); }
 
-  .request-payment { display: grid; gap: 4px; border-color: color-mix(in srgb, var(--primary) 24%, var(--border)); }
-  .request-payment span { color: var(--muted); font-size: var(--font-base); font-weight: 500; line-height: 1.45; }
+  .request-guidance { display: grid; gap: 8px; border-color: color-mix(in srgb, var(--primary) 24%, var(--border)); background: color-mix(in srgb, var(--primary) 5%, var(--surface)); }
+  .request-guidance p { margin: 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; line-height: 1.5; }
+  .request-guidance strong { color: var(--text); font-weight: 800; }
 
   .request-primary-btn,
   .request-secondary-btn { min-height: 44px; border: 1px solid var(--primary); border-radius: var(--radius-sm); background: var(--primary); color: var(--tab-active-text); font-family: Inter, Arial, sans-serif; font-size: var(--font-base); font-weight: 700; cursor: pointer; box-shadow: var(--shadow-soft); white-space: nowrap; }
