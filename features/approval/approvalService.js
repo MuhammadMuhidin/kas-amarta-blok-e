@@ -124,16 +124,36 @@ function mapMaster(row = {}) {
   };
 }
 
-function applyRoleVisibility(query, role) {
-  if (role === "admin") return query;
-  return query.or(`current_approver_role.eq.${role},status.in.(completed,rejected)`);
+async function getRoleParticipatedRequestIds(supabase, role) {
+  if (role === "admin") return [];
+
+  const { data, error } = await supabase
+    .from(APPROVAL_ACTIONS_TABLE)
+    .select("request_id")
+    .eq("role", role);
+
+  if (error) throw new Error(error.message || "Gagal membaca riwayat approval role");
+
+  return [...new Set((data || []).map((row) => clean(row.request_id)).filter(Boolean))];
+}
+
+function visibilityFilter(role, participatedIds = []) {
+  if (role === "admin") return "";
+  const parts = [`current_approver_role.eq.${role}`, "status.in.(completed,rejected)"];
+  if (participatedIds.length) parts.push(`id.in.(${participatedIds.join(",")})`);
+  return parts.join(",");
+}
+
+function applyRoleVisibility(query, role, participatedIds = []) {
+  const filter = visibilityFilter(role, participatedIds);
+  return filter ? query.or(filter) : query;
 }
 
 function applyNonTerminal(query) {
   return query.not("status", "in", `(${TERMINAL_STATUSES.join(",")})`);
 }
 
-async function countApprovalRequests({ supabase, role, type }) {
+async function countApprovalRequests({ supabase, role, type, participatedIds = [] }) {
   let query = supabase.from(APPROVAL_REQUESTS_TABLE).select("id", { count: "exact", head: true });
 
   if (type === "inbox") {
@@ -141,7 +161,7 @@ async function countApprovalRequests({ supabase, role, type }) {
       ? applyNonTerminal(query)
       : applyNonTerminal(query.eq("current_approver_role", role));
   } else {
-    query = applyRoleVisibility(query, role);
+    query = applyRoleVisibility(query, role, participatedIds);
     if (type === "processing") query = applyNonTerminal(query);
     if (type === "completed") query = query.eq("status", "completed");
     if (type === "rejected") query = query.eq("status", "rejected");
@@ -152,12 +172,12 @@ async function countApprovalRequests({ supabase, role, type }) {
   return count || 0;
 }
 
-async function getApprovalSummary({ supabase, role }) {
+async function getApprovalSummary({ supabase, role, participatedIds = [] }) {
   const [inbox, processing, completed, rejected] = await Promise.all([
-    countApprovalRequests({ supabase, role, type: "inbox" }),
-    countApprovalRequests({ supabase, role, type: "processing" }),
-    countApprovalRequests({ supabase, role, type: "completed" }),
-    countApprovalRequests({ supabase, role, type: "rejected" }),
+    countApprovalRequests({ supabase, role, type: "inbox", participatedIds }),
+    countApprovalRequests({ supabase, role, type: "processing", participatedIds }),
+    countApprovalRequests({ supabase, role, type: "completed", participatedIds }),
+    countApprovalRequests({ supabase, role, type: "rejected", participatedIds }),
   ]);
 
   return { inbox, processing, completed, rejected };
@@ -248,6 +268,7 @@ export async function getApprovalCenterOverview({ accessRole = "admin", offset =
   const from = safeOffset(offset);
   const size = safeLimit(limit);
   const to = from + size - 1;
+  const participatedIds = await getRoleParticipatedRequestIds(supabase, role);
 
   let query = supabase
     .from(APPROVAL_REQUESTS_TABLE)
@@ -255,7 +276,7 @@ export async function getApprovalCenterOverview({ accessRole = "admin", offset =
     .order("created_at", { ascending: false })
     .range(from, to);
 
-  query = applyRoleVisibility(query, role);
+  query = applyRoleVisibility(query, role, participatedIds);
 
   const { data, error, count } = await query;
   if (error) throw new Error(error.message || "Gagal membaca approval center");
@@ -270,7 +291,7 @@ export async function getApprovalCenterOverview({ accessRole = "admin", offset =
   return {
     ok: true,
     access_role: role,
-    summary: await getApprovalSummary({ supabase, role }),
+    summary: await getApprovalSummary({ supabase, role, participatedIds }),
     inbox,
     requests: rows,
     pagination: {
