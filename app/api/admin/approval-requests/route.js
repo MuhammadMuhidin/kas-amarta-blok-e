@@ -183,8 +183,48 @@ async function actOnRequest({ req, accessRole, id, action, note }) {
 
   if (actionError) throw new Error(actionError.message || "Gagal menyimpan riwayat approval");
 
+  const actionVerb = isReject ? "Reject" : updatedRequest.status === "completed" ? "Complete" : "Approve";
+
   await recordAdminActivity(req, {
     type: isReject ? "reject" : "approve",
     module: "approval-center",
     severity: isReject ? "warning" : "success",
-    message: `${isReject ? "Reject" : updatedRequest.status === "completed" ? "Complete" : "Approve
+    message: `${actionVerb} approval ${request.request_no}`,
+    metadata: { access_role: role, request_no: request.request_no, next_status: updatedRequest.status },
+  });
+
+  const notification = terminal(updatedRequest.status)
+    ? await notifyRequesterFinal({ request: updatedRequest, status: updatedRequest.status, note: clean(note) })
+    : await notifyRoleNextStep({ request: updatedRequest, previousRole: role, nextRole });
+
+  return { ok: true, whatsapp_sent: notification.sent, whatsapp_status: notification };
+}
+
+export async function GET(req) {
+  try {
+    if (!(await isAdmin(req))) return unauthorized();
+    const session = await getCurrentAdminSession(req);
+    const { searchParams } = new URL(req.url);
+    const payload = await getApprovalCenterOverview({
+      accessRole: session?.access_role || "admin",
+      offset: searchParams.get("offset"),
+      limit: searchParams.get("limit"),
+    });
+    return NextResponse.json(await withActions(payload));
+  } catch (err) {
+    return NextResponse.json({ error: err.message || "Gagal membaca approval requests" }, { status: 500 });
+  }
+}
+
+export async function PATCH(req) {
+  try {
+    if (!(await isAdmin(req))) return unauthorized();
+    if (!validateCSRF(req)) return NextResponse.json({ error: "CSRF tidak valid" }, { status: 403 });
+
+    const session = await getCurrentAdminSession(req);
+    const body = await req.json();
+    return NextResponse.json(await actOnRequest({ req, accessRole: session?.access_role || "admin", id: body.id, action: body.action, note: body.note }));
+  } catch (err) {
+    return NextResponse.json({ error: err.message || "Gagal memproses approval request" }, { status: 500 });
+  }
+}
