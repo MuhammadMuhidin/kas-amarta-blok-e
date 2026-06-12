@@ -125,7 +125,7 @@ export default function RoleManagementTab() {
   const [pendingAction, setPendingAction] = useState(null);
   const [pin, setPin] = useState("");
   const [running, setRunning] = useState(false);
-  const [contactForm, setContactForm] = useState({ role: "", phone: "", active: true });
+  const [contactForm, setContactForm] = useState({ role: "", phone: "" });
   const [showRoleOverview, setShowRoleOverview] = useState(false);
 
   function showToast(message, type = "success") {
@@ -157,7 +157,7 @@ export default function RoleManagementTab() {
   }
 
   function openEditContact(row) {
-    setContactForm({ role: row.role, phone: row.phone || "", active: row.role === "admin" ? true : Boolean(row.active) });
+    setContactForm({ role: row.role, phone: row.phone || "" });
     openAction({ type: "edit_contact", title: `Edit OTP Receiver - ${row.label}`, description: "Update the WhatsApp OTP destination for this role." });
   }
 
@@ -190,7 +190,7 @@ export default function RoleManagementTab() {
   }
 
   function getActionPayload() {
-    if (pendingAction?.type === "edit_contact") return { action: "update_contact", role: contactForm.role, phone: contactForm.phone, active: contactForm.role === "admin" ? true : contactForm.active };
+    if (pendingAction?.type === "edit_contact") return { action: "update_contact", role: contactForm.role, phone: contactForm.phone };
     return pendingAction?.payload?.() || {};
   }
 
@@ -270,5 +270,4 @@ const modalTitleStyle = { fontSize: 22, fontWeight: 800, lineHeight: 1.15, margi
 const modalNoteStyle = { paddingBottom: 12, marginBottom: 12, borderBottom: "1px solid var(--admin-border)", color: "var(--admin-muted)", fontSize: 13, lineHeight: 1.6 };
 const formGroupStyle = { display: "grid", gap: 10, marginBottom: 12 };
 const inputLabelStyle = { display: "grid", gap: 6, color: "var(--admin-muted)", fontSize: 13, fontWeight: 700, marginBottom: 12 };
-const checkboxLabelStyle = { display: "flex", alignItems: "center", gap: 8, color: "var(--admin-muted)", fontSize: 13, fontWeight: 700 };
 const modalButtonGridStyle = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 };
