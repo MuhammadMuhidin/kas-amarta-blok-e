@@ -41,6 +41,10 @@ function safeNumber(value) {
   return Number.isFinite(number) ? number : 0;
 }
 
+function requestReason(formData = {}) {
+  return clean(formData.reason || formData.alasan);
+}
+
 function parseSchema(value, fallback) {
   if (Array.isArray(value)) return value;
   if (!clean(value)) return fallback;
@@ -93,9 +97,7 @@ function validateFormData(master, formData = {}) {
     .filter((field) => !clean(formData[field.key]))
     .map((field) => field.label || field.key);
 
-  if (missing.length) {
-    throw new Error(`Field wajib belum diisi: ${missing.join(", ")}`);
-  }
+  if (missing.length) throw new Error(`Field wajib belum diisi: ${missing.join(", ")}`);
 }
 
 function mapMaster(row = {}) {
@@ -114,26 +116,19 @@ async function generateRequestNo(supabase) {
   const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
   const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
-
   const { count, error } = await supabase
     .from(APPROVAL_REQUESTS_TABLE)
     .select("id", { count: "exact", head: true })
     .gte("created_at", start)
     .lt("created_at", end);
-
   if (error) throw new Error(error.message || "Gagal membuat nomor pengajuan");
   return `APR-${yearMonth}-${String((count || 0) + 1).padStart(4, "0")}`;
 }
 
 export async function getApprovalMasters({ activeOnly = false } = {}) {
   const supabase = getSupabaseAdmin();
-  let query = supabase
-    .from(APPROVAL_MASTERS_TABLE)
-    .select("*")
-    .order("created_at", { ascending: false });
-
+  let query = supabase.from(APPROVAL_MASTERS_TABLE).select("*").order("created_at", { ascending: false });
   if (activeOnly) query = query.eq("active", true);
-
   const { data, error } = await query;
   if (error) throw new Error(error.message || "Gagal membaca master approval");
   return (data || []).map(mapMaster);
@@ -153,7 +148,6 @@ export async function saveApprovalMaster({ req, payload = {} }) {
   const id = clean(payload.id);
   const code = normalizeCode(payload.code || payload.name);
   const name = clean(payload.name);
-
   if (!code) throw new Error("Kode approval wajib diisi");
   if (!name) throw new Error("Nama approval wajib diisi");
 
@@ -192,16 +186,8 @@ export async function saveApprovalMaster({ req, payload = {} }) {
 export async function getApprovalCenterOverview({ accessRole = "admin" } = {}) {
   const role = resolveAdminAccessRole(accessRole);
   const supabase = getSupabaseAdmin();
-  let query = supabase
-    .from(APPROVAL_REQUESTS_TABLE)
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(80);
-
-  if (role !== "admin") {
-    query = query.or(`current_approver_role.eq.${role},status.in.(completed,rejected)`);
-  }
-
+  let query = supabase.from(APPROVAL_REQUESTS_TABLE).select("*").order("created_at", { ascending: false }).limit(80);
+  if (role !== "admin") query = query.or(`current_approver_role.eq.${role},status.in.(completed,rejected)`);
   const { data, error } = await query;
   if (error) throw new Error(error.message || "Gagal membaca approval center");
 
@@ -228,19 +214,12 @@ export async function submitApprovalRequest(payload = {}) {
   const supabase = getSupabaseAdmin();
   const masterId = clean(payload.master_id);
   const masterCode = normalizeCode(payload.master_code);
-
-  let masterQuery = supabase
-    .from(APPROVAL_MASTERS_TABLE)
-    .select("*")
-    .eq("active", true)
-    .limit(1);
-
+  let masterQuery = supabase.from(APPROVAL_MASTERS_TABLE).select("*").eq("active", true).limit(1);
   if (masterId) masterQuery = masterQuery.eq("id", masterId);
   else masterQuery = masterQuery.eq("code", masterCode);
 
   const { data: masters, error: masterError } = await masterQuery;
   if (masterError) throw new Error(masterError.message || "Gagal membaca master approval");
-
   const master = mapMaster(masters?.[0]);
   if (!master?.id) throw new Error("Jenis pengajuan tidak ditemukan atau nonaktif");
 
@@ -268,21 +247,17 @@ export async function submitApprovalRequest(payload = {}) {
     updated_at: now,
   };
 
-  const { data, error } = await supabase
-    .from(APPROVAL_REQUESTS_TABLE)
-    .insert(row)
-    .select("*")
-    .single();
-
+  const { data, error } = await supabase.from(APPROVAL_REQUESTS_TABLE).insert(row).select("*").single();
   if (error) throw new Error(error.message || "Gagal membuat pengajuan");
 
+  const reason = requestReason(formData);
   await supabase.from(APPROVAL_ACTIONS_TABLE).insert({
     request_id: data.id,
     step: 0,
     role: "warga",
     actor: row.requester_name || row.requester_house || "warga",
     action: "submit",
-    note: "Pengajuan dibuat oleh warga",
+    note: reason ? `Alasan Pengajuan: ${reason}` : "Pengajuan dibuat oleh warga",
   });
 
   return {
