@@ -65,43 +65,21 @@
   }
 
   .admin-header {
-    top: 0;
-    padding: 16px 16px 10px;
-    border-right: 1px solid var(--admin-border);
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
-  }
-
-  .admin-title {
-    margin: 0 !important;
-    padding-top: 46px;
-    font-size: 20px !important;
-    line-height: 1.25 !important;
-  }
-
-  .admin-home-btn {
-    width: 100%;
-    text-align: left;
-    padding: 12px 14px !important;
-    border: 0 !important;
-    border-radius: 12px !important;
-    background: transparent !important;
-    color: var(--admin-text) !important;
-    font-size: 15px !important;
-    font-weight: 800;
-    box-shadow: none !important;
+    display: none;
   }
 
   .admin-tabs {
-    top: 116px;
+    top: 0;
     bottom: 0;
     z-index: 131;
     display: flex !important;
     flex-direction: column;
     gap: 8px !important;
     margin: 0 !important;
-    padding: 0 16px 18px;
+    padding: 16px 16px 18px;
     overflow-y: auto;
     border-right: 1px solid var(--admin-border);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
   }
 
   .admin-tab {
