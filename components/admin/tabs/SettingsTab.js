@@ -29,7 +29,7 @@ function getCookie(name) {
   return document.cookie
     .split("; ")
     .find((row) => row.startsWith(`${name}=`))
-    ?.split("=")[1];
+    ?.["split"]("=")[1];
 }
 
 function showPopup(setPopup, text, type = "success") {
@@ -245,6 +245,7 @@ export default function AdminSettings() {
       <h2 style={styles.title}>Settings Auth</h2>
       <SettingRow title="WebAuth Passkey" description="When enabled, login requires passkey/fingerprint verification after the password." checked={config.webAuthEnabled} disabled={saving} onChange={(value) => updateSetting("WEB_AUTH_ENABLED", value)} />
       <SettingRow title="PIN Login" description="When enabled, login requires a PIN after the password. If WebAuth is also enabled, passkey verification is still required after the PIN." checked={config.pinEnabled} disabled={saving} onChange={(value) => updateSetting("PIN_ENABLED", value)} />
+      <SettingRow title="WhatsApp Services" description="This will disable login auth and all WhatsApp delivery mechanisms including reports, alerts, and notifications." checked={config.whatsappServicesEnabled !== false} disabled={saving} onChange={(value) => updateSetting("WA_SERVICES_ENABLED", value)} />
       <SelectSettingRow title="Session Duration" description="Admin login session duration before automatic logout. Changes apply from the next login." value={String(config.sessionDuration || 86400)} options={sessionDurationOptions} disabled={saving} isMobile={isMobile} onChange={(value) => updateSetting("SESSION_DURATION", value)} />
 
       <MatrixAccessCard
