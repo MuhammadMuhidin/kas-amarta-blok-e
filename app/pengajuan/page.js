@@ -144,6 +144,30 @@ export default function PengajuanPage() {
     setFormData((prev) => ({ ...prev, [key]: value }));
   }
 
+  async function copyRequestNo(requestNo) {
+    const text = String(requestNo || "").trim();
+    if (!text) return;
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      showMessage("Nomor pengajuan berhasil disalin");
+    } catch {
+      showMessage("Gagal menyalin nomor pengajuan", "error");
+    }
+  }
+
   async function submitRequest(event) {
     event.preventDefault();
     if (!selectedMaster) return;
@@ -237,6 +261,24 @@ export default function PengajuanPage() {
         </form>
       </section>
 
+      {submitResult?.request ? (
+        <section className="request-card request-success-card">
+          <div className="request-success-panel">
+            <div className="request-success-icon">✓</div>
+            <div>
+              <strong>Pengajuan berhasil dibuat</strong>
+              <p className="request-success-number">
+                <span>Nomor pengajuan: <b>{submitResult.request.request_no}</b></span>
+                <button type="button" className="request-copy-btn" onClick={() => copyRequestNo(submitResult.request.request_no)} aria-label="Salin nomor pengajuan" title="Salin nomor pengajuan">📋</button>
+              </p>
+              <StatusBadge status={submitResult.request.status} />
+              {submitResult.request.amount > 0 ? <p>Nominal: <b>{money(submitResult.request.amount)}</b></p> : null}
+              {submitResult.payment_instruction ? <small>{submitResult.payment_instruction}</small> : null}
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="request-card request-master-card">
         <div className="request-card-header">
           <div>
@@ -274,19 +316,6 @@ export default function PengajuanPage() {
 
           <button type="submit" className="request-primary-btn" disabled={submitting || !selectedMaster}>{submitting ? "Mengirim..." : "Kirim Pengajuan"}</button>
         </form>
-
-        {submitResult?.request ? (
-          <div className="request-success-panel">
-            <div className="request-success-icon">✓</div>
-            <div>
-              <strong>Pengajuan berhasil dibuat</strong>
-              <p>Nomor pengajuan: <b>{submitResult.request.request_no}</b></p>
-              <StatusBadge status={submitResult.request.status} />
-              {submitResult.request.amount > 0 ? <p>Nominal: <b>{money(submitResult.request.amount)}</b></p> : null}
-              {submitResult.payment_instruction ? <small>{submitResult.payment_instruction}</small> : null}
-            </div>
-          </div>
-        ) : null}
       </section>
     </main>
   );
@@ -324,6 +353,7 @@ const requestPageCss = `
 
   .request-master-card { border-color: color-mix(in srgb, var(--success) 18%, var(--border)); }
   .request-check-card { border-color: color-mix(in srgb, var(--primary) 22%, var(--border)); }
+  .request-success-card { border-color: color-mix(in srgb, var(--success) 34%, var(--border)); }
 
   .request-kicker { color: var(--primary); font-size: var(--font-small); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 
@@ -370,10 +400,13 @@ const requestPageCss = `
   .request-secondary-btn { border-color: var(--border); background: var(--surface); color: var(--text); box-shadow: var(--shadow-soft); padding: 0 16px; }
   .request-primary-btn:disabled { opacity: .6; cursor: not-allowed; }
 
-  .request-success-panel { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; margin-top: 14px; border-color: color-mix(in srgb, var(--success) 34%, var(--border)); }
+  .request-success-panel { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; margin-top: 0; border-color: color-mix(in srgb, var(--success) 34%, var(--border)); }
   .request-success-icon { width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; background: var(--success); color: var(--tab-active-text); font-weight: 800; }
   .request-success-panel p { margin: 5px 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; }
   .request-success-panel small { display: block; margin-top: 8px; color: var(--muted); line-height: 1.45; font-size: var(--font-small); }
+  .request-success-number { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .request-copy-btn { width: 32px; height: 32px; display: inline-grid; place-items: center; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); cursor: pointer; font-size: 15px; line-height: 1; box-shadow: var(--shadow-soft); }
+  .request-copy-btn:active { transform: translateY(1px); }
 
   .request-status { display: inline-flex; width: fit-content; min-height: 34px; align-items: center; justify-content: center; padding: 0 12px; border-radius: 999px; font-size: var(--font-small); font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; }
   .request-status.is-success { background: color-mix(in srgb, var(--success) 15%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, var(--success) 36%, var(--border)); }
