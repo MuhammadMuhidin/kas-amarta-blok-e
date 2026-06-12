@@ -177,6 +177,37 @@ export default function PengajuanPage() {
     loadMasters();
   }, []);
 
+  useEffect(() => {
+    if (!statusResult?.request) return undefined;
+
+    const body = document.body;
+    const html = document.documentElement;
+    const scrollY = window.scrollY;
+    const previousBodyOverflow = body.style.overflow;
+    const previousBodyPosition = body.style.position;
+    const previousBodyTop = body.style.top;
+    const previousBodyWidth = body.style.width;
+    const previousBodyTouchAction = body.style.touchAction;
+    const previousHtmlOverflow = html.style.overflow;
+
+    body.style.overflow = "hidden";
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.width = "100%";
+    body.style.touchAction = "none";
+    html.style.overflow = "hidden";
+
+    return () => {
+      body.style.overflow = previousBodyOverflow;
+      body.style.position = previousBodyPosition;
+      body.style.top = previousBodyTop;
+      body.style.width = previousBodyWidth;
+      body.style.touchAction = previousBodyTouchAction;
+      html.style.overflow = previousHtmlOverflow;
+      window.scrollTo(0, scrollY);
+    };
+  }, [statusResult]);
+
   return (
     <main className="request-page">
       <style jsx global>{requestPageCss}</style>
@@ -335,7 +366,7 @@ const requestPageCss = `
   .request-success-panel p { margin: 5px 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; }
   .request-success-panel small { display: block; margin-top: 8px; color: var(--muted); line-height: 1.45; font-size: var(--font-small); }
 
-  .request-status { display: inline-flex; width: fit-content; align-items: center; padding: 5px 9px; border-radius: 999px; font-size: var(--font-small); font-weight: 700; line-height: 1.2; }
+  .request-status { display: inline-flex; width: fit-content; min-height: 34px; align-items: center; justify-content: center; padding: 0 12px; border-radius: 999px; font-size: var(--font-small); font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; }
   .request-status.is-success { background: color-mix(in srgb, var(--success) 15%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, var(--success) 36%, var(--border)); }
   .request-status.is-warning { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
   .request-status.is-danger { background: color-mix(in srgb, var(--danger) 13%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, var(--danger) 36%, var(--border)); }
@@ -354,10 +385,10 @@ const requestPageCss = `
   .request-timeline-item small { display: block; color: var(--muted); margin-top: 3px; font-size: var(--font-small); }
   .request-timeline-item p { margin: 6px 0 0; color: var(--muted); font-size: var(--font-base); }
 
-  .request-modal-overlay { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 14px; background: rgba(15, 23, 42, .55); backdrop-filter: blur(4px); }
-  .request-modal-box { width: min(720px, 100%); max-height: 88vh; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-soft); padding: 14px; }
+  .request-modal-overlay { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: start center; overflow-y: auto; overscroll-behavior: contain; padding: 14px 14px calc(110px + env(safe-area-inset-bottom, 0px)); background: rgba(15, 23, 42, .55); backdrop-filter: blur(4px); }
+  .request-modal-box { width: min(720px, 100%); max-height: calc(100dvh - 28px); overflow: auto; overscroll-behavior: contain; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-soft); padding: 14px; }
   .request-modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
-  .request-modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .request-modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 0 0 auto; }
   .request-modal-close { width: 34px; height: 34px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font-size: 24px; line-height: 1; cursor: pointer; }
   .request-modal-section-title { margin-top: 12px; color: var(--text); font-size: var(--font-base); font-weight: 800; }
   .request-empty-state { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-soft); color: var(--muted); font-weight: 700; }
@@ -372,6 +403,8 @@ const requestPageCss = `
     .request-price { min-width: 116px; max-width: 142px; padding: 7px 9px; }
     .request-price small { font-size: 10px; }
     .request-check-grid-single { grid-template-columns: 1fr; }
+    .request-modal-overlay { padding: 10px 10px calc(116px + env(safe-area-inset-bottom, 0px)); }
+    .request-modal-box { max-height: calc(100dvh - 20px); }
     .request-modal-header { align-items: flex-start; }
   }
 `;
