@@ -394,6 +394,7 @@ export async function revokeManagedSession({ req, id }) {
   const targetSession = sessions.find((session) => String(session.id) === String(id));
 
   if (!targetSession) throw new Error("Session not found");
+  if (targetSession.access_role === "admin") throw new Error("Administrator sessions cannot be revoked from Role Management");
   if (targetSession.current) throw new Error("The current session cannot be revoked from Role Management");
 
   await revokeAdminSession(id);
@@ -416,7 +417,7 @@ export async function revokeManagedSession({ req, id }) {
 }
 
 export async function revokeRoleSessions({ req, role }) {
-  const selectedRole = assertRole(role);
+  const selectedRole = assertNonAdminRole(role);
   const targets = await revokeSessionsForRole(req, selectedRole);
 
   await recordAdminActivity(req, {
