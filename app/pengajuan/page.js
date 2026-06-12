@@ -725,8 +725,8 @@ const requestPageCss = `
   }
 
   @keyframes flowLine {
-    from { background-position: 0 0; }
-    to { background-position: 0 220%; }
+    from { background-position: 0 220%; }
+    to { background-position: 0 0; }
   }
 
   @keyframes progressIn {
