@@ -22,7 +22,7 @@ function normalizeAuthValue(key, value) {
     return normalized;
   }
 
-  if (!["WEB_AUTH_ENABLED", "PIN_ENABLED"].includes(key)) {
+  if (!["WEB_AUTH_ENABLED", "PIN_ENABLED", "WA_SERVICES_ENABLED"].includes(key)) {
     throw new Error("Config key tidak diizinkan");
   }
 
@@ -32,6 +32,7 @@ function normalizeAuthValue(key, value) {
 function getPreviousValue(config, key) {
   if (key === "WEB_AUTH_ENABLED") return config.webAuthEnabled;
   if (key === "PIN_ENABLED") return config.pinEnabled;
+  if (key === "WA_SERVICES_ENABLED") return config.whatsappServicesEnabled;
   if (key === "SESSION_DURATION") return config.sessionDuration;
   return null;
 }
