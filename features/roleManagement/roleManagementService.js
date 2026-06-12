@@ -161,7 +161,7 @@ async function buildRoleAccessSummary() {
         visible: allowedSet.has(module.key),
         locked:
           role.value === "admin" ||
-          module.key === "overview" ||
+          module.key === "approval_center" ||
           module.key === "settings" ||
           module.key === "role_management",
       }));
@@ -266,6 +266,17 @@ function buildSecurityHealth({ contacts, sessions, otpMonitor, authHealth }) {
   };
 }
 
+async function revokeSessionsForRole(req, role) {
+  const sessions = await getAdminSessions(req);
+  const targets = sessions.filter((session) => session.access_role === role && !session.current);
+
+  for (const session of targets) {
+    await revokeAdminSession(session.id);
+  }
+
+  return targets;
+}
+
 export async function getRoleManagementOverview(req) {
   const supabase = getSupabaseAdmin();
   const [contactsRaw, sessions, otpLogs, activities, authHealth, accessSummary] = await Promise.all([
@@ -335,6 +346,7 @@ export async function updateRoleContact({ req, role, phone, active }) {
 
 export async function setRoleLoginStatus({ req, role, active }) {
   const selectedRole = Boolean(active) ? assertRole(role) : assertNonAdminRole(role);
+  const nextActive = Boolean(active);
   const supabase = getSupabaseAdmin();
 
   const { data: existing, error: readError } = await supabase
@@ -348,25 +360,33 @@ export async function setRoleLoginStatus({ req, role, active }) {
   if (existing?.length) {
     const { error } = await supabase
       .from(ROLE_CONTACTS_TABLE)
-      .update({ active: Boolean(active) })
+      .update({ active: nextActive })
       .eq("role", selectedRole);
     if (error) throw new Error(error.message || "Failed to update role login status");
   } else {
     const { error } = await supabase
       .from(ROLE_CONTACTS_TABLE)
-      .insert({ role: selectedRole, phone: "", active: Boolean(active) });
+      .insert({ role: selectedRole, phone: "", active: nextActive });
     if (error) throw new Error(error.message || "Failed to create role login status");
   }
 
+  const revokedSessions = nextActive ? [] : await revokeSessionsForRole(req, selectedRole);
+
   await recordAdminActivity(req, {
-    type: Boolean(active) ? "enable" : "disable",
+    type: nextActive ? "enable" : "disable",
     module: "role-management",
-    severity: Boolean(active) ? "success" : "warning",
-    message: `${Boolean(active) ? "Enable" : "Disable"} role login ${selectedRole}`,
-    metadata: { access_role: "admin", target_role: selectedRole, active: Boolean(active) },
+    severity: nextActive ? "success" : "warning",
+    message: `${nextActive ? "Enable" : "Disable"} role login ${selectedRole}`,
+    metadata: {
+      access_role: "admin",
+      target_role: selectedRole,
+      active: nextActive,
+      revoked_sessions: revokedSessions.length,
+      revoked_session_ids: revokedSessions.map((session) => session.id),
+    },
   });
 
-  return { ok: true };
+  return { ok: true, revoked_sessions: revokedSessions.length };
 }
 
 export async function revokeManagedSession({ req, id }) {
@@ -397,10 +417,7 @@ export async function revokeManagedSession({ req, id }) {
 
 export async function revokeRoleSessions({ req, role }) {
   const selectedRole = assertRole(role);
-  const sessions = await getAdminSessions(req);
-  const targets = sessions.filter((session) => session.access_role === selectedRole && !session.current);
-
-  for (const session of targets) await revokeAdminSession(session.id);
+  const targets = await revokeSessionsForRole(req, selectedRole);
 
   await recordAdminActivity(req, {
     type: "revoke",
