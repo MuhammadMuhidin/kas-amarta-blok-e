@@ -4,6 +4,7 @@ import { getCurrentAdminSession } from "@/lib/adminSession";
 import { getApprovalCenterOverview } from "@/features/approval/approvalService";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { dbTable } from "@/lib/dbTable";
+import { notifyRequesterFinal, notifyRoleNextStep } from "@/lib/approvalWhatsApp";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -155,6 +156,7 @@ async function actOnRequest({ accessRole, id, action, note }) {
   const isReject = selectedAction === "reject";
   let updatePayload;
   let actionName;
+  let nextRole = "";
 
   if (isReject) {
     updatePayload = { status: "rejected", current_step: null, current_approver_role: null, updated_at: now };
@@ -170,6 +172,7 @@ async function actOnRequest({ accessRole, id, action, note }) {
 
     const activeStep = currentStep(master, request.current_step);
     const next = nextStep(master, request.current_step);
+    nextRole = next?.role || "";
     actionName = activeStep?.action || selectedAction;
     updatePayload = next
       ? {
@@ -189,7 +192,13 @@ async function actOnRequest({ accessRole, id, action, note }) {
     if (activeStep?.action === "validate_payment" || selectedAction === "validate_payment") updatePayload.payment_status = "paid";
   }
 
-  const { error } = await supabase.from(APPROVAL_REQUESTS_TABLE).update(updatePayload).eq("id", request.id);
+  const { data: updatedRequest, error } = await supabase
+    .from(APPROVAL_REQUESTS_TABLE)
+    .update(updatePayload)
+    .eq("id", request.id)
+    .select("*")
+    .single();
+
   if (error) throw new Error(error.message || "Gagal memproses pengajuan");
 
   await supabase.from(APPROVAL_ACTIONS_TABLE).insert({
@@ -201,7 +210,11 @@ async function actOnRequest({ accessRole, id, action, note }) {
     note: clean(note),
   });
 
-  return { ok: true };
+  const notification = terminal(updatedRequest.status)
+    ? await notifyRequesterFinal({ request: updatedRequest, status: updatedRequest.status, note: clean(note) })
+    : await notifyRoleNextStep({ request: updatedRequest, previousRole: role, nextRole });
+
+  return { ok: true, whatsapp_sent: notification.sent, whatsapp_status: notification };
 }
 
 export async function GET(req) {
