@@ -3,6 +3,36 @@
   display: none;
 }
 
+.admin-header {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-title {
+  font-size: 0 !important;
+  line-height: 1 !important;
+  margin-bottom: 0 !important;
+}
+
+.admin-title::before {
+  content: "Dashboard Pengurus Blok E";
+  display: block;
+  color: var(--admin-text);
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.admin-header::after {
+  content: "Kelola kas, warga, approval, dan akses pengurus.";
+  display: block;
+  color: var(--admin-muted);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 @media (max-width: 720px) {
   .admin-mobile-menu-btn {
     position: sticky;
