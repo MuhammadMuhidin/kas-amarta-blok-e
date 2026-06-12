@@ -1,3 +1,4 @@
+import { randomInt } from "crypto";
 import { dbTable } from "@/lib/dbTable";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { recordAdminActivity } from "@/lib/adminActivity";
@@ -114,15 +115,22 @@ function mapMaster(row = {}) {
 async function generateRequestNo(supabase) {
   const now = new Date();
   const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
-  const { count, error } = await supabase
-    .from(APPROVAL_REQUESTS_TABLE)
-    .select("id", { count: "exact", head: true })
-    .gte("created_at", start)
-    .lt("created_at", end);
-  if (error) throw new Error(error.message || "Gagal membuat nomor pengajuan");
-  return `APR-${yearMonth}-${String((count || 0) + 1).padStart(4, "0")}`;
+  const prefix = `APR-${yearMonth}-`;
+
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const suffix = String(randomInt(0, 10000)).padStart(4, "0");
+    const requestNo = `${prefix}${suffix}`;
+    const { data, error } = await supabase
+      .from(APPROVAL_REQUESTS_TABLE)
+      .select("id")
+      .eq("request_no", requestNo)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message || "Gagal membuat nomor pengajuan");
+    if (!data) return requestNo;
+  }
+
+  throw new Error("Gagal membuat nomor pengajuan unik. Silakan coba lagi.");
 }
 
 export async function getApprovalMasters({ activeOnly = false } = {}) {
