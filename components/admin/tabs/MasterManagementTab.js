@@ -2,6 +2,7 @@
 
 import Toast from "@/components/Toast";
 import AdminConfirmModal from "@/components/admin/AdminConfirmModal";
+import AdminDataSkeleton from "@/components/admin/AdminDataSkeleton";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import { useEffect, useState } from "react";
@@ -151,7 +152,9 @@ export default function MasterManagementTab() {
 
   useEffect(() => { loadData(); }, []);
 
-  if (loading) return <div className="admin-card">Loading Master Management...</div>;
+  if (loading && !(data.masters || []).length) {
+    return <div className="admin-card"><AdminDataSkeleton showSummary={false} rows={6} /></div>;
+  }
 
   return (
     <>
