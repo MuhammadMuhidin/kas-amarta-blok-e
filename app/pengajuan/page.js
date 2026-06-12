@@ -268,8 +268,7 @@ export default function PengajuanPage() {
             <div>
               <strong>Pengajuan berhasil dibuat</strong>
               <p className="request-success-number">
-                <span>Nomor pengajuan: <b>{submitResult.request.request_no}</b></span>
-                <button type="button" className="request-copy-btn" onClick={() => copyRequestNo(submitResult.request.request_no)} aria-label="Salin nomor pengajuan" title="Salin nomor pengajuan">📋</button>
+                <span className="request-success-copy-line">Nomor pengajuan: <b>{submitResult.request.request_no}</b><button type="button" className="request-copy-btn" onClick={() => copyRequestNo(submitResult.request.request_no)} aria-label="Salin nomor pengajuan" title="Salin nomor pengajuan">📋</button></span>
               </p>
               <StatusBadge status={submitResult.request.status} />
               {submitResult.request.amount > 0 ? <p>Nominal: <b>{money(submitResult.request.amount)}</b></p> : null}
@@ -404,8 +403,10 @@ const requestPageCss = `
   .request-success-icon { width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; background: var(--success); color: var(--tab-active-text); font-weight: 800; }
   .request-success-panel p { margin: 5px 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; }
   .request-success-panel small { display: block; margin-top: 8px; color: var(--muted); line-height: 1.45; font-size: var(--font-small); }
-  .request-success-number { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .request-copy-btn { width: 32px; height: 32px; display: inline-grid; place-items: center; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); cursor: pointer; font-size: 15px; line-height: 1; box-shadow: var(--shadow-soft); }
+  .request-success-number { display: block; }
+  .request-success-copy-line { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; white-space: nowrap; }
+  .request-success-copy-line b { white-space: nowrap; }
+  .request-copy-btn { width: 32px; height: 32px; flex: 0 0 32px; display: inline-grid; place-items: center; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); cursor: pointer; font-size: 15px; line-height: 1; box-shadow: var(--shadow-soft); }
   .request-copy-btn:active { transform: translateY(1px); }
 
   .request-status { display: inline-flex; width: fit-content; min-height: 34px; align-items: center; justify-content: center; padding: 0 12px; border-radius: 999px; font-size: var(--font-small); font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; }
