@@ -14,6 +14,10 @@ function clean(value) {
   return String(value || "").trim();
 }
 
+function requestReason(row = {}) {
+  return clean(row.form_data?.reason || row.form_data?.alasan || row.reason);
+}
+
 function publicRequest(row = {}) {
   return {
     id: row.id,
@@ -30,6 +34,7 @@ function publicRequest(row = {}) {
     completed_at: row.completed_at,
     requester_name: row.requester_name,
     requester_house: row.requester_house,
+    reason: requestReason(row),
   };
 }
 
