@@ -14,8 +14,8 @@ function money(value) {
 function prettyStatus(status = "") {
   const map = {
     submitted: "Terkirim",
-    waiting_payment_validation: "Menunggu Validasi Pembayaran",
-    waiting_approval: "Menunggu Persetujuan",
+    waiting_payment_validation: "Menunggu Validasi",
+    waiting_approval: "Dalam Proses",
     completed: "Selesai",
     rejected: "Ditolak",
     cancelled: "Dibatalkan",
@@ -27,9 +27,11 @@ function prettyAction(action = "") {
   const map = {
     submit: "Dikirim",
     approve: "Disetujui",
+    final_approval: "Disetujui",
     reject: "Ditolak",
     cancel: "Dibatalkan",
-    payment_validated: "Pembayaran Divalidasi",
+    validate_payment: "Divalidasi",
+    payment_validated: "Divalidasi",
   };
   return map[action] || action || "-";
 }
@@ -52,13 +54,61 @@ function formatTime(value) {
   return date.toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function StatusDetailModal({ result, onClose }) {
+  if (!result?.request) return null;
+  const request = result.request;
+  const actions = result.actions || [];
+
+  return (
+    <div className="request-modal-overlay" onClick={onClose}>
+      <div className="request-modal-box" onClick={(event) => event.stopPropagation()}>
+        <div className="request-modal-header">
+          <div>
+            <span className="request-kicker">{request.request_no}</span>
+            <h3>{request.master_name || "Detail Pengajuan"}</h3>
+          </div>
+          <div className="request-modal-actions">
+            <StatusBadge status={request.status} />
+            <button type="button" className="request-modal-close" onClick={onClose} aria-label="Close status detail">×</button>
+          </div>
+        </div>
+
+        <div className="request-meta-grid">
+          <div><span>Nomor Pengajuan</span><strong>{request.request_no || "-"}</strong></div>
+          <div><span>Status</span><strong>{prettyStatus(request.status)}</strong></div>
+          <div><span>Persetujuan Saat Ini</span><strong>{request.current_approver_role || "-"}</strong></div>
+          <div><span>Nominal</span><strong>{Number(request.amount || 0) > 0 ? money(request.amount) : "-"}</strong></div>
+          <div><span>Nama Pemohon</span><strong>{request.requester_name || "-"}</strong></div>
+          <div><span>Nomor Rumah</span><strong>{request.requester_house || "-"}</strong></div>
+          <div><span>Diajukan Pada</span><strong>{formatTime(request.submitted_at)}</strong></div>
+          <div><span>Update Terakhir</span><strong>{formatTime(request.updated_at)}</strong></div>
+        </div>
+
+        <div className="request-modal-section-title">Riwayat Pengajuan</div>
+        <div className="request-timeline">
+          {actions.length ? actions.map((action) => (
+            <div key={action.id} className="request-timeline-item">
+              <span />
+              <div>
+                <strong>{prettyAction(action.action)}</strong>
+                <small>{action.role || "-"} • {formatTime(action.created_at)}</small>
+                {action.note ? <p>{action.note}</p> : null}
+              </div>
+            </div>
+          )) : <div className="request-empty-state">Belum ada riwayat approval.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function PengajuanPage() {
   const [masters, setMasters] = useState([]);
   const [selectedCode, setSelectedCode] = useState("");
   const [formData, setFormData] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState(null);
-  const [checkForm, setCheckForm] = useState({ request_no: "", key: "" });
+  const [checkForm, setCheckForm] = useState({ request_no: "" });
   const [statusResult, setStatusResult] = useState(null);
   const [message, setMessage] = useState(null);
 
@@ -113,7 +163,7 @@ export default function PengajuanPage() {
     event.preventDefault();
     try {
       setStatusResult(null);
-      const params = new URLSearchParams({ request_no: checkForm.request_no, key: checkForm.key });
+      const params = new URLSearchParams({ request_no: checkForm.request_no });
       const res = await fetch(`${APPROVAL_REQUESTS_API}?${params.toString()}`, { cache: "no-store" });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Gagal cek status");
@@ -131,6 +181,7 @@ export default function PengajuanPage() {
     <main className="request-page">
       <style jsx global>{requestPageCss}</style>
       <Toast show={!!message} type={message?.type} message={message?.text} />
+      <StatusDetailModal result={statusResult} onClose={() => setStatusResult(null)} />
 
       <section className="request-card request-check-card">
         <div className="request-card-header">
@@ -139,36 +190,11 @@ export default function PengajuanPage() {
             <h2>Cek Status Pengajuan</h2>
           </div>
         </div>
-        <p className="request-muted">Gunakan nomor pengajuan dan nomor rumah / WhatsApp sebagai verifikasi.</p>
-        <form onSubmit={checkStatus} className="request-check-grid">
+        <p className="request-muted">Gunakan nomor pengajuan untuk melihat status dan riwayat proses.</p>
+        <form onSubmit={checkStatus} className="request-check-grid request-check-grid-single">
           <input className="request-input" placeholder="Contoh: APR-202606-0001" value={checkForm.request_no} onChange={(e) => setCheckForm((prev) => ({ ...prev, request_no: e.target.value }))} />
-          <input className="request-input" placeholder="Nomor rumah / WhatsApp" value={checkForm.key} onChange={(e) => setCheckForm((prev) => ({ ...prev, key: e.target.value }))} />
           <button type="submit" className="request-secondary-btn">Cek Status</button>
         </form>
-
-        {statusResult?.request ? (
-          <div className="request-status-panel">
-            <div className="request-status-top">
-              <div>
-                <span className="request-kicker">{statusResult.request.request_no}</span>
-                <h3>{statusResult.request.master_name}</h3>
-              </div>
-              <StatusBadge status={statusResult.request.status} />
-            </div>
-            <div className="request-meta-grid">
-              <div><span>Persetujuan Saat Ini</span><strong>{statusResult.request.current_approver_role || "-"}</strong></div>
-              <div><span>Diajukan Pada</span><strong>{formatTime(statusResult.request.submitted_at)}</strong></div>
-            </div>
-            <div className="request-timeline">
-              {(statusResult.actions || []).map((action) => (
-                <div key={action.id} className="request-timeline-item">
-                  <span />
-                  <div><strong>{prettyAction(action.action)}</strong><small>{action.role} • {formatTime(action.created_at)}</small>{action.note ? <p>{action.note}</p> : null}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </section>
 
       <section className="request-card request-master-card">
@@ -265,10 +291,12 @@ const requestPageCss = `
   .request-status-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
 
   .request-card h2,
-  .request-status-top h3 { margin: 3px 0 0; color: var(--text); line-height: 1.2; font-weight: 800; }
+  .request-status-top h3,
+  .request-modal-header h3 { margin: 3px 0 0; color: var(--text); line-height: 1.2; font-weight: 800; }
 
   .request-card h2 { font-size: 19px; }
-  .request-status-top h3 { font-size: 19px; }
+  .request-status-top h3,
+  .request-modal-header h3 { font-size: 19px; }
 
   .request-muted { margin: 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; line-height: 1.45; }
 
@@ -281,6 +309,7 @@ const requestPageCss = `
   .request-check-grid { display: grid; gap: 12px; }
 
   .request-check-grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); margin-top: 14px; }
+  .request-check-grid-single { grid-template-columns: minmax(0, 1fr) auto; }
 
   .request-label { display: grid; gap: 6px; color: var(--muted); font-size: var(--font-small); font-weight: 700; }
 
@@ -297,8 +326,8 @@ const requestPageCss = `
   .request-payment span { color: var(--muted); font-size: var(--font-base); font-weight: 500; line-height: 1.45; }
 
   .request-primary-btn,
-  .request-secondary-btn { min-height: 44px; border: 1px solid var(--primary); border-radius: var(--radius-sm); background: var(--primary); color: var(--tab-active-text); font-family: Inter, Arial, sans-serif; font-size: var(--font-base); font-weight: 700; cursor: pointer; box-shadow: var(--shadow-soft); }
-  .request-secondary-btn { border-color: var(--border); background: var(--surface); color: var(--text); box-shadow: var(--shadow-soft); }
+  .request-secondary-btn { min-height: 44px; border: 1px solid var(--primary); border-radius: var(--radius-sm); background: var(--primary); color: var(--tab-active-text); font-family: Inter, Arial, sans-serif; font-size: var(--font-base); font-weight: 700; cursor: pointer; box-shadow: var(--shadow-soft); white-space: nowrap; }
+  .request-secondary-btn { border-color: var(--border); background: var(--surface); color: var(--text); box-shadow: var(--shadow-soft); padding: 0 16px; }
   .request-primary-btn:disabled { opacity: .6; cursor: not-allowed; }
 
   .request-success-panel { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; margin-top: 14px; border-color: color-mix(in srgb, var(--success) 34%, var(--border)); }
@@ -312,7 +341,6 @@ const requestPageCss = `
   .request-status.is-danger { background: color-mix(in srgb, var(--danger) 13%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, var(--danger) 36%, var(--border)); }
   .request-status.is-muted { background: var(--surface-soft); color: var(--muted); border: 1px solid var(--border); }
 
-  .request-status-panel { margin-top: 14px; }
   .request-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 12px 0; }
   .request-meta-grid div { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface); border: 1px solid var(--border); display: grid; gap: 4px; }
   .request-meta-grid span { color: var(--muted); font-size: var(--font-small); font-weight: 700; text-transform: uppercase; }
@@ -326,13 +354,24 @@ const requestPageCss = `
   .request-timeline-item small { display: block; color: var(--muted); margin-top: 3px; font-size: var(--font-small); }
   .request-timeline-item p { margin: 6px 0 0; color: var(--muted); font-size: var(--font-base); }
 
+  .request-modal-overlay { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 14px; background: rgba(15, 23, 42, .55); backdrop-filter: blur(4px); }
+  .request-modal-box { width: min(720px, 100%); max-height: 88vh; overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-soft); padding: 14px; }
+  .request-modal-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .request-modal-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .request-modal-close { width: 34px; height: 34px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface-soft); color: var(--text); font-size: 24px; line-height: 1; cursor: pointer; }
+  .request-modal-section-title { margin-top: 12px; color: var(--text); font-size: var(--font-base); font-weight: 800; }
+  .request-empty-state { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-soft); color: var(--muted); font-weight: 700; }
+
   @media (max-width: 700px) {
     .request-page { padding: 12px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
     .request-card { padding: 12px 14px; border-radius: var(--radius); }
     .request-card h2 { font-size: 17px; }
-    .request-status-top h3 { font-size: 17px; }
+    .request-status-top h3,
+    .request-modal-header h3 { font-size: 17px; }
     .request-card-header { align-items: flex-start; }
     .request-price { min-width: 116px; max-width: 142px; padding: 7px 9px; }
     .request-price small { font-size: 10px; }
+    .request-check-grid-single { grid-template-columns: 1fr; }
+    .request-modal-header { align-items: flex-start; }
   }
 `;
