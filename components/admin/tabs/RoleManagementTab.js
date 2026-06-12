@@ -92,11 +92,11 @@ function RoleContactCard({ rows, onEdit, onToggle }) {
 
 function ActiveRoleSessionsCard({ rows, roles, onRevoke, onRevokeRole, running }) {
   const rolesWithSessions = useMemo(() => {
-    const roleSet = new Set(rows.map((row) => row.access_role).filter(Boolean));
-    return roles.filter((role) => roleSet.has(role.value));
+    const roleSet = new Set(rows.map((row) => row.access_role).filter((role) => role && role !== "admin"));
+    return roles.filter((role) => role.value !== "admin" && roleSet.has(role.value));
   }, [rows, roles]);
 
-  return <SectionCard title="Active Role Sessions" description="Devices that currently hold role-based admin access." action={rolesWithSessions.length > 0 && <div style={styles.rowActions}>{rolesWithSessions.map((role) => <ActionButton key={role.value} tone="muted" disabled={running} onClick={() => onRevokeRole(role)}>Revoke {role.label}</ActionButton>)}</div>}><MiniTable columns={["Role", "Device", "Location", "Last Active", "Action"]} rows={rows} emptyText="No active role sessions." renderRow={(row, index) => <tr key={row.id} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{getRoleLabel(roles, row.access_role)}</td><td className="admin-td">{row.device_name || "Unknown device"}</td><td className="admin-td">{row.location || row.ip || "-"}</td><td className="admin-td">{formatTime(row.last_active)}</td><td className="admin-td">{row.current ? <StatusBadge status="current">Current</StatusBadge> : <ActionButton tone="danger" disabled={running} onClick={() => onRevoke(row)}>Revoke</ActionButton>}</td></tr>} /></SectionCard>;
+  return <SectionCard title="Active Role Sessions" description="Devices that currently hold role-based admin access." action={rolesWithSessions.length > 0 && <div style={styles.rowActions}>{rolesWithSessions.map((role) => <ActionButton key={role.value} tone="muted" disabled={running} onClick={() => onRevokeRole(role)}>Revoke {role.label}</ActionButton>)}</div>}><MiniTable columns={["Role", "Device", "Location", "Last Active", "Action"]} rows={rows} emptyText="No active role sessions." renderRow={(row, index) => <tr key={row.id} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{getRoleLabel(roles, row.access_role)}</td><td className="admin-td">{row.device_name || "Unknown device"}</td><td className="admin-td">{row.location || row.ip || "-"}</td><td className="admin-td">{formatTime(row.last_active)}</td><td className="admin-td">{row.current || row.access_role === "admin" ? <StatusBadge status="current">Current</StatusBadge> : <ActionButton tone="danger" disabled={running} onClick={() => onRevoke(row)}>Revoke</ActionButton>}</td></tr>} /></SectionCard>;
 }
 
 function RoleActivityLogCard({ rows }) {
@@ -180,10 +180,12 @@ export default function RoleManagementTab() {
   }
 
   function openRevokeSession(row) {
+    if (row?.access_role === "admin") return;
     runDirectAction({ action: "revoke_session", id: row.id }, "Session revoked");
   }
 
   function openRevokeRole(role) {
+    if (role?.value === "admin") return;
     runDirectAction({ action: "revoke_role_sessions", role: role.value }, `${role.label} sessions revoked`);
   }
 
