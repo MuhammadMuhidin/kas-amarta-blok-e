@@ -7,11 +7,17 @@ import { notifyRequesterCreated, notifyRoleNewRequest } from "@/lib/approvalWhat
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const APPROVAL_MASTERS_TABLE = dbTable("approval_masters");
 const APPROVAL_REQUESTS_TABLE = dbTable("approval_requests");
 const APPROVAL_ACTIONS_TABLE = dbTable("approval_actions");
 
 function clean(value) {
   return String(value || "").trim();
+}
+
+function number(value) {
+  const parsed = Number(value || 0);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function requestReason(row = {}) {
@@ -50,6 +56,30 @@ function publicAction(row = {}) {
   };
 }
 
+function publicFlowStep(row = {}, index = 0) {
+  return {
+    step: number(row.step) || index + 1,
+    role: clean(row.role).toLowerCase(),
+    label: clean(row.label),
+    action: clean(row.action) || "approve",
+  };
+}
+
+async function readPublicFlowSchema({ supabase, request }) {
+  let query = supabase.from(APPROVAL_MASTERS_TABLE).select("flow_schema").limit(1);
+
+  if (request.master_id) query = query.eq("id", request.master_id);
+  else query = query.eq("code", request.master_code);
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(error.message || "Gagal membaca alur pengajuan");
+
+  return [...(Array.isArray(data?.flow_schema) ? data.flow_schema : [])]
+    .map(publicFlowStep)
+    .filter((step) => step.role)
+    .sort((a, b) => a.step - b.step);
+}
+
 async function checkStatusByRequestNo(requestNo) {
   const supabase = getSupabaseAdmin();
   const no = clean(requestNo).toUpperCase();
@@ -65,15 +95,23 @@ async function checkStatusByRequestNo(requestNo) {
   if (error) throw new Error(error.message || "Gagal cek status pengajuan");
   if (!request) throw new Error("Pengajuan tidak ditemukan");
 
-  const { data: actions, error: actionsError } = await supabase
-    .from(APPROVAL_ACTIONS_TABLE)
-    .select("*")
-    .eq("request_id", request.id)
-    .order("created_at", { ascending: true });
+  const [{ data: actions, error: actionsError }, flowSchema] = await Promise.all([
+    supabase
+      .from(APPROVAL_ACTIONS_TABLE)
+      .select("*")
+      .eq("request_id", request.id)
+      .order("created_at", { ascending: true }),
+    readPublicFlowSchema({ supabase, request }),
+  ]);
 
   if (actionsError) throw new Error(actionsError.message || "Gagal membaca riwayat pengajuan");
 
-  return { ok: true, request: publicRequest(request), actions: (actions || []).map(publicAction) };
+  return {
+    ok: true,
+    request: publicRequest(request),
+    flow_schema: flowSchema,
+    actions: (actions || []).map(publicAction),
+  };
 }
 
 export async function GET(req) {
