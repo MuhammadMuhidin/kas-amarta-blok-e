@@ -510,7 +510,9 @@ export default function PengajuanPage() {
             <div>
               <strong>Pengajuan berhasil dibuat</strong>
               <p className="request-success-number">
-                <span className="request-success-copy-line">Nomor pengajuan: <b>{submitResult.request.request_no}</b><button type="button" className="request-copy-btn" onClick={() => copyRequestNo(submitResult.request.request_no)} aria-label="Salin nomor pengajuan" title="Salin nomor pengajuan">📋</button></span>
+                <button type="button" className="request-copy-number" onClick={() => copyRequestNo(submitResult.request.request_no)} title="Klik untuk menyalin nomor pengajuan">
+                  Nomor pengajuan: <b>{submitResult.request.request_no}</b>
+                </button>
               </p>
               <StatusBadge status={submitResult.request.status} />
               {submitResult.request.amount > 0 ? <p>Nominal: <b>{money(submitResult.request.amount)}</b></p> : null}
@@ -651,10 +653,11 @@ const requestPageCss = `
   .request-success-panel p { margin: 5px 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; }
   .request-success-panel small { display: block; margin-top: 8px; color: var(--muted); line-height: 1.45; font-size: var(--font-small); }
   .request-success-number { display: block; }
-  .request-success-copy-line { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; white-space: nowrap; }
-  .request-success-copy-line b { white-space: nowrap; }
-  .request-copy-btn { width: 32px; height: 32px; flex: 0 0 32px; display: inline-grid; place-items: center; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); cursor: pointer; font-size: 15px; line-height: 1; box-shadow: var(--shadow-soft); }
-  .request-copy-btn:active { transform: translateY(1px); }
+  .request-copy-number { display: inline; max-width: 100%; padding: 0; border: 0; background: transparent; color: var(--muted); font-family: Inter, Arial, sans-serif; font-size: var(--font-base); font-weight: 500; line-height: 1.45; text-align: left; cursor: pointer; }
+  .request-copy-number b { color: var(--text); font-weight: 800; white-space: nowrap; }
+  .request-copy-number:hover b,
+  .request-copy-number:focus-visible b { text-decoration: underline; text-underline-offset: 3px; }
+  .request-copy-number:focus-visible { outline: 2px solid color-mix(in srgb, var(--primary) 48%, transparent); outline-offset: 3px; border-radius: 6px; }
 
   .request-status { display: inline-flex; width: fit-content; min-height: 34px; align-items: center; justify-content: center; padding: 0 12px; border-radius: 999px; font-size: var(--font-small); font-weight: 700; line-height: 1; text-align: center; white-space: nowrap; }
   .request-status.is-success { background: color-mix(in srgb, var(--success) 15%, var(--surface)); color: var(--text); border: 1px solid color-mix(in srgb, var(--success) 36%, var(--border)); }
@@ -685,7 +688,7 @@ const requestPageCss = `
   .request-progress-dot.is-rejected { border-color: var(--danger); background: var(--danger); color: var(--tab-active-text); }
   .request-progress-line { width: 3px; min-height: 42px; margin-top: 4px; border-radius: 999px; background: var(--border); }
   .request-progress-line.is-done { background: var(--success); }
-  .request-progress-line.is-running { background: linear-gradient(180deg, var(--success), #f59e0b, var(--success)); background-size: 100% 220%; animation: flowLine 1.7s linear infinite; }
+  .request-progress-line.is-running { background: var(--success); }
   .request-progress-copy { padding-bottom: 14px; }
   .request-progress-copy strong { display: block; color: var(--text); font-size: var(--font-base); font-weight: 900; line-height: 1.3; }
   .request-progress-copy small { display: block; margin-top: 3px; color: var(--muted); font-size: var(--font-small); font-weight: 700; line-height: 1.45; }
@@ -722,11 +725,6 @@ const requestPageCss = `
   @keyframes activePulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, .38); }
     50% { box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
-  }
-
-  @keyframes flowLine {
-    from { background-position: 0 220%; }
-    to { background-position: 0 0; }
   }
 
   @keyframes progressIn {
