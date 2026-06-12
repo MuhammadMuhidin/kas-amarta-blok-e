@@ -70,7 +70,7 @@ function normalizeCenterPayload(payload = {}) {
     access_role: role,
     inbox: safeInbox,
     requests: rows,
-    summary: {
+    summary: payload.summary || {
       inbox: safeInbox.length,
       processing: rows.filter((row) => !terminal(row.status)).length,
       completed: rows.filter((row) => row.status === "completed").length,
@@ -79,42 +79,10 @@ function normalizeCenterPayload(payload = {}) {
   };
 }
 
-async function includeParticipatedRows(payload = {}) {
-  const role = clean(payload.access_role).toLowerCase() || "admin";
-  if (role === "admin") return payload;
-
-  const supabase = getSupabaseAdmin();
-  const { data: roleActions, error: actionError } = await supabase
-    .from(APPROVAL_ACTIONS_TABLE)
-    .select("request_id")
-    .eq("role", role);
-
-  if (actionError) throw new Error(actionError.message || "Gagal membaca riwayat approval role");
-
-  const existing = new Set([...(payload.inbox || []), ...(payload.requests || [])].map((row) => row.id));
-  const missingIds = [...new Set((roleActions || []).map((row) => row.request_id).filter(Boolean))]
-    .filter((id) => !existing.has(id));
-
-  if (!missingIds.length) return payload;
-
-  const { data: participatedRows, error } = await supabase
-    .from(APPROVAL_REQUESTS_TABLE)
-    .select("*")
-    .in("id", missingIds);
-
-  if (error) throw new Error(error.message || "Gagal membaca pengajuan yang pernah diproses role");
-
-  return {
-    ...payload,
-    requests: uniqueRows([...(payload.requests || []), ...(participatedRows || [])]),
-  };
-}
-
 async function withActions(payload) {
-  const expandedPayload = await includeParticipatedRows(payload);
-  const rows = uniqueRows([...(expandedPayload.inbox || []), ...(expandedPayload.requests || [])]);
+  const rows = uniqueRows([...(payload.inbox || []), ...(payload.requests || [])]);
   const ids = rows.map((row) => row.id).filter(Boolean);
-  if (!ids.length) return normalizeCenterPayload(expandedPayload);
+  if (!ids.length) return normalizeCenterPayload(payload);
 
   const supabase = getSupabaseAdmin();
   const { data: actions, error } = await supabase
@@ -133,9 +101,9 @@ async function withActions(payload) {
 
   const attach = (row) => ({ ...row, approval_actions: grouped.get(row.id) || [] });
   return normalizeCenterPayload({
-    ...expandedPayload,
-    inbox: (expandedPayload.inbox || []).map(attach),
-    requests: (expandedPayload.requests || []).map(attach),
+    ...payload,
+    inbox: (payload.inbox || []).map(attach),
+    requests: (payload.requests || []).map(attach),
   });
 }
 
@@ -219,37 +187,4 @@ async function actOnRequest({ req, accessRole, id, action, note }) {
     type: isReject ? "reject" : "approve",
     module: "approval-center",
     severity: isReject ? "warning" : "success",
-    message: `${isReject ? "Reject" : updatedRequest.status === "completed" ? "Complete" : "Approve"} approval ${request.request_no}`,
-    metadata: { access_role: role, request_no: request.request_no, next_status: updatedRequest.status },
-  });
-
-  const notification = terminal(updatedRequest.status)
-    ? await notifyRequesterFinal({ request: updatedRequest, status: updatedRequest.status, note: clean(note) })
-    : await notifyRoleNextStep({ request: updatedRequest, previousRole: role, nextRole });
-
-  return { ok: true, whatsapp_sent: notification.sent, whatsapp_status: notification };
-}
-
-export async function GET(req) {
-  try {
-    if (!(await isAdmin(req))) return unauthorized();
-    const session = await getCurrentAdminSession(req);
-    const payload = await getApprovalCenterOverview({ accessRole: session?.access_role || "admin" });
-    return NextResponse.json(await withActions(payload));
-  } catch (err) {
-    return NextResponse.json({ error: err.message || "Gagal membaca approval requests" }, { status: 500 });
-  }
-}
-
-export async function PATCH(req) {
-  try {
-    if (!(await isAdmin(req))) return unauthorized();
-    if (!validateCSRF(req)) return NextResponse.json({ error: "CSRF tidak valid" }, { status: 403 });
-
-    const session = await getCurrentAdminSession(req);
-    const body = await req.json();
-    return NextResponse.json(await actOnRequest({ req, accessRole: session?.access_role || "admin", id: body.id, action: body.action, note: body.note }));
-  } catch (err) {
-    return NextResponse.json({ error: err.message || "Gagal memproses approval request" }, { status: 500 });
-  }
-}
+    message: `${isReject ? "Reject" : updatedRequest.status === "completed" ? "Complete" : "Approve
