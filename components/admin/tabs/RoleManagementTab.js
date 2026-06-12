@@ -114,7 +114,7 @@ function SecurityHealthCard({ health }) {
 
 function ActionModal({ pendingAction, pin, setPin, running, contactForm, setContactForm, onCancel, onConfirm }) {
   if (!pendingAction) return null;
-  return <div className={modalStyles.overlay} onClick={onCancel}><div className={modalStyles.box} onClick={(event) => event.stopPropagation()}><div style={modalTitleStyle}>{pendingAction.title}</div><div style={modalNoteStyle}>{pendingAction.description}</div>{pendingAction.type === "edit_contact" && <div style={formGroupStyle}><label style={inputLabelStyle}><span>WhatsApp OTP</span><input className="admin-input" value={contactForm.phone} onChange={(event) => setContactForm((prev) => ({ ...prev, phone: event.target.value }))} placeholder="628xxxxxxxxxx" /></label><label style={checkboxLabelStyle}><input type="checkbox" checked={contactForm.active} disabled={contactForm.role === "admin"} onChange={(event) => setContactForm((prev) => ({ ...prev, active: event.target.checked }))} />Active OTP receiver</label></div>}<label style={inputLabelStyle}><span>Admin PIN</span><input className="admin-input" type="password" value={pin} onChange={(event) => setPin(event.target.value)} placeholder="Enter admin PIN" /></label><div style={modalButtonGridStyle}><button type="button" className="admin-small-btn" disabled={running} onClick={onCancel}>Cancel</button><button type="button" className="admin-small-btn" disabled={running || !pin} onClick={onConfirm}><LoadingButtonContent loading={running} loadingText="Processing...">Confirm</LoadingButtonContent></button></div></div></div>;
+  return <div className={modalStyles.overlay} onClick={onCancel}><div className={modalStyles.box} onClick={(event) => event.stopPropagation()}><div style={modalTitleStyle}>{pendingAction.title}</div><div style={modalNoteStyle}>{pendingAction.description}</div>{pendingAction.type === "edit_contact" && <div style={formGroupStyle}><label style={inputLabelStyle}><span>WhatsApp OTP</span><input className="admin-input" value={contactForm.phone} onChange={(event) => setContactForm((prev) => ({ ...prev, phone: event.target.value }))} placeholder="628xxxxxxxxxx" /></label></div>}<label style={inputLabelStyle}><span>Admin PIN</span><input className="admin-input" type="password" value={pin} onChange={(event) => setPin(event.target.value)} placeholder="Enter admin PIN" /></label><div style={modalButtonGridStyle}><button type="button" className="admin-small-btn" disabled={running} onClick={onCancel}>Cancel</button><button type="button" className="admin-small-btn" disabled={running || !pin} onClick={onConfirm}><LoadingButtonContent loading={running} loadingText="Processing...">Confirm</LoadingButtonContent></button></div></div></div>;
 }
 
 export default function RoleManagementTab() {
@@ -158,7 +158,7 @@ export default function RoleManagementTab() {
 
   function openEditContact(row) {
     setContactForm({ role: row.role, phone: row.phone || "", active: row.role === "admin" ? true : Boolean(row.active) });
-    openAction({ type: "edit_contact", title: `Edit OTP Receiver - ${row.label}`, description: "Update the WhatsApp OTP destination and contact status for this role." });
+    openAction({ type: "edit_contact", title: `Edit OTP Receiver - ${row.label}`, description: "Update the WhatsApp OTP destination for this role." });
   }
 
   function openToggleRole(row) {
