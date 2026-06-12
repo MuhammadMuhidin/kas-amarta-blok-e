@@ -187,10 +187,10 @@ export default function AdminPageClient() {
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
       <div className="admin-wrapper">
         <div className="admin-header" style={{ marginBottom: 10 }}>
-          <button className="admin-home-btn" onClick={() => router.push("/")}>{icon(0x1F3E0)} Home</button>
           <h1 className="admin-title">Cash Flow Management</h1>
         </div>
         <div className="admin-tabs">
+          <button className="admin-tab admin-home-btn" onClick={() => router.push("/")}>{icon(0x1F3E0)} Home</button>
           {allowedModules.map((module) => (
             <button key={module.key} className={tabClassName(module.key)} onClick={() => handleTabClick(module.key)}>
               {(module.key === "payment" || module.key === "monitoring") ? (
