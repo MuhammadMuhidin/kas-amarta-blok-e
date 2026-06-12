@@ -8,6 +8,8 @@ const APPROVAL_MASTERS_TABLE = dbTable("approval_masters");
 const APPROVAL_REQUESTS_TABLE = dbTable("approval_requests");
 const APPROVAL_ACTIONS_TABLE = dbTable("approval_actions");
 const TERMINAL_STATUSES = ["completed", "rejected", "cancelled"];
+const DEFAULT_PAGE_LIMIT = 20;
+const MAX_PAGE_LIMIT = 60;
 
 const DEFAULT_FIELDS_SCHEMA = [
   { key: "requester_name", label: "Nama Warga", type: "text", required: true },
@@ -40,6 +42,16 @@ function normalizeCode(value) {
 function safeNumber(value) {
   const number = Number(value || 0);
   return Number.isFinite(number) ? number : 0;
+}
+
+function safeOffset(value) {
+  return Math.max(0, Math.floor(safeNumber(value)));
+}
+
+function safeLimit(value) {
+  const parsed = Math.floor(safeNumber(value));
+  if (!parsed) return DEFAULT_PAGE_LIMIT;
+  return Math.min(Math.max(1, parsed), MAX_PAGE_LIMIT);
 }
 
 function requestReason(formData = {}) {
@@ -110,6 +122,45 @@ function mapMaster(row = {}) {
     payment_required: Boolean(row.payment_required),
     active: row.active !== false,
   };
+}
+
+function applyRoleVisibility(query, role) {
+  if (role === "admin") return query;
+  return query.or(`current_approver_role.eq.${role},status.in.(completed,rejected)`);
+}
+
+function applyNonTerminal(query) {
+  return query.not("status", "in", `(${TERMINAL_STATUSES.join(",")})`);
+}
+
+async function countApprovalRequests({ supabase, role, type }) {
+  let query = supabase.from(APPROVAL_REQUESTS_TABLE).select("id", { count: "exact", head: true });
+
+  if (type === "inbox") {
+    query = role === "admin"
+      ? applyNonTerminal(query)
+      : applyNonTerminal(query.eq("current_approver_role", role));
+  } else {
+    query = applyRoleVisibility(query, role);
+    if (type === "processing") query = applyNonTerminal(query);
+    if (type === "completed") query = query.eq("status", "completed");
+    if (type === "rejected") query = query.eq("status", "rejected");
+  }
+
+  const { count, error } = await query;
+  if (error) throw new Error(error.message || "Gagal menghitung approval center");
+  return count || 0;
+}
+
+async function getApprovalSummary({ supabase, role }) {
+  const [inbox, processing, completed, rejected] = await Promise.all([
+    countApprovalRequests({ supabase, role, type: "inbox" }),
+    countApprovalRequests({ supabase, role, type: "processing" }),
+    countApprovalRequests({ supabase, role, type: "completed" }),
+    countApprovalRequests({ supabase, role, type: "rejected" }),
+  ]);
+
+  return { inbox, processing, completed, rejected };
 }
 
 async function generateRequestNo(supabase) {
@@ -191,30 +242,45 @@ export async function saveApprovalMaster({ req, payload = {} }) {
   return { ok: true, master: mapMaster(data) };
 }
 
-export async function getApprovalCenterOverview({ accessRole = "admin" } = {}) {
+export async function getApprovalCenterOverview({ accessRole = "admin", offset = 0, limit = DEFAULT_PAGE_LIMIT } = {}) {
   const role = resolveAdminAccessRole(accessRole);
   const supabase = getSupabaseAdmin();
-  let query = supabase.from(APPROVAL_REQUESTS_TABLE).select("*").order("created_at", { ascending: false }).limit(80);
-  if (role !== "admin") query = query.or(`current_approver_role.eq.${role},status.in.(completed,rejected)`);
-  const { data, error } = await query;
+  const from = safeOffset(offset);
+  const size = safeLimit(limit);
+  const to = from + size - 1;
+
+  let query = supabase
+    .from(APPROVAL_REQUESTS_TABLE)
+    .select("*", { count: "exact" })
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  query = applyRoleVisibility(query, role);
+
+  const { data, error, count } = await query;
   if (error) throw new Error(error.message || "Gagal membaca approval center");
 
   const rows = data || [];
   const inbox = role === "admin"
     ? rows.filter((row) => !isTerminalStatus(row.status))
     : rows.filter((row) => row.current_approver_role === role && !isTerminalStatus(row.status));
+  const total = count || 0;
+  const nextOffset = from + rows.length;
 
   return {
     ok: true,
     access_role: role,
-    summary: {
-      inbox: inbox.length,
-      processing: rows.filter((row) => !isTerminalStatus(row.status)).length,
-      completed: rows.filter((row) => row.status === "completed").length,
-      rejected: rows.filter((row) => row.status === "rejected").length,
-    },
+    summary: await getApprovalSummary({ supabase, role }),
     inbox,
     requests: rows,
+    pagination: {
+      offset: from,
+      limit: size,
+      fetched: rows.length,
+      next_offset: nextOffset,
+      total,
+      has_more: nextOffset < total,
+    },
   };
 }
 
