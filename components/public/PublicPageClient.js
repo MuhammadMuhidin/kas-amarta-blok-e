@@ -6,6 +6,7 @@ import CashflowTab from "@/components/public/tabs/CashflowTab";
 import InsightTab from "@/components/public/tabs/InsightTab";
 import PaymentStatusTab from "@/components/public/tabs/PaymentStatusTab";
 import PublicHero from "@/components/public/PublicHero";
+import PublicRouteSkeleton from "@/components/public/PublicRouteSkeleton";
 import PublicTabs from "@/components/public/PublicTabs";
 import ReceiptPreviewModal from "@/components/public/ReceiptPreviewModal";
 import ResidentDetailModal from "@/components/public/ResidentDetailModal";
@@ -106,6 +107,10 @@ export default function PublicPageClient() {
 
   const totalPageInsight = Math.max(1, Math.ceil(insightResult.length / perPageInsight));
 
+  if (loading) {
+    return <PublicRouteSkeleton variant="kas" />;
+  }
+
   if (error) {
     return (
       <div className="page-wrap">
@@ -117,21 +122,6 @@ export default function PublicPageClient() {
   return (
     <>
       <div className="page-wrap">
-        {loading && (
-          <div className="action-loader show">
-            <div className="loader-card">
-              <div className="loader-row">
-                <div className="loader-icon">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-                <div className="loader-text">Sedang memuat data...</div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <PublicHero
           description={(
             <>
