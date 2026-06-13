@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifyAdminRolePin } from "@/lib/adminRoleCredentials";
 import {
+  isAdmin,
   isAdministrator,
   unauthorized,
   validateCSRF,
@@ -21,7 +22,7 @@ export const runtime = "nodejs";
 
 export async function GET(req) {
   try {
-    if (!(await isAdministrator(req))) {
+    if (!(await isAdmin(req))) {
       return unauthorized();
     }
 
