@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import "./PublicBottomNav.css";
 
-const ENABLED_PATHS = new Set(["/", "/pengajuan"]);
+const ENABLED_PATHS = new Set(["/", "/kas", "/pengajuan"]);
 
 export default function PublicBottomNav({ global = false } = {}) {
   const pathname = usePathname();
