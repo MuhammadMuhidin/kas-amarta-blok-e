@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import CashflowTab from "@/components/public/tabs/CashflowTab";
 import InsightTab from "@/components/public/tabs/InsightTab";
 import PaymentStatusTab from "@/components/public/tabs/PaymentStatusTab";
+import KasLoadingView from "@/components/public/KasLoadingView";
 import PublicHero from "@/components/public/PublicHero";
-import PublicRouteSkeleton from "@/components/public/PublicRouteSkeleton";
 import PublicTabs from "@/components/public/PublicTabs";
 import ReceiptPreviewModal from "@/components/public/ReceiptPreviewModal";
 import ResidentDetailModal from "@/components/public/ResidentDetailModal";
@@ -108,7 +108,7 @@ export default function PublicPageClient() {
   const totalPageInsight = Math.max(1, Math.ceil(insightResult.length / perPageInsight));
 
   if (loading) {
-    return <PublicRouteSkeleton variant="kas" />;
+    return <KasLoadingView />;
   }
 
   if (error) {
