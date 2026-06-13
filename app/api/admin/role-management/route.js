@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import { verifyAdminRolePin } from "@/lib/adminRoleCredentials";
+import { isAdministrator, unauthorized, validateCSRF } from "@/lib/auth";
 import {
   clearRateLimit,
   enforceFailureRateLimit,
@@ -29,7 +30,7 @@ async function assertAdminPin(req, pin) {
 
   if (pinLimit) return pinLimit;
 
-  if (pin !== process.env.ADMIN_PIN) {
+  if (!(await verifyAdminRolePin("admin", pin))) {
     await recordRateLimitFailure(
       req,
       RATE_LIMIT_SCOPES.settingsPinFailed,
@@ -85,7 +86,7 @@ async function runAction(req, body) {
 
 export async function GET(req) {
   try {
-    if (!(await isAdmin(req))) return unauthorized();
+    if (!(await isAdministrator(req))) return unauthorized();
 
     const result = await getRoleManagementOverview(req);
 
@@ -100,7 +101,7 @@ export async function GET(req) {
 
 export async function PATCH(req) {
   try {
-    if (!(await isAdmin(req))) return unauthorized();
+    if (!(await isAdministrator(req))) return unauthorized();
 
     if (!validateCSRF(req)) {
       return NextResponse.json({ error: "CSRF tidak valid" }, { status: 403 });
