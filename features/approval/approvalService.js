@@ -8,14 +8,15 @@ const APPROVAL_MASTERS_TABLE = dbTable("approval_masters");
 const APPROVAL_REQUESTS_TABLE = dbTable("approval_requests");
 const APPROVAL_ACTIONS_TABLE = dbTable("approval_actions");
 const TERMINAL_STATUSES = ["completed", "rejected", "cancelled"];
+const MASTER_LIFECYCLES = new Set(["draft", "active", "archived"]);
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_PAGE_LIMIT = 60;
 
 const DEFAULT_FIELDS_SCHEMA = [
-  { key: "requester_name", label: "Nama Warga", type: "text", required: true },
-  { key: "requester_house", label: "Nomor Rumah", type: "text", required: true },
-  { key: "requester_phone", label: "Nomor WhatsApp", type: "text", required: true },
-  { key: "reason", label: "Alasan Pengajuan", type: "textarea", required: true },
+  { key: "requester_name", label: "Nama Warga", type: "text", required: true, placeholder: "Nama lengkap" },
+  { key: "requester_house", label: "Nomor Rumah", type: "text", required: true, placeholder: "Contoh: E3-3" },
+  { key: "requester_phone", label: "Nomor WhatsApp", type: "text", required: true, placeholder: "08xxxxxxxxxx" },
+  { key: "reason", label: "Alasan Pengajuan", type: "textarea", required: true, placeholder: "Jelaskan kebutuhan pengajuan" },
 ];
 
 const DEFAULT_FLOW_SCHEMA = [
@@ -26,23 +27,76 @@ const DEFAULT_FLOW_SCHEMA = [
 function clean(value) { return String(value || "").trim(); }
 function isTerminalStatus(status) { return TERMINAL_STATUSES.includes(clean(status).toLowerCase()); }
 function normalizeCode(value) { return clean(value).toUpperCase().replace(/[^A-Z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40); }
+function normalizeFieldKey(value) { return clean(value).toLowerCase().replace(/[^a-z0-9_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 60); }
 function safeNumber(value) { const number = Number(value || 0); return Number.isFinite(number) ? number : 0; }
 function safeOffset(value) { return Math.max(0, Math.floor(safeNumber(value))); }
 function safeLimit(value) { const parsed = Math.floor(safeNumber(value)); return parsed ? Math.min(Math.max(1, parsed), MAX_PAGE_LIMIT) : DEFAULT_PAGE_LIMIT; }
 function safeSearch(value) { return clean(value).replace(/[%,()]/g, " ").replace(/\s+/g, " ").slice(0, 80); }
 function requestReason(formData = {}) { return clean(formData.reason || formData.alasan); }
+function normalizeLifecycle(value, active = false) { const lifecycle = clean(value).toLowerCase(); return MASTER_LIFECYCLES.has(lifecycle) ? lifecycle : active ? "active" : "draft"; }
+
+function parseJson(value) {
+  if (typeof value !== "string") return value;
+  if (!clean(value)) return null;
+  try { return JSON.parse(value); } catch { return null; }
+}
 
 function parseSchema(value, fallback) {
-  if (Array.isArray(value)) return value;
-  if (!clean(value)) return fallback;
-  try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : fallback; } catch { return fallback; }
+  const parsed = parseJson(value);
+  return Array.isArray(parsed) ? parsed : fallback;
+}
+
+function ensureFields(fieldsSchema = []) {
+  return [...(Array.isArray(fieldsSchema) ? fieldsSchema : [])]
+    .map((field, index) => {
+      const label = clean(field?.label) || `Field ${index + 1}`;
+      const key = normalizeFieldKey(field?.key || label || `field_${index + 1}`);
+      const options = Array.isArray(field?.options) ? field.options.map(clean).filter(Boolean) : [];
+      return {
+        ...field,
+        key,
+        label,
+        type: clean(field?.type).toLowerCase() || "text",
+        required: Boolean(field?.required),
+        placeholder: clean(field?.placeholder),
+        show_summary: field?.show_summary !== false,
+        ...(options.length ? { options } : {}),
+      };
+    })
+    .filter((field) => field.key && field.label);
+}
+
+function readFieldsEnvelope(value) {
+  const parsed = parseJson(value);
+  if (Array.isArray(parsed)) return { fields: ensureFields(parsed), meta: {} };
+  if (parsed && typeof parsed === "object" && Array.isArray(parsed.fields)) {
+    return { fields: ensureFields(parsed.fields), meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {} };
+  }
+  return { fields: ensureFields(DEFAULT_FIELDS_SCHEMA), meta: {} };
+}
+
+function packFieldsEnvelope(fields, meta = {}) {
+  return {
+    version: 1,
+    meta: {
+      lifecycle_status: normalizeLifecycle(meta.lifecycle_status, meta.active),
+      icon: clean(meta.icon) || "📄",
+      color: clean(meta.color) || "#2563eb",
+    },
+    fields: ensureFields(fields),
+  };
 }
 
 function ensureFlow(flowSchema = []) {
   return [...(flowSchema || [])]
-    .map((step, index) => ({ step: safeNumber(step.step) || index + 1, role: clean(step.role).toLowerCase(), label: clean(step.label) || `Approval Step ${index + 1}`, action: clean(step.action) || "approve" }))
-    .filter((step) => step.role)
-    .sort((a, b) => a.step - b.step);
+    .map((step, index) => ({
+      ...step,
+      step: index + 1,
+      role: clean(step?.role).toLowerCase(),
+      label: clean(step?.label) || `Approval Step ${index + 1}`,
+      action: clean(step?.action).toLowerCase() || "approve",
+    }))
+    .filter((step) => step.role);
 }
 
 function getFirstStep(flowSchema = []) { return ensureFlow(flowSchema)[0] || null; }
@@ -58,8 +112,30 @@ function validateFormData(master, formData = {}) {
   if (missing.length) throw new Error(`Field wajib belum diisi: ${missing.join(", ")}`);
 }
 
+function validatePublishedMaster({ fields, flow, paymentRequired, paymentAmount }) {
+  if (!fields.length) throw new Error("Master aktif minimal memiliki satu field pengajuan");
+  const keys = fields.map((field) => field.key);
+  if (new Set(keys).size !== keys.length) throw new Error("Nama sistem field tidak boleh duplikat");
+  const optionField = fields.find((field) => ["select", "radio"].includes(field.type) && !(field.options || []).length);
+  if (optionField) throw new Error(`Pilihan untuk field ${optionField.label} belum diisi`);
+  if (paymentRequired && paymentAmount <= 0) throw new Error("Nominal pembayaran wajib lebih dari 0");
+  if (paymentRequired && flow[0]?.action !== "validate_payment") throw new Error("Master berbayar harus diawali tahap validasi pembayaran");
+}
+
 function mapMaster(row = {}) {
-  return { ...row, fields_schema: Array.isArray(row.fields_schema) ? row.fields_schema : DEFAULT_FIELDS_SCHEMA, flow_schema: Array.isArray(row.flow_schema) ? row.flow_schema : DEFAULT_FLOW_SCHEMA, payment_amount: safeNumber(row.payment_amount), payment_required: Boolean(row.payment_required), active: row.active !== false };
+  const envelope = readFieldsEnvelope(row.fields_schema);
+  const lifecycleStatus = normalizeLifecycle(envelope.meta.lifecycle_status, row.active !== false);
+  return {
+    ...row,
+    fields_schema: envelope.fields,
+    flow_schema: Array.isArray(row.flow_schema) ? ensureFlow(row.flow_schema) : DEFAULT_FLOW_SCHEMA,
+    lifecycle_status: lifecycleStatus,
+    icon: clean(envelope.meta.icon) || "📄",
+    color: clean(envelope.meta.color) || "#2563eb",
+    payment_amount: safeNumber(row.payment_amount),
+    payment_required: Boolean(row.payment_required),
+    active: lifecycleStatus === "active" && row.active !== false,
+  };
 }
 
 async function getRoleScopedIds(supabase, role) {
@@ -154,7 +230,7 @@ export async function getApprovalMasters({ activeOnly = false } = {}) {
   if (activeOnly) query = query.eq("active", true);
   const { data, error } = await query;
   if (error) throw new Error(error.message || "Gagal membaca master approval");
-  return (data || []).map(mapMaster);
+  return (data || []).map(mapMaster).filter((master) => !activeOnly || master.lifecycle_status === "active");
 }
 
 export async function getMasterManagementOverview() {
@@ -163,14 +239,53 @@ export async function getMasterManagementOverview() {
 
 export async function saveApprovalMaster({ req, payload = {} }) {
   const supabase = getSupabaseAdmin();
-  const id = clean(payload.id); const code = normalizeCode(payload.code || payload.name); const name = clean(payload.name);
+  const id = clean(payload.id);
+  const code = normalizeCode(payload.code || payload.name);
+  const name = clean(payload.name);
   if (!code) throw new Error("Kode approval wajib diisi");
   if (!name) throw new Error("Nama approval wajib diisi");
-  const row = { code, name, description: clean(payload.description), category: clean(payload.category) || "Umum", active: payload.active !== false, payment_required: Boolean(payload.payment_required), payment_amount: safeNumber(payload.payment_amount), payment_instruction: clean(payload.payment_instruction), fields_schema: parseSchema(payload.fields_schema, DEFAULT_FIELDS_SCHEMA), flow_schema: ensureFlow(parseSchema(payload.flow_schema, DEFAULT_FLOW_SCHEMA)), updated_at: new Date().toISOString() };
-  const query = id ? supabase.from(APPROVAL_MASTERS_TABLE).update(row).eq("id", id).select("*").single() : supabase.from(APPROVAL_MASTERS_TABLE).insert(row).select("*").single();
+
+  const parsedFields = readFieldsEnvelope(payload.fields_schema);
+  const fields = ensureFields(parsedFields.fields);
+  const flow = ensureFlow(parseSchema(payload.flow_schema, []));
+  const lifecycleStatus = normalizeLifecycle(payload.lifecycle_status, payload.active !== false);
+  const paymentRequired = Boolean(payload.payment_required);
+  const paymentAmount = safeNumber(payload.payment_amount);
+
+  if (lifecycleStatus === "active") validatePublishedMaster({ fields, flow, paymentRequired, paymentAmount });
+
+  const row = {
+    code,
+    name,
+    description: clean(payload.description),
+    category: clean(payload.category) || "Umum",
+    active: lifecycleStatus === "active",
+    payment_required: paymentRequired,
+    payment_amount: paymentAmount,
+    payment_instruction: clean(payload.payment_instruction),
+    fields_schema: packFieldsEnvelope(fields, {
+      lifecycle_status: lifecycleStatus,
+      active: lifecycleStatus === "active",
+      icon: payload.icon || parsedFields.meta.icon,
+      color: payload.color || parsedFields.meta.color,
+    }),
+    flow_schema: flow,
+    updated_at: new Date().toISOString(),
+  };
+
+  const query = id
+    ? supabase.from(APPROVAL_MASTERS_TABLE).update(row).eq("id", id).select("*").single()
+    : supabase.from(APPROVAL_MASTERS_TABLE).insert(row).select("*").single();
   const { data, error } = await query;
   if (error) throw new Error(error.message || "Gagal menyimpan master approval");
-  await recordAdminActivity(req, { type: id ? "update" : "create", module: "master-management", severity: "success", message: `${id ? "Update" : "Create"} approval master ${code}`, metadata: { access_role: "admin", code, id: data?.id || id } });
+
+  await recordAdminActivity(req, {
+    type: id ? "update" : "create",
+    module: "master-management",
+    severity: "success",
+    message: `${id ? "Update" : "Create"} approval master ${code} sebagai ${lifecycleStatus}`,
+    metadata: { access_role: "admin", code, id: data?.id || id, lifecycle_status: lifecycleStatus },
+  });
   return { ok: true, master: mapMaster(data) };
 }
 
@@ -209,7 +324,7 @@ export async function submitApprovalRequest(payload = {}) {
   const { data: masters, error: masterError } = await masterQuery;
   if (masterError) throw new Error(masterError.message || "Gagal membaca master approval");
   const master = mapMaster(masters?.[0]);
-  if (!master?.id) throw new Error("Jenis pengajuan tidak ditemukan atau nonaktif");
+  if (!master?.id || master.lifecycle_status !== "active") throw new Error("Jenis pengajuan tidak ditemukan atau nonaktif");
   const formData = payload.form_data || {};
   validateFormData(master, formData);
   const requestNo = await generateRequestNo(supabase);
@@ -219,6 +334,7 @@ export async function submitApprovalRequest(payload = {}) {
   const { data, error } = await supabase.from(APPROVAL_REQUESTS_TABLE).insert(row).select("*").single();
   if (error) throw new Error(error.message || "Gagal membuat pengajuan");
   const reason = requestReason(formData);
-  await supabase.from(APPROVAL_ACTIONS_TABLE).insert({ request_id: data.id, step: 0, role: "warga", actor: row.requester_name || row.requester_house || "warga", action: "submit", note: reason ? `Alasan Pengajuan: ${reason}` : "Pengajuan dibuat oleh warga" });
+  const { error: actionError } = await supabase.from(APPROVAL_ACTIONS_TABLE).insert({ request_id: data.id, step: 0, role: "warga", actor: row.requester_name || row.requester_house || "warga", action: "submit", note: reason ? `Alasan Pengajuan: ${reason}` : "Pengajuan dibuat oleh warga" });
+  if (actionError) throw new Error(actionError.message || "Pengajuan dibuat tetapi riwayat awal gagal disimpan");
   return { ok: true, request: data, payment_instruction: master.payment_instruction, message: master.payment_required ? `Pengajuan berhasil. Silakan transfer Rp${master.payment_amount.toLocaleString("id-ID")} dan tunggu validasi ${status.current_approver_role || "pengurus"}.` : "Pengajuan berhasil dan sedang menunggu approval pengurus." };
 }
