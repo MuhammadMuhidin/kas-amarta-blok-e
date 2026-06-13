@@ -1,0 +1,157 @@
+.page {
+  width: 100%;
+  max-width: 1060px;
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 14px 12px calc(108px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+  background: var(--bg, #f8fafc);
+}
+
+.block,
+.line,
+.circle {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--surface-soft, #f1f5f9);
+}
+
+.block::after,
+.line::after,
+.circle::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--primary, #2563eb) 11%, transparent), transparent);
+  transform: translateX(-100%);
+  animation: publicRouteSkeletonShimmer 1.2s ease-in-out infinite;
+}
+
+.hero {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 18px 12px 20px;
+}
+
+.line {
+  height: 14px;
+  border-radius: 999px;
+}
+
+.heroTitle { width: min(270px, 68vw); height: 18px; }
+.heroText { width: min(470px, 82vw); }
+.heroTextShort { width: min(350px, 64vw); }
+.heroButton { width: 126px; height: 34px; margin-top: 4px; border-radius: 999px; }
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 9px;
+  margin-bottom: 18px;
+}
+
+.tab { min-height: 44px; border-radius: 12px; }
+
+.summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.summaryItem { height: 66px; border-radius: 12px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(175px, 1fr));
+  gap: 8px;
+}
+
+.gridItem { height: 50px; border-radius: 12px; }
+
+.storyRail {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+
+.story {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  flex: 0 0 68px;
+}
+
+.circle { width: 60px; height: 60px; border-radius: 999px; }
+.storyText { width: 48px; height: 10px; }
+
+.feed { display: grid; gap: 18px; }
+
+.card {
+  overflow: hidden;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 22px;
+  background: var(--surface, #ffffff);
+  box-shadow: var(--shadow-soft, 0 3px 10px rgba(15, 23, 42, 0.05));
+}
+
+.cardHeader {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 16px 18px 12px;
+}
+
+.avatar { width: 44px; height: 44px; border-radius: 14px; }
+.stack { display: grid; gap: 8px; }
+.cardBody { display: grid; gap: 10px; padding: 16px 18px; }
+.cardTitle { width: 58%; height: 24px; }
+.textLong { width: 94%; }
+.textMid { width: 76%; }
+.textShort { width: 38%; }
+.media { width: 100%; height: clamp(230px, 42vw, 380px); border-width: 1px 0; border-radius: 0; }
+
+.requestList { display: grid; gap: 10px; }
+.requestCard {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--surface, #ffffff);
+  box-shadow: var(--shadow-soft, 0 3px 10px rgba(15, 23, 42, 0.05));
+}
+
+.requestHeader { display: flex; justify-content: space-between; gap: 12px; }
+.requestCopy { display: grid; gap: 7px; width: min(58%, 320px); }
+.kicker { width: 92px; height: 11px; }
+.heading { width: 210px; max-width: 100%; height: 21px; }
+.pill { width: 116px; height: 42px; border-radius: 10px; }
+.fieldGroup { display: grid; gap: 7px; }
+.fieldLabel { width: 128px; height: 11px; }
+.field { width: 100%; height: 44px; border-radius: 10px; }
+.textarea { height: 92px; }
+.requestButton { width: 100%; height: 44px; border-radius: 10px; }
+
+@keyframes publicRouteSkeletonShimmer {
+  to { transform: translateX(100%); }
+}
+
+@media (max-width: 700px) {
+  .page { padding: 12px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
+  .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .summary { gap: 6px; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  .media { height: clamp(220px, 68vw, 340px); }
+  .requestCopy { width: min(58%, 250px); }
+  .pill { width: 104px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .block::after,
+  .line::after,
+  .circle::after { animation: none; }
+}
