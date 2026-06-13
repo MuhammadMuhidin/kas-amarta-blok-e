@@ -1,5 +1,5 @@
-import PublicRouteSkeleton from "@/components/public/PublicRouteSkeleton";
+import KasLoadingView from "@/components/public/KasLoadingView";
 
 export default function KasLoading() {
-  return <PublicRouteSkeleton variant="kas" />;
+  return <KasLoadingView />;
 }
