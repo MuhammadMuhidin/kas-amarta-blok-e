@@ -153,9 +153,17 @@ export default function AdminPageClient() {
     async function bootstrap() {
       const session = await checkSession();
       if (!session) return;
-      setSessionInfo({ access_role: session.access_role || "admin", modules: session.modules?.length ? session.modules : ["overview"] });
+
+      const modules = session.modules?.length ? session.modules : ["overview"];
+      const initialTab = getAllowedModules(modules)[0]?.key || "overview";
+
+      setSessionInfo({
+        access_role: session.access_role || "admin",
+        modules,
+      });
+
       try {
-        await Promise.all([loadAppConfig(), loadPersonal(), loadPayment(), loadCashflow(), loadTrash(), loadDeposit()]);
+        await refreshTabData(initialTab);
       } finally {
         setBootLoading(false);
       }
