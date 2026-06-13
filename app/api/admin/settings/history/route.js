@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { isAdmin, unauthorized } from "@/lib/auth";
+import { isAdministrator, unauthorized } from "@/lib/auth";
 import { getSettingsHistory } from "@/features/settings/settingsHistoryService";
 
 export const runtime = "nodejs";
 
 export async function GET(req) {
   try {
-    if (!(await isAdmin(req))) {
+    if (!(await isAdministrator(req))) {
       return unauthorized();
     }
 
