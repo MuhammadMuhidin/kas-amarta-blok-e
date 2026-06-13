@@ -1,3 +1,7 @@
+.public-kas-page {
+  padding-bottom: calc(104px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
 body:has(.page-wrap) .public-theme-button {
   width: 1px !important;
   height: 1px !important;
