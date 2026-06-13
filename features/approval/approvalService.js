@@ -11,12 +11,13 @@ const TERMINAL_STATUSES = ["completed", "rejected", "cancelled"];
 const MASTER_LIFECYCLES = new Set(["draft", "active", "archived"]);
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_PAGE_LIMIT = 60;
+const MAX_VERSION_HISTORY = 10;
 
 const DEFAULT_FIELDS_SCHEMA = [
-  { key: "requester_name", label: "Nama Warga", type: "text", required: true, placeholder: "Nama lengkap" },
-  { key: "requester_house", label: "Nomor Rumah", type: "text", required: true, placeholder: "Contoh: E3-3" },
-  { key: "requester_phone", label: "Nomor WhatsApp", type: "text", required: true, placeholder: "08xxxxxxxxxx" },
-  { key: "reason", label: "Alasan Pengajuan", type: "textarea", required: true, placeholder: "Jelaskan kebutuhan pengajuan" },
+  { key: "requester_name", label: "Nama Warga", type: "text", required: true, placeholder: "Nama lengkap", show_summary: true },
+  { key: "requester_house", label: "Nomor Rumah", type: "text", required: true, placeholder: "Contoh: E3-3", show_summary: true },
+  { key: "requester_phone", label: "Nomor WhatsApp", type: "tel", required: true, placeholder: "08xxxxxxxxxx", show_summary: false },
+  { key: "reason", label: "Alasan Pengajuan", type: "textarea", required: true, placeholder: "Jelaskan kebutuhan pengajuan", show_summary: true },
 ];
 
 const DEFAULT_FLOW_SCHEMA = [
@@ -34,6 +35,8 @@ function safeLimit(value) { const parsed = Math.floor(safeNumber(value)); return
 function safeSearch(value) { return clean(value).replace(/[%,()]/g, " ").replace(/\s+/g, " ").slice(0, 80); }
 function requestReason(formData = {}) { return clean(formData.reason || formData.alasan); }
 function normalizeLifecycle(value, active = false) { const lifecycle = clean(value).toLowerCase(); return MASTER_LIFECYCLES.has(lifecycle) ? lifecycle : active ? "active" : "draft"; }
+function isoNow() { return new Date().toISOString(); }
+function clone(value) { return value == null ? value : JSON.parse(JSON.stringify(value)); }
 
 function parseJson(value) {
   if (typeof value !== "string") return value;
@@ -52,43 +55,28 @@ function ensureFields(fieldsSchema = []) {
       const label = clean(field?.label) || `Field ${index + 1}`;
       const key = normalizeFieldKey(field?.key || label || `field_${index + 1}`);
       const options = Array.isArray(field?.options) ? field.options.map(clean).filter(Boolean) : [];
+      const type = clean(field?.type).toLowerCase() || "text";
+      const defaultMax = type === "image" ? 5 : type === "file" ? 10 : 0;
       return {
         ...field,
         key,
         label,
-        type: clean(field?.type).toLowerCase() || "text",
+        type,
         required: Boolean(field?.required),
         placeholder: clean(field?.placeholder),
         show_summary: field?.show_summary !== false,
         ...(options.length ? { options } : {}),
+        ...(["image", "file"].includes(type) ? {
+          accept: clean(field?.accept) || (type === "image" ? "image/jpeg,image/png,image/webp" : "application/pdf,image/jpeg,image/png,image/webp"),
+          max_size_mb: Math.min(Math.max(safeNumber(field?.max_size_mb) || defaultMax, 1), 20),
+        } : {}),
       };
     })
     .filter((field) => field.key && field.label);
 }
 
-function readFieldsEnvelope(value) {
-  const parsed = parseJson(value);
-  if (Array.isArray(parsed)) return { fields: ensureFields(parsed), meta: {} };
-  if (parsed && typeof parsed === "object" && Array.isArray(parsed.fields)) {
-    return { fields: ensureFields(parsed.fields), meta: parsed.meta && typeof parsed.meta === "object" ? parsed.meta : {} };
-  }
-  return { fields: ensureFields(DEFAULT_FIELDS_SCHEMA), meta: {} };
-}
-
-function packFieldsEnvelope(fields, meta = {}) {
-  return {
-    version: 1,
-    meta: {
-      lifecycle_status: normalizeLifecycle(meta.lifecycle_status, meta.active),
-      icon: clean(meta.icon) || "📄",
-      color: clean(meta.color) || "#2563eb",
-    },
-    fields: ensureFields(fields),
-  };
-}
-
 function ensureFlow(flowSchema = []) {
-  return [...(flowSchema || [])]
+  return [...(Array.isArray(flowSchema) ? flowSchema : [])]
     .map((step, index) => ({
       ...step,
       step: index + 1,
@@ -99,6 +87,146 @@ function ensureFlow(flowSchema = []) {
     .filter((step) => step.role);
 }
 
+function configFromRow(row = {}, fields = DEFAULT_FIELDS_SCHEMA, flow = DEFAULT_FLOW_SCHEMA) {
+  return {
+    code: normalizeCode(row.code || row.name),
+    name: clean(row.name),
+    category: clean(row.category) || "Umum",
+    description: clean(row.description),
+    icon: "📄",
+    color: "#2563eb",
+    payment_required: Boolean(row.payment_required),
+    payment_amount: safeNumber(row.payment_amount),
+    payment_instruction: clean(row.payment_instruction),
+    fields_schema: ensureFields(fields),
+    flow_schema: ensureFlow(flow),
+    revision: 1,
+    updated_at: clean(row.updated_at || row.created_at) || isoNow(),
+    published_at: row.active !== false ? clean(row.updated_at || row.created_at) || isoNow() : "",
+  };
+}
+
+function normalizeConfig(value = {}, fallback = {}) {
+  const merged = { ...fallback, ...(value && typeof value === "object" ? value : {}) };
+  return {
+    code: normalizeCode(merged.code || merged.name),
+    name: clean(merged.name),
+    category: clean(merged.category) || "Umum",
+    description: clean(merged.description),
+    icon: clean(merged.icon) || "📄",
+    color: clean(merged.color) || "#2563eb",
+    payment_required: Boolean(merged.payment_required),
+    payment_amount: safeNumber(merged.payment_amount),
+    payment_instruction: clean(merged.payment_instruction),
+    fields_schema: ensureFields(merged.fields_schema || fallback.fields_schema || DEFAULT_FIELDS_SCHEMA),
+    flow_schema: ensureFlow(merged.flow_schema || fallback.flow_schema || []),
+    revision: Math.max(1, Math.floor(safeNumber(merged.revision) || safeNumber(fallback.revision) || 1)),
+    updated_at: clean(merged.updated_at) || isoNow(),
+    published_at: clean(merged.published_at),
+  };
+}
+
+function readMasterEnvelope(row = {}) {
+  const parsed = parseJson(row.fields_schema);
+  const rowFlow = Array.isArray(row.flow_schema) ? row.flow_schema : DEFAULT_FLOW_SCHEMA;
+
+  if (parsed?.schema_version === 2) {
+    const published = parsed.published ? normalizeConfig(parsed.published, configFromRow(row, parsed.fields || DEFAULT_FIELDS_SCHEMA, rowFlow)) : null;
+    const draft = parsed.draft ? normalizeConfig(parsed.draft, published || configFromRow(row, parsed.fields || DEFAULT_FIELDS_SCHEMA, rowFlow)) : null;
+    const history = Array.isArray(parsed.history) ? parsed.history.map((item) => normalizeConfig(item, published || draft || {})).slice(-MAX_VERSION_HISTORY) : [];
+    return {
+      schema_version: 2,
+      lifecycle_status: normalizeLifecycle(parsed.meta?.lifecycle_status, row.active !== false),
+      published,
+      draft,
+      history,
+    };
+  }
+
+  const legacyFields = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.fields) ? parsed.fields : DEFAULT_FIELDS_SCHEMA;
+  const legacyMeta = parsed && !Array.isArray(parsed) && parsed.meta ? parsed.meta : {};
+  const legacyConfig = normalizeConfig({
+    ...configFromRow(row, legacyFields, rowFlow),
+    icon: legacyMeta.icon,
+    color: legacyMeta.color,
+  });
+  const lifecycle = normalizeLifecycle(legacyMeta.lifecycle_status, row.active !== false);
+
+  if (lifecycle === "draft" && row.active === false) {
+    return { schema_version: 2, lifecycle_status: "draft", published: null, draft: legacyConfig, history: [] };
+  }
+
+  return {
+    schema_version: 2,
+    lifecycle_status: lifecycle,
+    published: legacyConfig,
+    draft: null,
+    history: [],
+  };
+}
+
+function packMasterEnvelope({ lifecycleStatus, published, draft, history = [] }) {
+  const effective = draft || published || normalizeConfig({});
+  return {
+    schema_version: 2,
+    meta: {
+      lifecycle_status: lifecycleStatus,
+      published_revision: published?.revision || 0,
+      draft_revision: draft?.revision || 0,
+      published_at: published?.published_at || "",
+      updated_at: isoNow(),
+    },
+    fields: effective.fields_schema,
+    published: published || null,
+    draft: draft || null,
+    history: history.slice(-MAX_VERSION_HISTORY),
+  };
+}
+
+function configToRow(config, { active, fieldsEnvelope }) {
+  return {
+    code: config.code,
+    name: config.name,
+    description: config.description,
+    category: config.category,
+    active,
+    payment_required: config.payment_required,
+    payment_amount: config.payment_amount,
+    payment_instruction: config.payment_instruction,
+    fields_schema: fieldsEnvelope,
+    flow_schema: config.flow_schema,
+    updated_at: isoNow(),
+  };
+}
+
+function mapMaster(row = {}, { publicView = false } = {}) {
+  const envelope = readMasterEnvelope(row);
+  const published = envelope.published;
+  const draft = envelope.draft;
+  const config = publicView ? published : draft || published || configFromRow(row);
+  const lifecycleStatus = envelope.lifecycle_status === "archived"
+    ? "archived"
+    : row.active && published
+      ? "active"
+      : "draft";
+
+  return {
+    ...row,
+    ...config,
+    id: row.id,
+    active: Boolean(row.active && published && lifecycleStatus === "active"),
+    lifecycle_status: lifecycleStatus,
+    has_draft: Boolean(draft),
+    published_revision: published?.revision || 0,
+    draft_revision: draft?.revision || 0,
+    published_at: published?.published_at || "",
+    version_history: [...envelope.history, ...(published ? [published] : [])]
+      .sort((a, b) => Number(b.revision || 0) - Number(a.revision || 0))
+      .map((item) => clone(item)),
+    published_config: published ? clone(published) : null,
+  };
+}
+
 function getFirstStep(flowSchema = []) { return ensureFlow(flowSchema)[0] || null; }
 
 function buildRequestStatus(master) {
@@ -107,8 +235,18 @@ function buildRequestStatus(master) {
   return { status: master.payment_required && firstStep.action === "validate_payment" ? "waiting_payment_validation" : "waiting_approval", current_step: firstStep.step, current_approver_role: firstStep.role, payment_status: master.payment_required ? "pending" : "not_required" };
 }
 
+function hasSubmittedValue(value) {
+  if (value && typeof value === "object" && value.kind === "attachment") return Boolean(value.path && value.name);
+  if (typeof value === "boolean") return value;
+  if (Array.isArray(value)) return value.length > 0;
+  return Boolean(clean(value));
+}
+
 function validateFormData(master, formData = {}) {
-  const missing = (master.fields_schema || []).filter((field) => field.required).filter((field) => !clean(formData[field.key])).map((field) => field.label || field.key);
+  const missing = (master.fields_schema || [])
+    .filter((field) => field.required)
+    .filter((field) => !hasSubmittedValue(formData[field.key]))
+    .map((field) => field.label || field.key);
   if (missing.length) throw new Error(`Field wajib belum diisi: ${missing.join(", ")}`);
 }
 
@@ -122,20 +260,21 @@ function validatePublishedMaster({ fields, flow, paymentRequired, paymentAmount 
   if (paymentRequired && flow[0]?.action !== "validate_payment") throw new Error("Master berbayar harus diawali tahap validasi pembayaran");
 }
 
-function mapMaster(row = {}) {
-  const envelope = readFieldsEnvelope(row.fields_schema);
-  const lifecycleStatus = normalizeLifecycle(envelope.meta.lifecycle_status, row.active !== false);
-  return {
-    ...row,
-    fields_schema: envelope.fields,
-    flow_schema: Array.isArray(row.flow_schema) ? ensureFlow(row.flow_schema) : DEFAULT_FLOW_SCHEMA,
-    lifecycle_status: lifecycleStatus,
-    icon: clean(envelope.meta.icon) || "📄",
-    color: clean(envelope.meta.color) || "#2563eb",
-    payment_amount: safeNumber(row.payment_amount),
-    payment_required: Boolean(row.payment_required),
-    active: lifecycleStatus === "active" && row.active !== false,
-  };
+function payloadToConfig(payload = {}, fallback = {}) {
+  return normalizeConfig({
+    code: payload.code || payload.name,
+    name: payload.name,
+    category: payload.category,
+    description: payload.description,
+    icon: payload.icon,
+    color: payload.color,
+    payment_required: payload.payment_required,
+    payment_amount: payload.payment_amount,
+    payment_instruction: payload.payment_instruction,
+    fields_schema: parseSchema(payload.fields_schema, fallback.fields_schema || DEFAULT_FIELDS_SCHEMA),
+    flow_schema: parseSchema(payload.flow_schema, fallback.flow_schema || []),
+    updated_at: isoNow(),
+  }, fallback);
 }
 
 async function getRoleScopedIds(supabase, role) {
@@ -214,7 +353,9 @@ async function getApprovalSummary({ supabase, role, scopedIds }) {
 }
 
 async function generateRequestNo(supabase) {
-  const now = new Date(); const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`; const prefix = `APR-${yearMonth}-`;
+  const now = new Date();
+  const yearMonth = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const prefix = `APR-${yearMonth}-`;
   for (let attempt = 0; attempt < 30; attempt += 1) {
     const requestNo = `${prefix}${String(randomInt(0, 10000)).padStart(4, "0")}`;
     const { data, error } = await supabase.from(APPROVAL_REQUESTS_TABLE).select("id").eq("request_no", requestNo).maybeSingle();
@@ -230,7 +371,22 @@ export async function getApprovalMasters({ activeOnly = false } = {}) {
   if (activeOnly) query = query.eq("active", true);
   const { data, error } = await query;
   if (error) throw new Error(error.message || "Gagal membaca master approval");
-  return (data || []).map(mapMaster).filter((master) => !activeOnly || master.lifecycle_status === "active");
+  return (data || [])
+    .map((row) => mapMaster(row, { publicView: activeOnly }))
+    .filter((master) => !activeOnly || master.active);
+}
+
+export async function getApprovalMaster({ id = "", code = "", activeOnly = false } = {}) {
+  const supabase = getSupabaseAdmin();
+  let query = supabase.from(APPROVAL_MASTERS_TABLE).select("*").limit(1);
+  if (activeOnly) query = query.eq("active", true);
+  if (clean(id)) query = query.eq("id", clean(id));
+  else query = query.eq("code", normalizeCode(code));
+  const { data, error } = await query.maybeSingle();
+  if (error) throw new Error(error.message || "Gagal membaca master approval");
+  if (!data) return null;
+  const master = mapMaster(data, { publicView: activeOnly });
+  return activeOnly && !master.active ? null : master;
 }
 
 export async function getMasterManagementOverview() {
@@ -240,51 +396,89 @@ export async function getMasterManagementOverview() {
 export async function saveApprovalMaster({ req, payload = {} }) {
   const supabase = getSupabaseAdmin();
   const id = clean(payload.id);
-  const code = normalizeCode(payload.code || payload.name);
-  const name = clean(payload.name);
-  if (!code) throw new Error("Kode approval wajib diisi");
-  if (!name) throw new Error("Nama approval wajib diisi");
+  const operation = clean(payload.operation).toLowerCase();
+  const requestedLifecycle = normalizeLifecycle(payload.lifecycle_status, payload.active !== false);
+  const now = isoNow();
 
-  const parsedFields = readFieldsEnvelope(payload.fields_schema);
-  const fields = ensureFields(parsedFields.fields);
-  const flow = ensureFlow(parseSchema(payload.flow_schema, []));
-  const lifecycleStatus = normalizeLifecycle(payload.lifecycle_status, payload.active !== false);
-  const paymentRequired = Boolean(payload.payment_required);
-  const paymentAmount = safeNumber(payload.payment_amount);
+  let existingRow = null;
+  if (id) {
+    const { data, error } = await supabase.from(APPROVAL_MASTERS_TABLE).select("*").eq("id", id).maybeSingle();
+    if (error) throw new Error(error.message || "Gagal membaca approval master");
+    if (!data) throw new Error("Approval master tidak ditemukan");
+    existingRow = data;
+  }
 
-  if (lifecycleStatus === "active") validatePublishedMaster({ fields, flow, paymentRequired, paymentAmount });
+  const envelope = existingRow
+    ? readMasterEnvelope(existingRow)
+    : { lifecycle_status: "draft", published: null, draft: null, history: [] };
 
-  const row = {
-    code,
-    name,
-    description: clean(payload.description),
-    category: clean(payload.category) || "Umum",
-    active: lifecycleStatus === "active",
-    payment_required: paymentRequired,
-    payment_amount: paymentAmount,
-    payment_instruction: clean(payload.payment_instruction),
-    fields_schema: packFieldsEnvelope(fields, {
-      lifecycle_status: lifecycleStatus,
-      active: lifecycleStatus === "active",
-      icon: payload.icon || parsedFields.meta.icon,
-      color: payload.color || parsedFields.meta.color,
-    }),
-    flow_schema: flow,
-    updated_at: new Date().toISOString(),
-  };
+  if (operation === "discard_draft") {
+    if (!existingRow || !envelope.draft) throw new Error("Draft tidak ditemukan");
+    const lifecycleStatus = envelope.published && existingRow.active ? "active" : envelope.lifecycle_status;
+    const packed = packMasterEnvelope({ lifecycleStatus, published: envelope.published, draft: null, history: envelope.history });
+    const fallback = envelope.published || configFromRow(existingRow);
+    const { data, error } = await supabase
+      .from(APPROVAL_MASTERS_TABLE)
+      .update(configToRow(fallback, { active: lifecycleStatus === "active", fieldsEnvelope: packed }))
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message || "Gagal membuang draft");
+    await recordAdminActivity(req, { type: "update", module: "master-management", severity: "warning", message: `Discard draft approval master ${fallback.code}`, metadata: { id, code: fallback.code } });
+    return { ok: true, master: mapMaster(data) };
+  }
 
-  const query = id
+  const fallbackConfig = envelope.draft || envelope.published || (existingRow ? configFromRow(existingRow) : {});
+  const incoming = payloadToConfig(payload, fallbackConfig);
+  if (!incoming.code) throw new Error("Kode approval wajib diisi");
+  if (!incoming.name) throw new Error("Nama approval wajib diisi");
+
+  let lifecycleStatus = requestedLifecycle;
+  let published = envelope.published ? clone(envelope.published) : null;
+  let draft = envelope.draft ? clone(envelope.draft) : null;
+  let history = clone(envelope.history || []);
+  let active = Boolean(existingRow?.active && published);
+
+  if (requestedLifecycle === "draft") {
+    const baseRevision = published?.revision || draft?.revision || 0;
+    draft = { ...incoming, revision: Math.max(baseRevision + 1, draft?.revision || 1), updated_at: now, published_at: "" };
+    lifecycleStatus = active && published ? "active" : "draft";
+  } else if (requestedLifecycle === "active") {
+    validatePublishedMaster({ fields: incoming.fields_schema, flow: incoming.flow_schema, paymentRequired: incoming.payment_required, paymentAmount: incoming.payment_amount });
+    if (published) history = [...history, clone(published)].slice(-MAX_VERSION_HISTORY);
+    const nextRevision = Math.max(published?.revision || 0, draft?.revision || 0) + 1;
+    published = { ...incoming, revision: nextRevision, updated_at: now, published_at: now };
+    draft = null;
+    active = true;
+    lifecycleStatus = "active";
+  } else if (requestedLifecycle === "archived") {
+    draft = null;
+    active = false;
+    lifecycleStatus = "archived";
+  }
+
+  const packed = packMasterEnvelope({ lifecycleStatus, published, draft, history });
+  const rowConfig = active && published ? published : draft || published || incoming;
+  const row = configToRow(rowConfig, { active, fieldsEnvelope: packed });
+  const query = existingRow
     ? supabase.from(APPROVAL_MASTERS_TABLE).update(row).eq("id", id).select("*").single()
     : supabase.from(APPROVAL_MASTERS_TABLE).insert(row).select("*").single();
   const { data, error } = await query;
   if (error) throw new Error(error.message || "Gagal menyimpan master approval");
 
   await recordAdminActivity(req, {
-    type: id ? "update" : "create",
+    type: existingRow ? "update" : "create",
     module: "master-management",
     severity: "success",
-    message: `${id ? "Update" : "Create"} approval master ${code} sebagai ${lifecycleStatus}`,
-    metadata: { access_role: "admin", code, id: data?.id || id, lifecycle_status: lifecycleStatus },
+    message: `${existingRow ? "Update" : "Create"} approval master ${rowConfig.code} sebagai ${requestedLifecycle}`,
+    metadata: {
+      access_role: "admin",
+      code: rowConfig.code,
+      id: data?.id || id,
+      lifecycle_status: lifecycleStatus,
+      published_revision: published?.revision || 0,
+      draft_revision: draft?.revision || 0,
+    },
   });
   return { ok: true, master: mapMaster(data) };
 }
@@ -318,19 +512,42 @@ export async function getApprovalCenterOverview({ accessRole = "admin", offset =
 
 export async function submitApprovalRequest(payload = {}) {
   const supabase = getSupabaseAdmin();
-  const masterId = clean(payload.master_id); const masterCode = normalizeCode(payload.master_code);
-  let masterQuery = supabase.from(APPROVAL_MASTERS_TABLE).select("*").eq("active", true).limit(1);
-  if (masterId) masterQuery = masterQuery.eq("id", masterId); else masterQuery = masterQuery.eq("code", masterCode);
-  const { data: masters, error: masterError } = await masterQuery;
-  if (masterError) throw new Error(masterError.message || "Gagal membaca master approval");
-  const master = mapMaster(masters?.[0]);
-  if (!master?.id || master.lifecycle_status !== "active") throw new Error("Jenis pengajuan tidak ditemukan atau nonaktif");
-  const formData = payload.form_data || {};
+  const masterId = clean(payload.master_id);
+  const masterCode = normalizeCode(payload.master_code);
+  const master = await getApprovalMaster({ id: masterId, code: masterCode, activeOnly: true });
+  if (!master?.id) throw new Error("Jenis pengajuan tidak ditemukan atau nonaktif");
+
+  const rawFormData = payload.form_data && typeof payload.form_data === "object" ? payload.form_data : {};
+  const formData = Object.fromEntries(Object.entries(rawFormData).filter(([key]) => !key.startsWith("__")));
   validateFormData(master, formData);
   const requestNo = await generateRequestNo(supabase);
   const status = buildRequestStatus(master);
-  const now = new Date().toISOString();
-  const row = { request_no: requestNo, master_id: master.id, master_code: master.code, master_name: master.name, requester_house: clean(formData.requester_house || payload.requester_house), requester_name: clean(formData.requester_name || payload.requester_name), requester_phone: clean(formData.requester_phone || payload.requester_phone), status: status.status, current_step: status.current_step, current_approver_role: status.current_approver_role, amount: master.payment_required ? master.payment_amount : 0, payment_status: status.payment_status, form_data: formData, submitted_at: now, updated_at: now };
+  const now = isoNow();
+  const systemSnapshot = {
+    master_revision: master.published_revision || 1,
+    fields_schema_snapshot: clone(master.fields_schema),
+    flow_schema_snapshot: clone(master.flow_schema),
+    payment_instruction_snapshot: master.payment_instruction,
+    captured_at: now,
+  };
+  const persistedFormData = { ...formData, __system: systemSnapshot };
+  const row = {
+    request_no: requestNo,
+    master_id: master.id,
+    master_code: master.code,
+    master_name: master.name,
+    requester_house: clean(formData.requester_house || payload.requester_house),
+    requester_name: clean(formData.requester_name || payload.requester_name),
+    requester_phone: clean(formData.requester_phone || payload.requester_phone),
+    status: status.status,
+    current_step: status.current_step,
+    current_approver_role: status.current_approver_role,
+    amount: master.payment_required ? master.payment_amount : 0,
+    payment_status: status.payment_status,
+    form_data: persistedFormData,
+    submitted_at: now,
+    updated_at: now,
+  };
   const { data, error } = await supabase.from(APPROVAL_REQUESTS_TABLE).insert(row).select("*").single();
   if (error) throw new Error(error.message || "Gagal membuat pengajuan");
   const reason = requestReason(formData);
