@@ -21,6 +21,8 @@ const FIELD_TYPES = [
   { value: "select", label: "Pilihan dropdown" },
   { value: "radio", label: "Pilihan radio" },
   { value: "checkbox", label: "Ya / Tidak" },
+  { value: "image", label: "Upload gambar" },
+  { value: "file", label: "Upload dokumen" },
 ];
 
 const ACTION_OPTIONS = [
@@ -83,6 +85,13 @@ function automaticStepLabel(action, role) {
   return `${actionLabel(action)} oleh ${roleLabel(role)}`;
 }
 
+function formatDate(value) {
+  const date = new Date(value);
+  return value && !Number.isNaN(date.getTime())
+    ? date.toLocaleString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : "-";
+}
+
 function makeEmptyForm() {
   return {
     id: "",
@@ -98,6 +107,11 @@ function makeEmptyForm() {
     payment_instruction: "",
     fields_schema: clone(DEFAULT_FIELDS),
     flow_schema: [{ step: 1, role: "ketua", label: "Approval Ketua", action: "final_approval" }],
+    published_revision: 0,
+    draft_revision: 0,
+    has_draft: false,
+    version_history: [],
+    published_config: null,
   };
 }
 
@@ -116,6 +130,11 @@ function masterToForm(master = {}) {
     payment_instruction: master.payment_instruction || "",
     fields_schema: clone(Array.isArray(master.fields_schema) ? master.fields_schema : DEFAULT_FIELDS),
     flow_schema: renumberFlow(clone(Array.isArray(master.flow_schema) ? master.flow_schema : DEFAULT_FLOW)),
+    published_revision: Number(master.published_revision || 0),
+    draft_revision: Number(master.draft_revision || 0),
+    has_draft: Boolean(master.has_draft),
+    version_history: clone(Array.isArray(master.version_history) ? master.version_history : []),
+    published_config: master.published_config ? clone(master.published_config) : null,
   };
 }
 
@@ -139,6 +158,11 @@ function validateMaster(value, full = true) {
   fields.forEach((field, index) => {
     if (!clean(field.label)) errors.push({ step: 1, message: `Field ${index + 1} belum memiliki label` });
     if (["select", "radio"].includes(field.type) && !(field.options || []).filter(clean).length) errors.push({ step: 1, message: `Pilihan untuk field ${field.label || index + 1} belum diisi` });
+    if (["image", "file"].includes(field.type)) {
+      const max = Number(field.max_size_mb || 0);
+      if (!max || max < 1 || max > 20) errors.push({ step: 1, message: `${field.label || `Field ${index + 1}`} harus memiliki batas ukuran 1–20 MB` });
+      if (!clean(field.accept)) errors.push({ step: 1, message: `${field.label || `Field ${index + 1}`} belum memiliki format file yang diizinkan` });
+    }
   });
 
   const flow = Array.isArray(value.flow_schema) ? value.flow_schema : [];
@@ -161,6 +185,7 @@ function PreviewField({ field }) {
   if (field.type === "select") return <select className="admin-input" disabled><option>{field.placeholder || "Pilih salah satu"}</option>{options.map((option) => <option key={option}>{option}</option>)}</select>;
   if (field.type === "radio") return <div className="mm-preview-options">{options.map((option) => <label key={option}><input type="radio" disabled /> {option}</label>)}</div>;
   if (field.type === "checkbox") return <label className="mm-check"><input type="checkbox" disabled /> Ya</label>;
+  if (["image", "file"].includes(field.type)) return <div className="mm-file-preview"><span>{field.type === "image" ? "🖼️" : "📎"}</span><div><strong>Pilih {field.type === "image" ? "gambar" : "dokumen"}</strong><small>Maksimal {field.max_size_mb || (field.type === "image" ? 5 : 10)} MB</small></div></div>;
   const inputType = field.type === "money" ? "number" : ["number", "date", "tel"].includes(field.type) ? field.type : "text";
   return <input className="admin-input" type={inputType} placeholder={field.placeholder || field.label} disabled />;
 }
@@ -216,16 +241,18 @@ function FieldBuilder({ value, onChange }) {
       <div className="mm-builder-list">
         {fields.map((field, index) => {
           const hasOptions = ["select", "radio"].includes(field.type);
+          const isUpload = ["image", "file"].includes(field.type);
           return (
             <article className="mm-builder-card" key={`${field.key}-${index}`}>
               <div className="mm-builder-card-head"><div><span>Field {index + 1}</span><strong>{field.label || "Tanpa label"}</strong></div><div className="mm-card-actions"><button type="button" onClick={() => move(index, -1)} disabled={index === 0} title="Naik">↑</button><button type="button" onClick={() => move(index, 1)} disabled={index === fields.length - 1} title="Turun">↓</button><button type="button" onClick={() => duplicate(index)} title="Duplikat">⧉</button><button type="button" onClick={() => remove(index)} title="Hapus">×</button></div></div>
               <div className="mm-grid-2">
                 <label>Label<input className="admin-input" value={field.label || ""} onChange={(event) => { const label = event.target.value; const oldAutoKey = normalizeKey(field.label) === field.key || !field.key; update(index, { label, ...(oldAutoKey ? { key: normalizeKey(label) } : {}) }); }} /></label>
                 <label>Nama sistem<input className="admin-input" value={field.key || ""} onChange={(event) => update(index, { key: normalizeKey(event.target.value) })} /></label>
-                <label>Jenis field<select className="admin-input" value={field.type || "text"} onChange={(event) => update(index, { type: event.target.value, ...(["select", "radio"].includes(event.target.value) && !field.options ? { options: ["Pilihan 1"] } : {}) })}>{FIELD_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
-                <label>Placeholder<input className="admin-input" value={field.placeholder || ""} onChange={(event) => update(index, { placeholder: event.target.value })} /></label>
+                <label>Jenis field<select className="admin-input" value={field.type || "text"} onChange={(event) => { const type = event.target.value; update(index, { type, ...(["select", "radio"].includes(type) && !field.options ? { options: ["Pilihan 1"] } : {}), ...(type === "image" ? { accept: "image/jpeg,image/png,image/webp", max_size_mb: 5 } : {}), ...(type === "file" ? { accept: "application/pdf,image/jpeg,image/png,image/webp", max_size_mb: 10 } : {}) }); }}>{FIELD_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</select></label>
+                {!isUpload ? <label>Placeholder<input className="admin-input" value={field.placeholder || ""} onChange={(event) => update(index, { placeholder: event.target.value })} /></label> : <label>Batas ukuran (MB)<input className="admin-input" type="number" min="1" max="20" value={field.max_size_mb || (field.type === "image" ? 5 : 10)} onChange={(event) => update(index, { max_size_mb: event.target.value })} /></label>}
               </div>
-              {hasOptions ? <label>Pilihan <textarea className="admin-input" rows={3} value={(field.options || []).join("\n")} onChange={(event) => update(index, { options: event.target.value.split("\n") })} placeholder="Satu pilihan per baris" /></label> : null}
+              {hasOptions ? <label>Pilihan<textarea className="admin-input" rows={3} value={(field.options || []).join("\n")} onChange={(event) => update(index, { options: event.target.value.split("\n") })} placeholder="Satu pilihan per baris" /></label> : null}
+              {isUpload ? <label>Format MIME yang diizinkan<input className="admin-input" value={field.accept || ""} onChange={(event) => update(index, { accept: event.target.value })} placeholder="application/pdf,image/jpeg" /><small className="mm-inline-help">Pisahkan dengan koma. Gambar aman: image/jpeg,image/png,image/webp.</small></label> : null}
               <div className="mm-toggle-row"><label className="mm-check"><input type="checkbox" checked={Boolean(field.required)} onChange={(event) => update(index, { required: event.target.checked })} /> Wajib diisi</label><label className="mm-check"><input type="checkbox" checked={field.show_summary !== false} onChange={(event) => update(index, { show_summary: event.target.checked })} /> Tampil di ringkasan</label></div>
             </article>
           );
@@ -321,6 +348,24 @@ function AdvancedEditor({ value, editable, setEditable, fieldsText, setFieldsTex
   );
 }
 
+function VersionHistory({ value, onRestore }) {
+  const versions = value.version_history || [];
+  if (!versions.length) return <div className="mm-direct-info">Belum ada versi yang pernah dipublikasikan.</div>;
+  return (
+    <details className="mm-history">
+      <summary>Riwayat versi · {versions.length} versi</summary>
+      <div className="mm-history-list">
+        {versions.map((version) => (
+          <div className="mm-history-item" key={`${version.revision}-${version.published_at}`}>
+            <div><strong>Versi {version.revision}</strong><small>{formatDate(version.published_at || version.updated_at)} · {version.name}</small></div>
+            <button type="button" className="admin-small-btn" onClick={() => onRestore(version)}>Pulihkan sebagai Draft</button>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 export default function MasterManagementTab() {
   const [data, setData] = useState({ masters: [] });
   const [loading, setLoading] = useState(true);
@@ -335,7 +380,7 @@ export default function MasterManagementTab() {
   const [fieldsText, setFieldsText] = useState("[]");
   const [flowText, setFlowText] = useState("[]");
   const [advancedError, setAdvancedError] = useState("");
-  const [pendingArchive, setPendingArchive] = useState(null);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const errors = useMemo(() => editor ? validateMaster(editor, true) : [], [editor]);
   const filteredMasters = useMemo(() => {
@@ -385,7 +430,28 @@ export default function MasterManagementTab() {
     copy.code = `${normalizeCode(copy.code)}_COPY`;
     copy.name = `${copy.name} (Salinan)`;
     copy.lifecycle_status = "draft";
+    copy.published_revision = 0;
+    copy.draft_revision = 0;
+    copy.has_draft = false;
+    copy.version_history = [];
+    copy.published_config = null;
     openEditor(copy, "duplicate", 0);
+  }
+
+  function restoreVersion(version) {
+    setEditor((previous) => ({
+      ...previous,
+      ...clone(version),
+      id: previous.id,
+      lifecycle_status: "draft",
+      published_revision: previous.published_revision,
+      draft_revision: Math.max(previous.published_revision + 1, previous.draft_revision || 0),
+      has_draft: true,
+      version_history: previous.version_history,
+      published_config: previous.published_config,
+    }));
+    setWizardStep(4);
+    showToast(`Versi ${version.revision} dipulihkan ke editor sebagai draft`);
   }
 
   function applyAdvancedJson() {
@@ -414,7 +480,7 @@ export default function MasterManagementTab() {
     try {
       setSaving(true);
       await sendJson(APPROVAL_MASTERS_API, "POST", next);
-      showToast(nextLifecycle === "active" ? "Master berhasil dipublikasikan" : nextLifecycle === "archived" ? "Master berhasil diarsipkan" : "Draft berhasil disimpan");
+      showToast(nextLifecycle === "active" ? "Versi baru berhasil dipublikasikan" : nextLifecycle === "archived" ? "Master berhasil diarsipkan" : editor.published_revision ? "Draft tersimpan. Versi aktif tetap berjalan." : "Draft berhasil disimpan");
       setEditor(null);
       await loadData();
     } catch (err) {
@@ -424,17 +490,22 @@ export default function MasterManagementTab() {
     }
   }
 
-  async function archiveMaster() {
-    if (!pendingArchive) return;
-    const archived = { ...masterToForm(pendingArchive), lifecycle_status: "archived", active: false };
+  async function executePendingAction() {
+    if (!pendingAction) return;
+    const { type, master } = pendingAction;
     try {
       setSaving(true);
-      await sendJson(APPROVAL_MASTERS_API, "POST", archived);
-      showToast("Master berhasil diarsipkan");
-      setPendingArchive(null);
+      if (type === "discard") {
+        await sendJson(APPROVAL_MASTERS_API, "POST", { id: master.id, operation: "discard_draft" });
+        showToast("Draft dibuang. Versi aktif tidak berubah.");
+      } else {
+        await sendJson(APPROVAL_MASTERS_API, "POST", { ...masterToForm(master), lifecycle_status: "archived", active: false });
+        showToast("Master berhasil diarsipkan");
+      }
+      setPendingAction(null);
       await loadData();
     } catch (err) {
-      showToast(err.message || "Gagal mengarsipkan master", "error");
+      showToast(err.message || "Gagal memproses master", "error");
     } finally {
       setSaving(false);
     }
@@ -449,24 +520,26 @@ export default function MasterManagementTab() {
 
   if (loading && !(data.masters || []).length) return <div className="admin-card"><AdminDataSkeleton showSummary={false} rows={6} /></div>;
 
+  const pendingIsDiscard = pendingAction?.type === "discard";
+
   return (
     <>
       <Toast show={!!toast} type={toast?.type} message={toast?.message} />
       <style jsx global>{CSS}</style>
-      <AdminConfirmModal open={!!pendingArchive} title="Arsipkan Approval Master" description={pendingArchive ? `${pendingArchive.name} tidak akan tampil pada halaman pengajuan warga.` : ""} confirmText="Arsipkan" cancelText="Batal" loading={saving} loadingText="Mengarsipkan..." onCancel={() => !saving && setPendingArchive(null)} onConfirm={archiveMaster} />
+      <AdminConfirmModal open={!!pendingAction} title={pendingIsDiscard ? "Buang Draft Perubahan" : "Arsipkan Approval Master"} description={pendingAction ? (pendingIsDiscard ? `Draft ${pendingAction.master.name} akan dihapus, tetapi versi aktif tetap berjalan.` : `${pendingAction.master.name} tidak akan tampil pada halaman pengajuan warga.`) : ""} confirmText={pendingIsDiscard ? "Buang Draft" : "Arsipkan"} cancelText="Batal" loading={saving} loadingText="Memproses..." onCancel={() => !saving && setPendingAction(null)} onConfirm={executePendingAction} />
       <div className="admin-card mm-root">
         {!editor ? (
           <>
-            <div className="mm-list-head"><div><div className="activity-kicker">No-code Configuration</div><h3 className="activity-title">Master Management</h3><p className="activity-subtitle">Buat form dan alur approval secara visual tanpa mengetik JSON.</p></div><button type="button" className="admin-btn" onClick={createMaster}>+ Buat Pengajuan</button></div>
+            <div className="mm-list-head"><div><div className="activity-kicker">No-code Configuration</div><h3 className="activity-title">Master Management</h3><p className="activity-subtitle">Buat form, lampiran, alur approval, dan versi konfigurasi tanpa mengetik JSON.</p></div><button type="button" className="admin-btn" onClick={createMaster}>+ Buat Pengajuan</button></div>
             <input className="admin-search-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Cari nama, kode, kategori, status, atau role..." />
             <div className="mm-master-list">
               {filteredMasters.map((master) => {
                 const status = lifecycleMeta(master.lifecycle_status);
                 return (
                   <article className="mm-master-card" key={master.id}>
-                    <div className="mm-master-main"><span className="mm-master-icon" style={{ background: master.color || "#2563eb" }}>{master.icon || "📄"}</span><div><div className="mm-master-title-row"><h4>{master.name}</h4><span className={`mm-status ${status.className}`}>{status.label}</span></div><p>{master.category || "Umum"} · {(master.fields_schema || []).length} field · {(master.flow_schema || []).length} tahap</p><small>{(master.flow_schema || []).map((step) => roleLabel(step.role)).join(" → ") || "Tanpa approval"}</small></div></div>
+                    <div className="mm-master-main"><span className="mm-master-icon" style={{ background: master.color || "#2563eb" }}>{master.icon || "📄"}</span><div><div className="mm-master-title-row"><h4>{master.name}</h4><span className={`mm-status ${status.className}`}>{status.label}</span>{master.has_draft ? <span className="mm-status mm-status-draft">Ada Draft v{master.draft_revision}</span> : null}</div><p>{master.category || "Umum"} · {(master.fields_schema || []).length} field · {(master.flow_schema || []).length} tahap · Versi aktif {master.published_revision || "-"}</p><small>{(master.flow_schema || []).map((step) => roleLabel(step.role)).join(" → ") || "Tanpa approval"}</small></div></div>
                     <div className="mm-master-payment">{master.payment_required ? money(master.payment_amount) : "Gratis"}</div>
-                    <div className="mm-master-actions"><button type="button" className="admin-small-btn" onClick={() => editMaster(master)}>Edit</button><button type="button" className="admin-small-btn" onClick={() => duplicateMaster(master)}>Duplikat</button><button type="button" className="admin-small-btn" onClick={() => editMaster(master, 4)}>Preview</button>{master.lifecycle_status !== "archived" ? <button type="button" className="admin-small-btn mm-danger-btn" onClick={() => setPendingArchive(master)}>Arsipkan</button> : null}</div>
+                    <div className="mm-master-actions"><button type="button" className="admin-small-btn" onClick={() => editMaster(master)}>Edit{master.has_draft ? " Draft" : ""}</button><button type="button" className="admin-small-btn" onClick={() => duplicateMaster(master)}>Duplikat</button><button type="button" className="admin-small-btn" onClick={() => editMaster(master, 4)}>Preview</button>{master.has_draft && master.published_revision ? <button type="button" className="admin-small-btn mm-warning-btn" onClick={() => setPendingAction({ type: "discard", master })}>Buang Draft</button> : null}{master.lifecycle_status !== "archived" ? <button type="button" className="admin-small-btn mm-danger-btn" onClick={() => setPendingAction({ type: "archive", master })}>Arsipkan</button> : null}</div>
                   </article>
                 );
               })}
@@ -475,15 +548,15 @@ export default function MasterManagementTab() {
           </>
         ) : (
           <div className="mm-editor">
-            <div className="mm-editor-head"><div><div className="activity-kicker">{editorMode === "create" ? "Master Baru" : editorMode === "duplicate" ? "Duplikasi Master" : "Edit Master"}</div><h3 className="activity-title">{editor.name || "Pengajuan Baru"}</h3><p className="activity-subtitle">Mode sederhana menghasilkan schema otomatis. JSON tersedia hanya pada pengaturan lanjutan.</p></div><button type="button" className="admin-small-btn" onClick={() => !saving && setEditor(null)}>Tutup</button></div>
+            <div className="mm-editor-head"><div><div className="activity-kicker">{editorMode === "create" ? "Master Baru" : editorMode === "duplicate" ? "Duplikasi Master" : editor.has_draft ? "Edit Draft" : "Edit Master"}</div><h3 className="activity-title">{editor.name || "Pengajuan Baru"}</h3><p className="activity-subtitle">{editor.published_revision ? `Versi aktif ${editor.published_revision}${editor.has_draft ? ` · Draft ${editor.draft_revision}` : ""}. Menyimpan draft tidak mengganggu warga.` : "Belum pernah dipublikasikan."}</p></div><button type="button" className="admin-small-btn" onClick={() => !saving && setEditor(null)}>Tutup</button></div>
             <div className="mm-wizard">{WIZARD_STEPS.map((step, index) => <button type="button" key={step} className={wizardStep === index ? "is-active" : errors.some((error) => error.step === index) ? "has-error" : ""} onClick={() => setWizardStep(index)}><span>{index + 1}</span>{step}</button>)}</div>
             <div className="mm-editor-body">
               {wizardStep === 0 ? <BasicInformation value={editor} onChange={setEditor} autoCode={autoCode} setAutoCode={setAutoCode} /> : null}
               {wizardStep === 1 ? <FieldBuilder value={editor} onChange={setEditor} /> : null}
               {wizardStep === 2 ? <FlowBuilder value={editor} onChange={setEditor} /> : null}
               {wizardStep === 3 ? <PaymentSettings value={editor} onChange={setEditor} /> : null}
-              {wizardStep === 4 ? <><div className="mm-section-head"><div><div className="mm-section-kicker">Preview Langsung</div><h3>Tampilan Warga dan Alur</h3><p>Preview memperlihatkan susunan form dan tahapan sebelum dipublikasikan.</p></div></div><MasterPreview value={editor} /></> : null}
-              {wizardStep === 5 ? <div className="mm-panel-grid"><div className="mm-section-head"><div><div className="mm-section-kicker">Validasi dan Publikasi</div><h3>Siap Dipublikasikan?</h3><p>Simpan sebagai draft bila konfigurasi belum selesai.</p></div></div><div className="mm-checklist">{errors.length ? errors.map((error, index) => <button type="button" key={`${error.step}-${index}`} className="mm-check-error" onClick={() => setWizardStep(error.step)}>× {error.message}</button>) : <div className="mm-check-success">✓ Seluruh konfigurasi valid dan siap dipublikasikan.</div>}</div><div className="mm-publication-actions"><button type="button" className="admin-small-btn" disabled={saving} onClick={() => persist("draft")}><LoadingButtonContent loading={saving} loadingText="Menyimpan...">Simpan Draft</LoadingButtonContent></button><button type="button" className="admin-btn" disabled={saving || errors.length > 0} onClick={() => persist("active")}><LoadingButtonContent loading={saving} loadingText="Mempublikasikan...">Publikasikan</LoadingButtonContent></button>{editor.id ? <button type="button" className="admin-small-btn mm-danger-btn" disabled={saving} onClick={() => persist("archived")}>Arsipkan</button> : null}</div><AdvancedEditor value={editor} editable={advancedEditable} setEditable={setAdvancedEditable} fieldsText={fieldsText} setFieldsText={setFieldsText} flowText={flowText} setFlowText={setFlowText} onApply={applyAdvancedJson} error={advancedError} /></div> : null}
+              {wizardStep === 4 ? <><div className="mm-section-head"><div><div className="mm-section-kicker">Preview Langsung</div><h3>Tampilan Warga dan Alur</h3><p>Preview memperlihatkan field biasa, pilihan, lampiran, dan tahapan sebelum dipublikasikan.</p></div></div><MasterPreview value={editor} /></> : null}
+              {wizardStep === 5 ? <div className="mm-panel-grid"><div className="mm-section-head"><div><div className="mm-section-kicker">Validasi dan Publikasi</div><h3>Siap Dipublikasikan?</h3><p>Publish membuat revisi baru. Versi aktif sebelumnya otomatis masuk histori dan tetap dapat dipulihkan.</p></div></div><div className="mm-version-summary"><div><span>Versi Aktif</span><strong>{editor.published_revision || "Belum ada"}</strong></div><div><span>Draft</span><strong>{editor.has_draft ? editor.draft_revision : "Belum disimpan"}</strong></div><div><span>Versi Berikutnya</span><strong>{Math.max(editor.published_revision || 0, editor.draft_revision || 0) + 1}</strong></div></div><div className="mm-checklist">{errors.length ? errors.map((error, index) => <button type="button" key={`${error.step}-${index}`} className="mm-check-error" onClick={() => setWizardStep(error.step)}>× {error.message}</button>) : <div className="mm-check-success">✓ Seluruh konfigurasi valid dan siap dipublikasikan.</div>}</div><div className="mm-publication-actions"><button type="button" className="admin-small-btn" disabled={saving} onClick={() => persist("draft")}><LoadingButtonContent loading={saving} loadingText="Menyimpan...">Simpan Draft</LoadingButtonContent></button><button type="button" className="admin-btn" disabled={saving || errors.length > 0} onClick={() => persist("active")}><LoadingButtonContent loading={saving} loadingText="Mempublikasikan...">Publikasikan Versi Baru</LoadingButtonContent></button>{editor.id ? <button type="button" className="admin-small-btn mm-danger-btn" disabled={saving} onClick={() => persist("archived")}>Arsipkan</button> : null}</div><VersionHistory value={editor} onRestore={restoreVersion} /><AdvancedEditor value={editor} editable={advancedEditable} setEditable={setAdvancedEditable} fieldsText={fieldsText} setFieldsText={setFieldsText} flowText={flowText} setFlowText={setFlowText} onApply={applyAdvancedJson} error={advancedError} /></div> : null}
             </div>
             <div className="mm-footer"><button type="button" className="admin-small-btn" disabled={wizardStep === 0 || saving} onClick={() => setWizardStep((prev) => Math.max(0, prev - 1))}>Kembali</button><div><button type="button" className="admin-small-btn" disabled={saving} onClick={() => persist("draft")}>Simpan Draft</button>{wizardStep < WIZARD_STEPS.length - 1 ? <button type="button" className="admin-btn" disabled={saving} onClick={() => setWizardStep((prev) => Math.min(WIZARD_STEPS.length - 1, prev + 1))}>Lanjut</button> : null}</div></div>
           </div>
@@ -494,6 +567,6 @@ export default function MasterManagementTab() {
 }
 
 const CSS = `
-.mm-root{height:auto!important;overflow:visible!important}.mm-list-head,.mm-editor-head,.mm-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}.mm-list-head .admin-btn{flex:0 0 auto}.mm-master-list{display:grid;gap:12px;margin-top:14px}.mm-master-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:14px;border:1px solid var(--admin-border);border-radius:16px;background:var(--admin-card)}.mm-master-main{display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;align-items:start}.mm-master-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;color:#fff;font-size:22px}.mm-master-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.mm-master-title-row h4{margin:0;font-size:16px}.mm-master-main p{margin:4px 0;color:var(--admin-muted);font-size:13px;font-weight:700}.mm-master-main small{color:var(--admin-muted);font-size:12px;font-weight:700}.mm-master-payment{align-self:start;font-size:13px;font-weight:900}.mm-master-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}.mm-master-actions .admin-small-btn{flex:1 1 110px}.mm-status{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:900;text-transform:uppercase}.mm-status-active{background:#dcfce7;color:#166534}.mm-status-draft{background:#fef3c7;color:#92400e}.mm-status-archived{background:var(--admin-row);color:var(--admin-muted)}.mm-danger-btn{background:#fee2e2!important;color:#991b1b!important;border-color:#fca5a5!important}.mm-editor{display:grid;gap:14px}.mm-wizard{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.mm-wizard button{min-height:48px;padding:7px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-row);color:var(--admin-muted);font:inherit;font-size:11px;font-weight:900;cursor:pointer}.mm-wizard button span{display:block;margin-bottom:2px}.mm-wizard button.is-active{border-color:var(--admin-primary);background:color-mix(in srgb,var(--admin-primary) 12%,var(--admin-card));color:var(--admin-text)}.mm-wizard button.has-error{border-color:#fca5a5;color:#991b1b}.mm-editor-body{padding:16px;border:1px solid var(--admin-border);border-radius:16px;background:var(--admin-row)}.mm-panel-grid,.mm-builder{display:grid;gap:14px}.mm-section-head{margin-bottom:0}.mm-section-head h3{margin:2px 0 4px}.mm-section-head p,.mm-muted{margin:0;color:var(--admin-muted);font-size:13px;line-height:1.45}.mm-section-kicker{color:var(--admin-primary);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.mm-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mm-panel-grid label,.mm-builder-card label,.mm-advanced label{display:grid;gap:6px;color:var(--admin-muted);font-size:12px;font-weight:900}.mm-color-input{padding:4px!important}.mm-help{display:block}.mm-help button{padding:0;border:0;background:transparent;color:var(--admin-primary);font-size:11px;font-weight:900;cursor:pointer}.mm-builder-list{display:grid;gap:10px}.mm-builder-card{display:grid;gap:12px;padding:13px;border:1px solid var(--admin-border);border-radius:14px;background:var(--admin-card)}.mm-builder-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.mm-builder-card-head span{display:block;color:var(--admin-muted);font-size:10px;font-weight:900;text-transform:uppercase}.mm-builder-card-head strong{display:block;margin-top:2px;font-size:14px}.mm-card-actions{display:flex;gap:5px}.mm-card-actions button{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--admin-border);border-radius:9px;background:var(--admin-row);color:var(--admin-text);font-weight:900;cursor:pointer}.mm-card-actions button:disabled{opacity:.35;cursor:not-allowed}.mm-toggle-row{display:flex;gap:18px;flex-wrap:wrap}.mm-check{display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:7px!important}.mm-check input{width:auto!important;margin:0!important}.mm-template-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.mm-template{display:grid;gap:4px;padding:11px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-card);color:var(--admin-text);text-align:left;cursor:pointer}.mm-template:hover{border-color:var(--admin-primary)}.mm-template small{color:var(--admin-muted);line-height:1.35}.mm-direct-info,.mm-success-note,.mm-error-note{padding:11px 12px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-card);color:var(--admin-muted);font-size:12px;font-weight:800}.mm-success-note{border-color:#86efac;background:#f0fdf4;color:#166534}.mm-error-note{border-color:#fca5a5;background:#fef2f2;color:#991b1b}.mm-switch{display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:9px!important;padding:12px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-card);color:var(--admin-text)!important}.mm-switch input{width:auto!important;margin:0!important}.mm-warning{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #fcd34d;border-radius:12px;background:#fffbeb;color:#92400e}.mm-warning p{margin:3px 0 0;font-size:12px}.mm-preview-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,.7fr);gap:12px}.mm-preview-card{position:relative;display:grid;gap:12px;padding:14px;border:1px solid var(--admin-border);border-radius:16px;background:var(--admin-card)}.mm-preview-title{display:flex;align-items:center;gap:10px}.mm-preview-title>span{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;color:#fff;font-size:21px}.mm-preview-title small{color:var(--admin-muted);font-size:10px;font-weight:900;text-transform:uppercase}.mm-preview-title h3{margin:2px 0 0}.mm-payment-preview,.mm-free-preview{display:grid;justify-self:start;padding:8px 10px;border:1px solid var(--admin-border);border-radius:10px;background:var(--admin-row)}.mm-payment-preview small{color:var(--admin-muted);font-size:10px;font-weight:900}.mm-payment-preview strong{color:#15803d}.mm-free-preview{color:var(--admin-muted);font-size:12px;font-weight:900}.mm-preview-form{display:grid;gap:11px}.mm-preview-form label{display:grid;gap:6px;color:var(--admin-muted);font-size:12px}.mm-preview-options{display:flex;gap:12px;flex-wrap:wrap}.mm-flow-preview{display:grid;gap:0}.mm-flow-node{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr);gap:9px;min-height:60px}.mm-flow-node>span{z-index:1;display:grid;place-items:center;width:28px;height:28px;border-radius:999px;background:var(--admin-primary);color:#fff;font-size:11px;font-weight:900}.mm-flow-node:not(:last-child)::after{content:"";position:absolute;left:13px;top:28px;bottom:0;width:2px;background:var(--admin-border)}.mm-flow-node strong,.mm-flow-node small{display:block}.mm-flow-node small{margin-top:3px;color:var(--admin-muted);font-size:11px}.mm-checklist{display:grid;gap:7px}.mm-check-error{padding:10px 12px;border:1px solid #fca5a5;border-radius:10px;background:#fef2f2;color:#991b1b;text-align:left;font-weight:800;cursor:pointer}.mm-check-success{padding:12px;border:1px solid #86efac;border-radius:12px;background:#f0fdf4;color:#166534;font-weight:900}.mm-publication-actions,.mm-footer,.mm-footer>div{display:flex;gap:9px;flex-wrap:wrap}.mm-publication-actions>*{flex:1 1 150px}.mm-advanced{display:grid;gap:12px;padding:12px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-card)}.mm-advanced summary{cursor:pointer;font-weight:900}.mm-advanced[open]{display:grid}.mm-json{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace!important;font-size:11px!important;line-height:1.45!important}.mm-footer{align-items:center;justify-content:space-between;padding-top:4px}.mm-footer .admin-btn,.mm-footer .admin-small-btn{min-width:120px}
-@media(max-width:760px){.mm-list-head,.mm-editor-head,.mm-section-head{align-items:stretch;flex-direction:column}.mm-list-head .admin-btn{width:100%}.mm-wizard{grid-template-columns:repeat(3,minmax(0,1fr))}.mm-grid-2,.mm-preview-layout{grid-template-columns:1fr}.mm-master-card{grid-template-columns:1fr}.mm-master-payment{grid-row:auto}.mm-warning{align-items:stretch;flex-direction:column}.mm-footer{align-items:stretch;flex-direction:column-reverse}.mm-footer>div{display:grid;grid-template-columns:1fr 1fr}.mm-footer>button{width:100%}}
+.mm-root{height:auto!important;overflow:visible!important}.mm-list-head,.mm-editor-head,.mm-section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}.mm-list-head .admin-btn{flex:0 0 auto}.mm-master-list{display:grid;gap:12px;margin-top:14px}.mm-master-card{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:14px;border:1px solid var(--admin-border);border-radius:16px;background:var(--admin-card)}.mm-master-main{display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;align-items:start}.mm-master-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;color:#fff;font-size:22px}.mm-master-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.mm-master-title-row h4{margin:0;font-size:16px}.mm-master-main p{margin:4px 0;color:var(--admin-muted);font-size:13px;font-weight:700}.mm-master-main small{color:var(--admin-muted);font-size:12px;font-weight:700}.mm-master-payment{align-self:start;font-size:13px;font-weight:900}.mm-master-actions{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}.mm-master-actions .admin-small-btn{flex:1 1 110px}.mm-status{display:inline-flex;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:900;text-transform:uppercase}.mm-status-active{background:#dcfce7;color:#166534}.mm-status-draft{background:#fef3c7;color:#92400e}.mm-status-archived{background:var(--admin-row);color:var(--admin-muted)}.mm-danger-btn{background:#fee2e2!important;color:#991b1b!important;border-color:#fca5a5!important}.mm-warning-btn{background:#fffbeb!important;color:#92400e!important;border-color:#fcd34d!important}.mm-editor{display:grid;gap:14px}.mm-wizard{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}.mm-wizard button{min-height:48px;padding:7px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-row);color:var(--admin-muted);font:inherit;font-size:11px;font-weight:900;cursor:pointer}.mm-wizard button span{display:block;margin-bottom:2px}.mm-wizard button.is-active{border-color:var(--admin-primary);background:color-mix(in srgb,var(--admin-primary) 12%,var(--admin-card));color:var(--admin-text)}.mm-wizard button.has-error{border-color:#fca5a5;color:#991b1b}.mm-editor-body{padding:16px;border:1px solid var(--admin-border);border-radius:16px;background:var(--admin-row)}.mm-panel-grid,.mm-builder{display:grid;gap:14px}.mm-section-head{margin-bottom:0}.mm-section-head h3{margin:2px 0 4px}.mm-section-head p,.mm-muted{margin:0;color:var(--admin-muted);font-size:13px;line-height:1.45}.mm-section-kicker{color:var(--admin-primary);font-size:10px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.mm-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.mm-panel-grid label,.mm-builder-card label,.mm-advanced label{display:grid;gap:6px;color:var(--admin-muted);font-size:12px;font-weight:900}.mm-color-input{padding:4px!important}.mm-help{display:block}.mm-help button{padding:0;border:0;background:transparent;color:var(--admin-primary);font-size:11px;font-weight:900;cursor:pointer}.mm-inline-help{color:var(--admin-muted);font-size:10px;font-weight:700}.mm-builder-list{display:grid;gap:10px}.mm-builder-card{display:grid;gap:12px;padding:13px;border:1px solid var(--admin-border);border-radius:14px;background:var(--admin-card)}.mm-builder-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.mm-builder-card-head span{display:block;color:var(--admin-muted);font-size:10px;font-weight:900;text-transform:uppercase}.mm-builder-card-head strong{display:block;margin-top:2px;font-size:14px}.mm-card-actions{display:flex;gap:5px}.mm-card-actions button{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--admin-border);border-radius:9px;background:var(--admin-row);color:var(--admin-text);font-weight:900;cursor:pointer}.mm-card-actions button:disabled{opacity:.35;cursor:not-allowed}.mm-toggle-row{display:flex;gap:18px;flex-wrap:wrap}.mm-check{display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:7px!important}.mm-check input{width:auto!important;margin:0!important}.mm-template-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.mm-template{display:grid;gap:4px;padding:11px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-card);color:var(--admin-text);text-align:left;cursor:pointer}.mm-template:hover{border-color:var(--admin-primary)}.mm-template small{color:var(--admin-muted);line-height:1.35}.mm-direct-info,.mm-success-note,.mm-error-note{padding:11px 12px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-card);color:var(--admin-muted);font-size:12px;font-weight:800}.mm-success-note{border-color:#86efac;background:#f0fdf4;color:#166534}.mm-error-note{border-color:#fca5a5;background:#fef2f2;color:#991b1b}.mm-switch{display:flex!important;grid-template-columns:auto 1fr!important;align-items:center;gap:9px!important;padding:12px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-card);color:var(--admin-text)!important}.mm-switch input{width:auto!important;margin:0!important}.mm-warning{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid #fcd34d;border-radius:12px;background:#fffbeb;color:#92400e}.mm-warning p{margin:3px 0 0;font-size:12px}.mm-preview-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,.7fr);gap:12px}.mm-preview-card{position:relative;display:grid;gap:12px;padding:14px;border:1px solid var(--admin-border);border-radius:16px;background:var(--admin-card)}.mm-preview-title{display:flex;align-items:center;gap:10px}.mm-preview-title>span{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;color:#fff;font-size:21px}.mm-preview-title small{color:var(--admin-muted);font-size:10px;font-weight:900;text-transform:uppercase}.mm-preview-title h3{margin:2px 0 0}.mm-payment-preview,.mm-free-preview{display:grid;justify-self:start;padding:8px 10px;border:1px solid var(--admin-border);border-radius:10px;background:var(--admin-row)}.mm-payment-preview small{color:var(--admin-muted);font-size:10px;font-weight:900}.mm-payment-preview strong{color:#15803d}.mm-free-preview{color:var(--admin-muted);font-size:12px;font-weight:900}.mm-preview-form{display:grid;gap:11px}.mm-preview-form label{display:grid;gap:6px;color:var(--admin-muted);font-size:12px}.mm-preview-options{display:flex;gap:12px;flex-wrap:wrap}.mm-file-preview{display:flex;align-items:center;gap:10px;min-height:48px;padding:9px 11px;border:1px dashed var(--admin-border);border-radius:10px;background:var(--admin-row)}.mm-file-preview>span{font-size:22px}.mm-file-preview strong,.mm-file-preview small{display:block}.mm-file-preview small{margin-top:2px;color:var(--admin-muted)}.mm-flow-preview{display:grid;gap:0}.mm-flow-node{position:relative;display:grid;grid-template-columns:32px minmax(0,1fr);gap:9px;min-height:60px}.mm-flow-node>span{z-index:1;display:grid;place-items:center;width:28px;height:28px;border-radius:999px;background:var(--admin-primary);color:#fff;font-size:11px;font-weight:900}.mm-flow-node:not(:last-child)::after{content:"";position:absolute;left:13px;top:28px;bottom:0;width:2px;background:var(--admin-border)}.mm-flow-node strong,.mm-flow-node small{display:block}.mm-flow-node small{margin-top:3px;color:var(--admin-muted);font-size:11px}.mm-version-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.mm-version-summary>div{display:grid;gap:3px;padding:11px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-card)}.mm-version-summary span{color:var(--admin-muted);font-size:10px;font-weight:900;text-transform:uppercase}.mm-version-summary strong{font-size:16px}.mm-checklist{display:grid;gap:7px}.mm-check-error{padding:10px 12px;border:1px solid #fca5a5;border-radius:10px;background:#fef2f2;color:#991b1b;text-align:left;font-weight:800;cursor:pointer}.mm-check-success{padding:12px;border:1px solid #86efac;border-radius:12px;background:#f0fdf4;color:#166534;font-weight:900}.mm-publication-actions,.mm-footer,.mm-footer>div{display:flex;gap:9px;flex-wrap:wrap}.mm-publication-actions>*{flex:1 1 150px}.mm-advanced,.mm-history{display:grid;gap:12px;padding:12px;border:1px solid var(--admin-border);border-radius:12px;background:var(--admin-card)}.mm-advanced summary,.mm-history summary{cursor:pointer;font-weight:900}.mm-advanced[open],.mm-history[open]{display:grid}.mm-history-list{display:grid;gap:8px;margin-top:10px}.mm-history-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--admin-border);border-radius:10px;background:var(--admin-row)}.mm-history-item strong,.mm-history-item small{display:block}.mm-history-item small{margin-top:3px;color:var(--admin-muted);font-size:10px}.mm-json{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace!important;font-size:11px!important;line-height:1.45!important}.mm-footer{align-items:center;justify-content:space-between;padding-top:4px}.mm-footer .admin-btn,.mm-footer .admin-small-btn{min-width:120px}
+@media(max-width:760px){.mm-list-head,.mm-editor-head,.mm-section-head{align-items:stretch;flex-direction:column}.mm-list-head .admin-btn{width:100%}.mm-wizard{grid-template-columns:repeat(3,minmax(0,1fr))}.mm-grid-2,.mm-preview-layout{grid-template-columns:1fr}.mm-master-card{grid-template-columns:1fr}.mm-master-payment{grid-row:auto}.mm-warning{align-items:stretch;flex-direction:column}.mm-footer{align-items:stretch;flex-direction:column-reverse}.mm-footer>div{display:grid;grid-template-columns:1fr 1fr}.mm-footer>button{width:100%}.mm-version-summary{grid-template-columns:1fr}.mm-history-item{align-items:stretch;flex-direction:column}.mm-history-item button{width:100%}}
 `;
