@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createPendingAdminOtp, generateAdminOtp, markAdminOtpFailed, markAdminOtpSent } from "@/lib/adminLoginOtp";
 import { getAdminAccessRoleLabel, assertAdminAccessRole } from "@/lib/adminRoles";
 import { getAdminRoleContact } from "@/lib/adminRoleContacts";
+import { verifyAdminRolePassword } from "@/lib/adminRoleCredentials";
 import { normalizePhoneToWaChatId, sendWaMessage } from "@/lib/waClient";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { getAuthConfigs } from "@/lib/webauth";
@@ -32,7 +33,7 @@ export async function POST(req) {
     role = assertAdminAccessRole(body?.role);
     const password = String(body?.password || "");
 
-    if (password !== process.env.ADMIN_PASSWORD) {
+    if (!(await verifyAdminRolePassword(role, password))) {
       await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.loginPasswordFailed);
       await recordAdminActivity(req, {
         type: "otp-request",
@@ -51,6 +52,7 @@ export async function POST(req) {
 
     if (limit) return limit;
 
+    const contact = await getAdminRoleContact(role);
     const { whatsappServicesEnabled } = await getAuthConfigs();
     const otp = generateAdminOtp();
     otpId = await createPendingAdminOtp({ role, otp });
@@ -73,8 +75,6 @@ export async function POST(req) {
         message: "WhatsApp Services sedang OFF. Login dilanjutkan tanpa pengiriman OTP WhatsApp.",
       });
     }
-
-    const contact = await getAdminRoleContact(role);
 
     await sendWaMessage({
       chatId: normalizePhoneToWaChatId(contact.phone),
