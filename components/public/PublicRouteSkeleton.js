@@ -51,10 +51,12 @@ function HomeSkeleton() {
   );
 }
 
-function KasSkeleton() {
+function KasSkeleton({ includeHero = true }) {
+  const className = includeHero ? styles.page : `${styles.page} ${styles.contentOnly}`;
+
   return (
-    <main className={styles.page} role="status" aria-label="Memuat halaman kas warga">
-      <HeroSkeleton />
+    <main className={className} role="status" aria-label="Memuat data kas warga">
+      {includeHero ? <HeroSkeleton /> : null}
       <div className={styles.tabs} aria-hidden="true">
         {Array.from({ length: 4 }).map((_, index) => (
           <span className={`${styles.block} ${styles.tab}`} key={index} />
@@ -104,8 +106,8 @@ function PengajuanSkeleton() {
   );
 }
 
-export default function PublicRouteSkeleton({ variant = "home" }) {
-  if (variant === "kas") return <KasSkeleton />;
+export default function PublicRouteSkeleton({ variant = "home", includeHero = true }) {
+  if (variant === "kas") return <KasSkeleton includeHero={includeHero} />;
   if (variant === "pengajuan") return <PengajuanSkeleton />;
   return <HomeSkeleton />;
 }
