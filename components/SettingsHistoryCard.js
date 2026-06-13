@@ -1,5 +1,6 @@
 "use client";
 
+import AdminDataSkeleton from "@/components/admin/AdminDataSkeleton";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import { useEffect, useState } from "react";
 
@@ -86,8 +87,8 @@ export default function SettingsHistoryCard() {
           Showing last 3 configuration updates.
         </p>
 
-        {loading ? (
-          <div style={styles.empty}>Loading history...</div>
+        {loading && !changes.length ? (
+          <AdminDataSkeleton showSummary={false} rows={3} />
         ) : changes.length === 0 ? (
           <div style={styles.empty}>No recent changes.</div>
         ) : (
