@@ -1,5 +1,6 @@
 "use client";
 
+import AdminDataSkeleton from "@/components/admin/AdminDataSkeleton";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { useEffect, useState } from "react";
 
@@ -95,8 +96,8 @@ export default function MatrixAccessCard({ requestPin, disabled, showPopup, onSa
         </select>
       </div>
 
-      {loading ? (
-        <div style={styles.loadingBox}>Loading matrix access...</div>
+      {loading && !modules.length ? (
+        <AdminDataSkeleton showSummary={false} rows={4} />
       ) : (
         <div style={styles.moduleGrid}>
           {modules.map((module) => {
@@ -166,12 +167,6 @@ const styles = {
     minWidth: 180,
     padding: "10px 12px",
     borderRadius: 12,
-  },
-  loadingBox: {
-    padding: 14,
-    borderRadius: 12,
-    background: "var(--admin-surface)",
-    color: "var(--admin-muted)",
   },
   moduleGrid: {
     display: "grid",
