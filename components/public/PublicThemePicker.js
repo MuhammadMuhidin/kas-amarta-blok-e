@@ -148,6 +148,7 @@ const themes = [
 
 const publicThemeKeys = Object.keys(themes[0].vars);
 const publicThemePaths = new Set(["/", "/kas", "/pengajuan"]);
+const themePickerPaths = new Set(["/", "/pengajuan"]);
 
 function normalizeTheme(themeId) {
   return themeId === "ios" ? "ledger" : themeId;
@@ -177,6 +178,7 @@ export default function PublicThemePicker() {
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState("default");
   const isPublicThemePath = publicThemePaths.has(pathname);
+  const shouldShowPicker = themePickerPaths.has(pathname);
 
   useLayoutEffect(() => {
     if (!isPublicThemePath) {
@@ -184,6 +186,8 @@ export default function PublicThemePicker() {
       setOpen(false);
       return;
     }
+
+    if (!shouldShowPicker) setOpen(false);
 
     const saved = normalizeTheme(localStorage.getItem("public-theme") || "default");
     const applied = applyTheme(saved);
@@ -193,7 +197,7 @@ export default function PublicThemePicker() {
     }
 
     setTheme(applied);
-  }, [isPublicThemePath, pathname]);
+  }, [isPublicThemePath, pathname, shouldShowPicker]);
 
   function chooseTheme(nextTheme) {
     const applied = applyTheme(nextTheme);
@@ -201,7 +205,7 @@ export default function PublicThemePicker() {
     localStorage.setItem("public-theme", applied);
   }
 
-  if (!isPublicThemePath) return null;
+  if (!shouldShowPicker) return null;
 
   return (
     <>
