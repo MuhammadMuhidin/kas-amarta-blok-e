@@ -1,6 +1,7 @@
 "use client";
 
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
+import AdminDataSkeleton from "@/components/admin/AdminDataSkeleton";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
@@ -212,7 +213,7 @@ export default function RoleManagementTab() {
   const roles = data?.roles || [];
   const topStats = useMemo(() => ({ roleCount: roles.length, sessionCount: cards.active_sessions?.length || 0, contactReady: cards.security_health?.contact_ready_count || 0, contactTotal: cards.security_health?.contact_total || 0 }), [cards.active_sessions, cards.security_health, roles.length]);
 
-  if (loading) return <div className="admin-card">Loading Role Management...</div>;
+  if (loading && !data) return <div className="admin-card"><AdminDataSkeleton cards={4} rows={6} /></div>;
   if (error) return <div className="admin-error-box">{error}</div>;
 
   return <><Toast show={!!toast} type={toast?.type} message={toast?.message} /><div className="admin-card"><div className="activity-header" style={styles.pageHeader}><div><div className="activity-kicker">Role Control</div><h3 className="activity-title" style={styles.pageTitle}>Role Management</h3><p className="activity-subtitle">Manage role access, OTP receivers, active sessions, audit events, and role security controls.</p></div><div style={styles.headerActions}><button type="button" className="admin-small-btn" onClick={() => setShowRoleOverview(true)}>View Role Overview</button><button type="button" className="admin-small-btn admin-refresh-btn" onClick={loadRoleManagement}>Refresh</button></div></div><div className="admin-summary-cards" style={styles.summaryCards}><SummaryCard label="Roles" value={topStats.roleCount} /><SummaryCard label="OTP Contacts" value={`${topStats.contactReady}/${topStats.contactTotal}`} /><SummaryCard label="Active Sessions" value={topStats.sessionCount} /><SummaryCard label="Security Health" value={cards.security_health?.overall_status || "-"} /></div><div style={styles.sectionGridOne}><RoleContactCard rows={cards.role_contacts || []} onEdit={openEditContact} onToggle={openToggleRole} /><SecurityHealthCard health={cards.security_health || {}} /></div><div style={styles.sectionGridTwo}><ActiveRoleSessionsCard rows={cards.active_sessions || []} roles={roles} onRevoke={openRevokeSession} onRevokeRole={openRevokeRole} running={running} /><OtpLoginMonitorCard rows={cards.otp_login_monitor || []} /></div></div><RoleOverviewModal open={showRoleOverview} rows={cards.role_overview || []} accessRows={cards.role_access_summary || []} onClose={() => setShowRoleOverview(false)} /><ActionModal pendingAction={pendingAction} pin={pin} setPin={setPin} running={running} contactForm={contactForm} setContactForm={setContactForm} onCancel={closeAction} onConfirm={confirmAction} /></>;
