@@ -1,0 +1,48 @@
+.hero {
+  text-align: center !important;
+}
+
+.hero :global(.hero-eyebrow),
+.hero :global(.hero-desc) {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  text-align: center !important;
+}
+
+.managerLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 34px;
+  margin: 14px auto 0;
+  padding: 7px 12px;
+  border: 1px solid color-mix(in srgb, var(--primary) 22%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text);
+  box-shadow: var(--shadow-soft);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.managerLink:hover,
+.managerLink:focus-visible {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 10%, var(--surface));
+  outline: none;
+}
+
+@media (max-width: 700px) {
+  .managerLink {
+    min-height: 32px;
+    margin-top: 12px;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+}
