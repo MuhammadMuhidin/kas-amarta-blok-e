@@ -3,14 +3,14 @@ import "./ledger-theme.css";
 import "./sidebar.css";
 import AdminMobileDrawer from "@/components/admin/AdminMobileDrawer";
 import AdminThemeBoot from "@/components/admin/AdminThemeBoot";
-import AdminBuildInfoBadge from "@/components/admin/AdminBuildInfoBadge";
+import AdminTopActions from "@/components/admin/AdminTopActions";
 
 export default function AdminLayout({ children }) {
   return (
     <>
       <AdminThemeBoot />
       <AdminMobileDrawer />
-      <AdminBuildInfoBadge />
+      <AdminTopActions />
       {children}
     </>
   );
