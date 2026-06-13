@@ -6,6 +6,8 @@ import "@/app/public-theme.css";
 import "@/app/timeline.css";
 import "@/app/timeline-overrides.css";
 import "@/app/home-timeline.css";
+import "@/components/public/PublicThemePicker.css";
+import "@/components/public/PublicBottomNav.css";
 
 export default function ResidentTimelinePage() {
   return (
