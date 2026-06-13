@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import {
-  isAdmin,
+  isAdministrator,
   unauthorized,
   validateCSRF,
 } from "@/lib/auth";
@@ -19,7 +19,7 @@ export const runtime = "nodejs";
 
 export async function GET(req) {
   try {
-    if (!(await isAdmin(req))) {
+    if (!(await isAdministrator(req))) {
       return unauthorized();
     }
 
@@ -42,7 +42,7 @@ export async function GET(req) {
 
 export async function DELETE(req) {
   try {
-    if (!(await isAdmin(req))) {
+    if (!(await isAdministrator(req))) {
       return unauthorized();
     }
 

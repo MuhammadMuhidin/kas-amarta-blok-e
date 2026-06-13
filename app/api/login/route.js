@@ -9,6 +9,7 @@ import {
 import { createAuthResponse } from "@/features/auth/loginResponseService";
 import { assertAdminAccessRole } from "@/lib/adminRoles";
 import { validateAdminOtp } from "@/lib/adminLoginOtp";
+import { verifyAdminRolePassword, verifyAdminRolePin } from "@/lib/adminRoleCredentials";
 
 export const runtime = "nodejs";
 
@@ -39,13 +40,13 @@ export async function POST(req) {
 
     const { role, otp, password, pin } = await req.json();
     const accessRole = assertAdminAccessRole(role);
-    const otpContext = await validateAdminOtp({ role: accessRole, otp, consume: false });
 
-    if (password !== process.env.ADMIN_PASSWORD) {
+    if (!(await verifyAdminRolePassword(accessRole, password))) {
       await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.loginPasswordFailed);
       return NextResponse.json({ error: "Wrong password" }, { status: 401 });
     }
 
+    const otpContext = await validateAdminOtp({ role: accessRole, otp, consume: false });
     const { webAuthEnabled, pinEnabled } = await getAuthConfigs();
 
     if (pinEnabled) {
@@ -56,7 +57,7 @@ export async function POST(req) {
       const pinLimit = await enforceFailureRateLimit(req, RATE_LIMIT_SCOPES.loginPinFailed);
       if (pinLimit) return pinLimit;
 
-      if (pin !== process.env.ADMIN_PIN) {
+      if (!(await verifyAdminRolePin(accessRole, pin))) {
         await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.loginPinFailed);
         return NextResponse.json({ error: "Wrong PIN" }, { status: 401 });
       }
