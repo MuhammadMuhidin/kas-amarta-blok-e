@@ -1,6 +1,7 @@
 "use client";
 
 import SettingsHistoryCard from "@/components/SettingsHistoryCard";
+import AdminDataSkeleton from "@/components/admin/AdminDataSkeleton";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { useRouter } from "next/navigation";
@@ -168,8 +169,8 @@ export default function AdminSessionCard() {
 
         {error && <div style={styles.errorBox}>{error}</div>}
 
-        {loading ? (
-          <div style={styles.emptyBox}>Loading sessions...</div>
+        {loading && !sessions.length ? (
+          <AdminDataSkeleton showSummary={false} rows={3} />
         ) : sessions.length === 0 ? (
           <div style={styles.emptyBox}>No active sessions.</div>
         ) : (
