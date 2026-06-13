@@ -1,8 +1,6 @@
 "use client";
 
-import "./PublicThemePicker.css";
-
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 const themes = [
@@ -26,15 +24,15 @@ const themes = [
       "--btn-text": "#000000",
       "--tab-active-text": "#ffffff",
       "--shadow": "0 10px 24px rgba(15,23,42,.07)",
-      "--shadow-soft": "0 3px 10px rgba(15,23,42,.05)"
-    }
+      "--shadow-soft": "0 3px 10px rgba(15,23,42,.05)",
+    },
   },
   {
     id: "ledger",
     label: "Ledger",
     colors: ["#fdf6e3", "#2f6f4e", "#fffaf0"],
     vars: {
-      "--public-font-family": 'Merriweather Sans, Inter, system-ui, sans-serif',
+      "--public-font-family": "Merriweather Sans, Inter, system-ui, sans-serif",
       "--bg": "#fdf6e3",
       "--text": "#2f281f",
       "--muted": "#7c6f57",
@@ -49,8 +47,8 @@ const themes = [
       "--btn-text": "#2f6f4e",
       "--tab-active-text": "#fffaf0",
       "--shadow": "0 14px 30px rgba(92,64,36,.12)",
-      "--shadow-soft": "0 5px 14px rgba(92,64,36,.09)"
-    }
+      "--shadow-soft": "0 5px 14px rgba(92,64,36,.09)",
+    },
   },
   {
     id: "midnight",
@@ -72,15 +70,15 @@ const themes = [
       "--btn-text": "#ffffff",
       "--tab-active-text": "#000000",
       "--shadow": "0 14px 32px rgba(0,0,0,.32)",
-      "--shadow-soft": "0 6px 16px rgba(0,0,0,.22)"
-    }
+      "--shadow-soft": "0 6px 16px rgba(0,0,0,.22)",
+    },
   },
   {
     id: "emerald",
     label: "Emerald",
     colors: ["#ecfdf5", "#10b981", "#ffffff"],
     vars: {
-      "--public-font-family": 'Manrope, Inter, system-ui, sans-serif',
+      "--public-font-family": "Manrope, Inter, system-ui, sans-serif",
       "--bg": "#ecfdf5",
       "--text": "#064e3b",
       "--muted": "#047857",
@@ -95,8 +93,8 @@ const themes = [
       "--btn-text": "#047857",
       "--tab-active-text": "#022c22",
       "--shadow": "0 10px 24px rgba(6,78,59,.10)",
-      "--shadow-soft": "0 3px 10px rgba(6,78,59,.08)"
-    }
+      "--shadow-soft": "0 3px 10px rgba(6,78,59,.08)",
+    },
   },
   {
     id: "amoled",
@@ -118,8 +116,8 @@ const themes = [
       "--btn-text": "#ffffff",
       "--tab-active-text": "#000000",
       "--shadow": "none",
-      "--shadow-soft": "none"
-    }
+      "--shadow-soft": "none",
+    },
   },
   {
     id: "hacker",
@@ -141,15 +139,13 @@ const themes = [
       "--btn-text": "#4ade80",
       "--tab-active-text": "#021302",
       "--shadow": "0 0 28px rgba(34,197,94,.12)",
-      "--shadow-soft": "0 0 14px rgba(34,197,94,.10)"
-    }
-  }
+      "--shadow-soft": "0 0 14px rgba(34,197,94,.10)",
+    },
+  },
 ];
 
 const publicThemeKeys = Object.keys(themes[0].vars);
-const reloadFlag = "public-theme-hard-reload";
 const publicThemePaths = new Set(["/", "/kas", "/pengajuan"]);
-const bottomNavPaths = new Set(["/", "/pengajuan"]);
 
 function normalizeTheme(themeId) {
   return themeId === "ios" ? "ledger" : themeId;
@@ -159,20 +155,7 @@ function clearPublicTheme() {
   publicThemeKeys.forEach((key) => {
     document.documentElement.style.removeProperty(key);
   });
-
   delete document.documentElement.dataset.publicTheme;
-}
-
-function forceReloadOnce(pathname) {
-  const target = `${pathname}${window.location.search}${window.location.hash}`;
-
-  if (sessionStorage.getItem(reloadFlag) === target) {
-    sessionStorage.removeItem(reloadFlag);
-    return;
-  }
-
-  sessionStorage.setItem(reloadFlag, target);
-  window.location.replace(target);
 }
 
 function applyTheme(themeId) {
@@ -184,166 +167,42 @@ function applyTheme(themeId) {
   });
 
   document.documentElement.dataset.publicTheme = selected.id;
-}
-
-function PublicBottomNav({ pathname, onThemeClick }) {
-  if (!bottomNavPaths.has(pathname)) return null;
-
-  return (
-    <nav className="public-bottom-nav" aria-label="Navigasi publik">
-      <a className={`public-bottom-nav-item ${pathname === "/" ? "active" : ""}`} href="/">
-        <span aria-hidden="true">🏠</span>
-        <strong>Beranda</strong>
-      </a>
-      <a className="public-bottom-nav-item" href="/kas">
-        <span aria-hidden="true">Rp</span>
-        <strong>Kas Warga</strong>
-      </a>
-      <a className={`public-bottom-nav-item ${pathname === "/pengajuan" ? "active" : ""}`} href="/pengajuan">
-        <span aria-hidden="true">✅</span>
-        <strong>Pengajuan</strong>
-      </a>
-      <button type="button" className="public-bottom-nav-item" onClick={onThemeClick}>
-        <span aria-hidden="true">🎨</span>
-        <strong>Tema</strong>
-      </button>
-    </nav>
-  );
+  return selected.id;
 }
 
 export default function PublicThemePicker() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState("default");
-
   const isPublicThemePath = publicThemePaths.has(pathname);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isPublicThemePath) {
       clearPublicTheme();
       setOpen(false);
-      forceReloadOnce(pathname);
-      return undefined;
+      return;
     }
-
-    sessionStorage.removeItem(reloadFlag);
 
     const saved = normalizeTheme(localStorage.getItem("public-theme") || "default");
+    const applied = applyTheme(saved);
 
-    if (localStorage.getItem("public-theme") === "ios") {
-      localStorage.setItem("public-theme", saved);
+    if (localStorage.getItem("public-theme") !== applied) {
+      localStorage.setItem("public-theme", applied);
     }
 
-    setTheme(saved);
-    applyTheme(saved);
-
-    return clearPublicTheme;
+    setTheme(applied);
   }, [isPublicThemePath, pathname]);
 
   function chooseTheme(nextTheme) {
-    const normalizedTheme = normalizeTheme(nextTheme);
-
-    setTheme(normalizedTheme);
-    localStorage.setItem("public-theme", normalizedTheme);
-    applyTheme(normalizedTheme);
+    const applied = applyTheme(nextTheme);
+    setTheme(applied);
+    localStorage.setItem("public-theme", applied);
   }
 
   if (!isPublicThemePath) return null;
 
   return (
     <>
-      <style jsx global>{`
-        body:has(.public-bottom-nav) .timeline-bottom-nav {
-          display: none !important;
-        }
-
-        body:has(.public-bottom-nav) .public-theme-button {
-          width: 1px !important;
-          height: 1px !important;
-          min-width: 1px !important;
-          min-height: 1px !important;
-          padding: 0 !important;
-          border: 0 !important;
-          clip: rect(0 0 0 0) !important;
-          clip-path: inset(50%) !important;
-          overflow: hidden !important;
-          opacity: 0 !important;
-          pointer-events: none !important;
-        }
-
-        .public-bottom-nav {
-          position: fixed;
-          left: 50%;
-          bottom: max(12px, env(safe-area-inset-bottom, 0px));
-          z-index: 9000;
-          width: min(480px, calc(100vw - 22px));
-          min-height: 64px;
-          padding: 8px;
-          border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
-          border-radius: 999px;
-          display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 4px;
-          background: color-mix(in srgb, var(--surface) 86%, transparent);
-          box-shadow: 0 22px 54px rgba(15, 23, 42, 0.16), var(--shadow-soft);
-          backdrop-filter: blur(18px);
-          -webkit-backdrop-filter: blur(18px);
-          transform: translateX(-50%);
-        }
-
-        .public-bottom-nav-item {
-          min-width: 0;
-          min-height: 48px;
-          padding: 5px;
-          border: 0;
-          border-radius: 999px;
-          background: transparent;
-          color: var(--muted);
-          display: inline-flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 3px;
-          text-decoration: none;
-          cursor: pointer;
-          transition: 0.18s ease;
-          font-family: var(--public-font-family, Inter, system-ui, sans-serif);
-        }
-
-        .public-bottom-nav-item span {
-          min-width: 24px;
-          height: 24px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text);
-          font-size: 18px;
-          font-weight: 950;
-          line-height: 1;
-        }
-
-        .public-bottom-nav-item strong {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          font-size: 10.5px;
-          font-weight: 950;
-          line-height: 1.1;
-        }
-
-        .public-bottom-nav-item.active,
-        .public-bottom-nav-item:hover,
-        .public-bottom-nav-item:focus-visible {
-          background: color-mix(in srgb, var(--primary) 11%, transparent);
-          color: var(--text);
-          outline: none;
-        }
-
-        .public-bottom-nav-item:active {
-          transform: scale(0.96);
-        }
-      `}</style>
-
       <button
         type="button"
         className="public-theme-button"
@@ -354,11 +213,9 @@ export default function PublicThemePicker() {
         🎨
       </button>
 
-      <PublicBottomNav pathname={pathname} onThemeClick={() => setOpen(true)} />
-
       {open && (
         <div className="public-theme-overlay" onClick={() => setOpen(false)}>
-          <div className="public-theme-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="public-theme-modal" onClick={(event) => event.stopPropagation()}>
             <div className="public-theme-header">
               <div>
                 <div className="public-theme-kicker">Tampilan</div>
@@ -369,14 +226,13 @@ export default function PublicThemePicker() {
                 type="button"
                 className="public-theme-close"
                 onClick={() => setOpen(false)}
+                aria-label="Tutup pilihan tema"
               >
                 ×
               </button>
             </div>
 
-            <p className="public-theme-desc">
-              Atur tampilan halaman.
-            </p>
+            <p className="public-theme-desc">Atur tampilan halaman.</p>
 
             <div className="public-theme-grid">
               {themes.map((item) => (
