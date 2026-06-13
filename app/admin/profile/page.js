@@ -56,7 +56,7 @@ export default function AdminProfilePage() {
     setSaving(true);
     try {
       const isPassword = modal.type === "password";
-      const data = await sendJson(
+      await sendJson(
         isPassword ? "/api/admin/profile/password" : "/api/admin/profile/pin",
         "PATCH",
         isPassword
@@ -64,8 +64,9 @@ export default function AdminProfilePage() {
           : { new_pin: modal.value, confirmation: modal.confirmation },
       );
       setModal(EMPTY_MODAL);
-      showToast(data.message || `${isPassword ? "Password" : "PIN"} berhasil diperbarui`);
+      window.location.replace("/login");
     } catch (error) {
+      setModal(EMPTY_MODAL);
       showToast(error.message || "Gagal memperbarui credential", "error");
     } finally {
       setSaving(false);
@@ -92,8 +93,6 @@ export default function AdminProfilePage() {
     <main className={styles.page}>
       <Toast show={!!toast} type={toast?.type} message={toast?.message} />
       <div className={styles.container}>
-        <button type="button" className={styles.back} onClick={() => router.push("/admin")}>← Kembali ke Dashboard</button>
-
         <section className={styles.card}>
           <header className={styles.identity}>
             <div className={styles.avatar}>{getAdminAccessRoleInitials(role)}</div>
