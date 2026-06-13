@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import AdminProfileLink from "@/components/admin/AdminProfileLink";
 
 export default function AdminMobileDrawer() {
+  const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const onProfilePage = pathname === "/admin/profile";
 
   useEffect(() => {
     if (open) {
@@ -61,16 +66,19 @@ export default function AdminMobileDrawer() {
 
   return (
     <>
-      <button
-        type="button"
-        className="admin-mobile-menu-btn"
-        onClick={() => setOpen((prev) => !prev)}
-        aria-label={open ? "Close menu" : "Open menu"}
-        aria-expanded={open}
-      >
-        <span>{open ? "×" : "☰"}</span>
-        <strong>Menu</strong>
-      </button>
+      <div className="admin-mobile-topbar">
+        <button
+          type="button"
+          className="admin-mobile-menu-btn"
+          onClick={() => onProfilePage ? router.push("/admin") : setOpen((prev) => !prev)}
+          aria-label={onProfilePage ? "Back to dashboard" : open ? "Close menu" : "Open menu"}
+          aria-expanded={onProfilePage ? undefined : open}
+        >
+          <span>{onProfilePage ? "←" : open ? "×" : "☰"}</span>
+          <strong>{onProfilePage ? "Dashboard" : "Menu"}</strong>
+        </button>
+        {!onProfilePage && <AdminProfileLink compact />}
+      </div>
 
       {open && (
         <button
