@@ -16,6 +16,7 @@ export default function AdminProfilePage() {
   const router = useRouter();
   const [role, setRole] = useState("");
   const [modal, setModal] = useState(EMPTY_MODAL);
+  const [credentialSuccess, setCredentialSuccess] = useState("");
   const [saving, setSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [toast, setToast] = useState(null);
@@ -64,7 +65,7 @@ export default function AdminProfilePage() {
           : { new_pin: modal.value, confirmation: modal.confirmation },
       );
       setModal(EMPTY_MODAL);
-      window.location.replace("/login");
+      setCredentialSuccess(isPassword ? "Password" : "PIN");
     } catch (error) {
       setModal(EMPTY_MODAL);
       showToast(error.message || "Gagal memperbarui credential", "error");
@@ -172,6 +173,16 @@ export default function AdminProfilePage() {
           <small>{modal.step === 2 && modal.confirmation && !confirmValid ? "Nilai belum sama." : isPassword ? "8–128 karakter, wajib mengandung huruf dan angka." : "Tepat 4 digit angka."}</small>
         </label>
       </AdminConfirmModal>
+
+      <AdminConfirmModal
+        open={!!credentialSuccess}
+        title={`${credentialSuccess} berhasil diperbarui`}
+        description={`Demi keamanan, seluruh sesi akun ini telah dikeluarkan. Silakan login kembali menggunakan ${credentialSuccess.toLowerCase()} baru.`}
+        hideCancel
+        confirmText="Login Kembali"
+        onCancel={() => {}}
+        onConfirm={() => window.location.replace("/login")}
+      />
     </main>
   );
 }
