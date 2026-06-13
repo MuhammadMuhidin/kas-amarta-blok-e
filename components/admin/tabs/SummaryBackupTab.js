@@ -1,5 +1,6 @@
 "use client";
 
+import AdminDataSkeleton from "@/components/admin/AdminDataSkeleton";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import { formatJakartaDateTimeLong } from "@/lib/localDate";
@@ -128,14 +129,14 @@ export default function SummaryBackupTab() {
           disabled={loading || loadingMore}
           onClick={refresh}
         >
-          {loading ? "Refreshing..." : "Refresh"}
+          Refresh
         </button>
       </div>
 
       {error && <div className="admin-error-box">{error}</div>}
 
-      {loading ? (
-        <p>Loading summary...</p>
+      {loading && !summaryBackup?.length ? (
+        <AdminDataSkeleton cards={4} rows={6} />
       ) : !summaryBackup?.length ? (
         <div className="admin-empty-state">
           Backup summary is not available yet.
@@ -191,8 +192,7 @@ export default function SummaryBackupTab() {
           </div>
 
           <div style={styles.metaBar}>
-            <span>{summaryBackup.length} / {total} loaded</span>
-            <span>Scroll to load more data</span>
+            <span>{total} backup records</span>
           </div>
 
           <div className="admin-table-wrapper">
@@ -262,7 +262,7 @@ export default function SummaryBackupTab() {
               ? "Loading more"
               : hasMore
                 ? "Scroll to load more"
-                : "All summaries loaded"}
+                : ""}
           </div>
         </>
       )}
