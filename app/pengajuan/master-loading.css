@@ -1,0 +1,65 @@
+html:not([data-pengajuan-masters-timeout="true"]) .request-master-card:not(:has(select option)) {
+  min-height: 330px;
+}
+
+html:not([data-pengajuan-masters-timeout="true"]) .request-master-card:not(:has(select option)) > * {
+  visibility: hidden;
+}
+
+html:not([data-pengajuan-masters-timeout="true"]) .request-master-card:not(:has(select option))::before,
+html:not([data-pengajuan-masters-timeout="true"]) .request-master-card:not(:has(select option))::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+html:not([data-pengajuan-masters-timeout="true"]) .request-master-card:not(:has(select option))::before {
+  z-index: 2;
+  background: var(--surface);
+}
+
+html:not([data-pengajuan-masters-timeout="true"]) .request-master-card:not(:has(select option))::after {
+  z-index: 3;
+  inset: 14px;
+  border-radius: 12px;
+  background:
+    linear-gradient(var(--surface-soft), var(--surface-soft)) 0 0 / 92px 11px no-repeat,
+    linear-gradient(var(--surface-soft), var(--surface-soft)) 0 23px / min(230px, 58%) 22px no-repeat,
+    linear-gradient(var(--surface-soft), var(--surface-soft)) 100% 0 / 116px 42px no-repeat,
+    linear-gradient(var(--surface-soft), var(--surface-soft)) 0 68px / 132px 11px no-repeat,
+    linear-gradient(var(--surface-soft), var(--surface-soft)) 0 88px / 100% 44px no-repeat,
+    linear-gradient(var(--surface-soft), var(--surface-soft)) 0 150px / 146px 11px no-repeat,
+    linear-gradient(var(--surface-soft), var(--surface-soft)) 0 170px / 100% 44px no-repeat,
+    linear-gradient(var(--surface-soft), var(--surface-soft)) 0 232px / 100% 44px no-repeat;
+  animation: pengajuanMasterSkeletonPulse 1.15s ease-in-out infinite;
+}
+
+@keyframes pengajuanMasterSkeletonPulse {
+  0%, 100% { opacity: .62; }
+  50% { opacity: 1; }
+}
+
+@media (max-width: 700px) {
+  html:not([data-pengajuan-masters-timeout="true"]) .request-master-card:not(:has(select option)) {
+    min-height: 344px;
+  }
+
+  html:not([data-pengajuan-masters-timeout="true"]) .request-master-card:not(:has(select option))::after {
+    background:
+      linear-gradient(var(--surface-soft), var(--surface-soft)) 0 0 / 86px 10px no-repeat,
+      linear-gradient(var(--surface-soft), var(--surface-soft)) 0 22px / 56% 20px no-repeat,
+      linear-gradient(var(--surface-soft), var(--surface-soft)) 100% 0 / 104px 40px no-repeat,
+      linear-gradient(var(--surface-soft), var(--surface-soft)) 0 66px / 124px 10px no-repeat,
+      linear-gradient(var(--surface-soft), var(--surface-soft)) 0 86px / 100% 44px no-repeat,
+      linear-gradient(var(--surface-soft), var(--surface-soft)) 0 148px / 138px 10px no-repeat,
+      linear-gradient(var(--surface-soft), var(--surface-soft)) 0 168px / 100% 44px no-repeat,
+      linear-gradient(var(--surface-soft), var(--surface-soft)) 0 230px / 100% 44px no-repeat;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:not([data-pengajuan-masters-timeout="true"]) .request-master-card:not(:has(select option))::after {
+    animation: none;
+  }
+}
