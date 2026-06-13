@@ -8,6 +8,13 @@
   background: var(--bg, #f8fafc);
 }
 
+.contentOnly {
+  max-width: none;
+  min-height: auto;
+  margin: 0;
+  padding: 0 0 calc(68px + env(safe-area-inset-bottom, 0px));
+}
+
 .block,
 .line,
 .circle {
@@ -142,6 +149,7 @@
 
 @media (max-width: 700px) {
   .page { padding: 12px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
+  .contentOnly { padding: 0 0 calc(70px + env(safe-area-inset-bottom, 0px)); }
   .tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
   .summary { gap: 6px; }
   .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
