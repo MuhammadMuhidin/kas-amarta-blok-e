@@ -1,5 +1,7 @@
 "use client";
 
+import "./PublicThemePicker.css";
+
 import { useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
