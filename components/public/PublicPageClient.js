@@ -6,7 +6,6 @@ import CashflowTab from "@/components/public/tabs/CashflowTab";
 import InsightTab from "@/components/public/tabs/InsightTab";
 import PaymentStatusTab from "@/components/public/tabs/PaymentStatusTab";
 import KasLoadingView from "@/components/public/KasLoadingView";
-import PublicHero from "@/components/public/PublicHero";
 import PublicTabs from "@/components/public/PublicTabs";
 import ReceiptPreviewModal from "@/components/public/ReceiptPreviewModal";
 import ResidentDetailModal from "@/components/public/ResidentDetailModal";
@@ -113,7 +112,7 @@ export default function PublicPageClient() {
 
   if (error) {
     return (
-      <div className="page-wrap">
+      <div className="page-wrap public-kas-page">
         <div className="insight-card">{error}</div>
       </div>
     );
@@ -121,17 +120,7 @@ export default function PublicPageClient() {
 
   return (
     <>
-      <div className="page-wrap">
-        <PublicHero
-          description={(
-            <>
-              Pusat transparansi iuran, pengeluaran,
-              <br />
-              dan laporan kas warga.
-            </>
-          )}
-        />
-
+      <div className="page-wrap public-kas-page">
         <PublicTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 
         <PaymentStatusTab
