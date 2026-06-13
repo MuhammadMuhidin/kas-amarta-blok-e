@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { unauthorized, validateCSRF } from "@/lib/auth";
-import { getCurrentAdminSession } from "@/lib/adminSession";
+import { getCurrentAdminSession, getSessionCookieName } from "@/lib/adminSession";
 import { enforceRateLimit, RATE_LIMIT_SCOPES } from "@/lib/rateLimit";
 import { changeOwnCredential } from "@/features/profile/profileCredentialService";
 
@@ -21,13 +21,18 @@ export async function PATCH(req) {
     if (limit) return limit;
 
     const body = await req.json();
-    return NextResponse.json(await changeOwnCredential({
+    const result = await changeOwnCredential({
       req,
       session,
       type: "pin",
       value: body?.new_pin,
       confirmation: body?.confirmation,
-    }));
+    });
+    const res = NextResponse.json(result);
+    res.cookies.delete(getSessionCookieName());
+    res.cookies.delete("csrf_token");
+    res.cookies.delete("admin");
+    return res;
   } catch (err) {
     const message = err.message || "Gagal memperbarui PIN";
     const status = /Konfirmasi|harus|terlalu mudah|tidak valid|bersamaan/i.test(message) ? 400 : 500;
