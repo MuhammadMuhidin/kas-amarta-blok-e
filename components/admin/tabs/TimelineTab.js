@@ -1,5 +1,6 @@
 "use client";
 
+import AdminDataSkeleton from "@/components/admin/AdminDataSkeleton";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import { readJson, sendFormData, sendJson } from "@/components/admin/adminClientApi";
@@ -503,7 +504,7 @@ export default function TimelineTab({ showPopup }) {
         </select>
       </div>
 
-      {loading ? <p>Loading timeline...</p> : (
+      {loading && !posts.length ? <AdminDataSkeleton showSummary={false} rows={6} /> : (
         <div className="timeline-admin-list">
           {filteredPosts.map((post) => {
             const state = getReadiness(post);
