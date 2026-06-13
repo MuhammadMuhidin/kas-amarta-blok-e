@@ -44,47 +44,11 @@ const DEFAULT_FLOW = [
 ];
 
 const FLOW_TEMPLATES = [
-  {
-    id: "simple",
-    label: "Persetujuan sederhana",
-    description: "Ketua memberi persetujuan akhir.",
-    paymentRequired: false,
-    flow: [{ role: "ketua", label: "Approval Ketua", action: "final_approval" }],
-  },
-  {
-    id: "paid",
-    label: "Pengajuan berbayar",
-    description: "Bendahara memvalidasi pembayaran lalu Ketua menyetujui.",
-    paymentRequired: true,
-    flow: DEFAULT_FLOW,
-  },
-  {
-    id: "administration",
-    label: "Administrasi",
-    description: "Sekretaris memeriksa dokumen lalu Ketua menyetujui.",
-    paymentRequired: false,
-    flow: [
-      { role: "sekretaris", label: "Pemeriksaan Dokumen", action: "validate_document" },
-      { role: "ketua", label: "Approval Ketua", action: "final_approval" },
-    ],
-  },
-  {
-    id: "facility",
-    label: "Sarana dan prasarana",
-    description: "Sapras memeriksa kebutuhan lalu Ketua menyetujui.",
-    paymentRequired: false,
-    flow: [
-      { role: "sapras", label: "Pemeriksaan Sarana", action: "approve" },
-      { role: "ketua", label: "Approval Ketua", action: "final_approval" },
-    ],
-  },
-  {
-    id: "direct",
-    label: "Tanpa approval",
-    description: "Pengajuan langsung selesai setelah dikirim.",
-    paymentRequired: false,
-    flow: [],
-  },
+  { id: "simple", label: "Persetujuan sederhana", description: "Ketua memberi persetujuan akhir.", paymentRequired: false, flow: [{ role: "ketua", label: "Approval Ketua", action: "final_approval" }] },
+  { id: "paid", label: "Pengajuan berbayar", description: "Bendahara memvalidasi pembayaran lalu Ketua menyetujui.", paymentRequired: true, flow: DEFAULT_FLOW },
+  { id: "administration", label: "Administrasi", description: "Sekretaris memeriksa dokumen lalu Ketua menyetujui.", paymentRequired: false, flow: [{ role: "sekretaris", label: "Pemeriksaan Dokumen", action: "validate_document" }, { role: "ketua", label: "Approval Ketua", action: "final_approval" }] },
+  { id: "facility", label: "Sarana dan prasarana", description: "Sapras memeriksa kebutuhan lalu Ketua menyetujui.", paymentRequired: false, flow: [{ role: "sapras", label: "Pemeriksaan Sarana", action: "approve" }, { role: "ketua", label: "Approval Ketua", action: "final_approval" }] },
+  { id: "direct", label: "Tanpa approval", description: "Pengajuan langsung selesai setelah dikirim.", paymentRequired: false, flow: [] },
 ];
 
 const ICON_OPTIONS = ["📄", "🔑", "🏠", "🛠️", "📅", "🧾", "🚧", "💡", "📢", "✅"];
@@ -113,6 +77,10 @@ function roleLabel(value) {
 
 function actionLabel(value) {
   return ACTION_OPTIONS.find((action) => action.value === value)?.label || value || "Persetujuan";
+}
+
+function automaticStepLabel(action, role) {
+  return `${actionLabel(action)} oleh ${roleLabel(role)}`;
 }
 
 function makeEmptyForm() {
@@ -170,9 +138,7 @@ function validateMaster(value, full = true) {
   if (new Set(keys).size !== keys.length) errors.push({ step: 1, message: "Nama sistem field tidak boleh duplikat" });
   fields.forEach((field, index) => {
     if (!clean(field.label)) errors.push({ step: 1, message: `Field ${index + 1} belum memiliki label` });
-    if (["select", "radio"].includes(field.type) && !(field.options || []).filter(clean).length) {
-      errors.push({ step: 1, message: `Pilihan untuk field ${field.label || index + 1} belum diisi` });
-    }
+    if (["select", "radio"].includes(field.type) && !(field.options || []).filter(clean).length) errors.push({ step: 1, message: `Pilihan untuk field ${field.label || index + 1} belum diisi` });
   });
 
   const flow = Array.isArray(value.flow_schema) ? value.flow_schema : [];
@@ -294,8 +260,8 @@ function FlowBuilder({ value, onChange }) {
           <article className="mm-builder-card" key={`${step.role}-${step.action}-${index}`}>
             <div className="mm-builder-card-head"><div><span>Tahap {index + 1}</span><strong>{step.label || "Tanpa nama tahap"}</strong></div><div className="mm-card-actions"><button type="button" onClick={() => move(index, -1)} disabled={index === 0}>↑</button><button type="button" onClick={() => move(index, 1)} disabled={index === flow.length - 1}>↓</button><button type="button" onClick={() => duplicate(index)}>⧉</button><button type="button" onClick={() => remove(index)}>×</button></div></div>
             <div className="mm-grid-2">
-              <label>Penanggung jawab<select className="admin-input" value={step.role || ""} onChange={(event) => { const role = event.target.value; const action = step.action || "approve"; update(index, { role, label: `\${actionLabel(action)} oleh \${roleLabel(role)}` }); }}>{ADMIN_ACCESS_ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
-              <label>Tindakan<select className="admin-input" value={step.action || "approve"} onChange={(event) => { const action = event.target.value; update(index, { action, label: `${actionLabel(action)} oleh ${roleLabel(step.role)}` }); }}>{ACTION_OPTIONS.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
+              <label>Penanggung jawab<select className="admin-input" value={step.role || ""} onChange={(event) => { const role = event.target.value; const action = step.action || "approve"; update(index, { role, label: automaticStepLabel(action, role) }); }}>{ADMIN_ACCESS_ROLES.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label>
+              <label>Tindakan<select className="admin-input" value={step.action || "approve"} onChange={(event) => { const action = event.target.value; update(index, { action, label: automaticStepLabel(action, step.role) }); }}>{ACTION_OPTIONS.map((action) => <option key={action.value} value={action.value}>{action.label}</option>)}</select></label>
             </div>
             <label>Nama tahap<input className="admin-input" value={step.label || ""} onChange={(event) => update(index, { label: event.target.value })} /></label>
           </article>
@@ -342,7 +308,7 @@ function PaymentSettings({ value, onChange }) {
   );
 }
 
-function AdvancedEditor({ value, onChange, editable, setEditable, fieldsText, setFieldsText, flowText, setFlowText, onApply, error }) {
+function AdvancedEditor({ value, editable, setEditable, fieldsText, setFieldsText, flowText, setFlowText, onApply, error }) {
   return (
     <details className="mm-advanced">
       <summary>Pengaturan Lanjutan · JSON</summary>
@@ -488,7 +454,6 @@ export default function MasterManagementTab() {
       <Toast show={!!toast} type={toast?.type} message={toast?.message} />
       <style jsx global>{CSS}</style>
       <AdminConfirmModal open={!!pendingArchive} title="Arsipkan Approval Master" description={pendingArchive ? `${pendingArchive.name} tidak akan tampil pada halaman pengajuan warga.` : ""} confirmText="Arsipkan" cancelText="Batal" loading={saving} loadingText="Mengarsipkan..." onCancel={() => !saving && setPendingArchive(null)} onConfirm={archiveMaster} />
-
       <div className="admin-card mm-root">
         {!editor ? (
           <>
@@ -518,7 +483,7 @@ export default function MasterManagementTab() {
               {wizardStep === 2 ? <FlowBuilder value={editor} onChange={setEditor} /> : null}
               {wizardStep === 3 ? <PaymentSettings value={editor} onChange={setEditor} /> : null}
               {wizardStep === 4 ? <><div className="mm-section-head"><div><div className="mm-section-kicker">Preview Langsung</div><h3>Tampilan Warga dan Alur</h3><p>Preview memperlihatkan susunan form dan tahapan sebelum dipublikasikan.</p></div></div><MasterPreview value={editor} /></> : null}
-              {wizardStep === 5 ? <div className="mm-panel-grid"><div className="mm-section-head"><div><div className="mm-section-kicker">Validasi dan Publikasi</div><h3>Siap Dipublikasikan?</h3><p>Simpan sebagai draft bila konfigurasi belum selesai.</p></div></div><div className="mm-checklist">{errors.length ? errors.map((error, index) => <button type="button" key={`${error.step}-${index}`} className="mm-check-error" onClick={() => setWizardStep(error.step)}>× {error.message}</button>) : <div className="mm-check-success">✓ Seluruh konfigurasi valid dan siap dipublikasikan.</div>}</div><div className="mm-publication-actions"><button type="button" className="admin-small-btn" disabled={saving} onClick={() => persist("draft")}><LoadingButtonContent loading={saving} loadingText="Menyimpan...">Simpan Draft</LoadingButtonContent></button><button type="button" className="admin-btn" disabled={saving || errors.length > 0} onClick={() => persist("active")}><LoadingButtonContent loading={saving} loadingText="Mempublikasikan...">Publikasikan</LoadingButtonContent></button>{editor.id ? <button type="button" className="admin-small-btn mm-danger-btn" disabled={saving} onClick={() => persist("archived")}>Arsipkan</button> : null}</div><AdvancedEditor value={editor} onChange={setEditor} editable={advancedEditable} setEditable={setAdvancedEditable} fieldsText={fieldsText} setFieldsText={setFieldsText} flowText={flowText} setFlowText={setFlowText} onApply={applyAdvancedJson} error={advancedError} /></div> : null}
+              {wizardStep === 5 ? <div className="mm-panel-grid"><div className="mm-section-head"><div><div className="mm-section-kicker">Validasi dan Publikasi</div><h3>Siap Dipublikasikan?</h3><p>Simpan sebagai draft bila konfigurasi belum selesai.</p></div></div><div className="mm-checklist">{errors.length ? errors.map((error, index) => <button type="button" key={`${error.step}-${index}`} className="mm-check-error" onClick={() => setWizardStep(error.step)}>× {error.message}</button>) : <div className="mm-check-success">✓ Seluruh konfigurasi valid dan siap dipublikasikan.</div>}</div><div className="mm-publication-actions"><button type="button" className="admin-small-btn" disabled={saving} onClick={() => persist("draft")}><LoadingButtonContent loading={saving} loadingText="Menyimpan...">Simpan Draft</LoadingButtonContent></button><button type="button" className="admin-btn" disabled={saving || errors.length > 0} onClick={() => persist("active")}><LoadingButtonContent loading={saving} loadingText="Mempublikasikan...">Publikasikan</LoadingButtonContent></button>{editor.id ? <button type="button" className="admin-small-btn mm-danger-btn" disabled={saving} onClick={() => persist("archived")}>Arsipkan</button> : null}</div><AdvancedEditor value={editor} editable={advancedEditable} setEditable={setAdvancedEditable} fieldsText={fieldsText} setFieldsText={setFieldsText} flowText={flowText} setFlowText={setFlowText} onApply={applyAdvancedJson} error={advancedError} /></div> : null}
             </div>
             <div className="mm-footer"><button type="button" className="admin-small-btn" disabled={wizardStep === 0 || saving} onClick={() => setWizardStep((prev) => Math.max(0, prev - 1))}>Kembali</button><div><button type="button" className="admin-small-btn" disabled={saving} onClick={() => persist("draft")}>Simpan Draft</button>{wizardStep < WIZARD_STEPS.length - 1 ? <button type="button" className="admin-btn" disabled={saving} onClick={() => setWizardStep((prev) => Math.min(WIZARD_STEPS.length - 1, prev + 1))}>Lanjut</button> : null}</div></div>
           </div>
