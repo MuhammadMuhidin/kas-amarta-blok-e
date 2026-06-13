@@ -9,6 +9,7 @@ export default function AdminConfirmModal({
   confirmText = "Confirm",
   confirmDisabled = false,
   cancelText = "Cancel",
+  hideCancel = false,
   loading = false,
   loadingText = "Sending...",
   children,
@@ -29,9 +30,11 @@ export default function AdminConfirmModal({
         {children && <div className="admin-confirm-body" style={styles.body}>{children}</div>}
 
         <div style={styles.footer}>
-          <AdminActionButton onClick={onCancel} disabled={loading}>
-            {cancelText}
-          </AdminActionButton>
+          {!hideCancel && (
+            <AdminActionButton onClick={onCancel} disabled={loading}>
+              {cancelText}
+            </AdminActionButton>
+          )}
           <AdminActionButton onClick={onConfirm} disabled={confirmDisabled} loading={loading} loadingText={loadingText}>
             {confirmText}
           </AdminActionButton>
