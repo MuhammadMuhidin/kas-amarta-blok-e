@@ -1,1 +1,25 @@
-{"name":"kas-amarta","private":true,"scripts":{"dev":"next dev","build":"node scripts/write-build-info.mjs && next build","start":"next start","cloudflare:prepare":"npm install --no-save --package-lock=false --legacy-peer-deps --no-audit --no-fund next@14.2.35 @opennextjs/cloudflare@1.15.0 wrangler@4.100.0 && node scripts/prepare-cloudflare.mjs","deploy":"npm run cloudflare:prepare && opennextjs-cloudflare build && opennextjs-cloudflare deploy","preview":"npm run cloudflare:prepare && opennextjs-cloudflare build && opennextjs-cloudflare preview"},"dependencies":{"next":"14.2.5","react":"18.2.0","react-dom":"18.2.0","@supabase/supabase-js":"^2.105.3","@aws-sdk/client-s3":"^3.726.1","jspdf":"^2.5.1","jspdf-autotable":"^3.8.2","@react-pdf-viewer/core":"^3.12.0","pdfjs-dist":"3.4.120","@simplewebauthn/server":"^13.3.0","@simplewebauthn/browser":"^13.3.0"}}
+{
+  "name": "kas-amarta",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "node scripts/write-build-info.mjs && next build",
+    "start": "next start",
+    "cloudflare:prepare": "npm install --no-save --package-lock=false --legacy-peer-deps --no-audit --no-fund next@14.2.35 @opennextjs/cloudflare@1.15.0 wrangler@4.100.0 && node scripts/prepare-cloudflare.mjs",
+    "deploy": "npm run cloudflare:prepare -- deploy",
+    "preview": "npm run cloudflare:prepare -- preview"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "@supabase/supabase-js": "^2.105.3",
+    "@aws-sdk/client-s3": "^3.726.1",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.8.2",
+    "@react-pdf-viewer/core": "^3.12.0",
+    "pdfjs-dist": "3.4.120",
+    "@simplewebauthn/server": "^13.3.0",
+    "@simplewebauthn/browser": "^13.3.0"
+  }
+}
