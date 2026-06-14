@@ -10,8 +10,37 @@ import styles from "@/app/admin/profile/profile.module.css";
 
 const EMPTY_MODAL = { type: "", step: 1, value: "", confirmation: "" };
 
+function getRemainingSessionTime(expiresAt, now) {
+  if (!expiresAt) return "-";
+
+  const expiresTime = new Date(expiresAt).getTime();
+  if (!Number.isFinite(expiresTime)) return "-";
+
+  const diff = Math.max(0, Math.floor((expiresTime - now) / 1000));
+  if (diff <= 0) return "Sesi Anda telah berakhir.";
+
+  const days = Math.floor(diff / 86400);
+  const hours = Math.floor((diff % 86400) / 3600);
+  const minutes = Math.floor((diff % 3600) / 60);
+
+  let remaining;
+  if (days > 0) {
+    remaining = `${days} hari ${hours} jam`;
+  } else if (hours > 0) {
+    remaining = `${hours} jam ${minutes} menit`;
+  } else if (minutes > 0) {
+    remaining = `${minutes} menit`;
+  } else {
+    remaining = "kurang dari 1 menit";
+  }
+
+  return `Sesi Anda akan berakhir dalam ${remaining}.`;
+}
+
 export default function AdminProfilePageClient() {
   const [role, setRole] = useState(null);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState(null);
+  const [sessionNow, setSessionNow] = useState(() => Date.now());
   const [sessionLoading, setSessionLoading] = useState(true);
   const [modal, setModal] = useState(EMPTY_MODAL);
   const [credentialSuccess, setCredentialSuccess] = useState("");
@@ -39,7 +68,11 @@ export default function AdminProfilePageClient() {
         });
         if (!res.ok) throw new Error("Session tidak valid");
         const data = await res.json();
-        if (active) setRole(data.access_role || "admin");
+        if (active) {
+          setRole(data.access_role || "admin");
+          setSessionExpiresAt(data.expires_at || null);
+          setSessionNow(Date.now());
+        }
       } catch (error) {
         if (error.name !== "AbortError" && active) window.location.replace("/login");
       } finally {
@@ -61,6 +94,13 @@ export default function AdminProfilePageClient() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!sessionExpiresAt) return undefined;
+
+    const timer = window.setInterval(() => setSessionNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, [sessionExpiresAt]);
+
   const passwordValid = useMemo(() => (
     modal.value.length >= 8 && modal.value.length <= 128 &&
     /[A-Za-z]/.test(modal.value) && /\d/.test(modal.value)
@@ -68,6 +108,7 @@ export default function AdminProfilePageClient() {
   const pinValid = /^\d{4}$/.test(modal.value);
   const firstStepValid = modal.type === "password" ? passwordValid : pinValid;
   const confirmValid = modal.confirmation === modal.value && modal.confirmation.length > 0;
+  const sessionExpiryMessage = getRemainingSessionTime(sessionExpiresAt, sessionNow);
 
   function showToast(message, type = "success") {
     setToast({ message, type });
@@ -124,7 +165,14 @@ export default function AdminProfilePageClient() {
         <div className={styles.row}><div><strong>Password</strong><span>Minimal 8 karakter, huruf dan angka</span></div><button type="button" onClick={() => setModal({ type: "password", step: 1, value: "", confirmation: "" })}>Ubah</button></div>
         <div className={styles.row}><div><strong>PIN</strong><span>4 digit angka</span></div><button type="button" onClick={() => setModal({ type: "pin", step: 1, value: "", confirmation: "" })}>Ubah</button></div>
       </div>
-      <div className={styles.accountSection}><div className={styles.sectionTitle}>Akun</div><AdminActionButton className={styles.logout} loading={loggingOut} loadingText="Sedang keluar..." onClick={logout}>Keluar dari Akun</AdminActionButton></div>
+      <div className={styles.accountSection}>
+        <div className={styles.sectionTitle}>Akun</div>
+        <div className={styles.sessionInfo}>
+          <strong>Sesi Aktif</strong>
+          <span>{sessionExpiryMessage}</span>
+        </div>
+        <AdminActionButton className={styles.logout} loading={loggingOut} loadingText="Sedang keluar..." onClick={logout}>Keluar dari Akun</AdminActionButton>
+      </div>
     </section></div>
 
     <AdminConfirmModal
