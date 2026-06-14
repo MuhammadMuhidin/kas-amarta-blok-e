@@ -23,6 +23,10 @@
 .row strong { font-size: 15px; }
 .row span { margin-top: 4px; color: var(--admin-muted); font-size: 12px; font-weight: 650; }
 .row button { flex: 0 0 auto; border: 1px solid var(--admin-border); border-radius: 10px; background: transparent; color: var(--admin-text); padding: 8px 13px; font-weight: 850; cursor: pointer; }
+.sessionInfo { margin: 0 0 14px; padding: 13px 14px; border: 1px solid var(--admin-border); border-radius: 12px; background: var(--admin-row); }
+.sessionInfo strong, .sessionInfo span { display: block; }
+.sessionInfo strong { color: var(--admin-text); font-size: 14px; }
+.sessionInfo span { margin-top: 5px; color: var(--admin-primary); font-size: 12px; font-weight: 750; line-height: 1.45; }
 .logout { width: 100%; border: 1px solid #dc2626; border-radius: 12px; background: transparent; color: #dc2626; padding: 11px 14px; font-weight: 850; }
 .modalField { display: grid; gap: 8px; }
 .modalField span { color: var(--admin-text); font-size: 13px; font-weight: 850; }
