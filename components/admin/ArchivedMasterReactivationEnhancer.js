@@ -27,6 +27,11 @@ function findButton(container, labels) {
     .find((button) => accepted.has(clean(button.textContent))) || null;
 }
 
+function findButtonStartingWith(container, prefixes) {
+  return [...(container?.querySelectorAll("button") || [])]
+    .find((button) => prefixes.some((prefix) => clean(button.textContent).startsWith(prefix))) || null;
+}
+
 function sameTargets(previous, next) {
   return previous.length === next.length && previous.every((item, index) => (
     item.master.id === next[index].master.id &&
@@ -94,7 +99,11 @@ function configureEditor(master) {
   const kicker = editor.querySelector(".mm-editor-head .activity-kicker");
   const subtitle = editor.querySelector(".mm-editor-head .activity-subtitle");
   const publicationActions = editor.querySelector(".mm-publication-actions");
-  const publish = findButton(publicationActions, ["Publish New Version", "Publish First Version", ...[...Array(30)].map((_, index) => `Publish Draft as Version ${index + 1}`)]);
+  const publish = findButtonStartingWith(publicationActions, [
+    "Publish New Version",
+    "Publish First Version",
+    "Publish Draft as Version",
+  ]);
   const archive = findButton(publicationActions, ["Archive"]);
 
   if (!master) {
@@ -196,10 +205,23 @@ export default function ArchivedMasterReactivationEnhancer() {
 
   useEffect(() => {
     const onClick = (event) => {
-      const card = event.target.closest?.(".mm-master-card");
-      if (card?.dataset.approvalMasterId) {
-        setSelectedMasterId(card.dataset.approvalMasterId);
+      const button = event.target.closest?.("button");
+      const text = clean(button?.textContent);
+
+      if (button?.closest(".mm-list-head") && text.includes("Create Request")) {
+        setSelectedMasterId("");
+        return;
       }
+
+      const card = event.target.closest?.(".mm-master-card");
+      if (!card?.dataset.approvalMasterId) return;
+
+      if (["Duplicate", "Duplicate as New Request"].includes(text)) {
+        setSelectedMasterId("");
+        return;
+      }
+
+      setSelectedMasterId(card.dataset.approvalMasterId);
     };
 
     document.addEventListener("click", onClick, true);
