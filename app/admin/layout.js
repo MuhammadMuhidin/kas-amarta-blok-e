@@ -7,7 +7,7 @@ import "./master-management-english.css";
 import AdminMobileDrawer from "@/components/admin/AdminMobileDrawer";
 import AdminThemeBoot from "@/components/admin/AdminThemeBoot";
 import AdminTopActions from "@/components/admin/AdminTopActions";
-import ArchivedMasterReactivationEnhancer from "@/components/admin/ArchivedMasterReactivationEnhancer";
+import ApprovalMasterLifecycleControllerV2 from "@/components/admin/ApprovalMasterLifecycleControllerV2";
 
 export default function AdminLayout({ children }) {
   return (
@@ -15,7 +15,7 @@ export default function AdminLayout({ children }) {
       <AdminThemeBoot />
       <AdminMobileDrawer />
       <AdminTopActions />
-      <ArchivedMasterReactivationEnhancer />
+      <ApprovalMasterLifecycleControllerV2 />
       {children}
     </>
   );

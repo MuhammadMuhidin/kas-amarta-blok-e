@@ -5,17 +5,43 @@ import { useEffect, useState } from "react";
 import { getAdminAccessRoleInitials, getAdminAccessRoleLabel } from "@/lib/adminRoles";
 
 export default function AdminProfileLink({ compact = false }) {
-  const [role, setRole] = useState("");
+  const [role, setRole] = useState(null);
 
   useEffect(() => {
     let active = true;
-    fetch("/api/admin/sessions/check", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (active) setRole(data?.access_role || "");
-      })
-      .catch(() => {});
-    return () => { active = false; };
+    let controller = null;
+
+    async function loadRole() {
+      controller?.abort();
+      const requestController = new AbortController();
+      controller = requestController;
+      if (active) setRole(null);
+
+      try {
+        const res = await fetch(`/api/admin/sessions/check?_=${Date.now()}`, {
+          cache: "no-store",
+          credentials: "same-origin",
+          signal: requestController.signal,
+        });
+        const data = res.ok ? await res.json() : null;
+        if (active && controller === requestController) setRole(data?.access_role || null);
+      } catch (error) {
+        if (error.name !== "AbortError" && active && controller === requestController) setRole(null);
+      }
+    }
+
+    const pageShow = () => loadRole();
+    const visibility = () => document.visibilityState === "visible" && loadRole();
+    loadRole();
+    window.addEventListener("pageshow", pageShow);
+    document.addEventListener("visibilitychange", visibility);
+
+    return () => {
+      active = false;
+      controller?.abort();
+      window.removeEventListener("pageshow", pageShow);
+      document.removeEventListener("visibilitychange", visibility);
+    };
   }, []);
 
   if (!role) return null;
