@@ -5,6 +5,8 @@ export function getCookieValue(name) {
     ?.split("=")[1];
 }
 
+export const ADMIN_DATA_MUTATED_EVENT = "admin:data-mutated";
+
 const transientStatusCodes = new Set([408, 429, 500, 502, 503, 504]);
 const retryableMethods = new Set(["GET", "POST", "PATCH"]);
 
@@ -94,6 +96,20 @@ async function requestJson({ path, method = "GET", fetchOptions = {}, retries = 
   throw lastError || new Error(`${normalizedMethod} ${path} failed`);
 }
 
+function broadcastMutation({ path, method, body, data }) {
+  if (typeof window === "undefined") return;
+
+  window.dispatchEvent(new CustomEvent(ADMIN_DATA_MUTATED_EVENT, {
+    detail: {
+      path,
+      method,
+      body,
+      data,
+      occurred_at: Date.now(),
+    },
+  }));
+}
+
 export async function readJson(path) {
   return requestJson({
     path,
@@ -106,7 +122,7 @@ export async function readJson(path) {
 export async function sendJson(path, method, body) {
   const normalizedMethod = String(method || "POST").toUpperCase();
 
-  return requestJson({
+  const data = await requestJson({
     path,
     method: normalizedMethod,
     fetchOptions: {
@@ -119,12 +135,15 @@ export async function sendJson(path, method, body) {
     },
     retries: 1,
   });
+
+  broadcastMutation({ path, method: normalizedMethod, body, data });
+  return data;
 }
 
 export async function sendFormData(path, method, formData) {
   const normalizedMethod = String(method || "POST").toUpperCase();
 
-  return requestJson({
+  const data = await requestJson({
     path,
     method: normalizedMethod,
     fetchOptions: {
@@ -136,4 +155,7 @@ export async function sendFormData(path, method, formData) {
     },
     retries: 1,
   });
+
+  broadcastMutation({ path, method: normalizedMethod, body: null, data });
+  return data;
 }
