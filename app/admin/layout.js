@@ -4,6 +4,7 @@ import "./sidebar.css";
 import AdminMobileDrawer from "@/components/admin/AdminMobileDrawer";
 import AdminThemeBoot from "@/components/admin/AdminThemeBoot";
 import AdminTopActions from "@/components/admin/AdminTopActions";
+import MasterVersionHistoryDiff from "@/components/admin/MasterVersionHistoryDiff";
 
 export default function AdminLayout({ children }) {
   return (
@@ -11,6 +12,7 @@ export default function AdminLayout({ children }) {
       <AdminThemeBoot />
       <AdminMobileDrawer />
       <AdminTopActions />
+      <MasterVersionHistoryDiff />
       {children}
     </>
   );
