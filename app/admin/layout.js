@@ -9,7 +9,6 @@ import AdminMobileDrawer from "@/components/admin/AdminMobileDrawer";
 import AdminThemeBoot from "@/components/admin/AdminThemeBoot";
 import AdminTopActions from "@/components/admin/AdminTopActions";
 import MasterManagementActionFix from "@/components/admin/MasterManagementActionFix";
-import MasterManagementEnglishUI from "@/components/admin/MasterManagementEnglishUI";
 import MasterManagementReadOnlyPreview from "@/components/admin/MasterManagementReadOnlyPreview";
 import MasterVersionHistoryDiff from "@/components/admin/MasterVersionHistoryDiff";
 
@@ -22,7 +21,6 @@ export default function AdminLayout({ children }) {
       <MasterManagementActionFix />
       <MasterManagementReadOnlyPreview />
       <MasterVersionHistoryDiff />
-      <MasterManagementEnglishUI />
       {children}
     </>
   );
