@@ -45,6 +45,11 @@ export default function WhatsappDisabledLoginNotice() {
       okRequestedRef.current = false;
     }
 
+    function resetDisabledFlow() {
+      disabledFlowRef.current = false;
+      gateResolverRef.current = null;
+    }
+
     function wrapLoginResponse(response) {
       return new Proxy(response, {
         get(target, property) {
@@ -94,11 +99,15 @@ export default function WhatsappDisabledLoginNotice() {
           if (okRequestedRef.current) resolve();
         });
 
-        const response = await responsePromise;
-        disabledFlowRef.current = false;
-        gateResolverRef.current = null;
-
-        return wrapLoginResponse(response);
+        try {
+          const response = await responsePromise;
+          resetDisabledFlow();
+          return wrapLoginResponse(response);
+        } catch (error) {
+          resetDisabledFlow();
+          closeNotice();
+          throw error;
+        }
       }
 
       return originalFetch(input, init);
@@ -109,8 +118,7 @@ export default function WhatsappDisabledLoginNotice() {
     return () => {
       if (window.fetch === guardedFetch) window.fetch = previousFetch;
       gateResolverRef.current?.();
-      gateResolverRef.current = null;
-      disabledFlowRef.current = false;
+      resetDisabledFlow();
       okRequestedRef.current = false;
       document.body.classList.remove(BODY_CLASS);
     };
