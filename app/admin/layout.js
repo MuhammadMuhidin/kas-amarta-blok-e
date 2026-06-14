@@ -1,6 +1,7 @@
 import "./theme.css";
 import "./ledger-theme.css";
 import "./sidebar.css";
+import "./master-version-diff.css";
 import AdminMobileDrawer from "@/components/admin/AdminMobileDrawer";
 import AdminThemeBoot from "@/components/admin/AdminThemeBoot";
 import AdminTopActions from "@/components/admin/AdminTopActions";
