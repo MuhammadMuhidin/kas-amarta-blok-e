@@ -1,5 +1,6 @@
 import PublicBottomNav from "@/components/public/PublicBottomNav";
 import PublicThemePicker from "@/components/public/PublicThemePicker";
+import RouteDocumentTheme from "@/components/RouteDocumentTheme";
 
 const publicThemeBootScript = `
 (function () {
@@ -166,14 +167,79 @@ const adminThemeBootScript = `
 })();
 `;
 
+const routeCanvasBootScript = `
+(function () {
+  try {
+    var pathname = window.location.pathname;
+    var publicPaths = { "/": true, "/kas": true, "/pengajuan": true };
+    var darkThemes = { midnight: true, amoled: true, hacker: true };
+    var publicBackgrounds = {
+      default: "#f8fafc",
+      ledger: "#fdf6e3",
+      midnight: "#020617",
+      emerald: "#ecfdf5",
+      amoled: "#000000",
+      hacker: "#020b02"
+    };
+    var adminBackgrounds = {
+      default: "#f1f5f9",
+      ledger: "#fdf6e3",
+      midnight: "#020617",
+      emerald: "#ecfdf5",
+      amoled: "#000000",
+      hacker: "#020b02"
+    };
+    var background = "#f8fafc";
+    var colorScheme = "light";
+    var isAdmin = pathname === "/admin" || pathname.indexOf("/admin/") === 0;
+
+    if (isAdmin) {
+      var adminSaved = localStorage.getItem("admin-theme") || "default";
+      var adminTheme = adminSaved === "ios" ? "ledger" : adminSaved;
+      if (!adminBackgrounds[adminTheme]) adminTheme = "default";
+      background = adminBackgrounds[adminTheme];
+      colorScheme = darkThemes[adminTheme] ? "dark" : "light";
+    } else if (publicPaths[pathname]) {
+      var publicSaved = localStorage.getItem("public-theme") || "default";
+      var publicTheme = publicSaved === "ios" ? "ledger" : publicSaved;
+      if (!publicBackgrounds[publicTheme]) publicTheme = "default";
+      background = publicBackgrounds[publicTheme];
+      colorScheme = darkThemes[publicTheme] ? "dark" : "light";
+    } else if (pathname === "/login" && window.matchMedia("(prefers-color-scheme: dark)").matches) {
+      background = "#020617";
+      colorScheme = "dark";
+    }
+
+    var root = document.documentElement;
+    root.style.setProperty("--route-bg", background);
+    root.style.setProperty("background", background, "important");
+    root.style.setProperty("background-color", background, "important");
+    root.style.setProperty("color-scheme", colorScheme);
+
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.setAttribute("name", "theme-color");
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute("content", background);
+  } catch (error) {
+    document.documentElement.style.setProperty("--route-bg", "#f8fafc");
+  }
+})();
+`;
+
 export default function RootLayout({ children }) {
   return (
-    <html suppressHydrationWarning>
+    <html suppressHydrationWarning style={{ backgroundColor: "var(--route-bg, #f8fafc)" }}>
       <head>
+        <style>{`html,body{background:var(--route-bg,#f8fafc);}`}</style>
+        <script dangerouslySetInnerHTML={{ __html: routeCanvasBootScript }} />
         <script dangerouslySetInnerHTML={{ __html: publicThemeBootScript }} />
         <script dangerouslySetInnerHTML={{ __html: adminThemeBootScript }} />
       </head>
-      <body style={{ margin: 0 }}>
+      <body style={{ margin: 0, backgroundColor: "var(--route-bg, #f8fafc)" }}>
+        <RouteDocumentTheme />
         <PublicThemePicker />
         {children}
         <PublicBottomNav global />
