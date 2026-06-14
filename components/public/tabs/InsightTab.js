@@ -1,17 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
-import { formatCashflowNote, formatDate, formatMoney, formatPeriod } from "@/lib/public/publicFormatters";
+import { formatCashflowNote, formatDate, formatMoney } from "@/lib/public/publicFormatters";
 
 export default function InsightTab({
   active,
   insight,
   paidInLastPeriodCount,
-  insightResult,
-  totalPageInsight,
-  perPageInsight,
-  insightSlideIndex,
-  setInsightSlideIndex,
   showInsightModal,
   setShowInsightModal,
   modalType,
@@ -174,53 +169,6 @@ export default function InsightTab({
           </div>
         </div>
       </div>
-
-      <h2>Laporan Tunggakan Saat ini</h2>
-
-      {insightResult.length > 0 ? (
-        <>
-          <div
-            className="insight-slider"
-            onScroll={(event) => {
-              const width = event.currentTarget.clientWidth;
-              const index = Math.round(event.currentTarget.scrollLeft / width);
-              setInsightSlideIndex(index);
-            }}
-          >
-            {Array.from({ length: totalPageInsight }).map((_, pageIndex) => {
-              const items = insightResult.slice(
-                pageIndex * perPageInsight,
-                (pageIndex + 1) * perPageInsight,
-              );
-
-              return (
-                <div className="insight-slide-page" key={pageIndex}>
-                  {items.map((result, index) => (
-                    <div key={index} className="insight-card">
-                      <b>
-                        {pageIndex * perPageInsight + index + 1}. {result.house}
-                      </b>
-
-                      <div>• Nunggak: {result.jumlah} periode</div>
-                      <div>• Periode: {result.unpaid.map(formatPeriod).join(", ")}</div>
-                    </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
-
-          {totalPageInsight > 1 && (
-            <div className="insight-dots">
-              {Array.from({ length: totalPageInsight }).map((_, index) => (
-                <span key={index} className={insightSlideIndex === index ? "active" : ""} />
-              ))}
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="insight-card">Tidak ada tunggakan.</div>
-      )}
 
       {showInsightModal && (
         <div className="modal-overlay insight-detail-modal-overlay" onClick={() => setShowInsightModal(false)}>
