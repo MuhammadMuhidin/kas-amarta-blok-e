@@ -76,29 +76,67 @@ function updateThemeColor(background) {
   meta.setAttribute("content", background);
 }
 
+function applyDocumentAppearance(pathname, { syncThemeDataset = false } = {}) {
+  const appearance = resolveAppearance(pathname);
+  const html = document.documentElement;
+  const body = document.body;
+
+  html.style.setProperty("--route-bg", appearance.background);
+  html.style.setProperty("background", appearance.background, "important");
+  html.style.setProperty("background-color", appearance.background, "important");
+  html.style.setProperty("color-scheme", appearance.colorScheme);
+
+  body.style.setProperty("background", appearance.background, "important");
+  body.style.setProperty("background-color", appearance.background, "important");
+
+  if (syncThemeDataset) {
+    if (appearance.adminTheme) {
+      if (html.dataset.adminTheme !== appearance.adminTheme) {
+        html.dataset.adminTheme = appearance.adminTheme;
+      }
+    } else {
+      delete html.dataset.adminTheme;
+    }
+
+    if (appearance.publicTheme) {
+      if (html.dataset.publicTheme !== appearance.publicTheme) {
+        html.dataset.publicTheme = appearance.publicTheme;
+      }
+    } else {
+      delete html.dataset.publicTheme;
+    }
+  }
+
+  updateThemeColor(appearance.background);
+}
+
 export default function RouteDocumentTheme() {
   const pathname = usePathname();
 
   useLayoutEffect(() => {
-    const appearance = resolveAppearance(pathname);
     const html = document.documentElement;
-    const body = document.body;
 
-    html.style.setProperty("--route-bg", appearance.background);
-    html.style.setProperty("background", appearance.background, "important");
-    html.style.setProperty("background-color", appearance.background, "important");
-    html.style.setProperty("color-scheme", appearance.colorScheme);
+    applyDocumentAppearance(pathname, { syncThemeDataset: true });
 
-    body.style.setProperty("background", appearance.background, "important");
-    body.style.setProperty("background-color", appearance.background, "important");
+    const observer = new MutationObserver((mutations) => {
+      const themeChanged = mutations.some(
+        (mutation) =>
+          mutation.type === "attributes" &&
+          (mutation.attributeName === "data-admin-theme" ||
+            mutation.attributeName === "data-public-theme"),
+      );
 
-    if (appearance.adminTheme) html.dataset.adminTheme = appearance.adminTheme;
-    else delete html.dataset.adminTheme;
+      if (themeChanged) {
+        applyDocumentAppearance(pathname);
+      }
+    });
 
-    if (appearance.publicTheme) html.dataset.publicTheme = appearance.publicTheme;
-    else delete html.dataset.publicTheme;
+    observer.observe(html, {
+      attributes: true,
+      attributeFilter: ["data-admin-theme", "data-public-theme"],
+    });
 
-    updateThemeColor(appearance.background);
+    return () => observer.disconnect();
   }, [pathname]);
 
   return null;
