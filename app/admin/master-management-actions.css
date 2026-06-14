@@ -9,7 +9,7 @@
 
 .mm-editor[data-mm-saving-action="active"]
   .mm-publication-actions > .admin-small-btn:first-child::after {
-  content: "Simpan Draft";
+  content: "Save Draft";
 }
 
 .mm-editor[data-mm-saving-action="draft"]
@@ -19,5 +19,5 @@
 
 .mm-editor[data-mm-saving-action="draft"]
   .mm-publication-actions > .admin-btn:nth-child(2)::after {
-  content: "Publikasikan Versi Baru";
+  content: "Publish New Version";
 }
