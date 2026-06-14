@@ -60,6 +60,105 @@ function getActivityTitle(activity) {
   return activity?.message || "Aktivitas keamanan";
 }
 
+function SkeletonBlock({ width = "100%", height = 12, radius = 999 }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="profile-skeleton-block"
+      style={{ width, height, borderRadius: radius }}
+    />
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <main className={styles.page}>
+      <style>{`
+        @keyframes profile-skeleton-shimmer {
+          0% { background-position: 200% 0; }
+          100% { background-position: -200% 0; }
+        }
+        .profile-skeleton-block {
+          display: block;
+          flex: 0 0 auto;
+          background: linear-gradient(
+            90deg,
+            var(--admin-row) 25%,
+            color-mix(in srgb, var(--admin-muted) 18%, var(--admin-row)) 50%,
+            var(--admin-row) 75%
+          );
+          background-size: 200% 100%;
+          animation: profile-skeleton-shimmer 1.35s ease-in-out infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .profile-skeleton-block { animation: none; }
+        }
+      `}</style>
+      <div className={styles.container}>
+        <section className={styles.card} aria-busy="true" aria-label="Memuat profile">
+          <header className={styles.identity}>
+            <SkeletonBlock width={54} height={54} radius={18} />
+            <div style={{ display: "grid", gap: 8, width: "min(100%, 230px)" }}>
+              <SkeletonBlock width="34%" height={10} />
+              <SkeletonBlock width="72%" height={22} radius={8} />
+              <SkeletonBlock width="54%" height={12} />
+            </div>
+          </header>
+
+          <div className={styles.section}>
+            <SkeletonBlock width={110} height={10} />
+            {[0, 1].map((item) => (
+              <div key={item} className={styles.row}>
+                <div style={{ display: "grid", gap: 8, width: "min(70%, 280px)" }}>
+                  <SkeletonBlock width={item === 0 ? "42%" : "28%"} height={15} radius={6} />
+                  <SkeletonBlock width="76%" height={11} />
+                </div>
+                <SkeletonBlock width={58} height={34} radius={10} />
+              </div>
+            ))}
+          </div>
+
+          <div className={styles.section}>
+            <SkeletonBlock width={90} height={10} />
+            <div className={styles.currentSession} style={{ display: "grid", gap: 9, marginTop: 10 }}>
+              <SkeletonBlock width="64%" height={14} radius={6} />
+              <SkeletonBlock width="46%" height={11} />
+              <SkeletonBlock width="38%" height={11} />
+            </div>
+          </div>
+
+          <div className={styles.section}>
+            <SkeletonBlock width={132} height={10} />
+            <div className={styles.activityList} style={{ marginTop: 10 }}>
+              {[0, 1].map((item) => (
+                <div key={item} className={styles.activityItem}>
+                  <div style={{ display: "grid", gap: 7, width: "min(68%, 260px)" }}>
+                    <SkeletonBlock width="58%" height={13} radius={6} />
+                    <SkeletonBlock width="86%" height={10} />
+                  </div>
+                  <SkeletonBlock width={62} height={10} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.accountSection}>
+            <SkeletonBlock width={128} height={10} />
+            <div className={styles.manageRow}>
+              <div style={{ display: "grid", gap: 8, width: "min(70%, 280px)" }}>
+                <SkeletonBlock width="52%" height={15} radius={6} />
+                <SkeletonBlock width="84%" height={11} />
+              </div>
+              <SkeletonBlock width={66} height={34} radius={10} />
+            </div>
+            <SkeletonBlock width="100%" height={42} radius={12} />
+          </div>
+        </section>
+      </div>
+    </main>
+  );
+}
+
 export default function AdminProfilePageClient() {
   const [profile, setProfile] = useState(null);
   const [sessionNow, setSessionNow] = useState(() => Date.now());
@@ -202,7 +301,7 @@ export default function AdminProfilePageClient() {
   const currentSession = profile?.current_session;
 
   if (sessionLoading && !profile) {
-    return <main className={styles.page}><div className={styles.container}><section className={styles.card} aria-busy="true"><header className={styles.identity}><div className={styles.avatar}>…</div><div><p className={styles.eyebrow}>Profile</p><h1>Memuat profile…</h1><span>Memverifikasi sesi akun</span></div></header></section></div></main>;
+    return <ProfileSkeleton />;
   }
 
   if (!profile || !role) return null;
