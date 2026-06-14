@@ -1,0 +1,87 @@
+.mm-history-item-with-diff {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  align-items: start !important;
+  gap: 10px !important;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.mm-history-item-with-diff > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.mm-history-item-with-diff > .admin-small-btn {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
+  max-width: 100%;
+}
+
+.mm-history-item-with-diff > .mm-version-diff-slot {
+  grid-column: 1 / -1 !important;
+  grid-row: 2;
+  width: 100% !important;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.mm-version-diff,
+.mm-version-diff > summary,
+.mm-version-diff-body,
+.mm-version-diff-body section,
+.mm-version-change-list,
+.mm-version-change {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.mm-version-diff > summary span,
+.mm-version-change p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .mm-history-item-with-diff {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+  }
+
+  .mm-history-item-with-diff > .admin-small-btn {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+  }
+
+  .mm-history-item-with-diff > .mm-version-diff-slot {
+    grid-column: 1 !important;
+    grid-row: 3;
+    width: 100% !important;
+    padding-top: 10px;
+  }
+
+  .mm-version-diff > summary {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100%;
+  }
+
+  .mm-version-diff > summary strong {
+    white-space: nowrap;
+  }
+
+  .mm-version-initial,
+  .mm-version-no-change {
+    width: 100%;
+    align-items: flex-start !important;
+  }
+}
