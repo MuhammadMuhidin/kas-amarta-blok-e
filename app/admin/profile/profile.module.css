@@ -7,31 +7,390 @@
   font-family: var(--admin-font), system-ui, sans-serif;
 }
 
-.container { width: min(100%, 560px); margin: 0 auto; }
-.card { overflow: hidden; border: 1px solid var(--admin-border); border-radius: 22px; background: var(--admin-card); box-shadow: 0 18px 48px rgba(15, 23, 42, .10); }
-.identity { display: flex; align-items: center; gap: 16px; padding: 24px; border-bottom: 1px solid var(--admin-border); }
-.avatar { width: 54px; height: 54px; border-radius: 18px; display: grid; place-items: center; background: var(--admin-primary); color: var(--admin-on-primary); font-size: 17px; font-weight: 900; }
-.eyebrow { margin: 0 0 4px; color: var(--admin-muted); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-.identity h1 { margin: 0; font-size: 22px; line-height: 1.2; }
-.identity span { display: block; margin-top: 4px; color: var(--admin-muted); font-size: 13px; font-weight: 650; }
-.section, .accountSection { padding: 20px 24px; }
-.accountSection { border-top: 1px solid var(--admin-border); }
-.sectionTitle { margin-bottom: 10px; color: var(--admin-muted); font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
-.row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 0; border-bottom: 1px solid var(--admin-border); }
-.row:last-child { border-bottom: 0; }
-.row strong, .row span { display: block; }
-.row strong { font-size: 15px; }
-.row span { margin-top: 4px; color: var(--admin-muted); font-size: 12px; font-weight: 650; }
-.row button { flex: 0 0 auto; border: 1px solid var(--admin-border); border-radius: 10px; background: transparent; color: var(--admin-text); padding: 8px 13px; font-weight: 850; cursor: pointer; }
-.logout { width: 100%; border: 1px solid #dc2626; border-radius: 12px; background: transparent; color: #dc2626; padding: 11px 14px; font-weight: 850; }
-.modalField { display: grid; gap: 8px; }
-.modalField span { color: var(--admin-text); font-size: 13px; font-weight: 850; }
-.modalField input { width: 100%; box-sizing: border-box; border: 1px solid var(--admin-border); border-radius: 12px; background: var(--admin-bg); color: var(--admin-text); padding: 12px 14px; font-size: 16px; outline: none; }
-.modalField input:focus { border-color: var(--admin-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-primary) 20%, transparent); }
-.modalField small { color: var(--admin-muted); font-size: 12px; line-height: 1.45; }
+.container {
+  width: min(100%, 620px);
+  margin: 0 auto;
+}
+
+.card {
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+  border-radius: 22px;
+  background: var(--admin-card);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, .10);
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.avatar {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: var(--admin-primary);
+  color: var(--admin-on-primary);
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.identity h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.identity span {
+  display: block;
+  margin-top: 4px;
+  color: var(--admin-muted);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.section,
+.accountSection {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.accountSection {
+  border-bottom: 0;
+}
+
+.sectionTitle {
+  margin-bottom: 10px;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.row,
+.manageRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--admin-border);
+}
+
+.row:last-child {
+  border-bottom: 0;
+}
+
+.row strong,
+.row span,
+.manageRow strong,
+.manageRow span {
+  display: block;
+}
+
+.row strong,
+.manageRow strong {
+  font-size: 15px;
+}
+
+.row span,
+.manageRow span {
+  margin-top: 4px;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.row button,
+.manageRow button {
+  flex: 0 0 auto;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--admin-text);
+  padding: 8px 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.currentSession {
+  padding: 15px;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  background: var(--admin-row);
+}
+
+.currentSession strong,
+.currentSession span {
+  display: block;
+}
+
+.currentSession strong {
+  color: var(--admin-text);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.currentSession span {
+  margin-top: 5px;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.currentSession .expiry {
+  color: var(--admin-primary);
+  font-weight: 850;
+}
+
+.activityList {
+  display: grid;
+  gap: 8px;
+}
+
+.activityItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 13px;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-row);
+}
+
+.activityItem > div {
+  min-width: 0;
+}
+
+.activityItem strong,
+.activityItem span {
+  display: block;
+}
+
+.activityItem strong {
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.activityItem span {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activityItem time {
+  flex: 0 0 auto;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.emptyState {
+  padding: 13px;
+  border-radius: 12px;
+  background: var(--admin-row);
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.manageRow {
+  padding-top: 4px;
+  padding-bottom: 16px;
+  border-bottom: 0;
+}
+
+.logout {
+  width: 100%;
+  border: 1px solid var(--admin-danger, #dc2626);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--admin-danger, #dc2626);
+  padding: 11px 14px;
+  font-weight: 850;
+}
+
+.modalField {
+  display: grid;
+  gap: 8px;
+}
+
+.modalField span {
+  color: var(--admin-text);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.modalField input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--admin-border);
+  border-radius: 12px;
+  background: var(--admin-bg);
+  color: var(--admin-text);
+  padding: 12px 14px;
+  font-size: 16px;
+  outline: none;
+}
+
+.modalField input:focus {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-primary) 20%, transparent);
+}
+
+.modalField small {
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.sessionModal {
+  max-width: 520px !important;
+}
+
+.sessionModal h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.sessionModal > p {
+  margin: 7px 0 16px;
+  color: var(--admin-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.sessionList {
+  display: grid;
+  gap: 9px;
+}
+
+.sessionItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px;
+  border: 1px solid var(--admin-border);
+  border-radius: 13px;
+  background: var(--admin-row);
+}
+
+.sessionItem > div {
+  min-width: 0;
+}
+
+.sessionItem strong,
+.sessionItem span,
+.sessionItem small {
+  display: block;
+}
+
+.sessionItem strong {
+  color: var(--admin-text);
+  font-size: 13px;
+}
+
+.sessionItem span,
+.sessionItem small {
+  margin-top: 4px;
+  color: var(--admin-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.currentBadge {
+  flex: 0 0 auto;
+  margin-top: 0 !important;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary) !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+}
+
+.revokeButton {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 9px;
+  background: var(--admin-danger, #dc2626);
+  color: #fff;
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.revokeButton:disabled {
+  cursor: wait;
+  opacity: .6;
+}
+
+.closeModalButton {
+  width: 100%;
+  margin-top: 15px;
+  border: 1px solid var(--admin-border);
+  border-radius: 11px;
+  background: transparent;
+  color: var(--admin-text);
+  padding: 10px 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.closeModalButton:disabled {
+  cursor: wait;
+  opacity: .6;
+}
 
 @media (max-width: 720px) {
-  .page { min-height: calc(100dvh - 72px); padding: 8px 14px 20px; }
-  .identity, .section, .accountSection { padding-left: 18px; padding-right: 18px; }
-  .card { border-radius: 18px; }
+  .page {
+    min-height: calc(100dvh - 72px);
+    padding: 8px 14px 20px;
+  }
+
+  .identity,
+  .section,
+  .accountSection {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .card {
+    border-radius: 18px;
+  }
+
+  .activityItem {
+    align-items: flex-start;
+  }
+
+  .activityItem time {
+    padding-top: 1px;
+  }
+
+  .sessionItem {
+    align-items: flex-start;
+  }
 }
