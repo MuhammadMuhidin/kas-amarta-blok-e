@@ -40,10 +40,45 @@ function sameTargets(previous, next) {
   ));
 }
 
-function configureCard(card, master) {
+function resolveRenderedMaster(card, master) {
+  const statusBadges = [...card.querySelectorAll(".mm-master-title-row .mm-status")];
+  const lifecycleStatus = statusBadges.some((badge) => badge.classList.contains("mm-status-archived"))
+    ? "archived"
+    : statusBadges.some((badge) => badge.classList.contains("mm-status-active"))
+      ? "active"
+      : "draft";
+
+  const draftBadge = statusBadges.find((badge) => /draft\s+v\d+\s+available/i.test(clean(badge.textContent)));
+  const draftMatch = clean(draftBadge?.textContent).match(/draft\s+v(\d+)/i);
+  const summary = clean(card.querySelector(".mm-master-main p")?.textContent);
+  const publishedMatch = summary.match(/active\s+version\s+(\d+)/i);
+  const lifecycleChanged = lifecycleStatus !== clean(master.lifecycle_status).toLowerCase();
+
+  return {
+    ...master,
+    lifecycle_status: lifecycleStatus,
+    active: lifecycleStatus === "active",
+    published_revision: publishedMatch
+      ? Number(publishedMatch[1])
+      : Number(master.published_revision || 0),
+    has_draft: draftBadge
+      ? true
+      : lifecycleChanged
+        ? false
+        : Boolean(master.has_draft),
+    draft_revision: draftMatch
+      ? Number(draftMatch[1])
+      : lifecycleChanged
+        ? 0
+        : Number(master.draft_revision || 0),
+  };
+}
+
+function configureCard(card, sourceMaster) {
   const actions = card.querySelector(".mm-master-actions");
   if (!actions) return [];
 
+  const master = resolveRenderedMaster(card, sourceMaster);
   card.dataset.approvalMasterId = master.id;
 
   const lifecycle = clean(master.lifecycle_status).toLowerCase();
