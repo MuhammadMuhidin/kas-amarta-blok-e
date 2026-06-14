@@ -140,9 +140,9 @@ export default function WhatsappDisabledLoginNotice() {
         }
 
         body.${BODY_CLASS} .login-shell {
-          filter: blur(14px);
           pointer-events: none;
           user-select: none;
+          opacity: 0.97;
         }
       `}</style>
 
@@ -154,6 +154,16 @@ export default function WhatsappDisabledLoginNotice() {
         confirmText="OK"
         hideCancel
         loading={continuing}
+        overlayStyle={{
+          background: isDark ? "rgba(2,6,23,.26)" : "rgba(15,23,42,.14)",
+          backdropFilter: "blur(2px)",
+          WebkitBackdropFilter: "blur(2px)",
+        }}
+        modalStyle={{
+          boxShadow: isDark
+            ? "0 18px 48px rgba(0,0,0,.28)"
+            : "0 18px 48px rgba(15,23,42,.16)",
+        }}
         onCancel={() => {}}
         onConfirm={handleContinue}
       />
