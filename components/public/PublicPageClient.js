@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import ArrearsTab from "@/components/public/tabs/ArrearsTab";
 import CashflowTab from "@/components/public/tabs/CashflowTab";
 import InsightTab from "@/components/public/tabs/InsightTab";
 import PaymentStatusTab from "@/components/public/tabs/PaymentStatusTab";
@@ -25,7 +26,7 @@ import {
 import { formatCashflowNote } from "@/lib/public/publicFormatters";
 
 const perPagePay = 20;
-const perPageInsight = 2;
+const perPageInsight = 6;
 const chunk = 20;
 
 export default function PublicPageClient() {
@@ -151,15 +152,19 @@ export default function PublicPageClient() {
           onOpenReceipt={openReceiptPreview}
         />
 
-        <InsightTab
-          active={activeTab === "insight"}
-          insight={insight}
-          paidInLastPeriodCount={paidInLastPeriodCount}
+        <ArrearsTab
+          active={activeTab === "arrears"}
           insightResult={insightResult}
           totalPageInsight={totalPageInsight}
           perPageInsight={perPageInsight}
           insightSlideIndex={insightSlideIndex}
           setInsightSlideIndex={setInsightSlideIndex}
+        />
+
+        <InsightTab
+          active={activeTab === "insight"}
+          insight={insight}
+          paidInLastPeriodCount={paidInLastPeriodCount}
           showInsightModal={showInsightModal}
           setShowInsightModal={setShowInsightModal}
           modalType={modalType}
