@@ -12,6 +12,7 @@ export default function ConfirmModal({
   onCancel,
   isDark = false,
   loading = false,
+  hideCancel = false,
 }) {
   if (!open) return null;
 
@@ -43,21 +44,23 @@ export default function ConfirmModal({
         </p>
 
         <div style={styles.actions}>
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={loading}
-            style={{
-              ...styles.cancel,
-              background: isDark ? "#1e293b" : "#fff",
-              color: isDark ? "#f8fafc" : "#0f172a",
-              border: isDark ? "1px solid #334155" : "1px solid #cbd5e1",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.55 : 1,
-            }}
-          >
-            {cancelText}
-          </button>
+          {!hideCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={loading}
+              style={{
+                ...styles.cancel,
+                background: isDark ? "#1e293b" : "#fff",
+                color: isDark ? "#f8fafc" : "#0f172a",
+                border: isDark ? "1px solid #334155" : "1px solid #cbd5e1",
+                cursor: loading ? "not-allowed" : "pointer",
+                opacity: loading ? 0.55 : 1,
+              }}
+            >
+              {cancelText}
+            </button>
+          )}
 
           <button
             type="button"
