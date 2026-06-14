@@ -26,7 +26,7 @@ import {
 import { formatCashflowNote } from "@/lib/public/publicFormatters";
 
 const perPagePay = 20;
-const perPageInsight = 6;
+const perPageInsight = 4;
 const chunk = 20;
 
 export default function PublicPageClient() {
