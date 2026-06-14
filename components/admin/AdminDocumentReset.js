@@ -2,7 +2,7 @@
 
 import { useLayoutEffect } from "react";
 
-const RESET_PROPERTIES = ["height", "overflow", "overscroll-behavior", "background", "background-color"];
+const RESET_PROPERTIES = ["height", "overflow", "overscroll-behavior"];
 
 function readInlineStyles(element) {
   return RESET_PROPERTIES.map((property) => ({
@@ -29,12 +29,10 @@ export default function AdminDocumentReset() {
     html.style.setProperty("height", "auto", "important");
     html.style.setProperty("overflow", "auto", "important");
     html.style.setProperty("overscroll-behavior", "auto", "important");
-    html.style.setProperty("background-color", "var(--admin-bg)", "important");
 
     body.style.setProperty("height", "auto", "important");
     body.style.setProperty("overflow", "auto", "important");
     body.style.setProperty("overscroll-behavior", "auto", "important");
-    body.style.setProperty("background-color", "var(--admin-bg)", "important");
     body.classList.remove("login-whatsapp-disabled-active");
 
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
