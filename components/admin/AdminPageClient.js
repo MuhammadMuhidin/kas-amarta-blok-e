@@ -1,12 +1,15 @@
 "use client";
 
 import AdminActivityPanel from "@/components/AdminActivityPanel";
+import ApprovalCenterTab from "@/components/admin/tabs/ApprovalCenterTab";
 import CashflowTab from "@/components/admin/tabs/CashflowTab";
 import DepositTab from "@/components/admin/tabs/DepositTab";
+import MasterManagementTab from "@/components/admin/tabs/MasterManagementTab";
 import MonitoringTab from "@/components/admin/tabs/MonitoringTab";
 import OverviewTab from "@/components/admin/tabs/OverviewTab";
 import PaymentTab from "@/components/admin/tabs/PaymentTab";
 import PersonalTab from "@/components/admin/tabs/PersonalTab";
+import RoleManagementTab from "@/components/admin/tabs/RoleManagementTab";
 import SettingsTab from "@/components/admin/tabs/SettingsTab";
 import SummaryBackupTab from "@/components/admin/tabs/SummaryBackupTab";
 import TimelineTab from "@/components/admin/tabs/TimelineTab";
@@ -44,6 +47,9 @@ const MODULE_ICONS = {
   summary: icon(0x1F6E1, true),
   monitoring: icon(0x1F5A5, true),
   activity: icon(0x1F4CB),
+  master_management: icon(0x1F5C2, true),
+  approval_center: icon(0x2705, true),
+  role_management: icon(0x1F9E9),
   settings: icon(0x2699, true),
 };
 
@@ -61,55 +67,16 @@ export default function AdminPageClient() {
   const [depositForm, setDepositForm] = useState({ person_id: "", end_period: "" });
   const [bookingBatchLoading, setBookingBatchLoading] = useState(false);
 
-  const allowedModules = useMemo(
-    () => getAllowedModules(sessionInfo.modules),
-    [sessionInfo.modules],
-  );
-  const allowedTabKeys = useMemo(
-    () => allowedModules.map((module) => module.key),
-    [allowedModules],
-  );
+  const allowedModules = useMemo(() => getAllowedModules(sessionInfo.modules), [sessionInfo.modules]);
+  const allowedTabKeys = useMemo(() => allowedModules.map((module) => module.key), [allowedModules]);
 
   const { popup, showPopup } = useAdminToast();
   const { checkSession } = useAdminSession();
 
-  const {
-    personal,
-    setPersonal,
-    payments,
-    trashRecords,
-    deposits,
-    cashflows,
-    appConfig,
-    configError,
-    loadAppConfig,
-    loadPersonal,
-    loadPayment,
-    loadTrash,
-    loadDeposit,
-    loadCashflow,
-    refreshTabData,
-  } = useAdminLoaders({ setPayment });
+  const { personal, setPersonal, payments, trashRecords, deposits, cashflows, appConfig, configError, loadAppConfig, loadPersonal, loadPayment, loadTrash, loadDeposit, loadCashflow, refreshTabData } = useAdminLoaders({ setPayment });
+  const { tab, tabRefreshKey, handleTabClick, tabClassName } = useAdminTabs(refreshTabData, allowedTabKeys);
 
-  const {
-    tab,
-    tabRefreshKey,
-    handleTabClick,
-    tabClassName,
-  } = useAdminTabs(refreshTabData, allowedTabKeys);
-
-  const {
-    member,
-    setMember,
-    memberFilter,
-    memberSearch,
-    setMemberSearch,
-    loadingAdd,
-    toggleMemberFilter,
-    rowClassName,
-    addMember,
-    updateMemberInline,
-  } = useAdminMemberActions({
+  const { member, setMember, memberFilter, memberSearch, setMemberSearch, loadingAdd, toggleMemberFilter, rowClassName, addMember, updateMemberInline } = useAdminMemberActions({
     personal,
     setPersonal,
     loadPersonal,
@@ -120,45 +87,9 @@ export default function AdminPageClient() {
     currentPeriod,
   });
 
-  const {
-    activePersons,
-    stats,
-    searchedPersonal,
-    sortedDeposits,
-    pendingCurrentDeposits,
-    nextSixPeriods,
-    selectedDepositPerson,
-    selectedDepositPeriods,
-    depositAmount,
-    paymentCashflowIntegrity,
-    trashMismatch,
-    trashAdvanceReimbursementIntegrity,
-    depositPaymentIntegrity,
-    suspiciousData,
-    monitoringIssueCount,
-  } = useAdminDerivedState({
-    personal,
-    payments,
-    trashRecords,
-    deposits,
-    cashflows,
-    appConfig,
-    memberFilter,
-    memberSearch,
-    depositForm,
-    currentPeriod,
-    normalize,
-  });
+  const { activePersons, stats, searchedPersonal, sortedDeposits, pendingCurrentDeposits, nextSixPeriods, selectedDepositPerson, selectedDepositPeriods, depositAmount, paymentCashflowIntegrity, trashMismatch, trashAdvanceReimbursementIntegrity, depositPaymentIntegrity, suspiciousData, monitoringIssueCount } = useAdminDerivedState({ personal, payments, trashRecords, deposits, cashflows, appConfig, memberFilter, memberSearch, depositForm, currentPeriod, normalize });
 
-  const {
-    selected,
-    loadingPayment,
-    paymentProgress,
-    toggleHouse,
-    resetSelected,
-    isHousePaidForPeriod,
-    recordPayment,
-  } = useAdminPaymentActions({
+  const { selected, loadingPayment, paymentProgress, toggleHouse, resetSelected, isHousePaidForPeriod, recordPayment } = useAdminPaymentActions({
     personal,
     payments,
     appConfig,
@@ -175,13 +106,7 @@ export default function AdminPageClient() {
 
   const wakeLock = useScreenWakeLock(loadingPayment || bookingBatchLoading);
 
-  const {
-    savingDeposit,
-    payingDepositId,
-    getDepositStatus,
-    saveDeposit,
-    payDeposit,
-  } = useAdminDepositActions({
+  const { savingDeposit, payingDepositId, getDepositStatus, saveDeposit, payDeposit } = useAdminDepositActions({
     currentPeriod,
     normalize,
     depositForm,
@@ -198,12 +123,7 @@ export default function AdminPageClient() {
     payDepositBooking: (payload) => sendJson("/api/sheets/deposit", "PATCH", payload),
   });
 
-  const {
-    cashflow,
-    setCashflow,
-    loadingCashflow,
-    addCashflow,
-  } = useAdminCashflowActions({
+  const { cashflow, setCashflow, loadingCashflow, addCashflow } = useAdminCashflowActions({
     loadCashflow,
     showPopup,
     createCashflow: (payload) => sendJson("/api/sheets/cashflow", "POST", payload),
@@ -234,13 +154,16 @@ export default function AdminPageClient() {
       const session = await checkSession();
       if (!session) return;
 
+      const modules = session.modules?.length ? session.modules : ["overview"];
+      const initialTab = getAllowedModules(modules)[0]?.key || "overview";
+
       setSessionInfo({
         access_role: session.access_role || "admin",
-        modules: session.modules?.length ? session.modules : ["overview"],
+        modules,
       });
 
       try {
-        await Promise.all([loadAppConfig(), loadPersonal(), loadPayment(), loadCashflow(), loadTrash(), loadDeposit()]);
+        await refreshTabData(initialTab);
       } finally {
         setBootLoading(false);
       }
@@ -256,18 +179,13 @@ export default function AdminPageClient() {
   useEffect(() => {
     const hasRunningBatch = loadingPayment || bookingBatchLoading;
     if (!hasRunningBatch) return undefined;
-
     function handleBeforeUnload(event) {
       event.preventDefault();
       event.returnValue = "";
       return "";
     }
-
     window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-    };
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [loadingPayment, bookingBatchLoading]);
 
   if (bootLoading) return <AdminLoading />;
@@ -276,11 +194,11 @@ export default function AdminPageClient() {
     <>
       <Toast show={!!popup} type={popup?.type} message={popup?.text} />
       <div className="admin-wrapper">
-        <div className="admin-header">
-          <button className="admin-home-btn" onClick={() => router.push("/")}>{icon(0x1F3E0)} Home</button>
+        <div className="admin-header" style={{ marginBottom: 10 }}>
           <h1 className="admin-title">Cash Flow Management</h1>
         </div>
         <div className="admin-tabs">
+          <button className="admin-tab admin-home-btn" onClick={() => router.push("/")}>{icon(0x1F3E0)} Home</button>
           {allowedModules.map((module) => (
             <button key={module.key} className={tabClassName(module.key)} onClick={() => handleTabClick(module.key)}>
               {(module.key === "payment" || module.key === "monitoring") ? (
@@ -302,6 +220,9 @@ export default function AdminPageClient() {
         {tab === "summary" && canAccess("summary") && <SummaryBackupTab key={`summary-${tabRefreshKey}`} />}
         {tab === "monitoring" && canAccess("monitoring") && <MonitoringTab key={`monitoring-${tabRefreshKey}`} paymentCashflowIntegrity={paymentCashflowIntegrity} trashMismatch={trashMismatch} trashAdvanceReimbursementIntegrity={trashAdvanceReimbursementIntegrity} depositPaymentIntegrity={depositPaymentIntegrity} suspiciousData={suspiciousData} onRepairComplete={refreshMonitoringState} />}
         {tab === "activity" && canAccess("activity") && <AdminActivityPanel key={`activity-${tabRefreshKey}`} />}
+        {tab === "master_management" && canAccess("master_management") && <MasterManagementTab key={`master-management-${tabRefreshKey}`} />}
+        {tab === "approval_center" && canAccess("approval_center") && <ApprovalCenterTab key={`approval-center-${tabRefreshKey}`} />}
+        {tab === "role_management" && canAccess("role_management") && <RoleManagementTab key={`role-management-${tabRefreshKey}`} />}
         {tab === "settings" && canAccess("settings") && <SettingsTab key={`settings-${tabRefreshKey}`} />}
       </div>
     </>

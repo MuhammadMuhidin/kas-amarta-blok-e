@@ -1,9 +1,10 @@
+import PublicBottomNav from "@/components/public/PublicBottomNav";
 import PublicThemePicker from "@/components/public/PublicThemePicker";
 
 const publicThemeBootScript = `
 (function () {
   try {
-    var publicPaths = { "/": true, "/kas": true };
+    var publicPaths = { "/": true, "/kas": true, "/pengajuan": true };
     var pathname = window.location.pathname;
 
     if (!publicPaths[pathname]) return;
@@ -134,15 +135,48 @@ const publicThemeBootScript = `
 })();
 `;
 
+const adminThemeBootScript = `
+(function () {
+  try {
+    var pathname = window.location.pathname;
+    var isAdminPath = pathname === "/admin" || pathname.indexOf("/admin/") === 0;
+
+    if (!isAdminPath) return;
+
+    var allowedThemes = {
+      default: true,
+      ledger: true,
+      midnight: true,
+      emerald: true,
+      amoled: true,
+      hacker: true
+    };
+    var saved = localStorage.getItem("admin-theme") || "default";
+    var normalized = saved === "ios" ? "ledger" : saved;
+    var selected = allowedThemes[normalized] ? normalized : "default";
+
+    if (saved !== selected) {
+      localStorage.setItem("admin-theme", selected);
+    }
+
+    document.documentElement.dataset.adminTheme = selected;
+  } catch (error) {
+    document.documentElement.dataset.adminTheme = "default";
+  }
+})();
+`;
+
 export default function RootLayout({ children }) {
   return (
     <html suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: publicThemeBootScript }} />
+        <script dangerouslySetInnerHTML={{ __html: adminThemeBootScript }} />
       </head>
       <body style={{ margin: 0 }}>
         <PublicThemePicker />
         {children}
+        <PublicBottomNav global />
       </body>
     </html>
   );

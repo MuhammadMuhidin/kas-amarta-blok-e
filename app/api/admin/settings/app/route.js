@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
+import { verifyAdminRolePin } from "@/lib/adminRoleCredentials";
 import {
   isAdmin,
+  isAdministrator,
   unauthorized,
   validateCSRF,
 } from "@/lib/auth";
@@ -43,7 +45,7 @@ export async function GET(req) {
 
 export async function PATCH(req) {
   try {
-    if (!(await isAdmin(req))) {
+    if (!(await isAdministrator(req))) {
       return unauthorized();
     }
 
@@ -76,7 +78,7 @@ export async function PATCH(req) {
 
     if (pinLimit) return pinLimit;
 
-    if (pin !== process.env.ADMIN_PIN) {
+    if (!(await verifyAdminRolePin("admin", pin))) {
       await recordRateLimitFailure(
         req,
         RATE_LIMIT_SCOPES.settingsPinFailed,

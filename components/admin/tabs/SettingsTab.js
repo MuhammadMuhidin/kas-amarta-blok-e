@@ -2,6 +2,7 @@
 
 import AdminSessionCard from "@/components/AdminSessionCard";
 import MatrixAccessCard from "@/components/admin/MatrixAccessCard";
+import AdminDataSkeleton from "@/components/admin/AdminDataSkeleton";
 import modalStyles from "@/components/admin/AdminModal.module.css";
 import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import { useEffect, useState } from "react";
@@ -29,7 +30,7 @@ function getCookie(name) {
   return document.cookie
     .split("; ")
     .find((row) => row.startsWith(`${name}=`))
-    ?.split("=")[1];
+    ?.["split"]("=")[1];
 }
 
 function showPopup(setPopup, text, type = "success") {
@@ -157,7 +158,9 @@ export default function AdminSettings() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  if (loading) return <div style={styles.card}>Loading settings...</div>;
+  if (loading && !config) {
+    return <div style={styles.card}><AdminDataSkeleton cards={4} rows={7} /></div>;
+  }
 
   function requestPin(action) {
     setPinValue("");
@@ -184,8 +187,8 @@ export default function AdminSettings() {
 
       <h2 style={styles.title}>Cash Configuration</h2>
 
-      {loadingConfig ? (
-        <div style={styles.loadingBox}>Loading configuration...</div>
+      {loadingConfig && !appConfig ? (
+        <AdminDataSkeleton showSummary={false} rows={3} />
       ) : (
         <div style={styles.section}>
           <ConfigItem
@@ -245,6 +248,7 @@ export default function AdminSettings() {
       <h2 style={styles.title}>Settings Auth</h2>
       <SettingRow title="WebAuth Passkey" description="When enabled, login requires passkey/fingerprint verification after the password." checked={config.webAuthEnabled} disabled={saving} onChange={(value) => updateSetting("WEB_AUTH_ENABLED", value)} />
       <SettingRow title="PIN Login" description="When enabled, login requires a PIN after the password. If WebAuth is also enabled, passkey verification is still required after the PIN." checked={config.pinEnabled} disabled={saving} onChange={(value) => updateSetting("PIN_ENABLED", value)} />
+      <SettingRow title="WhatsApp Services" description="This will disable login auth and all WhatsApp delivery mechanisms including reports, alerts, and notifications." checked={config.whatsappServicesEnabled !== false} disabled={saving} onChange={(value) => updateSetting("WA_SERVICES_ENABLED", value)} />
       <SelectSettingRow title="Session Duration" description="Admin login session duration before automatic logout. Changes apply from the next login." value={String(config.sessionDuration || 86400)} options={sessionDurationOptions} disabled={saving} isMobile={isMobile} onChange={(value) => updateSetting("SESSION_DURATION", value)} />
 
       <MatrixAccessCard
@@ -333,7 +337,6 @@ const styles = {
   paletteRow: { display: "flex", gap: 8, marginBottom: 12 },
   paletteDot: { width: 18, height: 18, borderRadius: 999, border: "1px solid rgba(255,255,255,.2)" },
   themeLabel: { fontSize: 14, fontWeight: 800 },
-  loadingBox: { padding: "16px 0", marginBottom: 24, color: "var(--admin-muted)", borderTop: "1px solid var(--admin-border)" },
   row: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, padding: "16px 0", borderTop: "1px solid var(--admin-border)" },
   rowMobile: { flexDirection: "column", alignItems: "stretch" },
   rowTitle: { margin: 0, fontSize: 15, color: "var(--admin-text)" },

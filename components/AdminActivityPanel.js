@@ -1,5 +1,6 @@
 "use client";
 
+import AdminDataSkeleton from "@/components/admin/AdminDataSkeleton";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import { formatJakartaDateTimeLong } from "@/lib/localDate";
 import { useEffect, useMemo, useState } from "react";
@@ -122,6 +123,8 @@ export default function AdminActivityPanel() {
     setSelectedActivity(null);
   }
 
+  const initialLoading = loading && activities.length === 0;
+
   return (
     <div className="admin-card activity-panel">
       <div className="activity-header">
@@ -145,18 +148,20 @@ export default function AdminActivityPanel() {
             className="admin-small-btn activity-refresh-btn admin-refresh-btn"
             disabled={loading || loadingMore}
           >
-            {loading ? "Refreshing..." : "Refresh"}
+            Refresh
           </button>
         </div>
       </div>
 
       <div className="activity-summary-bar">
-        <div><b>{activities.length}</b> / {total || 0} records</div>
+        <div><b>{activities.length}</b> records</div>
         <span>{activeFilterLabel}</span>
         <span>{sort === "desc" ? "Newest first" : "Oldest first"}</span>
-        <span className={error ? "activity-status-error activity-status-pulse" : loading ? "activity-status-ready activity-status-pulse" : "activity-status-ready"}>
-          {error ? "Error" : loading ? "Loading" : "Ready"}
-        </span>
+        {!initialLoading && (
+          <span className={error ? "activity-status-error activity-status-pulse" : "activity-status-ready"}>
+            {error ? "Error" : "Ready"}
+          </span>
+        )}
       </div>
 
       {showFilters && (
@@ -194,55 +199,61 @@ export default function AdminActivityPanel() {
 
       {error && <div className="admin-error-box">{error}</div>}
 
-      <div className="admin-table-wrapper activity-table-wrap">
-        <table className="admin-table activity-table">
-          <thead>
-            <tr>
-              <th className="admin-th">Date</th>
-              <th className="admin-th">Actor</th>
-              <th className="admin-th">Action</th>
-              <th className="admin-th">Location</th>
-              <th className="admin-th">Status</th>
-              <th className="admin-th">Detail</th>
-            </tr>
-          </thead>
-          <tbody>
-            {activities.length === 0 && !loading ? (
-              <tr><td colSpan={6} className="admin-td activity-empty">No activity found</td></tr>
-            ) : activities.map((item, index) => (
-              <tr key={item.id} className={index % 2 ? "admin-row-alt activity-row" : "activity-row"}>
-                <td className="admin-td activity-cell"><div className="activity-when">{formatDate(item.created_at)}</div></td>
-                <td className="admin-td activity-cell"><div className="activity-primary">{item.actor || "-"}</div><div className="activity-muted">{item.device_name || "-"}</div></td>
-                <td className="admin-td activity-cell activity-message-cell"><div className="activity-primary">{item.message}</div><div className="activity-muted">{item.module} • {item.type}</div></td>
-                <td className="admin-td activity-cell"><div className="activity-primary">{item.location || "-"}</div><div className="activity-muted">{item.ip || "-"}</div></td>
-                <td className="admin-td activity-cell"><span className={`activity-badge activity-badge-${item.severity || "info"}`}>{item.severity || "info"}</span></td>
-                <td className="admin-td activity-cell"><button type="button" className="admin-small-btn activity-detail-btn" onClick={() => setSelectedActivity(item)}>Detail</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {initialLoading ? (
+        <AdminDataSkeleton showSummary={false} rows={7} />
+      ) : (
+        <>
+          <div className="admin-table-wrapper activity-table-wrap">
+            <table className="admin-table activity-table">
+              <thead>
+                <tr>
+                  <th className="admin-th">Date</th>
+                  <th className="admin-th">Actor</th>
+                  <th className="admin-th">Action</th>
+                  <th className="admin-th">Location</th>
+                  <th className="admin-th">Status</th>
+                  <th className="admin-th">Detail</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activities.length === 0 ? (
+                  <tr><td colSpan={6} className="admin-td activity-empty">No activity found</td></tr>
+                ) : activities.map((item, index) => (
+                  <tr key={item.id} className={index % 2 ? "admin-row-alt activity-row" : "activity-row"}>
+                    <td className="admin-td activity-cell"><div className="activity-when">{formatDate(item.created_at)}</div></td>
+                    <td className="admin-td activity-cell"><div className="activity-primary">{item.actor || "-"}</div><div className="activity-muted">{item.device_name || "-"}</div></td>
+                    <td className="admin-td activity-cell activity-message-cell"><div className="activity-primary">{item.message}</div><div className="activity-muted">{item.module} • {item.type}</div></td>
+                    <td className="admin-td activity-cell"><div className="activity-primary">{item.location || "-"}</div><div className="activity-muted">{item.ip || "-"}</div></td>
+                    <td className="admin-td activity-cell"><span className={`activity-badge activity-badge-${item.severity || "info"}`}>{item.severity || "info"}</span></td>
+                    <td className="admin-td activity-cell"><button type="button" className="admin-small-btn activity-detail-btn" onClick={() => setSelectedActivity(item)}>Detail</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      <div className="activity-mobile-list">
-        {activities.length === 0 && !loading ? (
-          <div className="activity-empty-card">No activity found</div>
-        ) : activities.map((item) => (
-          <button key={item.id} type="button" className="activity-mobile-card" onClick={() => setSelectedActivity(item)}>
-            <div className="activity-mobile-top">
-              <div>
-                <div className="activity-mobile-title">{item.message || "Activity"}</div>
-                <div className="activity-mobile-meta">{formatDate(item.created_at)}</div>
-              </div>
-              <span className={`activity-badge activity-badge-${item.severity || "info"}`}>{item.severity || "info"}</span>
-            </div>
-            <div className="activity-mobile-info">
-              <span>{item.actor || "-"}</span>
-              <span>{item.module || "-"}</span>
-              <span>{item.location || item.ip || "-"}</span>
-            </div>
-          </button>
-        ))}
-      </div>
+          <div className="activity-mobile-list">
+            {activities.length === 0 ? (
+              <div className="activity-empty-card">No activity found</div>
+            ) : activities.map((item) => (
+              <button key={item.id} type="button" className="activity-mobile-card" onClick={() => setSelectedActivity(item)}>
+                <div className="activity-mobile-top">
+                  <div>
+                    <div className="activity-mobile-title">{item.message || "Activity"}</div>
+                    <div className="activity-mobile-meta">{formatDate(item.created_at)}</div>
+                  </div>
+                  <span className={`activity-badge activity-badge-${item.severity || "info"}`}>{item.severity || "info"}</span>
+                </div>
+                <div className="activity-mobile-info">
+                  <span>{item.actor || "-"}</span>
+                  <span>{item.module || "-"}</span>
+                  <span>{item.location || item.ip || "-"}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       <div ref={loaderRef} className={loadingMore ? "activity-pagination admin-loader-sentinel admin-loader-sentinel-loading" : "activity-pagination admin-loader-sentinel"}>
         <span className="activity-page-info">
@@ -250,7 +261,7 @@ export default function AdminActivityPanel() {
             ? "Loading more"
             : hasMore
               ? "Scroll to load more"
-              : "All activity loaded"}
+              : ""}
         </span>
       </div>
 

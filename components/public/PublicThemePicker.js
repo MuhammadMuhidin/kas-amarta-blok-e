@@ -2,7 +2,7 @@
 
 import "./PublicThemePicker.css";
 
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 const themes = [
@@ -26,15 +26,15 @@ const themes = [
       "--btn-text": "#000000",
       "--tab-active-text": "#ffffff",
       "--shadow": "0 10px 24px rgba(15,23,42,.07)",
-      "--shadow-soft": "0 3px 10px rgba(15,23,42,.05)"
-    }
+      "--shadow-soft": "0 3px 10px rgba(15,23,42,.05)",
+    },
   },
   {
     id: "ledger",
     label: "Ledger",
     colors: ["#fdf6e3", "#2f6f4e", "#fffaf0"],
     vars: {
-      "--public-font-family": 'Merriweather Sans, Inter, system-ui, sans-serif',
+      "--public-font-family": "Merriweather Sans, Inter, system-ui, sans-serif",
       "--bg": "#fdf6e3",
       "--text": "#2f281f",
       "--muted": "#7c6f57",
@@ -49,8 +49,8 @@ const themes = [
       "--btn-text": "#2f6f4e",
       "--tab-active-text": "#fffaf0",
       "--shadow": "0 14px 30px rgba(92,64,36,.12)",
-      "--shadow-soft": "0 5px 14px rgba(92,64,36,.09)"
-    }
+      "--shadow-soft": "0 5px 14px rgba(92,64,36,.09)",
+    },
   },
   {
     id: "midnight",
@@ -72,15 +72,15 @@ const themes = [
       "--btn-text": "#ffffff",
       "--tab-active-text": "#000000",
       "--shadow": "0 14px 32px rgba(0,0,0,.32)",
-      "--shadow-soft": "0 6px 16px rgba(0,0,0,.22)"
-    }
+      "--shadow-soft": "0 6px 16px rgba(0,0,0,.22)",
+    },
   },
   {
     id: "emerald",
     label: "Emerald",
     colors: ["#ecfdf5", "#10b981", "#ffffff"],
     vars: {
-      "--public-font-family": 'Manrope, Inter, system-ui, sans-serif',
+      "--public-font-family": "Manrope, Inter, system-ui, sans-serif",
       "--bg": "#ecfdf5",
       "--text": "#064e3b",
       "--muted": "#047857",
@@ -95,8 +95,8 @@ const themes = [
       "--btn-text": "#047857",
       "--tab-active-text": "#022c22",
       "--shadow": "0 10px 24px rgba(6,78,59,.10)",
-      "--shadow-soft": "0 3px 10px rgba(6,78,59,.08)"
-    }
+      "--shadow-soft": "0 3px 10px rgba(6,78,59,.08)",
+    },
   },
   {
     id: "amoled",
@@ -118,8 +118,8 @@ const themes = [
       "--btn-text": "#ffffff",
       "--tab-active-text": "#000000",
       "--shadow": "none",
-      "--shadow-soft": "none"
-    }
+      "--shadow-soft": "none",
+    },
   },
   {
     id: "hacker",
@@ -141,14 +141,14 @@ const themes = [
       "--btn-text": "#4ade80",
       "--tab-active-text": "#021302",
       "--shadow": "0 0 28px rgba(34,197,94,.12)",
-      "--shadow-soft": "0 0 14px rgba(34,197,94,.10)"
-    }
-  }
+      "--shadow-soft": "0 0 14px rgba(34,197,94,.10)",
+    },
+  },
 ];
 
 const publicThemeKeys = Object.keys(themes[0].vars);
-const reloadFlag = "public-theme-hard-reload";
-const publicThemePaths = new Set(["/", "/kas"]);
+const publicThemePaths = new Set(["/", "/kas", "/pengajuan"]);
+const themePickerPaths = new Set(["/", "/pengajuan"]);
 
 function normalizeTheme(themeId) {
   return themeId === "ios" ? "ledger" : themeId;
@@ -158,20 +158,7 @@ function clearPublicTheme() {
   publicThemeKeys.forEach((key) => {
     document.documentElement.style.removeProperty(key);
   });
-
   delete document.documentElement.dataset.publicTheme;
-}
-
-function forceReloadOnce(pathname) {
-  const target = `${pathname}${window.location.search}${window.location.hash}`;
-
-  if (sessionStorage.getItem(reloadFlag) === target) {
-    sessionStorage.removeItem(reloadFlag);
-    return;
-  }
-
-  sessionStorage.setItem(reloadFlag, target);
-  window.location.replace(target);
 }
 
 function applyTheme(themeId) {
@@ -183,46 +170,42 @@ function applyTheme(themeId) {
   });
 
   document.documentElement.dataset.publicTheme = selected.id;
+  return selected.id;
 }
 
 export default function PublicThemePicker() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [theme, setTheme] = useState("default");
-
   const isPublicThemePath = publicThemePaths.has(pathname);
+  const shouldShowPicker = themePickerPaths.has(pathname);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!isPublicThemePath) {
       clearPublicTheme();
       setOpen(false);
-      forceReloadOnce(pathname);
-      return undefined;
+      return;
     }
 
-    sessionStorage.removeItem(reloadFlag);
+    if (!shouldShowPicker) setOpen(false);
 
     const saved = normalizeTheme(localStorage.getItem("public-theme") || "default");
+    const applied = applyTheme(saved);
 
-    if (localStorage.getItem("public-theme") === "ios") {
-      localStorage.setItem("public-theme", saved);
+    if (localStorage.getItem("public-theme") !== applied) {
+      localStorage.setItem("public-theme", applied);
     }
 
-    setTheme(saved);
-    applyTheme(saved);
-
-    return clearPublicTheme;
-  }, [isPublicThemePath, pathname]);
+    setTheme(applied);
+  }, [isPublicThemePath, pathname, shouldShowPicker]);
 
   function chooseTheme(nextTheme) {
-    const normalizedTheme = normalizeTheme(nextTheme);
-
-    setTheme(normalizedTheme);
-    localStorage.setItem("public-theme", normalizedTheme);
-    applyTheme(normalizedTheme);
+    const applied = applyTheme(nextTheme);
+    setTheme(applied);
+    localStorage.setItem("public-theme", applied);
   }
 
-  if (!isPublicThemePath) return null;
+  if (!shouldShowPicker) return null;
 
   return (
     <>
@@ -238,7 +221,7 @@ export default function PublicThemePicker() {
 
       {open && (
         <div className="public-theme-overlay" onClick={() => setOpen(false)}>
-          <div className="public-theme-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="public-theme-modal" onClick={(event) => event.stopPropagation()}>
             <div className="public-theme-header">
               <div>
                 <div className="public-theme-kicker">Tampilan</div>
@@ -249,14 +232,13 @@ export default function PublicThemePicker() {
                 type="button"
                 className="public-theme-close"
                 onClick={() => setOpen(false)}
+                aria-label="Tutup pilihan tema"
               >
                 ×
               </button>
             </div>
 
-            <p className="public-theme-desc">
-              Atur tampilan halaman.
-            </p>
+            <p className="public-theme-desc">Atur tampilan halaman.</p>
 
             <div className="public-theme-grid">
               {themes.map((item) => (

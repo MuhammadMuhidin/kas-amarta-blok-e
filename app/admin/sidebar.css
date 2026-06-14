@@ -1,27 +1,122 @@
+.admin-mobile-topbar,
 .admin-mobile-menu-btn,
 .admin-mobile-drawer-backdrop {
   display: none;
 }
 
+
+.admin-desktop-actions {
+  position: absolute;
+  top: 18px;
+  right: max(20px, calc((100vw - 900px) / 2 + 20px));
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--admin-border);
+  border-radius: 999px;
+  background: var(--admin-card);
+  color: var(--admin-text);
+  text-decoration: none;
+  font-family: var(--admin-font), system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 850;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
+}
+
+.admin-profile-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--admin-primary);
+  color: var(--admin-on-primary);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.admin-header {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-title {
+  font-size: 0 !important;
+  line-height: 1 !important;
+  margin-bottom: 0 !important;
+}
+
+.admin-title::before {
+  content: "Dashboard Pengurus Blok E";
+  display: block;
+  color: var(--admin-text);
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.admin-header::after {
+  content: "Kelola kas, warga, approval, dan akses pengurus.";
+  display: block;
+  color: var(--admin-muted);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 @media (max-width: 720px) {
-  .admin-mobile-menu-btn {
+  .admin-desktop-actions { display: none; }
+
+  .admin-mobile-topbar {
     position: sticky;
     top: 0;
     z-index: 100;
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
     width: 100%;
     margin-bottom: 12px;
-    padding: 14px 16px;
+    padding: 10px 14px;
     border: 1px solid var(--admin-border);
     border-top: 0;
     border-radius: 0 0 14px 14px;
     background: var(--admin-bg);
+    box-sizing: border-box;
+  }
+
+  .admin-mobile-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
     color: var(--admin-text);
     font-size: 16px;
     font-weight: 900;
-    box-sizing: border-box;
+  }
+
+  .admin-profile-link-compact {
+    min-height: 32px;
+    padding: 2px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .admin-profile-link-compact .admin-profile-avatar {
+    width: 32px;
+    height: 32px;
   }
 
   .admin-mobile-menu-btn span {
@@ -52,10 +147,10 @@
 
   :root[data-admin-theme="default"] .admin-header,
   :root[data-admin-theme="default"] .admin-tabs,
-  :root[data-admin-theme="default"] .admin-mobile-menu-btn,
+  :root[data-admin-theme="default"] .admin-mobile-topbar,
   :root[data-admin-theme="ios"] .admin-header,
   :root[data-admin-theme="ios"] .admin-tabs,
-  :root[data-admin-theme="ios"] .admin-mobile-menu-btn {
+  :root[data-admin-theme="ios"] .admin-mobile-topbar {
     background: #ffffff;
   }
 
@@ -65,43 +160,21 @@
   }
 
   .admin-header {
-    top: 0;
-    padding: 16px 16px 10px;
-    border-right: 1px solid var(--admin-border);
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
-  }
-
-  .admin-title {
-    margin: 0 !important;
-    padding-top: 46px;
-    font-size: 20px !important;
-    line-height: 1.25 !important;
-  }
-
-  .admin-home-btn {
-    width: 100%;
-    text-align: left;
-    padding: 12px 14px !important;
-    border: 0 !important;
-    border-radius: 12px !important;
-    background: transparent !important;
-    color: var(--admin-text) !important;
-    font-size: 15px !important;
-    font-weight: 800;
-    box-shadow: none !important;
+    display: none;
   }
 
   .admin-tabs {
-    top: 116px;
+    top: 0;
     bottom: 0;
     z-index: 131;
     display: flex !important;
     flex-direction: column;
     gap: 8px !important;
     margin: 0 !important;
-    padding: 0 16px 18px;
+    padding: 16px 16px 18px;
     overflow-y: auto;
     border-right: 1px solid var(--admin-border);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.18);
   }
 
   .admin-tab {

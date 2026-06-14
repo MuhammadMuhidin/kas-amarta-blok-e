@@ -9,15 +9,17 @@ const EDITABLE_ROLES = ADMIN_ACCESS_ROLES.filter((role) => role.value !== "admin
 
 function isLocked(role, moduleKey) {
   if (role === "admin") return true;
-  if (moduleKey === "overview") return true;
+  if (moduleKey === "approval_center") return true;
   if (moduleKey === "settings") return true;
+  if (moduleKey === "role_management") return true;
   return false;
 }
 
 function forcedValue(role, moduleKey, value) {
   if (role === "admin") return true;
-  if (moduleKey === "overview") return true;
+  if (moduleKey === "approval_center") return true;
   if (moduleKey === "settings") return false;
+  if (moduleKey === "role_management") return false;
   return Boolean(value);
 }
 

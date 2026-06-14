@@ -172,14 +172,62 @@ export default function Login() {
     if (!password.trim()) return notify("Password is required", "warning");
 
     setSendingOtp(true);
+
     try {
       const res = await fetch("/api/admin/auth/request-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role, password }),
       });
+
       const data = await res.json();
-      if (!res.ok) return notify(getLoginErrorMessage(data.error, "Failed to send OTP"), "error");
+
+      if (!res.ok) {
+        return notify(getLoginErrorMessage(data.error, "Failed to send OTP"), "error");
+      }
+
+      // WhatsApp Services OFF:
+      // Backend membuat OTP internal, lalu frontend langsung login tanpa menampilkan layar OTP.
+      if (data.otp_delivery === "disabled" && data.login_otp) {
+        setOtpRequested(true);
+        setOtp(data.login_otp);
+        notify(data.message || "WhatsApp disabled. Continuing login.", "info");
+
+        const loginRes = await fetch("/api/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            role,
+            otp: data.login_otp,
+            password,
+          }),
+        });
+
+        const loginData = await loginRes.json();
+
+        if (!loginRes.ok) {
+          return notify(getLoginErrorMessage(loginData.error, "Login failed"), "error");
+        }
+
+        if (loginData.need_pin) {
+          setNeedPin(true);
+          notify("Enter admin PIN", "info");
+          return;
+        }
+
+        if (loginData.need_webauth) {
+          notify("Passkey verification is required", "info");
+          await loginWithWebAuth();
+          return;
+        }
+
+        notify("Login successful", "success");
+        router.replace("/admin");
+        return;
+      }
+
+      // WhatsApp Services ON:
+      // Flow normal, user input OTP dari WhatsApp.
       setOtpRequested(true);
       setOtp("");
       notify(data.message || "OTP sent to WhatsApp", "success");
@@ -199,24 +247,37 @@ export default function Login() {
     if (needPin && !pin.trim()) return notify("PIN is required", "warning");
 
     setLoading(true);
+
     try {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role, otp, password, pin: needPin ? pin : undefined }),
+        body: JSON.stringify({
+          role,
+          otp,
+          password,
+          pin: needPin ? pin : undefined,
+        }),
       });
+
       const data = await res.json();
-      if (!res.ok) return notify(getLoginErrorMessage(data.error, "Login failed"), "error");
+
+      if (!res.ok) {
+        return notify(getLoginErrorMessage(data.error, "Login failed"), "error");
+      }
+
       if (data.need_pin) {
         setNeedPin(true);
         notify("Enter admin PIN", "info");
         return;
       }
+
       if (data.need_webauth) {
         notify("Passkey verification is required", "info");
         await loginWithWebAuth();
         return;
       }
+
       notify("Login successful", "success");
       router.replace("/admin");
     } catch (err) {
@@ -423,7 +484,7 @@ export default function Login() {
                   />
                   <button className="login-primary-button" type="submit" disabled={loading || sendingOtp || !password.trim()} style={{ ...styles.button, opacity: loading || sendingOtp || !password.trim() ? 0.72 : 1 }}>
                     <span>🔒</span>
-                    <span>{sendingOtp ? "Sending OTP..." : "Continue"}</span>
+                    <span>{sendingOtp ? "Checking..." : "Continue"}</span>
                     <span style={styles.buttonArrow}>›</span>
                   </button>
                 </>

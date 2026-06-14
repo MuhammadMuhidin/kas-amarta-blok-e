@@ -58,7 +58,7 @@ export default function useAdminLoaders({ setPayment }) {
   async function refreshTabData(nextTab) {
     if (nextTab === "overview") return refreshMonitoring();
     if (nextTab === "personal") return loadPersonal();
-    if (nextTab === "payment") return Promise.all([loadAppConfig(), loadPayment(), loadDeposit()]);
+    if (nextTab === "payment") return Promise.all([loadAppConfig(), loadPersonal(), loadPayment(), loadDeposit()]);
     if (nextTab === "deposit") return Promise.all([loadAppConfig(), loadPersonal(), loadDeposit(), loadPayment(), loadTrash(), loadCashflow()]);
     if (nextTab === "cashflow") return loadCashflow();
     if (nextTab === "monitoring") return refreshMonitoring();

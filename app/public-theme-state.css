@@ -1,0 +1,16 @@
+html[data-public-theme="default"],
+html[data-public-theme="ledger"],
+html[data-public-theme="emerald"] {
+  color-scheme: light;
+}
+
+html[data-public-theme="midnight"],
+html[data-public-theme="amoled"],
+html[data-public-theme="hacker"] {
+  color-scheme: dark;
+}
+
+html[data-public-theme] body {
+  background: var(--bg);
+  color: var(--text);
+}
