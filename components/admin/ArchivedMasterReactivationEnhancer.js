@@ -17,6 +17,13 @@ function sameTargets(previous, next) {
   ));
 }
 
+function hideArchivedActiveVersionButton(card) {
+  const button = [...card.querySelectorAll(".mm-master-actions button")]
+    .find((item) => String(item.textContent || "").trim() === "View Active Version");
+
+  if (button && !button.hidden) button.hidden = true;
+}
+
 function collectTargets(archivedMasters) {
   const queues = new Map();
 
@@ -30,6 +37,8 @@ function collectTargets(archivedMasters) {
   return [...document.querySelectorAll(".mm-master-card")]
     .map((card) => {
       if (!card.querySelector(".mm-status-archived")) return null;
+
+      hideArchivedActiveVersionButton(card);
 
       const name = String(card.querySelector(".mm-master-title-row h4")?.textContent || "").trim();
       const target = card.querySelector(".mm-master-actions");
