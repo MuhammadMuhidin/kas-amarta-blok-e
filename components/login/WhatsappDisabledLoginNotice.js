@@ -5,7 +5,17 @@ import ConfirmModal from "@/components/ConfirmModal";
 
 const REQUEST_OTP_PATH = "/api/admin/auth/request-otp";
 const LOGIN_PATH = "/api/login";
+const WEBAUTH_VERIFY_PATH = "/api/webauth/auth/verify";
 const BODY_CLASS = "login-whatsapp-disabled-active";
+
+const ADMIN_THEME_BACKGROUNDS = {
+  default: "#f1f5f9",
+  ledger: "#fdf6e3",
+  midnight: "#020617",
+  emerald: "#ecfdf5",
+  amoled: "#000000",
+  hacker: "#020b02",
+};
 
 function getRequestPath(input) {
   try {
@@ -16,6 +26,34 @@ function getRequestPath(input) {
   }
 }
 
+function getAdminTheme() {
+  const saved = localStorage.getItem("admin-theme") || "default";
+  const normalized = saved === "ios" ? "ledger" : saved;
+  return ADMIN_THEME_BACKGROUNDS[normalized] ? normalized : "default";
+}
+
+function prepareAdminDocument() {
+  const theme = getAdminTheme();
+  const background = ADMIN_THEME_BACKGROUNDS[theme];
+  const html = document.documentElement;
+  const body = document.body;
+
+  html.dataset.adminTheme = theme;
+  html.style.setProperty("background", background, "important");
+  html.style.setProperty("background-color", background, "important");
+  body.style.setProperty("background", background, "important");
+  body.style.setProperty("background-color", background, "important");
+  body.classList.remove(BODY_CLASS);
+
+  let themeColor = document.querySelector('meta[name="theme-color"]');
+  if (!themeColor) {
+    themeColor = document.createElement("meta");
+    themeColor.setAttribute("name", "theme-color");
+    document.head.appendChild(themeColor);
+  }
+  themeColor.setAttribute("content", background);
+}
+
 export default function WhatsappDisabledLoginNotice() {
   const [open, setOpen] = useState(false);
   const [continuing, setContinuing] = useState(false);
@@ -24,6 +62,7 @@ export default function WhatsappDisabledLoginNotice() {
   const disabledFlowRef = useRef(false);
   const gateResolverRef = useRef(null);
   const okRequestedRef = useRef(false);
+  const navigatingRef = useRef(false);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -50,16 +89,32 @@ export default function WhatsappDisabledLoginNotice() {
       gateResolverRef.current = null;
     }
 
-    function wrapLoginResponse(response) {
+    function navigateToAdmin() {
+      if (navigatingRef.current) return;
+
+      navigatingRef.current = true;
+      prepareAdminDocument();
+      window.location.replace("/admin");
+    }
+
+    function wrapAuthResponse(response, closeNoticeAfterRead = false) {
       return new Proxy(response, {
         get(target, property) {
           if (property === "json") {
             return async () => {
-              try {
-                return await target.json();
-              } finally {
+              const data = await target.json();
+              const finalSuccess = target.ok && !data?.need_pin && !data?.need_webauth;
+
+              if (finalSuccess) {
+                navigateToAdmin();
+                await new Promise(() => {});
+              }
+
+              if (closeNoticeAfterRead) {
                 window.setTimeout(closeNotice, 150);
               }
+
+              return data;
             };
           }
 
@@ -102,12 +157,17 @@ export default function WhatsappDisabledLoginNotice() {
         try {
           const response = await responsePromise;
           resetDisabledFlow();
-          return wrapLoginResponse(response);
+          return wrapAuthResponse(response, true);
         } catch (error) {
           resetDisabledFlow();
           closeNotice();
           throw error;
         }
+      }
+
+      if (path === LOGIN_PATH || path === WEBAUTH_VERIFY_PATH) {
+        const response = await originalFetch(input, init);
+        return wrapAuthResponse(response);
       }
 
       return originalFetch(input, init);
