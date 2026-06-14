@@ -10,6 +10,7 @@ const modules = new Set([
   "cashflow",
   "trash",
   "session",
+  "profile",
   "settings-app",
   "settings-auth",
   "settings-access-matrix",
