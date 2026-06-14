@@ -13,16 +13,19 @@ export default function ConfirmModal({
   isDark = false,
   loading = false,
   hideCancel = false,
+  overlayStyle = {},
+  modalStyle = {},
 }) {
   if (!open) return null;
 
   return (
-    <div style={styles.overlay}>
+    <div style={{ ...styles.overlay, ...overlayStyle }}>
       <div
         style={{
           ...styles.modal,
           background: isDark ? "#111827" : "#fff",
           border: isDark ? "1px solid #334155" : "1px solid #e2e8f0",
+          ...modalStyle,
         }}
       >
         <h3
