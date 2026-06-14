@@ -7,28 +7,28 @@ export default function PublicTabs({ activeTab, setActiveTab }) {
         className={activeTab === "payment" ? "active" : ""}
         onClick={() => setActiveTab("payment")}
       >
-        Status Pembayaran
+        &#128179; Status Pembayaran
       </button>
 
       <button
         className={activeTab === "cashflow" ? "active" : ""}
         onClick={() => setActiveTab("cashflow")}
       >
-        Arus Kas
+        &#128221; Arus Kas
       </button>
 
       <button
         className={activeTab === "arrears" ? "active" : ""}
         onClick={() => setActiveTab("arrears")}
       >
-        Tunggakan
+        &#9203; Tunggakan
       </button>
 
       <button
         className={activeTab === "insight" ? "active" : ""}
         onClick={() => setActiveTab("insight")}
       >
-        Laporan
+        &#128202; Laporan
       </button>
     </div>
   );
