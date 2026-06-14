@@ -22,12 +22,12 @@ async function getRoleSecurityActivities(role) {
     .from(ADMIN_ACTIVITIES_TABLE)
     .select("id,type,module,severity,message,metadata,device_name,location,created_at")
     .in("module", ["profile", "session"])
+    .contains("metadata", { access_role: role })
     .order("created_at", { ascending: false })
     .limit(50);
 
   if (error) throw new Error(error.message || "Gagal membaca aktivitas keamanan");
-
-  return (data || []).filter((item) => item?.metadata?.access_role === role);
+  return data || [];
 }
 
 export async function getProfileOverview(req, session) {
