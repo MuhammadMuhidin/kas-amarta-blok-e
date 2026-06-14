@@ -19,6 +19,45 @@ function clean(value) {
   return String(value || "").trim();
 }
 
+function maskResidentName(value) {
+  const words = clean(value).split(/\s+/).filter(Boolean);
+  if (!words.length) return "-";
+
+  return words.map((word) => {
+    const characters = [...word];
+    if (!characters.length) return "";
+    return `${characters[0]}${"•".repeat(Math.max(characters.length - 1, 1))}`;
+  }).join(" ");
+}
+
+function maskResidentHouse(value) {
+  const raw = clean(value).normalize("NFKC").toUpperCase();
+  if (!raw) return "-";
+
+  const normalized = raw
+    .replace(/^\s*(?:BLOK|BLK)\s+/i, "")
+    .replace(/\b(?:NOMOR|NO|UNIT)\b\.?/gi, "-")
+    .replace(/[\/#]/g, "-")
+    .replace(/\s*-\s*/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const separated = normalized.match(/^([A-Z]+\s*\d+)\s*(?:-|\s)\s*\d+\b/i);
+  if (separated) return `${separated[1].replace(/\s+/g, "")}-•`;
+
+  const compact = normalized.replace(/[^A-Z0-9]/g, "");
+  const compactMatch = compact.match(/^([A-Z]+)(\d{2,})$/i);
+  if (compactMatch) {
+    const [, letters, digits] = compactMatch;
+    return `${letters}${digits.slice(0, -1)}-•`;
+  }
+
+  const blockOnly = normalized.match(/([A-Z]+\s*\d+)/i);
+  if (blockOnly) return `${blockOnly[1].replace(/\s+/g, "")}-•`;
+
+  return "•••";
+}
+
 function number(value) {
   const parsed = Number(value || 0);
   return Number.isFinite(parsed) ? parsed : 0;
@@ -42,18 +81,19 @@ function publicRequest(row = {}) {
     submitted_at: row.submitted_at,
     updated_at: row.updated_at,
     completed_at: row.completed_at,
-    requester_name: row.requester_name,
-    requester_house: row.requester_house,
+    requester_name: maskResidentName(row.requester_name),
+    requester_house: maskResidentHouse(row.requester_house),
     reason: requestReason(row),
   };
 }
 
 function publicAction(row = {}) {
+  const isResidentAction = clean(row.role).toLowerCase() === "warga" || clean(row.action).toLowerCase() === "submit";
   return {
     id: row.id,
     step: row.step,
     role: row.role,
-    actor: row.actor,
+    actor: isResidentAction ? maskResidentName(row.actor) : row.actor,
     action: row.action,
     note: row.note,
     created_at: row.created_at,
@@ -229,7 +269,11 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const requestNo = searchParams.get("request_no");
-    if (requestNo) return NextResponse.json(await checkStatusByRequestNo(requestNo));
+    if (requestNo) {
+      return NextResponse.json(await checkStatusByRequestNo(requestNo), {
+        headers: { "Cache-Control": "private, no-store, max-age=0" },
+      });
+    }
     const masters = await getApprovalMasters({ activeOnly: true });
     return NextResponse.json({ ok: true, masters });
   } catch (err) {
