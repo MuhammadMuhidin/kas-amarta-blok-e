@@ -51,6 +51,7 @@ function resolveMaster(card, masters) {
 }
 
 function button(actions, labels) {
+  if (!actions) return null;
   const accepted = new Set(labels);
   return [...actions.querySelectorAll("button")]
     .find((item) => accepted.has(clean(item.textContent))) || null;
@@ -61,6 +62,14 @@ function updateButton(target, { hidden, text, title }) {
   if (typeof hidden === "boolean") target.hidden = hidden;
   if (text && clean(target.textContent) !== text) target.textContent = text;
   if (title) target.title = title;
+}
+
+function sameTargets(previous, next) {
+  return previous.length === next.length && previous.every((item, index) => (
+    item.action === next[index].action &&
+    item.master.id === next[index].master.id &&
+    item.target === next[index].target
+  ));
 }
 
 function configureCard(card, source) {
@@ -104,9 +113,10 @@ function configureCard(card, source) {
 function configureEditor(master) {
   const editor = document.querySelector(".mm-editor");
   if (!editor) return;
-  const publish = [...(editor.querySelectorAll(".mm-publication-actions button") || [])]
+  const publicationActions = editor.querySelector(".mm-publication-actions");
+  const publish = [...(publicationActions?.querySelectorAll("button") || [])]
     .find((item) => clean(item.textContent).startsWith("Publish"));
-  const archive = button(editor.querySelector(".mm-publication-actions"), ["Archive"]);
+  const archive = button(publicationActions, ["Archive"]);
   if (!master) {
     updateButton(publish, { text: "Publish First Version" });
     updateButton(archive, { hidden: true });
@@ -179,7 +189,7 @@ export default function ApprovalMasterLifecycleController() {
           return master ? configureCard(card, master) : [];
         });
         configureEditor(masters.find((master) => master.id === selectedId) || null);
-        setTargets(extra);
+        setTargets((previous) => sameTargets(previous, extra) ? previous : extra);
       });
     };
     scan();
