@@ -29,6 +29,7 @@ export async function GET(req) {
     ok: true,
     session_id: session.id,
     access_role: session.access_role,
+    expires_at: session.expires_at,
     modules,
   }, {
     headers: SESSION_HEADERS,
