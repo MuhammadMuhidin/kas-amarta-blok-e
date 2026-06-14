@@ -28,6 +28,7 @@ export async function disconnectAdminSession({ req, id }) {
     message: `Revoke admin session ${id}`,
     metadata: {
       session_id: id,
+      access_role: targetSession?.access_role || null,
       device_name: targetSession?.device_name || null,
       ip: targetSession?.ip || null,
       location: targetSession?.location || null,
