@@ -140,9 +140,11 @@ export default function MasterManagementReadOnlyPreview() {
         const primary = findPreviewButton(actions);
         if (!primary) return;
 
+        const primaryKind = master.has_draft ? "draft" : "active";
+        const primaryLabel = master.has_draft ? "Preview Draft" : "Lihat Versi Aktif";
         primary.dataset.mmPreviewPrimary = "true";
-        primary.dataset.mmPreviewKind = master.has_draft ? "draft" : "active";
-        primary.textContent = master.has_draft ? "Preview Draft" : "Lihat Versi Aktif";
+        if (primary.dataset.mmPreviewKind !== primaryKind) primary.dataset.mmPreviewKind = primaryKind;
+        if (clean(primary.textContent) !== primaryLabel) primary.textContent = primaryLabel;
 
         const existingActive = actions.querySelector('[data-mm-preview-secondary="true"]');
         if (master.has_draft && master.published_config) {
