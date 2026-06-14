@@ -5,20 +5,25 @@ import {
   archiveLifecycleMaster,
   deleteInitialDraft,
   discardLifecycleDraft,
+  publishLifecycleMaster,
   saveLifecycleDraft,
-} from "@/features/approval/approvalMasterLifecycleService";
+} from "@/features/approval/approvalMasterLifecycleSafeService";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function errorStatus(message = "") {
-  return /wajib|minimal|duplikat|pilihan|nominal|validasi|tidak ditemukan|draft|arsip|archived|dipublikasikan|dihapus/i.test(String(message)) ? 400 : 500;
+function errorStatus(error) {
+  if (Number(error?.status)) return Number(error.status);
+  const message = String(error?.message || "");
+  return /wajib|minimal|duplikat|pilihan|nominal|validasi|tidak ditemukan|draft|arsip|archived|dipublikasikan|dihapus/i.test(message) ? 400 : 500;
 }
 
 export async function GET(req) {
   try {
     if (!(await isAdmin(req))) return unauthorized();
-    return NextResponse.json(await getMasterManagementOverview());
+    return NextResponse.json(await getMasterManagementOverview(), {
+      headers: { "Cache-Control": "private, no-store, max-age=0" },
+    });
   } catch (err) {
     return NextResponse.json({ error: err.message || "Gagal membaca approval masters" }, { status: 500 });
   }
@@ -49,9 +54,13 @@ export async function POST(req) {
       return NextResponse.json(await saveLifecycleDraft({ req, payload: body }));
     }
 
+    if (body?.id && lifecycle === "active") {
+      return NextResponse.json(await publishLifecycleMaster({ req, payload: body }));
+    }
+
     return NextResponse.json(await saveApprovalMaster({ req, payload: body }));
   } catch (err) {
     const message = err.message || "Gagal menyimpan approval master";
-    return NextResponse.json({ error: message }, { status: errorStatus(message) });
+    return NextResponse.json({ error: message }, { status: errorStatus(err) });
   }
 }
