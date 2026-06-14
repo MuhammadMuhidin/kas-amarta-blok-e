@@ -1,0 +1,23 @@
+.mm-footer > div:last-child > .admin-small-btn:first-child {
+  display: none !important;
+}
+
+.mm-editor[data-mm-saving-action="active"]
+  .mm-publication-actions > .admin-small-btn:first-child > span {
+  display: none !important;
+}
+
+.mm-editor[data-mm-saving-action="active"]
+  .mm-publication-actions > .admin-small-btn:first-child::after {
+  content: "Simpan Draft";
+}
+
+.mm-editor[data-mm-saving-action="draft"]
+  .mm-publication-actions > .admin-btn:nth-child(2) > span {
+  display: none !important;
+}
+
+.mm-editor[data-mm-saving-action="draft"]
+  .mm-publication-actions > .admin-btn:nth-child(2)::after {
+  content: "Publikasikan Versi Baru";
+}
