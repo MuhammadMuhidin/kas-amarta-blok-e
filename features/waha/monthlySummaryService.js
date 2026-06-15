@@ -1,7 +1,8 @@
 import { GET as getCashSummary } from "@/app/api/sheets/summary/route";
+import { getIntegrationConfigString } from "@/lib/integrationConfig";
 import { sendWaMessage } from "@/lib/waClient";
 
-const PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
+const FALLBACK_PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 
 async function getSummary() {
@@ -78,7 +79,7 @@ function getCurrentExpenseBreakdown(data) {
   return { operationalExpense, trashAdvanceExpense };
 }
 
-function buildText(data) {
+function buildText(data, publicKasUrl) {
   const lastMonth = data?.insight?.lastMonth || {};
   const currentMonth = data?.insight?.currentMonth || {};
   const summary = data?.insight?.summary || {};
@@ -117,7 +118,7 @@ function buildText(data) {
     `Sisa saldo saat ini: ${money(summary.currentBalance)}`,
     "",
     "Rincian lengkap:",
-    PUBLIC_KAS_URL,
+    publicKasUrl,
     "",
     "Terima kasih.",
     "",
@@ -126,11 +127,17 @@ function buildText(data) {
 }
 
 export async function runMonthlySummaryWorkflow(body = {}) {
-  const summary = await getSummary();
-  const text = buildText(summary);
+  const [summary, configuredChatId, configuredSessionId, appUrl] = await Promise.all([
+    getSummary(),
+    getIntegrationConfigString("WA_REPORT_CHAT_ID"),
+    getIntegrationConfigString("WA_SESSION_ID", "main"),
+    getIntegrationConfigString("APP_URL"),
+  ]);
+  const publicKasUrl = appUrl ? `${appUrl.replace(/\/$/, "")}/kas` : FALLBACK_PUBLIC_KAS_URL;
+  const text = buildText(summary, publicKasUrl);
   const period = String(body.period || getCurrentPeriod(summary));
-  const chatId = normalize(body.chatId || process.env.WA_REPORT_CHAT_ID || process.env.WA_CHAT_ID);
-  const sessionId = normalize(process.env.WA_SESSION_ID) || "main";
+  const chatId = normalize(body.chatId || configuredChatId || process.env.WA_CHAT_ID);
+  const sessionId = normalize(configuredSessionId) || "main";
 
   if (body.preview === true) {
     return {
