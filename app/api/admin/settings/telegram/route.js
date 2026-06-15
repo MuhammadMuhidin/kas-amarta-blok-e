@@ -13,12 +13,16 @@ import {
   getNotificationQueueRuntimeStatus,
   queueTelegramTestNotification,
 } from "@/lib/notificationQueue";
+import { getAuthConfigs } from "@/lib/webauth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function integrationStatus() {
-  const config = await telegramConfigSummary();
+  const [config, authConfig] = await Promise.all([
+    telegramConfigSummary(),
+    getAuthConfigs(),
+  ]);
   const queue = getNotificationQueueRuntimeStatus();
   let webhook = null;
   let webhookError = "";
@@ -37,7 +41,17 @@ async function integrationStatus() {
     }
   }
 
-  return { ok: true, config, queue, webhook, webhook_error: webhookError };
+  return {
+    ok: true,
+    config,
+    queue,
+    webhook,
+    webhook_error: webhookError,
+    auth_config: {
+      telegram_notifications_enabled: authConfig.telegramNotificationsEnabled === true,
+      telegram_approval_actions_enabled: authConfig.telegramActionsConfigured === true,
+    },
+  };
 }
 
 export async function GET(req) {
