@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { readJson } from "@/components/admin/adminClientApi";
 
 const MONITORING_CACHE_MS = 30 * 1000;
@@ -13,45 +13,100 @@ export default function useAdminLoaders({ setPayment }) {
   const [cashflows, setCashflows] = useState([]);
   const [appConfig, setAppConfig] = useState(null);
   const [configError, setConfigError] = useState("");
+  const [monitoringLoading, setMonitoringLoading] = useState(false);
+  const [monitoringError, setMonitoringError] = useState("");
+
+  const controllers = useRef({});
+  const requestIds = useRef({});
   const lastMonitoringLoadAt = useRef(0);
   const monitoringPromise = useRef(null);
+  const monitoringGeneration = useRef(0);
 
-  async function loadAppConfig() {
+  function nextRequest(name) {
+    controllers.current[name]?.abort();
+    const controller = new AbortController();
+    const requestId = Number(requestIds.current[name] || 0) + 1;
+    controllers.current[name] = controller;
+    requestIds.current[name] = requestId;
+    return { controller, requestId };
+  }
+
+  function isCurrent(name, controller, requestId) {
+    return !controller.signal.aborted
+      && controllers.current[name] === controller
+      && requestIds.current[name] === requestId;
+  }
+
+  async function loadResource(name, path, setter) {
+    const { controller, requestId } = nextRequest(name);
+
     try {
-      setConfigError("");
-      const data = await readJson("/api/admin/settings/app");
-      setAppConfig(data.config);
-      setPayment((prev) => ({ ...prev, amount: data.config.monthly_fee }));
-    } catch (err) {
-      setAppConfig(null);
-      setConfigError(err.message || "Failed to load configuration");
+      const data = await readJson(path, { signal: controller.signal });
+      if (isCurrent(name, controller, requestId)) setter(data);
+      return data;
+    } catch (error) {
+      if (error?.name === "AbortError") return undefined;
+      throw error;
+    } finally {
+      if (controllers.current[name] === controller) {
+        delete controllers.current[name];
+      }
     }
   }
 
-  async function loadPersonal() {
-    setPersonal(await readJson("/api/sheets/personal"));
+  async function loadAppConfig() {
+    const { controller, requestId } = nextRequest("appConfig");
+
+    try {
+      if (isCurrent("appConfig", controller, requestId)) setConfigError("");
+      const data = await readJson("/api/admin/settings/app", { signal: controller.signal });
+      if (!isCurrent("appConfig", controller, requestId)) return data;
+      setAppConfig(data.config);
+      setPayment((prev) => ({ ...prev, amount: data.config.monthly_fee }));
+      return data;
+    } catch (error) {
+      if (error?.name === "AbortError") return undefined;
+      if (isCurrent("appConfig", controller, requestId)) {
+        setAppConfig(null);
+        setConfigError(error.message || "Failed to load configuration");
+      }
+      throw error;
+    } finally {
+      if (controllers.current.appConfig === controller) {
+        delete controllers.current.appConfig;
+      }
+    }
   }
 
-  async function loadPayment() {
-    setPayments(await readJson("/api/sheets/payment"));
+  function loadPersonal() {
+    return loadResource("personal", "/api/sheets/personal", setPersonal);
   }
 
-  async function loadTrash() {
-    setTrashRecords(await readJson("/api/sheets/trash"));
+  function loadPayment() {
+    return loadResource("payment", "/api/sheets/payment", setPayments);
   }
 
-  async function loadDeposit() {
-    setDeposits(await readJson("/api/sheets/deposit"));
+  function loadTrash() {
+    return loadResource("trash", "/api/sheets/trash", setTrashRecords);
   }
 
-  async function loadCashflow() {
-    setCashflows(await readJson("/api/sheets/cashflow"));
+  function loadDeposit() {
+    return loadResource("deposit", "/api/sheets/deposit", setDeposits);
+  }
+
+  function loadCashflow() {
+    return loadResource("cashflow", "/api/sheets/cashflow", setCashflows);
   }
 
   async function refreshMonitoring({ force = false } = {}) {
     const fresh = Date.now() - lastMonitoringLoadAt.current < MONITORING_CACHE_MS;
-    if (!force && fresh) return;
+    if (!force && fresh) return true;
     if (monitoringPromise.current) return monitoringPromise.current;
+
+    const generation = monitoringGeneration.current + 1;
+    monitoringGeneration.current = generation;
+    setMonitoringLoading(true);
+    setMonitoringError("");
 
     monitoringPromise.current = Promise.all([
       loadAppConfig(),
@@ -60,18 +115,32 @@ export default function useAdminLoaders({ setPayment }) {
       loadPersonal(),
       loadCashflow(),
       loadDeposit(),
-    ]).then(() => {
-      lastMonitoringLoadAt.current = Date.now();
-    }).finally(() => {
-      monitoringPromise.current = null;
-    });
+    ])
+      .then(() => {
+        if (monitoringGeneration.current === generation) {
+          lastMonitoringLoadAt.current = Date.now();
+        }
+        return true;
+      })
+      .catch((error) => {
+        if (monitoringGeneration.current === generation && error?.name !== "AbortError") {
+          setMonitoringError(error.message || "Failed to load monitoring datasets");
+        }
+        return false;
+      })
+      .finally(() => {
+        if (monitoringGeneration.current === generation) {
+          setMonitoringLoading(false);
+        }
+        monitoringPromise.current = null;
+      });
 
     return monitoringPromise.current;
   }
 
   async function refreshTabData(nextTab, options = {}) {
     if (nextTab === "overview") return refreshMonitoring(options);
-    if (nextTab === "personal") return loadPersonal();
+    if (nextTab === "personal") return undefined;
     if (nextTab === "payment") {
       return Promise.all([loadAppConfig(), loadPersonal(), loadPayment()]);
     }
@@ -88,7 +157,13 @@ export default function useAdminLoaders({ setPayment }) {
     if (nextTab === "cashflow") return undefined;
     if (nextTab === "monitoring") return refreshMonitoring(options);
     if (nextTab === "settings") return loadAppConfig();
+    return undefined;
   }
+
+  useEffect(() => () => {
+    Object.values(controllers.current).forEach((controller) => controller?.abort());
+    monitoringGeneration.current += 1;
+  }, []);
 
   return {
     personal,
@@ -99,6 +174,8 @@ export default function useAdminLoaders({ setPayment }) {
     cashflows,
     appConfig,
     configError,
+    monitoringLoading,
+    monitoringError,
     loadAppConfig,
     loadPersonal,
     loadPayment,
