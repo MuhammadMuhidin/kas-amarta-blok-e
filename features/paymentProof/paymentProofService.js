@@ -54,6 +54,16 @@ function getAppBaseUrl() {
     .replace(/\/$/, "");
 }
 
+function getActivityContext({ actor, actorRole, source, actorMetadata }) {
+  const role = normalize(actorRole).toLowerCase() || "admin";
+  return {
+    actor: normalize(actor) || role,
+    role,
+    source: normalize(source) || "web",
+    metadata: actorMetadata && typeof actorMetadata === "object" ? actorMetadata : {},
+  };
+}
+
 async function getConfiguredMonthlyFee() {
   const appConfig = await getAppConfig();
   return Number(appConfig?.monthly_fee || 0);
@@ -226,8 +236,17 @@ export async function listAdminPaymentProofs({ supabase, searchParams }) {
   return { ok: true, proofs: enrichedProofs };
 }
 
-export async function approvePaymentProof({ supabase, req, id }) {
+export async function approvePaymentProof({
+  supabase,
+  req,
+  id,
+  actor = "admin",
+  actorRole = "admin",
+  source = "web",
+  actorMetadata = {},
+}) {
   const proof = await findPaymentProofById(supabase, id);
+  const activity = getActivityContext({ actor, actorRole, source, actorMetadata });
 
   if (!proof) {
     return { status: 404, body: { error: "Bukti pembayaran tidak ditemukan" } };
@@ -265,7 +284,7 @@ export async function approvePaymentProof({ supabase, req, id }) {
   const updated = await updatePaymentProof(supabase, proof.id, {
     status: "approved",
     reviewed_at: reviewedAt,
-    reviewed_by: "admin",
+    reviewed_by: activity.actor,
     approved_payment_id: paymentId,
     reject_reason: "",
   });
@@ -274,6 +293,7 @@ export async function approvePaymentProof({ supabase, req, id }) {
     type: "approve",
     module: "payment-proof",
     severity: "success",
+    actor: activity.actor,
     message: `Approve payment proof ${proof.person_house} ${proof.period}`,
     metadata: {
       proof_id: proof.id,
@@ -284,6 +304,9 @@ export async function approvePaymentProof({ supabase, req, id }) {
       period: proof.period,
       amount: proof.amount,
       trash_amount: proof.trash_amount,
+      source: activity.source,
+      role: activity.role,
+      ...activity.metadata,
     },
   });
 
@@ -298,9 +321,19 @@ export async function approvePaymentProof({ supabase, req, id }) {
   };
 }
 
-export async function rejectPaymentProof({ supabase, req, id, reason }) {
+export async function rejectPaymentProof({
+  supabase,
+  req,
+  id,
+  reason,
+  actor = "admin",
+  actorRole = "admin",
+  source = "web",
+  actorMetadata = {},
+}) {
   const proof = await findPaymentProofById(supabase, id);
   const rejectReason = normalize(reason);
+  const activity = getActivityContext({ actor, actorRole, source, actorMetadata });
 
   if (!proof) {
     return { status: 404, body: { error: "Bukti pembayaran tidak ditemukan" } };
@@ -317,7 +350,7 @@ export async function rejectPaymentProof({ supabase, req, id, reason }) {
   const updated = await updatePaymentProof(supabase, proof.id, {
     status: "rejected",
     reviewed_at: new Date().toISOString(),
-    reviewed_by: "admin",
+    reviewed_by: activity.actor,
     reject_reason: rejectReason,
   });
 
@@ -325,6 +358,7 @@ export async function rejectPaymentProof({ supabase, req, id, reason }) {
     type: "reject",
     module: "payment-proof",
     severity: "warning",
+    actor: activity.actor,
     message: `Reject payment proof ${proof.person_house} ${proof.period}`,
     metadata: {
       proof_id: proof.id,
@@ -334,6 +368,9 @@ export async function rejectPaymentProof({ supabase, req, id, reason }) {
       amount: proof.amount,
       trash_amount: proof.trash_amount,
       reason: rejectReason,
+      source: activity.source,
+      role: activity.role,
+      ...activity.metadata,
     },
   });
 
