@@ -15,7 +15,7 @@ export default function useAdminTabs(refreshTabData, allowedTabs = ["overview"])
 
     if (tab === nextTab) {
       setTabRefreshKey((prev) => prev + 1);
-      refreshTabData(nextTab);
+      refreshTabData(nextTab, { force: true });
       return;
     }
 
