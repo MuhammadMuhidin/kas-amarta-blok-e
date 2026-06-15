@@ -16,7 +16,15 @@ export default function AdminSubtabs({
   }
 
   return (
-    <div role="tablist" aria-label={ariaLabel} style={styles.wrap}>
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className="admin-subtabs"
+      style={{
+        ...styles.wrap,
+        gridTemplateColumns: `repeat(${Math.min(items.length, 4)}, minmax(0, 1fr))`,
+      }}
+    >
       {items.map((item) => {
         const active = item.value === value;
         return (
@@ -28,15 +36,22 @@ export default function AdminSubtabs({
             aria-controls={item.panelId || undefined}
             disabled={pending || item.disabled}
             onClick={() => select(item.value)}
+            className={active ? "admin-subtab admin-subtab-active" : "admin-subtab"}
             style={{
               ...styles.button,
               ...(active ? styles.active : {}),
               opacity: item.disabled ? 0.5 : 1,
             }}
           >
-            <span>{item.label}</span>
+            <span style={styles.label}>{item.label}</span>
             {Number(item.badge || 0) > 0 && (
-              <span style={{ ...styles.badge, ...(active ? styles.badgeActive : {}) }}>
+              <span
+                className="admin-subtab-counter"
+                style={{
+                  ...styles.badge,
+                  ...(active ? styles.badgeActive : {}),
+                }}
+              >
                 {item.badge}
               </span>
             )}
@@ -50,7 +65,6 @@ export default function AdminSubtabs({
 const styles = {
   wrap: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))",
     gap: 8,
     marginBottom: 18,
     padding: 5,
@@ -60,11 +74,12 @@ const styles = {
   },
   button: {
     minWidth: 0,
+    minHeight: 44,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     gap: 7,
-    padding: "10px 12px",
+    padding: "10px 9px",
     border: 0,
     borderRadius: 10,
     background: "transparent",
@@ -73,25 +88,36 @@ const styles = {
     fontWeight: 900,
     cursor: "pointer",
   },
+  label: {
+    minWidth: 0,
+    lineHeight: 1.25,
+    textAlign: "center",
+    overflowWrap: "anywhere",
+  },
   active: {
     background: "var(--admin-primary)",
     color: "var(--admin-on-primary)",
     boxShadow: "0 6px 18px rgba(0,0,0,.12)",
   },
   badge: {
-    minWidth: 20,
-    height: 20,
+    width: 22,
+    minWidth: 22,
+    height: 22,
     display: "inline-grid",
     placeItems: "center",
-    padding: "0 6px",
-    borderRadius: 999,
+    padding: 0,
+    border: "1px solid currentColor",
+    borderRadius: "50%",
     background: "var(--admin-card)",
     color: "var(--admin-text)",
     fontSize: 10,
     fontWeight: 900,
+    lineHeight: 1,
+    flexShrink: 0,
   },
   badgeActive: {
-    background: "rgba(255,255,255,.2)",
+    background: "rgba(255,255,255,.16)",
     color: "inherit",
+    borderColor: "rgba(255,255,255,.8)",
   },
 };
