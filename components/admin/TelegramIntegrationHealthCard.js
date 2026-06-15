@@ -1,7 +1,5 @@
 "use client";
 
-import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
-import modalStyles from "@/components/admin/AdminModal.module.css";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
 import { useEffect, useState } from "react";
@@ -36,8 +34,6 @@ export default function TelegramIntegrationHealthCard() {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
-  const [pendingAction, setPendingAction] = useState("");
-  const [pin, setPin] = useState("");
   const [toast, setToast] = useState(null);
 
   function showToast(message, type = "success") {
@@ -56,29 +52,13 @@ export default function TelegramIntegrationHealthCard() {
     }
   }
 
-  function requestAction(action) {
-    setPendingAction(action);
-    setPin("");
-  }
-
-  function closeAction() {
+  async function runAction(action) {
     if (running) return;
-    setPendingAction("");
-    setPin("");
-  }
-
-  async function confirmAction() {
-    if (!pendingAction || !pin || running) return;
     try {
       setRunning(true);
-      const result = await sendJson(ENDPOINT, "POST", {
-        action: pendingAction,
-        pin,
-      });
+      const result = await sendJson(ENDPOINT, "POST", { action });
       setStatus(result.status || status);
       showToast("Telegram action completed");
-      setPendingAction("");
-      setPin("");
     } catch (error) {
       showToast(error.message || "Telegram action failed", "error");
     } finally {
@@ -96,12 +76,9 @@ export default function TelegramIntegrationHealthCard() {
   return <>
     <Toast show={!!toast} type={toast?.type} message={toast?.message} />
     <div style={styles.card}>
-      <div style={styles.header}>
-        <div>
-          <h4 style={styles.title}>Telegram Integration Health</h4>
-          <div style={styles.description}>{loading ? "Reading Telegram status..." : statusText(status)}</div>
-        </div>
-        <button type="button" className="admin-small-btn" disabled={loading || running} onClick={loadStatus}>Refresh</button>
+      <div>
+        <h4 style={styles.title}>Telegram Integration Health</h4>
+        <div style={styles.description}>{loading ? "Reading Telegram status..." : statusText(status)}</div>
       </div>
 
       <div style={styles.statusGrid}>
@@ -113,36 +90,20 @@ export default function TelegramIntegrationHealthCard() {
       </div>
 
       <div style={styles.actions}>
-        <button type="button" className="admin-small-btn" disabled={running} onClick={() => requestAction("test_direct")}>Test Direct</button>
-        <button type="button" className="admin-small-btn" disabled={running || !notificationsEnabled} onClick={() => requestAction("test_queue")}>Test Queue</button>
-        <button type="button" className="admin-small-btn" disabled={running} onClick={() => requestAction("register_webhook")}>Register Webhook</button>
-        <button type="button" className="admin-small-btn" disabled={running || !status?.webhook?.url} onClick={() => requestAction("remove_webhook")}>Remove Webhook</button>
+        <button type="button" className="admin-small-btn" disabled={running} onClick={() => runAction("test_direct")}>Test Direct</button>
+        <button type="button" className="admin-small-btn" disabled={running || !notificationsEnabled} onClick={() => runAction("test_queue")}>Test Queue</button>
+        <button type="button" className="admin-small-btn" disabled={running} onClick={() => runAction("register_webhook")}>Register Webhook</button>
+        <button type="button" className="admin-small-btn" disabled={running || !status?.webhook?.url} onClick={() => runAction("remove_webhook")}>Remove Webhook</button>
       </div>
     </div>
-
-    {pendingAction && <div className={modalStyles.overlay} onClick={closeAction}>
-      <div className={modalStyles.box} style={{ maxWidth: 360, padding: 22 }} onClick={(event) => event.stopPropagation()}>
-        <div style={styles.pinTitle}>Re-auth PIN</div>
-        <div style={styles.pinDescription}>Confirm administrator PIN to run Telegram action.</div>
-        <input className="admin-input" type="password" value={pin} onChange={(event) => setPin(event.target.value)} placeholder="Enter PIN" disabled={running} autoFocus />
-        <div style={styles.pinActions}>
-          <button type="button" className="admin-small-btn" disabled={running} onClick={closeAction}>Cancel</button>
-          <button type="button" className="admin-small-btn" disabled={running || !pin} onClick={confirmAction}><LoadingButtonContent loading={running} loadingText="Processing...">Confirm</LoadingButtonContent></button>
-        </div>
-      </div>
-    </div>}
   </>;
 }
 
 const styles = {
   card: { marginTop: 4, paddingTop: 14, borderTop: "1px solid var(--admin-border)" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, flexWrap: "wrap" },
   title: { margin: "0 0 5px", fontSize: 15 },
   description: { fontSize: 13, color: "var(--admin-muted)", fontWeight: 600, lineHeight: 1.5 },
   statusGrid: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 },
   statusPill: { display: "inline-flex", border: "1px solid", borderRadius: 999, padding: "6px 10px", fontSize: 12, fontWeight: 800 },
   actions: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 },
-  pinTitle: { fontSize: 20, fontWeight: 800, marginBottom: 8 },
-  pinDescription: { fontSize: 13, color: "var(--admin-muted)", marginBottom: 14 },
-  pinActions: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 },
 };
