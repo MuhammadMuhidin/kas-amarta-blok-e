@@ -21,5 +21,9 @@
     "pdfjs-dist": "3.4.120",
     "@simplewebauthn/server": "^13.3.0",
     "@simplewebauthn/browser": "^13.3.0"
+  },
+  "devDependencies": {
+    "@opennextjs/cloudflare": "1.15.0",
+    "wrangler": "4.100.0"
   }
 }
