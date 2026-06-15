@@ -25,29 +25,30 @@ function normalizeTelegramUserId(value) {
   return id;
 }
 
-export async function enrichRoleContactsWithTelegram(rows = []) {
+export async function getRoleTelegramContacts() {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from(ROLE_CONTACTS_TABLE)
-    .select("role,telegram_user_id");
+    .select("role,display_name,name,active,telegram_user_id,updated_at");
 
-  if (error) {
-    if (/telegram_user_id|column/i.test(error.message || "")) {
-      return rows.map((row) => ({ ...row, telegram_user_id: "" }));
-    }
-    throw new Error(error.message || "Failed to read Telegram role contacts");
-  }
+  if (error) throw new Error(error.message || "Failed to read Telegram role contacts");
 
-  const telegramByRole = new Map((data || []).map((item) => [item.role, item.telegram_user_id || ""]));
-  return rows.map((row) => ({
-    ...row,
-    telegram_user_id: telegramByRole.get(row.role) || "",
-  }));
+  const byRole = new Map((data || []).map((item) => [item.role, item]));
+  return ADMIN_ACCESS_ROLES.map((role) => {
+    const contact = byRole.get(role.value) || {};
+    return {
+      role: role.value,
+      label: role.label,
+      display_name: contact.display_name || contact.name || role.label,
+      active: contact.active === true,
+      telegram_user_id: contact.telegram_user_id || "",
+      updated_at: contact.updated_at || "",
+    };
+  });
 }
 
-export async function updateRoleContactChannels({ req, role, phone, telegramUserId }) {
+export async function updateRoleTelegramContact({ req, role, telegramUserId }) {
   const selectedRole = assertRole(role);
-  const cleanPhone = clean(phone);
   const cleanTelegramUserId = normalizeTelegramUserId(telegramUserId);
   const supabase = getSupabaseAdmin();
 
@@ -73,34 +74,33 @@ export async function updateRoleContactChannels({ req, role, phone, telegramUser
 
   if (readError) throw new Error(readError.message || "Failed to read role contact");
 
-  const payload = {
-    phone: cleanPhone,
-    telegram_user_id: cleanTelegramUserId || null,
-  };
-
   if (existing?.length) {
     const { error } = await supabase
       .from(ROLE_CONTACTS_TABLE)
-      .update(payload)
+      .update({ telegram_user_id: cleanTelegramUserId || null })
       .eq("role", selectedRole);
-    if (error) throw new Error(error.message || "Failed to update role contact");
+    if (error) throw new Error(error.message || "Failed to update Telegram User ID");
   } else {
     const { error } = await supabase
       .from(ROLE_CONTACTS_TABLE)
-      .insert({ role: selectedRole, ...payload, active: selectedRole === "admin" });
-    if (error) throw new Error(error.message || "Failed to create role contact");
+      .insert({
+        role: selectedRole,
+        phone: "",
+        telegram_user_id: cleanTelegramUserId || null,
+        active: selectedRole === "admin",
+      });
+    if (error) throw new Error(error.message || "Failed to create Telegram role contact");
   }
 
   await recordAdminActivity(req, {
     type: "update",
     module: "role-management",
     severity: "success",
-    message: `Update role contact channels for ${selectedRole}`,
+    message: `Update Telegram User ID for ${selectedRole}`,
     metadata: {
       access_role: "admin",
       target_role: selectedRole,
       active: existing?.[0]?.active ?? selectedRole === "admin",
-      has_phone: Boolean(cleanPhone),
       has_telegram_user_id: Boolean(cleanTelegramUserId),
     },
   });
