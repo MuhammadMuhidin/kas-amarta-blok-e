@@ -242,7 +242,7 @@ export default function MonitoringTab({ paymentCashflowIntegrity, trashMismatch,
     setWhatsAppEvents([]);
     try {
       const data = await sendJson("/api/waha/test/start", "POST", { phoneNumber, period: getCurrentPeriod() });
-      setWhatsappJobId(data.jobId);
+      setWhatsAppJobId(data.jobId);
       setPhoneModalOpen(false);
       setPhoneNumber("");
     } catch (error) {
