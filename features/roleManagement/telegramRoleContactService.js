@@ -29,7 +29,7 @@ export async function getRoleTelegramContacts() {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from(ROLE_CONTACTS_TABLE)
-    .select("role,display_name,name,active,telegram_user_id,updated_at");
+    .select("*");
 
   if (error) throw new Error(error.message || "Failed to read Telegram role contacts");
 
