@@ -15,32 +15,43 @@ async function sendTelegramEvent(env, event = {}) {
   const telegram = event.telegram || {};
   const text = clean(telegram.text);
   const photo = clean(telegram.photo);
+  const document = clean(telegram.document);
 
   if (!token) throw new Error("TELEGRAM_BOT_TOKEN belum dikonfigurasi");
   if (!chatId) throw new Error("TELEGRAM_CHAT_ID belum dikonfigurasi");
   if (!text) throw new Error("Pesan Telegram kosong");
 
-  const isPhotoMessage = Boolean(photo);
-  const payload = isPhotoMessage
-    ? {
-        chat_id: chatId,
-        photo,
-        caption: text,
-        parse_mode: telegram.parse_mode || "HTML",
-      }
-    : {
-        chat_id: chatId,
-        text,
-        parse_mode: telegram.parse_mode || "HTML",
-        disable_web_page_preview: telegram.disable_web_page_preview !== false,
-      };
+  let method = "sendMessage";
+  let payload = {
+    chat_id: chatId,
+    text,
+    parse_mode: telegram.parse_mode || "HTML",
+    disable_web_page_preview: telegram.disable_web_page_preview !== false,
+  };
+
+  if (photo) {
+    method = "sendPhoto";
+    payload = {
+      chat_id: chatId,
+      photo,
+      caption: text,
+      parse_mode: telegram.parse_mode || "HTML",
+    };
+  } else if (document) {
+    method = "sendDocument";
+    payload = {
+      chat_id: chatId,
+      document,
+      caption: text,
+      parse_mode: telegram.parse_mode || "HTML",
+    };
+  }
 
   if (telegram.reply_markup) payload.reply_markup = telegram.reply_markup;
   if (clean(env.TELEGRAM_MESSAGE_THREAD_ID)) {
     payload.message_thread_id = Number(env.TELEGRAM_MESSAGE_THREAD_ID);
   }
 
-  const method = isPhotoMessage ? "sendPhoto" : "sendMessage";
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
