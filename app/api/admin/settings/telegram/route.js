@@ -2,10 +2,6 @@ import { NextResponse } from "next/server";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdministrator, unauthorized, validateCSRF } from "@/lib/auth";
 import {
-  enforceRateLimit,
-  RATE_LIMIT_SCOPES,
-} from "@/lib/rateLimit";
-import {
   getTelegramWebhookInfo,
   registerTelegramWebhook,
   removeTelegramWebhook,
@@ -56,9 +52,6 @@ export async function POST(req) {
   try {
     if (!(await isAdministrator(req))) return unauthorized();
     if (!validateCSRF(req)) return NextResponse.json({ error: "CSRF tidak valid" }, { status: 403 });
-
-    const settingsLimit = await enforceRateLimit(req, RATE_LIMIT_SCOPES.settingsUpdate, { identity: "session" });
-    if (settingsLimit) return settingsLimit;
 
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || "").trim().toLowerCase();
