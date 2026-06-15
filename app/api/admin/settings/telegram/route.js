@@ -19,11 +19,11 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function integrationStatus() {
-  const [config, authConfig] = await Promise.all([
+  const [config, authConfig, queue] = await Promise.all([
     telegramConfigSummary(),
     getAuthConfigs(),
+    getNotificationQueueRuntimeStatus(),
   ]);
-  const queue = getNotificationQueueRuntimeStatus();
   let webhook = null;
   let webhookError = "";
 
@@ -83,7 +83,7 @@ export async function POST(req) {
           "<b>Uji Telegram Langsung</b>",
           "",
           "<b>Status:</b> Berhasil",
-          "<b>Keterangan:</b> Bot Token, Chat ID, dan koneksi Telegram berhasil digunakan.",
+          "<b>Keterangan:</b> Konfigurasi Telegram berhasil digunakan.",
           `<b>Waktu:</b> ${timestamp}`,
         ].join("\n"),
       });
