@@ -1,13 +1,9 @@
 import { NextResponse } from "next/server";
-import { verifyAdminRolePin } from "@/lib/adminRoleCredentials";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdministrator, unauthorized, validateCSRF } from "@/lib/auth";
 import {
-  clearRateLimit,
-  enforceFailureRateLimit,
   enforceRateLimit,
   RATE_LIMIT_SCOPES,
-  recordRateLimitFailure,
 } from "@/lib/rateLimit";
 import {
   getTelegramWebhookInfo,
@@ -64,18 +60,8 @@ export async function POST(req) {
     const settingsLimit = await enforceRateLimit(req, RATE_LIMIT_SCOPES.settingsUpdate, { identity: "session" });
     if (settingsLimit) return settingsLimit;
 
-    const pinLimit = await enforceFailureRateLimit(req, RATE_LIMIT_SCOPES.settingsPinFailed, { identity: "session" });
-    if (pinLimit) return pinLimit;
-
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || "").trim().toLowerCase();
-
-    if (!(await verifyAdminRolePin("admin", body.pin))) {
-      await recordRateLimitFailure(req, RATE_LIMIT_SCOPES.settingsPinFailed, { identity: "session" });
-      return NextResponse.json({ error: "PIN tidak valid" }, { status: 403 });
-    }
-
-    await clearRateLimit(req, RATE_LIMIT_SCOPES.settingsPinFailed, { identity: "session" });
 
     let result;
     if (action === "register_webhook") {
