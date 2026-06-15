@@ -1,0 +1,5 @@
+#personal-list-panel > div:first-child > button.admin-refresh-btn,
+#cashflow-history-panel > div:first-child > button.admin-refresh-btn,
+#monitoring-overview-panel > div:first-child > button.admin-refresh-btn {
+  display: none !important;
+}
