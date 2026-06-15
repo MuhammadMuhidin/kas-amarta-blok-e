@@ -123,6 +123,51 @@ function useWhatsAppFailureSummary() {
   return { anchorRef, failureMessage };
 }
 
+function useAlertTestButtonAvailability({ whatsappEnabled, emailEnabled, loading }) {
+  const availabilityRef = useRef(null);
+
+  useEffect(() => {
+    const container = availabilityRef.current?.closest(".monitoring-alert-test-card");
+    if (!container) return undefined;
+
+    const apply = () => {
+      const buttons = [...container.querySelectorAll("button")];
+      const whatsappButton = buttons.find((button) => button.textContent?.trim().includes("WhatsApp"));
+      const emailButton = buttons.find((button) => button.textContent?.trim().includes("Email"));
+
+      if (whatsappButton) {
+        const isRunning = whatsappButton.textContent?.includes("Testing");
+        whatsappButton.disabled = loading || whatsappEnabled === false || isRunning;
+        whatsappButton.title = whatsappEnabled === false
+          ? "WhatsApp Services are disabled in Settings."
+          : "";
+      }
+
+      if (emailButton) {
+        const isRunning = emailButton.textContent?.includes("Testing");
+        emailButton.disabled = loading || emailEnabled === false || isRunning;
+        emailButton.title = emailEnabled === false
+          ? "Email Notifications are disabled in Settings."
+          : "";
+      }
+    };
+
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(container, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ["disabled"],
+    });
+
+    return () => observer.disconnect();
+  }, [emailEnabled, loading, whatsappEnabled]);
+
+  return availabilityRef;
+}
+
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -164,7 +209,14 @@ export default function TelegramIntegrationHealthCard() {
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [toast, setToast] = useState(null);
+  const [whatsappEnabled, setWhatsappEnabled] = useState(null);
+  const [emailEnabled, setEmailEnabled] = useState(null);
   const { anchorRef, failureMessage } = useWhatsAppFailureSummary();
+  const availabilityRef = useAlertTestButtonAvailability({
+    whatsappEnabled,
+    emailEnabled,
+    loading,
+  });
 
   useEnglishAlertDisplayCopy();
 
@@ -176,9 +228,19 @@ export default function TelegramIntegrationHealthCard() {
   async function loadStatus() {
     try {
       setLoading(true);
-      setStatus(await readJson(ENDPOINT));
+      const [telegramStatus, authSettings, appSettings] = await Promise.all([
+        readJson(ENDPOINT),
+        readJson("/api/admin/settings/auth"),
+        readJson("/api/admin/settings/app"),
+      ]);
+
+      setStatus(telegramStatus);
+      setWhatsappEnabled(authSettings?.config?.whatsappServicesEnabled !== false);
+      setEmailEnabled(appSettings?.config?.email_notifications_enabled !== false);
     } catch (error) {
       setStatus({ webhook_error: error.message || "Failed to load Telegram status" });
+      setWhatsappEnabled(false);
+      setEmailEnabled(false);
     } finally {
       setLoading(false);
     }
@@ -207,7 +269,9 @@ export default function TelegramIntegrationHealthCard() {
   }, []);
 
   const config = status?.config || {};
-  const notificationsEnabled = status?.auth_config?.telegram_notifications_enabled !== false;
+  const telegramNotificationsEnabled = status?.auth_config?.telegram_notifications_enabled === true;
+  const telegramApprovalActionsEnabled = status?.auth_config?.telegram_approval_actions_enabled === true;
+  const telegramTestsDisabled = !telegramNotificationsEnabled && !telegramApprovalActionsEnabled;
   const queuePushConfigured = Boolean(
     status?.queue?.http_push_url_configured &&
     status?.queue?.http_api_token_configured,
@@ -215,7 +279,10 @@ export default function TelegramIntegrationHealthCard() {
 
   return <>
     <Toast show={!!toast} type={toast?.type} message={toast?.message} />
-    <div ref={anchorRef}>
+    <div ref={(node) => {
+      anchorRef.current = node;
+      availabilityRef.current = node;
+    }}>
       {failureMessage && (
         <div role="alert" style={styles.whatsAppFailure}>
           <strong style={styles.whatsAppFailureTitle}>WhatsApp test failed</strong>
@@ -237,8 +304,24 @@ export default function TelegramIntegrationHealthCard() {
         </div>
 
         <div style={styles.actions}>
-          <button type="button" className="admin-small-btn" disabled={running} onClick={() => runAction("test_direct")}>Test Direct</button>
-          <button type="button" className="admin-small-btn" disabled={running || !notificationsEnabled} onClick={() => runAction("test_queue")}>Test Queue</button>
+          <button
+            type="button"
+            className="admin-small-btn"
+            disabled={loading || running || telegramTestsDisabled}
+            title={telegramTestsDisabled ? "Telegram Notification Alerts and Telegram Approval Actions are both disabled in Settings." : ""}
+            onClick={() => runAction("test_direct")}
+          >
+            Test Direct
+          </button>
+          <button
+            type="button"
+            className="admin-small-btn"
+            disabled={loading || running || telegramTestsDisabled}
+            title={telegramTestsDisabled ? "Telegram Notification Alerts and Telegram Approval Actions are both disabled in Settings." : ""}
+            onClick={() => runAction("test_queue")}
+          >
+            Test Queue
+          </button>
           <button type="button" className="admin-small-btn" disabled={running} onClick={() => runAction("register_webhook")}>Register Webhook</button>
           <button type="button" className="admin-small-btn" disabled={running || !status?.webhook?.url} onClick={() => runAction("remove_webhook")}>Remove Webhook</button>
         </div>
