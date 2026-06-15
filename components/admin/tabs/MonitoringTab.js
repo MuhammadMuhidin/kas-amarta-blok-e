@@ -206,7 +206,7 @@ function WhatsAppInlineStatus({ events }) {
           <button type="button" className="admin-small-btn" style={{ justifySelf: "start" }} onClick={() => navigator.clipboard?.writeText(pairingCode)}>Salin Kode</button>
         </div>
       )}
-      <div style={{ display: "grid", gap: 5 }}>{events.slice(-8).map((event, index) => <div key={`${event.status}-${event.receivedAt || event.timestamp}-${index}`} style={{ color: event.status === "FAILED" ? "#dc2626" : "var(--admin-muted)", fontSize: 12, fontWeight: 700, lineHeight: 1.45 }}><span style={{ color: "var(--admin-text)" }}>{event.status}</span>{event.message ? ` — ${event.message}` : ""}</div>)}</div>
+      <div style={{ display: "grid", gap: 5 }}>{events.slice(-8).map((event, index) => <div key={`${event.status}-${event.receivedAt || event.timestamp}-${index}`} style={{ color: event.status === "FAILED" ? "#dc2626" : "var(--admin-muted)", fontSize: 12, fontWeight: 700, lineHeight: 1.45 }}><span style={{ color: "var(--admin-text)" }}>{event.status}</span></div>)}</div>
     </div>
   );
 }
