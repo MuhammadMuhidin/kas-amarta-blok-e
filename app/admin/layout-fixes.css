@@ -8,11 +8,9 @@
   display: none !important;
 }
 
-.admin-card > div[style*="margin-bottom: 16px"] > button.admin-refresh-btn {
-  display: none !important;
-}
-
-#monitoring-services-panel .admin-status-card > div:last-child > div:first-child > button.admin-small-btn {
+.admin-card:has(> .admin-subtabs[aria-label="Monitoring navigation"])
+  > div:first-child
+  > button.admin-refresh-btn {
   display: none !important;
 }
 
