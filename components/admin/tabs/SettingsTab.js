@@ -67,6 +67,7 @@ export default function AdminSettings() {
   const [pinValue, setPinValue] = useState("");
   const [pendingAction, setPendingAction] = useState(null);
   const [resetKey, setResetKey] = useState(0);
+  const [activePanel, setActivePanel] = useState("general");
 
   async function loadConfig() {
     setLoading(true);
@@ -200,132 +201,159 @@ export default function AdminSettings() {
         </div>
       )}
 
-      <h2 style={styles.title}>Cash Configuration</h2>
-      {loadingConfig && !appConfig ? (
-        <AdminDataSkeleton showSummary={false} rows={3} />
-      ) : (
-        <div style={styles.section}>
-          <ConfigItem
-            label="Monthly Cash Fee"
-            description="Default monthly cash fee used for payments and arrears reports."
-            type="number"
-            value={appConfig?.monthly_fee}
-            resetKey={resetKey}
-            disabled={savingConfig}
-            saving={savingConfig}
-            isMobile={isMobile}
-            onSave={(value) => updateAppSetting("monthly_fee", value)}
-          />
-          <ConfigItem
-            label="Trash Fee"
-            description="Default trash fee paid together with resident cash payments."
-            type="number"
-            value={appConfig?.trash_fee}
-            resetKey={resetKey}
-            disabled={savingConfig}
-            saving={savingConfig}
-            isMobile={isMobile}
-            onSave={(value) => updateAppSetting("trash_fee", value)}
-          />
-          <ConfigItem
-            label="Monitoring Start"
-            description="Initial period for system monitoring validation. Data before this period is ignored."
-            type="month"
-            value={appConfig?.start_monitoring_date}
-            resetKey={resetKey}
-            disabled={savingConfig}
-            saving={savingConfig}
-            isMobile={isMobile}
-            onSave={(value) => updateAppSetting("start_monitoring_date", value)}
-          />
-        </div>
-      )}
-
-      <IntegrationConfigurationCard
-        requestPin={requestPin}
-        showPopup={(text, type) => notify(setPopup, text, type)}
-        onBusyChange={setSavingIntegration}
-        isMobile={isMobile}
-      />
-
-      <h2 style={styles.title}>Appearance Theme</h2>
-      <div style={styles.themeSection}>
-        <div style={styles.themeIntro}>Customize admin dashboard colors and visual style.</div>
-        <div style={styles.themeGrid}>
-          {themes.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => applyTheme(item.id)}
-              style={{
-                ...styles.themeCard,
-                ...(theme === item.id ? styles.themeCardActive : {}),
-              }}
-            >
-              <div style={styles.paletteRow}>
-                {item.colors.map((color) => (
-                  <span key={color} style={{ ...styles.paletteDot, background: color }} />
-                ))}
-              </div>
-              <div style={styles.themeLabel}>{item.label}</div>
-            </button>
-          ))}
-        </div>
+      <div style={subtabs.wrap}>
+        <button
+          type="button"
+          onClick={() => setActivePanel("general")}
+          style={{
+            ...subtabs.button,
+            ...(activePanel === "general" ? subtabs.active : {}),
+          }}
+        >
+          General Settings
+        </button>
+        <button
+          type="button"
+          onClick={() => setActivePanel("integrations")}
+          style={{
+            ...subtabs.button,
+            ...(activePanel === "integrations" ? subtabs.active : {}),
+          }}
+        >
+          Integration Configuration
+        </button>
       </div>
 
-      <h2 style={styles.title}>Settings Auth</h2>
-      <SettingRow
-        title="WebAuth Passkey"
-        description="Require passkey/fingerprint verification after the password."
-        checked={config.webAuthEnabled}
-        disabled={saving}
-        onChange={(value) => updateSetting("WEB_AUTH_ENABLED", value)}
-      />
-      <SettingRow
-        title="PIN Login"
-        description="Require a PIN after the password."
-        checked={config.pinEnabled}
-        disabled={saving}
-        onChange={(value) => updateSetting("PIN_ENABLED", value)}
-      />
-      <SettingRow
-        title="WhatsApp Services"
-        description="Enable all existing WhatsApp delivery mechanisms."
-        checked={config.whatsappServicesEnabled !== false}
-        disabled={saving}
-        onChange={(value) => updateSetting("WA_SERVICES_ENABLED", value)}
-      />
-      <SettingRow
-        title="Telegram Notification Alerts"
-        description="Send operational alerts for resident requests, approval decisions, and payment proof uploads."
-        checked={config.telegramNotificationsEnabled === true}
-        disabled={saving}
-        onChange={(value) => updateSetting("TELEGRAM_NOTIFICATIONS_ENABLED", value)}
-      />
-      <SettingRow
-        title="Telegram Approval Actions"
-        description="Allow authorized Telegram users to approve or reject requests and payment proofs."
-        checked={config.telegramActionsEnabled === true}
-        disabled={saving || !config.telegramNotificationsEnabled}
-        onChange={(value) => updateSetting("TELEGRAM_ACTIONS_ENABLED", value)}
-      />
-      <SelectRow
-        title="Session Duration"
-        description="Admin login session duration before automatic logout."
-        value={String(config.sessionDuration || 86400)}
-        options={durationOptions}
-        disabled={saving}
-        isMobile={isMobile}
-        onChange={(value) => updateSetting("SESSION_DURATION", value)}
-      />
+      {activePanel === "integrations" ? (
+        <IntegrationConfigurationCard
+          requestPin={requestPin}
+          showPopup={(text, type) => notify(setPopup, text, type)}
+          onBusyChange={setSavingIntegration}
+          isMobile={isMobile}
+        />
+      ) : (
+        <>
+          <h2 style={styles.title}>Cash Configuration</h2>
+          {loadingConfig && !appConfig ? (
+            <AdminDataSkeleton showSummary={false} rows={3} />
+          ) : (
+            <div style={styles.section}>
+              <ConfigItem
+                label="Monthly Cash Fee"
+                description="Default monthly cash fee used for payments and arrears reports."
+                type="number"
+                value={appConfig?.monthly_fee}
+                resetKey={resetKey}
+                disabled={savingConfig}
+                saving={savingConfig}
+                isMobile={isMobile}
+                onSave={(value) => updateAppSetting("monthly_fee", value)}
+              />
+              <ConfigItem
+                label="Trash Fee"
+                description="Default trash fee paid together with resident cash payments."
+                type="number"
+                value={appConfig?.trash_fee}
+                resetKey={resetKey}
+                disabled={savingConfig}
+                saving={savingConfig}
+                isMobile={isMobile}
+                onSave={(value) => updateAppSetting("trash_fee", value)}
+              />
+              <ConfigItem
+                label="Monitoring Start"
+                description="Initial period for system monitoring validation. Data before this period is ignored."
+                type="month"
+                value={appConfig?.start_monitoring_date}
+                resetKey={resetKey}
+                disabled={savingConfig}
+                saving={savingConfig}
+                isMobile={isMobile}
+                onSave={(value) => updateAppSetting("start_monitoring_date", value)}
+              />
+            </div>
+          )}
 
-      <MatrixAccessCard
-        requestPin={requestPin}
-        disabled={busy}
-        onSavingChange={setSavingMatrix}
-        showPopup={(text, type) => notify(setPopup, text, type)}
-      />
-      <AdminSessionCard />
+          <h2 style={styles.title}>Appearance Theme</h2>
+          <div style={styles.themeSection}>
+            <div style={styles.themeIntro}>Customize admin dashboard colors and visual style.</div>
+            <div style={styles.themeGrid}>
+              {themes.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => applyTheme(item.id)}
+                  style={{
+                    ...styles.themeCard,
+                    ...(theme === item.id ? styles.themeCardActive : {}),
+                  }}
+                >
+                  <div style={styles.paletteRow}>
+                    {item.colors.map((color) => (
+                      <span key={color} style={{ ...styles.paletteDot, background: color }} />
+                    ))}
+                  </div>
+                  <div style={styles.themeLabel}>{item.label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <h2 style={styles.title}>Settings Auth</h2>
+          <SettingRow
+            title="WebAuth Passkey"
+            description="Require passkey/fingerprint verification after the password."
+            checked={config.webAuthEnabled}
+            disabled={saving}
+            onChange={(value) => updateSetting("WEB_AUTH_ENABLED", value)}
+          />
+          <SettingRow
+            title="PIN Login"
+            description="Require a PIN after the password."
+            checked={config.pinEnabled}
+            disabled={saving}
+            onChange={(value) => updateSetting("PIN_ENABLED", value)}
+          />
+          <SettingRow
+            title="WhatsApp Services"
+            description="Enable all existing WhatsApp delivery mechanisms."
+            checked={config.whatsappServicesEnabled !== false}
+            disabled={saving}
+            onChange={(value) => updateSetting("WA_SERVICES_ENABLED", value)}
+          />
+          <SettingRow
+            title="Telegram Notification Alerts"
+            description="Send operational alerts for resident requests, approval decisions, and payment proof uploads."
+            checked={config.telegramNotificationsEnabled === true}
+            disabled={saving}
+            onChange={(value) => updateSetting("TELEGRAM_NOTIFICATIONS_ENABLED", value)}
+          />
+          <SettingRow
+            title="Telegram Approval Actions"
+            description="Allow authorized Telegram users to approve or reject requests and payment proofs."
+            checked={config.telegramActionsEnabled === true}
+            disabled={saving || !config.telegramNotificationsEnabled}
+            onChange={(value) => updateSetting("TELEGRAM_ACTIONS_ENABLED", value)}
+          />
+          <SelectRow
+            title="Session Duration"
+            description="Admin login session duration before automatic logout."
+            value={String(config.sessionDuration || 86400)}
+            options={durationOptions}
+            disabled={saving}
+            isMobile={isMobile}
+            onChange={(value) => updateSetting("SESSION_DURATION", value)}
+          />
+
+          <MatrixAccessCard
+            requestPin={requestPin}
+            disabled={busy}
+            onSavingChange={setSavingMatrix}
+            showPopup={(text, type) => notify(setPopup, text, type)}
+          />
+          <AdminSessionCard />
+        </>
+      )}
 
       {pinModal && (
         <div className={modalStyles.overlay}>
@@ -370,3 +398,31 @@ export default function AdminSettings() {
     </div>
   );
 }
+
+const subtabs = {
+  wrap: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+    gap: 8,
+    marginBottom: 24,
+    padding: 5,
+    border: "1px solid var(--admin-border)",
+    borderRadius: 14,
+    background: "var(--admin-row)",
+  },
+  button: {
+    minWidth: 0,
+    padding: "11px 12px",
+    border: "none",
+    borderRadius: 10,
+    background: "transparent",
+    color: "var(--admin-muted)",
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  active: {
+    background: "var(--admin-primary)",
+    color: "var(--admin-on-primary)",
+    boxShadow: "0 6px 18px rgba(0,0,0,.15)",
+  },
+};
