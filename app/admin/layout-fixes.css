@@ -16,28 +16,83 @@
   display: none !important;
 }
 
-#overview-cashflow-panel section > div > div {
+#overview-cashflow-panel section > div:not(.admin-empty-state) {
   display: grid !important;
-  grid-template-columns: minmax(72px, auto) minmax(0, 1fr) !important;
-  align-items: start !important;
-  gap: 6px 12px !important;
+  gap: 10px !important;
   min-width: 0;
+}
+
+#overview-cashflow-panel section > div:not(.admin-empty-state) > div {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  grid-template-rows: auto auto auto !important;
+  align-items: start !important;
+  gap: 5px 12px !important;
+  min-width: 0 !important;
   padding: 12px 14px !important;
 }
 
-#overview-cashflow-panel section > div > div > span,
-#overview-cashflow-panel section > div > div > strong {
-  min-width: 0;
-  overflow-wrap: anywhere;
+#overview-cashflow-panel section > div:not(.admin-empty-state) > div > span:nth-child(1) {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  justify-self: start !important;
+  white-space: nowrap !important;
 }
 
-#overview-cashflow-panel section > div > div > strong {
-  white-space: nowrap;
+#overview-cashflow-panel section > div:not(.admin-empty-state) > div > strong {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  justify-self: end !important;
+  white-space: nowrap !important;
+  text-align: right !important;
+}
+
+#overview-cashflow-panel section > div:not(.admin-empty-state) > div > span:nth-child(2) {
+  grid-column: 1 / -1 !important;
+  grid-row: 2 !important;
+  min-width: 0 !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  line-height: 1.45 !important;
+}
+
+#overview-cashflow-panel section > div:not(.admin-empty-state) > div > span:nth-child(4) {
+  grid-column: 1 / -1 !important;
+  grid-row: 3 !important;
+  justify-self: start !important;
+  white-space: nowrap !important;
+  font-size: 11px !important;
 }
 
 @media (min-width: 760px) {
-  #overview-cashflow-panel section > div > div {
+  #overview-cashflow-panel section > div:not(.admin-empty-state) > div {
     grid-template-columns: 92px minmax(0, 1fr) auto 132px !important;
+    grid-template-rows: auto !important;
     align-items: center !important;
+  }
+
+  #overview-cashflow-panel section > div:not(.admin-empty-state) > div > span:nth-child(1),
+  #overview-cashflow-panel section > div:not(.admin-empty-state) > div > span:nth-child(2),
+  #overview-cashflow-panel section > div:not(.admin-empty-state) > div > strong,
+  #overview-cashflow-panel section > div:not(.admin-empty-state) > div > span:nth-child(4) {
+    grid-row: 1 !important;
+  }
+
+  #overview-cashflow-panel section > div:not(.admin-empty-state) > div > span:nth-child(1) {
+    grid-column: 1 !important;
+  }
+
+  #overview-cashflow-panel section > div:not(.admin-empty-state) > div > span:nth-child(2) {
+    grid-column: 2 !important;
+  }
+
+  #overview-cashflow-panel section > div:not(.admin-empty-state) > div > strong {
+    grid-column: 3 !important;
+  }
+
+  #overview-cashflow-panel section > div:not(.admin-empty-state) > div > span:nth-child(4) {
+    grid-column: 4 !important;
+    justify-self: end !important;
+    text-align: right !important;
   }
 }
