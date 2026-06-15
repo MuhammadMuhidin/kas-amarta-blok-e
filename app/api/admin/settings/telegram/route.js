@@ -16,13 +16,17 @@ import {
   sendTelegramMessage,
   telegramConfigSummary,
 } from "@/lib/telegramClient";
-import { queueTelegramTestNotification } from "@/lib/notificationQueue";
+import {
+  getNotificationQueueRuntimeStatus,
+  queueTelegramTestNotification,
+} from "@/lib/notificationQueue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function integrationStatus() {
   const config = telegramConfigSummary();
+  const queue = getNotificationQueueRuntimeStatus();
   let webhook = null;
   let webhookError = "";
 
@@ -40,7 +44,7 @@ async function integrationStatus() {
     }
   }
 
-  return { ok: true, config, webhook, webhook_error: webhookError };
+  return { ok: true, config, queue, webhook, webhook_error: webhookError };
 }
 
 export async function GET(req) {
@@ -99,7 +103,7 @@ export async function POST(req) {
       module: "settings-telegram",
       severity: "success",
       message: `Telegram integration action ${action}`,
-      metadata: { action },
+      metadata: { action, queue_provider: result?.provider || "" },
     });
 
     return NextResponse.json({ ok: true, result, status: await integrationStatus() });
