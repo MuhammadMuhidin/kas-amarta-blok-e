@@ -1,15 +1,17 @@
 import { NextResponse } from "next/server";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
+import { getIntegrationConfigString } from "@/lib/integrationConfig";
 import { openWaMessageStream } from "@/lib/waClient";
 import { isWhatsAppServicesEnabled } from "@/lib/webauth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function getTestChatId() {
+async function getTestChatId() {
+  const configuredChatId = await getIntegrationConfigString("WA_ALERT_CHAT_ID");
   return String(
     process.env.WA_TEST_CHAT_ID
-      || process.env.WA_ALERT_CHAT_ID
+      || configuredChatId
       || process.env.WA_ERROR_CHAT_ID
       || "",
   ).trim();
@@ -176,7 +178,7 @@ export async function POST(req) {
     const body = await req.json().catch(() => ({}));
     const phoneNumber = normalizePhoneNumber(body.phoneNumber);
     const period = String(body.period || "-").trim();
-    const chatId = getTestChatId();
+    const chatId = await getTestChatId();
 
     if (!/^62\d{8,13}$/.test(phoneNumber)) {
       return NextResponse.json(
