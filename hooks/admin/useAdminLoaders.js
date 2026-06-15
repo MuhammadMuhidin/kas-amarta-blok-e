@@ -73,7 +73,7 @@ export default function useAdminLoaders({ setPayment }) {
     if (nextTab === "overview") return refreshMonitoring(options);
     if (nextTab === "personal") return loadPersonal();
     if (nextTab === "payment") {
-      return Promise.all([loadAppConfig(), loadPersonal(), loadPayment(), loadDeposit()]);
+      return Promise.all([loadAppConfig(), loadPersonal(), loadPayment()]);
     }
     if (nextTab === "deposit") {
       return Promise.all([
@@ -85,7 +85,7 @@ export default function useAdminLoaders({ setPayment }) {
         loadCashflow(),
       ]);
     }
-    if (nextTab === "cashflow") return loadCashflow();
+    if (nextTab === "cashflow") return undefined;
     if (nextTab === "monitoring") return refreshMonitoring(options);
     if (nextTab === "settings") return loadAppConfig();
   }
