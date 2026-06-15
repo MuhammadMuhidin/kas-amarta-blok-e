@@ -3,3 +3,7 @@
 #monitoring-overview-panel > div:first-child > button.admin-refresh-btn {
   display: none !important;
 }
+
+.booking-ready-pay-summary ~ div > button.admin-small-btn.admin-refresh-btn {
+  display: none !important;
+}
