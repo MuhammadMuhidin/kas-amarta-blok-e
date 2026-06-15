@@ -2,7 +2,7 @@
 
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const ENDPOINT = "/api/admin/settings/telegram";
 
@@ -86,6 +86,43 @@ function useEnglishAlertDisplayCopy() {
   }, []);
 }
 
+function getWhatsAppFailureMessage(container) {
+  const text = String(container?.textContent || "");
+  if (!text.includes("WhatsApp: FAILED")) return "";
+
+  if (text.includes("PAIRING_CODE")) {
+    return "Pairing was not completed or the session disconnected before the test message was sent. Complete pairing, then run the test again.";
+  }
+
+  if (text.includes("AUTH_RESTORED")) {
+    return "The saved WhatsApp session is logged out or unavailable. Run the test again to start pairing. If no pairing code appears, contact the administrator.";
+  }
+
+  return "The WhatsApp test failed. Run the test again. If the problem continues, contact the administrator.";
+}
+
+function useWhatsAppFailureSummary() {
+  const anchorRef = useRef(null);
+  const [failureMessage, setFailureMessage] = useState("");
+
+  useEffect(() => {
+    const container = anchorRef.current?.closest(".monitoring-alert-test-card");
+    if (!container) return undefined;
+
+    const update = () => {
+      setFailureMessage(getWhatsAppFailureMessage(container));
+    };
+
+    update();
+    const observer = new MutationObserver(update);
+    observer.observe(container, { childList: true, subtree: true, characterData: true });
+
+    return () => observer.disconnect();
+  }, []);
+
+  return { anchorRef, failureMessage };
+}
+
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -127,6 +164,7 @@ export default function TelegramIntegrationHealthCard() {
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [toast, setToast] = useState(null);
+  const { anchorRef, failureMessage } = useWhatsAppFailureSummary();
 
   useEnglishAlertDisplayCopy();
 
@@ -177,32 +215,43 @@ export default function TelegramIntegrationHealthCard() {
 
   return <>
     <Toast show={!!toast} type={toast?.type} message={toast?.message} />
-    <div style={styles.card}>
-      <div>
-        <h4 style={styles.title}>Telegram Integration Health</h4>
-        <div style={styles.description}>{loading ? "Reading Telegram status..." : statusText(status)}</div>
-      </div>
+    <div ref={anchorRef}>
+      {failureMessage && (
+        <div role="alert" style={styles.whatsAppFailure}>
+          <strong style={styles.whatsAppFailureTitle}>WhatsApp test failed</strong>
+          <div style={styles.whatsAppFailureText}>{failureMessage}</div>
+        </div>
+      )}
+      <div style={styles.card}>
+        <div>
+          <h4 style={styles.title}>Telegram Integration Health</h4>
+          <div style={styles.description}>{loading ? "Reading Telegram status..." : statusText(status)}</div>
+        </div>
 
-      <div style={styles.statusGrid}>
-        <Pill label="Bot Token" ready={config.bot_token_configured} />
-        <Pill label="Chat ID" ready={config.chat_id_configured} />
-        <Pill label="Webhook Secret" ready={config.webhook_secret_configured} />
-        <Pill label={`Authorized Users: ${config.authorized_user_count || 0}`} ready={Number(config.authorized_user_count || 0) > 0} />
-        <Pill label="Queue Push" ready={queuePushConfigured} />
-      </div>
+        <div style={styles.statusGrid}>
+          <Pill label="Bot Token" ready={config.bot_token_configured} />
+          <Pill label="Chat ID" ready={config.chat_id_configured} />
+          <Pill label="Webhook Secret" ready={config.webhook_secret_configured} />
+          <Pill label={`Authorized Users: ${config.authorized_user_count || 0}`} ready={Number(config.authorized_user_count || 0) > 0} />
+          <Pill label="Queue Push" ready={queuePushConfigured} />
+        </div>
 
-      <div style={styles.actions}>
-        <button type="button" className="admin-small-btn" disabled={running} onClick={() => runAction("test_direct")}>Test Direct</button>
-        <button type="button" className="admin-small-btn" disabled={running || !notificationsEnabled} onClick={() => runAction("test_queue")}>Test Queue</button>
-        <button type="button" className="admin-small-btn" disabled={running} onClick={() => runAction("register_webhook")}>Register Webhook</button>
-        <button type="button" className="admin-small-btn" disabled={running || !status?.webhook?.url} onClick={() => runAction("remove_webhook")}>Remove Webhook</button>
+        <div style={styles.actions}>
+          <button type="button" className="admin-small-btn" disabled={running} onClick={() => runAction("test_direct")}>Test Direct</button>
+          <button type="button" className="admin-small-btn" disabled={running || !notificationsEnabled} onClick={() => runAction("test_queue")}>Test Queue</button>
+          <button type="button" className="admin-small-btn" disabled={running} onClick={() => runAction("register_webhook")}>Register Webhook</button>
+          <button type="button" className="admin-small-btn" disabled={running || !status?.webhook?.url} onClick={() => runAction("remove_webhook")}>Remove Webhook</button>
+        </div>
       </div>
     </div>
   </>;
 }
 
 const styles = {
-  card: { marginTop: 4, paddingTop: 14, borderTop: "1px solid var(--admin-border)" },
+  whatsAppFailure: { marginTop: 2, padding: 12, border: "1px solid rgba(220,38,38,.35)", borderRadius: 12, background: "rgba(220,38,38,.07)", display: "grid", gap: 5 },
+  whatsAppFailureTitle: { color: "#dc2626", fontSize: 13 },
+  whatsAppFailureText: { color: "var(--admin-text)", fontSize: 12, fontWeight: 700, lineHeight: 1.55 },
+  card: { marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--admin-border)" },
   title: { margin: "0 0 5px", fontSize: 15 },
   description: { fontSize: 13, color: "var(--admin-muted)", fontWeight: 600, lineHeight: 1.5 },
   statusGrid: { display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 },
