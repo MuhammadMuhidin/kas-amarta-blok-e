@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import MonitoringCard from "@/components/admin/MonitoringCard";
 import TelegramIntegrationHealthCard from "@/components/admin/TelegramIntegrationHealthCard";
-import { sendJson } from "@/components/admin/adminClientApi";
+import { getCookieValue, sendJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod } from "@/lib/depositUtils";
 import { formatJakartaDateTimeLong } from "@/lib/localDate";
 
@@ -120,19 +120,78 @@ function PhoneNumberModal({ open, value, loading, onChange, onCancel, onConfirm 
   return (
     <div role="presentation" onMouseDown={(event) => event.target === event.currentTarget && !loading && onCancel()} style={{ position: "fixed", inset: 0, zIndex: 1000, display: "grid", placeItems: "center", padding: 18, background: "rgba(15,23,42,.58)" }}>
       <form onSubmit={(event) => { event.preventDefault(); onConfirm(); }} style={{ width: "min(100%,430px)", borderRadius: 18, border: "1px solid var(--admin-border)", background: "var(--admin-card)", padding: 20, boxShadow: "0 22px 60px rgba(15,23,42,.3)", display: "grid", gap: 14 }}>
-        <div><h3 style={{ margin: "0 0 6px" }}>Konfirmasi Nomor WhatsApp</h3><div style={{ color: "var(--admin-muted)", fontSize: 13, lineHeight: 1.55 }}>Nomor hanya digunakan sementara untuk membuat pairing code ketika session Baileys keluar. Nomor tidak disimpan oleh aplikasi.</div></div>
+        <div><h3 style={{ margin: "0 0 6px" }}>Konfirmasi Nomor WhatsApp</h3><div style={{ color: "var(--admin-muted)", fontSize: 13, lineHeight: 1.55 }}>Nomor hanya digunakan sementara oleh external API untuk membuat pairing code ketika session keluar. Nomor tidak disimpan oleh aplikasi.</div></div>
         <label style={{ display: "grid", gap: 7, fontSize: 13, fontWeight: 800 }}>Nomor WhatsApp<input autoFocus inputMode="tel" autoComplete="tel" placeholder="Contoh: 628123456789" value={value} onChange={(event) => onChange(event.target.value)} disabled={loading} style={{ width: "100%", boxSizing: "border-box", border: "1px solid var(--admin-border)", borderRadius: 12, padding: "12px 13px", background: "var(--admin-row)", color: "var(--admin-text)", fontSize: 15 }} /></label>
-        <div style={{ color: "var(--admin-muted)", fontSize: 12, lineHeight: 1.45 }}>Boleh diawali 08, +62, atau 62. Sistem akan menormalkan nomor sebelum dikirim ke Baileys.</div>
+        <div style={{ color: "var(--admin-muted)", fontSize: 12, lineHeight: 1.45 }}>Boleh diawali 08, +62, atau 62. Sistem akan menormalkan nomor sebelum dikirim ke external API.</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}><button type="button" className="admin-small-btn" disabled={loading} onClick={onCancel}>Batal</button><button type="submit" className="admin-small-btn admin-refresh-btn" disabled={loading || !value.trim()}>{loading ? "Memulai..." : "Mulai Test"}</button></div>
       </form>
     </div>
   );
 }
 
+function normalizeWhatsAppEvent(raw, sessionId = "") {
+  const source = raw?.event && typeof raw.event === "object" ? raw.event : raw;
+  const status = String(source?.status || source?.type || "INFO").trim().toUpperCase();
+  return {
+    ...source,
+    status,
+    sessionId: source?.sessionId || source?.session_id || sessionId,
+    code: source?.code || source?.pairingCode || source?.pairing_code || source?.data?.code || "",
+    message: source?.message || source?.error || "",
+    receivedAt: new Date().toISOString(),
+  };
+}
+
+function parseSseBlock(block, sessionId) {
+  const data = block
+    .split(/\r?\n/)
+    .filter((line) => line.trim().startsWith("data:"))
+    .map((line) => line.trim().slice(5).trim())
+    .join("\n");
+  const payload = data || block.trim();
+  if (!payload || payload.startsWith(":")) return null;
+  try {
+    return normalizeWhatsAppEvent(JSON.parse(payload), sessionId);
+  } catch {
+    return null;
+  }
+}
+
+async function readWhatsAppEventStream(response, onEvent) {
+  if (!response.body) throw new Error("External API tidak mengembalikan response stream.");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const sessionId = response.headers.get("x-wa-session-id") || "";
+  let buffer = "";
+  let count = 0;
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const blocks = buffer.split(/\r?\n\r?\n/);
+    buffer = blocks.pop() || "";
+    for (const block of blocks) {
+      const event = parseSseBlock(block, sessionId);
+      if (event) {
+        count += 1;
+        onEvent(event);
+      }
+    }
+    if (done) break;
+  }
+
+  const finalEvent = parseSseBlock(buffer, sessionId);
+  if (finalEvent) {
+    count += 1;
+    onEvent(finalEvent);
+  }
+  return count;
+}
+
 function WhatsAppInlineStatus({ events }) {
   if (!events.length) return null;
   const latest = events.at(-1) || {};
-  const pairingCode = [...events].reverse().find((event) => event.status === "PAIRING_CODE")?.code || "";
+  const pairingCode = [...events].reverse().find((event) => event.status === "PAIRING_CODE" && event.code)?.code || "";
   const terminalError = latest.status === "FAILED";
   const terminalSuccess = latest.status === "SENT";
   const color = terminalError ? "#dc2626" : terminalSuccess ? "#16a34a" : pairingCode ? "#d97706" : "#2563eb";
@@ -156,7 +215,7 @@ function AlertTestCard({ testingWhatsApp, testingEmail, whatsappEvents, emailRes
   const emailColor = emailResult?.type === "error" ? "#dc2626" : emailResult?.type === "success" ? "#16a34a" : "var(--admin-muted)";
   return (
     <div className={testingWhatsApp || testingEmail ? "monitoring-alert-test-card monitoring-alert-test-card-loading" : "monitoring-alert-test-card"} style={{ marginBottom: 20, padding: 16, borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)", display: "grid", gap: 12 }}>
-      <div><h3 style={{ margin: "0 0 4px" }}>Alert Channel Test</h3><div style={{ fontSize: 13, color: "var(--admin-muted)", fontWeight: 600, lineHeight: 1.5 }}>Uji WhatsApp dan email secara terpisah. Status pairing WhatsApp akan tampil langsung di bawah ini.</div></div>
+      <div><h3 style={{ margin: "0 0 4px" }}>Alert Channel Test</h3><div style={{ fontSize: 13, color: "var(--admin-muted)", fontWeight: 600, lineHeight: 1.5 }}>Uji WhatsApp melalui external API dan email secara terpisah. Event streaming serta pairing code WhatsApp tampil langsung di bawah ini.</div></div>
       <WhatsAppInlineStatus events={whatsappEvents}/>
       {emailResult?.message && <div style={{ border: `1px solid ${emailColor}45`, background: `${emailColor}0d`, borderRadius: 12, padding: 12, color: emailColor, fontSize: 12, fontWeight: 800, lineHeight: 1.5 }}>{emailResult.message}</div>}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2,minmax(0,1fr))", gap: 10 }}>
@@ -205,7 +264,6 @@ export default function MonitoringTab({ paymentCashflowIntegrity, trashMismatch,
   const [testingEmail, setTestingEmail] = useState(false);
   const [phoneModalOpen, setPhoneModalOpen] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [whatsappJobId, setWhatsAppJobId] = useState("");
   const [whatsappEvents, setWhatsAppEvents] = useState([]);
   const [emailResult, setEmailResult] = useState(null);
   const [rows, setRows] = useState({ personal: [], cashflows: [], deposits: [], payments: [], trashRecords: [] });
@@ -239,14 +297,34 @@ export default function MonitoringTab({ paymentCashflowIntegrity, trashMismatch,
   async function handleStartWhatsAppTest() {
     if (testingWhatsApp) return;
     setTestingWhatsApp(true);
-    setWhatsAppEvents([]);
+    setWhatsAppEvents([{ status: "CONNECTING", message: "Menghubungi external WhatsApp API...", receivedAt: new Date().toISOString() }]);
     try {
-      const data = await sendJson("/api/waha/test/start", "POST", { phoneNumber, period: getCurrentPeriod() });
-      setWhatsAppJobId(data.jobId);
+      const response = await fetch("/api/waha/test/whatsapp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCookieValue("csrf_token"),
+        },
+        body: JSON.stringify({ phoneNumber, period: getCurrentPeriod() }),
+      });
+
+      if (!response.ok) {
+        const raw = await response.text();
+        let message = raw;
+        try { message = JSON.parse(raw)?.error || raw; } catch {}
+        throw new Error(message || "Gagal memulai test WhatsApp");
+      }
+
       setPhoneModalOpen(false);
       setPhoneNumber("");
+      let received = 0;
+      received = await readWhatsAppEventStream(response, (event) => {
+        setWhatsAppEvents((previous) => [...previous, event].slice(-40));
+      });
+      if (!received) throw new Error("External API tidak mengembalikan event WhatsApp.");
     } catch (error) {
-      setWhatsAppEvents([{ status: "FAILED", message: error.message || "Gagal memulai test WhatsApp", receivedAt: new Date().toISOString() }]);
+      setWhatsAppEvents((previous) => [...previous, { status: "FAILED", message: error.message || "Gagal menjalankan test WhatsApp", receivedAt: new Date().toISOString() }].slice(-40));
+    } finally {
       setTestingWhatsApp(false);
     }
   }
@@ -265,35 +343,6 @@ export default function MonitoringTab({ paymentCashflowIntegrity, trashMismatch,
       setEmailResult({ type: "error", message: error.message || "Gagal mengirim email test" });
     } finally { setTestingEmail(false); }
   }
-
-  useEffect(() => {
-    if (!whatsappJobId) return undefined;
-    let active = true;
-    let timer;
-    async function poll() {
-      try {
-        const response = await fetch(`/api/waha/test/status?jobId=${encodeURIComponent(whatsappJobId)}`, { cache: "no-store" });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data?.error || "Gagal membaca status WhatsApp");
-        if (!active) return;
-        const events = Array.isArray(data.events) ? data.events : [];
-        setWhatsAppEvents(events);
-        const latestStatus = events.at(-1)?.status;
-        if (["SENT", "FAILED"].includes(latestStatus)) {
-          setTestingWhatsApp(false);
-          clearInterval(timer);
-        }
-      } catch (error) {
-        if (!active) return;
-        setWhatsAppEvents((previous) => [...previous, { status: "FAILED", message: error.message || "Gagal membaca status WhatsApp", receivedAt: new Date().toISOString() }]);
-        setTestingWhatsApp(false);
-        clearInterval(timer);
-      }
-    }
-    poll();
-    timer = setInterval(poll, 2000);
-    return () => { active = false; clearInterval(timer); };
-  }, [whatsappJobId]);
 
   useEffect(() => {
     let active = true;
