@@ -39,6 +39,10 @@ function FieldInput({ field, value, disabled, onChange }) {
   }
 
   if (field.type === "select") {
+    const options = field.options.includes(value)
+      ? field.options
+      : [value, ...field.options].filter(Boolean);
+
     return (
       <select
         className="admin-input"
@@ -47,7 +51,8 @@ function FieldInput({ field, value, disabled, onChange }) {
         onChange={(event) => onChange(event.target.value)}
         style={ui.input}
       >
-        {field.options.map((option) => (
+        <option value="" disabled>Select a platform</option>
+        {options.map((option) => (
           <option key={option} value={option}>{option}</option>
         ))}
       </select>
@@ -158,7 +163,7 @@ export default function IntegrationConfigurationCard({
 
   return (
     <section style={ui.section}>
-      <div style={ui.header}>
+      <div style={{ ...ui.header, ...(isMobile ? ui.headerMobile : {}) }}>
         <div>
           <h2 style={ui.title}>Integration Configuration</h2>
           <p style={ui.intro}>
@@ -170,7 +175,11 @@ export default function IntegrationConfigurationCard({
           type="button"
           onClick={load}
           disabled={loading || Boolean(savingKey)}
-          style={{ ...ui.refresh, opacity: loading || savingKey ? 0.6 : 1 }}
+          style={{
+            ...ui.refresh,
+            ...(isMobile ? ui.refreshMobile : {}),
+            opacity: loading || savingKey ? 0.6 : 1,
+          }}
         >
           {loading ? "Loading..." : "Refresh"}
         </button>
@@ -184,7 +193,7 @@ export default function IntegrationConfigurationCard({
           if (!groupFields.length) return null;
           return (
             <div key={group} style={ui.group}>
-              <div style={ui.groupHeader}>
+              <div style={{ ...ui.groupHeader, ...(isMobile ? ui.groupHeaderMobile : {}) }}>
                 <h3 style={ui.groupTitle}>{group}</h3>
                 <span style={ui.groupHint}>Verify changes from Monitoring after saving.</span>
               </div>
@@ -225,7 +234,7 @@ export default function IntegrationConfigurationCard({
                         disabled={busy}
                         onChange={(value) => setValues((current) => ({ ...current, [field.key]: value }))}
                       />
-                      <div style={ui.buttons}>
+                      <div style={{ ...ui.buttons, ...(isMobile ? ui.buttonsMobile : {}) }}>
                         <button
                           type="button"
                           disabled={saveDisabled}
@@ -272,6 +281,10 @@ const ui = {
     gap: 14,
     marginBottom: 14,
   },
+  headerMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
   title: { margin: 0, fontSize: 20 },
   intro: {
     margin: "7px 0 0",
@@ -290,6 +303,7 @@ const ui = {
     fontWeight: 800,
     cursor: "pointer",
   },
+  refreshMobile: { width: "100%" },
   loading: {
     padding: 18,
     border: "1px solid var(--admin-border)",
@@ -312,6 +326,10 @@ const ui = {
     padding: "13px 15px",
     borderBottom: "1px solid var(--admin-border)",
     background: "var(--admin-card)",
+  },
+  groupHeaderMobile: {
+    alignItems: "flex-start",
+    flexDirection: "column",
   },
   groupTitle: { margin: 0, fontSize: 15 },
   groupHint: { color: "var(--admin-muted)", fontSize: 11 },
@@ -372,6 +390,9 @@ const ui = {
     gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)",
     gap: 8,
     marginTop: 9,
+  },
+  buttonsMobile: {
+    gridTemplateColumns: "minmax(0,1fr)",
   },
   save: {
     minWidth: 0,
