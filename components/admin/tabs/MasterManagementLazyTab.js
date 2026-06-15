@@ -1,20 +1,9 @@
 "use client";
 
 import AdminSubtabs from "@/components/admin/AdminSubtabs";
+import MasterOverviewData from "@/components/admin/master/MasterOverviewData";
 import MasterManagementTab from "@/components/admin/tabs/MasterManagementTab";
 import { useState } from "react";
-
-function OverviewNotice() {
-  return (
-    <div id="master-overview-panel" role="tabpanel" className="admin-card">
-      <h3 style={{ marginTop: 0 }}>Lifecycle Overview</h3>
-      <p style={{ color: "var(--admin-muted)", lineHeight: 1.6 }}>
-        Open Master Builder to review active, draft, archived, and versioned request configurations.
-        The builder is unmounted while this overview is active.
-      </p>
-    </div>
-  );
-}
 
 export default function MasterManagementLazyTab() {
   const [panel, setPanel] = useState("builder");
@@ -35,7 +24,7 @@ export default function MasterManagementLazyTab() {
           <MasterManagementTab />
         </div>
       )}
-      {panel === "overview" && <OverviewNotice />}
+      {panel === "overview" && <MasterOverviewData />}
     </>
   );
 }
