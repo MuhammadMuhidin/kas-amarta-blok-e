@@ -53,16 +53,6 @@ on:
         required: false
         default: ""
         type: string
-      callbackUrl:
-        description: "Temporary callback URL for test status"
-        required: false
-        default: ""
-        type: string
-      callbackToken:
-        description: "Temporary callback bearer token"
-        required: false
-        default: ""
-        type: string
 
 concurrency:
   group: send-wa-${{ inputs.sessionId }}
@@ -100,12 +90,5 @@ jobs:
           WA_MESSAGE_TEXT: ${{ inputs.message }}
           WA_PERIOD: ${{ inputs.period }}
           WA_SOURCE: ${{ inputs.source }}
-          WA_CALLBACK_URL: ${{ inputs.callbackUrl }}
-          WA_CALLBACK_TOKEN: ${{ inputs.callbackToken }}
           WA_CONNECT_TIMEOUT_MS: 180000
-        run: |
-          if [ -n "$WA_CALLBACK_URL" ]; then
-            node scripts/wa-sender/send-wa-test.mjs
-          else
-            node scripts/wa-sender/send-wa-once.mjs
-          fi
+        run: node scripts/wa-sender/send-wa-once.mjs
