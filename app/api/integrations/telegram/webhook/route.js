@@ -223,14 +223,6 @@ async function handleCallback(req, callback) {
       : await approvePaymentProof({ supabase, req, id, actor: actor.displayName, actorRole: actor.role, source: "telegram", actorMetadata });
     if (result.status >= 400) throw new Error(result.body?.error || "Gagal memproses bukti pembayaran");
 
-    await recordSystemActivity({
-      type: command === "prc" ? "reject" : "approve",
-      module: "telegram-payment-proof",
-      severity: command === "prc" ? "warning" : "success",
-      actor: actor.displayName,
-      message: `${command === "prc" ? "Reject" : "Approve"} payment proof ${result.body.proof?.person_house || id} via Telegram`,
-      metadata: { source: "telegram", role: actor.role, telegram_user_id: actor.telegramUserId, telegram_username: actor.username, proof_id: id, reason },
-    });
     await queuePaymentProofDecisionNotification({ proof: result.body.proof, action: command === "prc" ? "reject" : "approve", actorName: actor.displayName, actorRole: actor.role, reason, source: "telegram" });
     await editSuccess(message, `Bukti pembayaran ${result.body.proof?.status === "rejected" ? "ditolak" : "disetujui"} oleh ${actor.displayName} (${actor.role}).`);
     return;
