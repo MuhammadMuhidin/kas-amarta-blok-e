@@ -1,5 +1,6 @@
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 import { recordAdminActivity } from "@/lib/adminActivity";
+import { getIntegrationConfigString } from "@/lib/integrationConfig";
 import { enforceRateLimit, RATE_LIMIT_SCOPES } from "@/lib/rateLimit";
 import { sendWaMessage } from "@/lib/waClient";
 
@@ -43,8 +44,12 @@ export async function POST(req) {
     const body = await req.json().catch(() => ({}));
     const text = normalize(body.message) || DEFAULT_PAYMENT_REMINDER_MESSAGE;
     const period = normalize(body.period) || getCurrentPeriod();
-    const chatId = normalize(body.chatId || process.env.WA_REPORT_CHAT_ID || process.env.WA_CHAT_ID);
-    const sessionId = normalize(process.env.WA_SESSION_ID) || "main";
+    const [configuredChatId, configuredSessionId] = await Promise.all([
+      getIntegrationConfigString("WA_REPORT_CHAT_ID"),
+      getIntegrationConfigString("WA_SESSION_ID", "main"),
+    ]);
+    const chatId = normalize(body.chatId || configuredChatId || process.env.WA_CHAT_ID);
+    const sessionId = normalize(configuredSessionId) || "main";
 
     if (body.preview === true) {
       return Response.json({
