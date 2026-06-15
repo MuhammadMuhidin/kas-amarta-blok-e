@@ -10,13 +10,13 @@ function money(value) {
 }
 
 function formatDateTime(value) {
-  return formatJakartaDateTime(value, "id-ID");
+  return formatJakartaDateTime(value, "en-US");
 }
 
 function formatPeriod(period) {
   if (!period || !/^\d{4}-\d{2}$/.test(String(period).slice(0, 7))) return period || "-";
 
-  return new Date(`${String(period).slice(0, 7)}-01T00:00:00+07:00`).toLocaleDateString("id-ID", {
+  return new Date(`${String(period).slice(0, 7)}-01T00:00:00+07:00`).toLocaleDateString("en-US", {
     timeZone: JAKARTA_TIME_ZONE,
     month: "long",
     year: "numeric",
@@ -52,16 +52,16 @@ function ProofAmountBreakdown({ proof }) {
   return (
     <div style={styles.breakdownCard}>
       <div style={styles.breakdownHeader}>
-        <span>Nominal untuk dicocokkan</span>
+        <span>Amount to verify</span>
         <strong>{money(totalAmount)}</strong>
       </div>
       <div style={styles.breakdownRows}>
         <div style={styles.breakdownRow}>
-          <span>Kas</span>
+          <span>Cash fee</span>
           <strong>{money(cashAmount)}</strong>
         </div>
         <div style={styles.breakdownRow}>
-          <span>Sampah</span>
+          <span>Trash fee</span>
           <strong>{trashAmount > 0 ? money(trashAmount) : "-"}</strong>
         </div>
       </div>
@@ -70,14 +70,14 @@ function ProofAmountBreakdown({ proof }) {
 }
 
 function ProofPreview({ proof }) {
-  if (!proof?.proof_url) return <div className="admin-empty-state">Bukti pembayaran tidak tersedia.</div>;
+  if (!proof?.proof_url) return <div className="admin-empty-state">Payment proof is unavailable.</div>;
 
   if (isImageProof(proof)) {
     return (
       <div style={styles.previewFrame}>
         <img
           src={proof.proof_url}
-          alt={`Bukti pembayaran ${proof.person_house}`}
+          alt={`Payment proof for ${proof.person_house}`}
           style={styles.previewImage}
         />
       </div>
@@ -86,7 +86,7 @@ function ProofPreview({ proof }) {
 
   return (
     <a className="admin-small-btn" href={proof.proof_url} target="_blank" rel="noreferrer">
-      Buka Bukti PDF
+      Open PDF Proof
     </a>
   );
 }
@@ -102,7 +102,7 @@ function ProofDetailModal({ proof, onClose }) {
         <div className="modal-header">
           <div style={styles.modalHeaderTop}>
             <div style={styles.modalTitleGroup}>
-              <div className="modal-title">Bukti Pembayaran {proof.person_house}</div>
+              <div className="modal-title">Payment Proof — {proof.person_house}</div>
               <div className="modal-section">{formatPeriod(proof.period)} • {proof.person_name || "-"}</div>
             </div>
             <button type="button" className="activity-modal-close" style={styles.modalCloseButton} onClick={onClose} aria-label="Close modal">×</button>
@@ -126,7 +126,7 @@ function ProofRejectModal({ proof, reason, processing, onReasonChange, onCancel,
         <div className="modal-header">
           <div style={styles.modalHeaderTop}>
             <div style={styles.modalTitleGroup}>
-              <div className="modal-title">Reject Bukti Pembayaran</div>
+              <div className="modal-title">Reject Payment Proof</div>
               <div className="modal-section">{proof.person_house} • {formatPeriod(proof.period)}</div>
             </div>
           </div>
@@ -134,7 +134,7 @@ function ProofRejectModal({ proof, reason, processing, onReasonChange, onCancel,
         <textarea
           className="admin-input"
           rows={4}
-          placeholder="Alasan penolakan wajib diisi"
+          placeholder="A rejection reason is required"
           value={reason}
           onChange={(event) => onReasonChange(event.target.value)}
         />
@@ -146,8 +146,8 @@ function ProofRejectModal({ proof, reason, processing, onReasonChange, onCancel,
             disabled={processing || !reason.trim()}
             onClick={onSubmit}
           >
-            <LoadingButtonContent loading={processing} loadingText="Reject...">
-              Reject Bukti
+            <LoadingButtonContent loading={processing} loadingText="Rejecting...">
+              Reject Proof
             </LoadingButtonContent>
           </button>
         </div>
@@ -173,7 +173,7 @@ export default function PaymentProofReviewCard({ onReviewed, onToast }) {
       const data = await readJson("/api/admin/payment-proofs?status=pending");
       setProofs(Array.isArray(data?.proofs) ? data.proofs : []);
     } catch (err) {
-      setError(err.message || "Gagal memuat bukti pembayaran");
+      setError(err.message || "Failed to load payment proofs");
       setProofs([]);
     } finally {
       setLoading(false);
@@ -197,10 +197,10 @@ export default function PaymentProofReviewCard({ onReviewed, onToast }) {
       setRejectReason("");
       await loadProofs();
       await onReviewed?.();
-      const actionLabel = action === "approve" ? "disetujui" : "ditolak";
-      onToast?.("success", `Bukti pembayaran ${proof.person_house} ${formatPeriod(proof.period)} berhasil ${actionLabel}.`);
+      const actionLabel = action === "approve" ? "approved" : "rejected";
+      onToast?.("success", `Payment proof for ${proof.person_house}, ${formatPeriod(proof.period)}, was ${actionLabel}.`);
     } catch (err) {
-      const message = err.message || "Gagal memproses bukti pembayaran";
+      const message = err.message || "Failed to process payment proof";
       setError(message);
       onToast?.("error", message);
     } finally {
@@ -212,17 +212,17 @@ export default function PaymentProofReviewCard({ onReviewed, onToast }) {
     <div className="admin-card" style={styles.card}>
       <div style={styles.header}>
         <div>
-          <h3 style={styles.title}>Konfirmasi Pembayaran Warga</h3>
-          <p style={styles.description}>Bukti pembayaran dari warga menunggu verifikasi admin. Payment manual tetap bisa digunakan seperti biasa.</p>
+          <h3 style={styles.title}>Resident Payment Confirmation</h3>
+          <p style={styles.description}>Payment proofs submitted by residents are awaiting admin verification. Manual payments remain available as usual.</p>
         </div>
       </div>
 
       {error && <div className="admin-error-box">{error}</div>}
 
       {loading ? (
-        <p>Loading bukti pembayaran...</p>
+        <p>Loading payment proofs...</p>
       ) : proofs.length === 0 ? (
-        <div className="admin-empty-state">Belum ada bukti pembayaran yang menunggu verifikasi.</div>
+        <div className="admin-empty-state">No payment proofs are awaiting verification.</div>
       ) : (
         <div style={styles.list}>
           {proofs.map((proof) => (
@@ -234,14 +234,14 @@ export default function PaymentProofReviewCard({ onReviewed, onToast }) {
                 </div>
               </div>
               <div style={styles.actions}>
-                <button type="button" className="admin-small-btn" onClick={() => setSelectedProof(proof)}>Detail Bukti</button>
+                <button type="button" className="admin-small-btn" onClick={() => setSelectedProof(proof)}>View Proof</button>
                 <button
                   type="button"
                   className="admin-small-btn"
                   disabled={Boolean(processingId)}
                   onClick={() => reviewProof(proof, "approve")}
                 >
-                  <LoadingButtonContent loading={processingId === `approve:${proof.id}`} loadingText="Approve...">
+                  <LoadingButtonContent loading={processingId === `approve:${proof.id}`} loadingText="Approving...">
                     Approve
                   </LoadingButtonContent>
                 </button>
