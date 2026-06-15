@@ -9,8 +9,8 @@ import {
 const mode = process.argv[2];
 const allowedModes = new Set(["deploy", "preview"]);
 const REQUIRED_QUEUES = [
-  "amarta-notification-events-development",
-  "amarta-notification-events-development-dlq",
+  "amarta-notification-events",
+  "amarta-notification-events-dlq",
 ];
 
 if (!allowedModes.has(mode)) {
@@ -67,7 +67,7 @@ function ensureCloudflareQueue(queueName) {
     return;
   }
 
-  console.warn(`Unable to create/check Cloudflare queue ${queueName}. Deployment will verify the binding.`);
+  console.warn(`Unable to create/check Cloudflare queue ${queueName}. Deployment will verify the consumer binding.`);
   if (output) console.warn(output);
 }
 
