@@ -66,9 +66,10 @@ export async function POST(req) {
       const timestamp = `${formatJakartaDateTime(new Date().toISOString(), "id-ID")} WIB`;
       result = await sendTelegramMessage({
         text: [
-          "<b>Telegram Direct Test</b>",
+          "<b>Uji Telegram Langsung</b>",
           "",
-          "Bot Token, Chat ID, dan koneksi Telegram berhasil digunakan.",
+          "<b>Status:</b> Berhasil",
+          "<b>Keterangan:</b> Bot Token, Chat ID, dan koneksi Telegram berhasil digunakan.",
           `<b>Waktu:</b> ${timestamp}`,
         ].join("\n"),
       });
