@@ -103,4 +103,9 @@ jobs:
           WA_CALLBACK_URL: ${{ inputs.callbackUrl }}
           WA_CALLBACK_TOKEN: ${{ inputs.callbackToken }}
           WA_CONNECT_TIMEOUT_MS: 180000
-        run: node scripts/wa-sender/send-wa-once.mjs
+        run: |
+          if [ -n "$WA_CALLBACK_URL" ]; then
+            node scripts/wa-sender/send-wa-test.mjs
+          else
+            node scripts/wa-sender/send-wa-once.mjs
+          fi
