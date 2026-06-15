@@ -13,8 +13,11 @@ import {
   revokeManagedSession,
   revokeRoleSessions,
   setRoleLoginStatus,
-  updateRoleContact,
 } from "@/features/roleManagement/roleManagementService";
+import {
+  enrichRoleContactsWithTelegram,
+  updateRoleContactChannels,
+} from "@/features/roleManagement/telegramRoleContactService";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,11 +60,11 @@ async function runAction(req, body) {
   const action = getAction(body);
 
   if (action === "update_contact") {
-    return updateRoleContact({
+    return updateRoleContactChannels({
       req,
       role: body.role,
       phone: body.phone,
-      active: body.active,
+      telegramUserId: body.telegram_user_id,
     });
   }
 
@@ -89,6 +92,9 @@ export async function GET(req) {
     if (!(await isAdministrator(req))) return unauthorized();
 
     const result = await getRoleManagementOverview(req);
+    result.cards.role_contacts = await enrichRoleContactsWithTelegram(
+      result.cards.role_contacts || [],
+    );
 
     return NextResponse.json(result);
   } catch (err) {
