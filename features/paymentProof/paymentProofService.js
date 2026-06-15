@@ -1,4 +1,5 @@
 import { getAppConfig } from "@/lib/appConfig";
+import { getIntegrationConfigString } from "@/lib/integrationConfig";
 import { generateId } from "@/lib/id";
 import { uploadPaymentProof } from "@/lib/r2Upload";
 import { sendAlertEmail } from "@/lib/emailAlert";
@@ -66,11 +67,6 @@ function getFileName(file) {
   return normalize(file?.name);
 }
 
-function getAppBaseUrl() {
-  return normalize(process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL)
-    .replace(/\/$/, "");
-}
-
 function getActivityContext({ actor, actorRole, source, actorMetadata }) {
   const role = normalize(actorRole).toLowerCase() || "admin";
   return {
@@ -105,10 +101,9 @@ function withPaymentVerificationBreakdown(proof, member, appConfig) {
   };
 }
 
-function buildPaymentProofAlertMessage({ proof, member, appConfig }) {
+function buildPaymentProofAlertMessage({ proof, member, appConfig, appBaseUrl }) {
   const enrichedProof = withPaymentVerificationBreakdown(proof, member, appConfig);
-  const appBaseUrl = getAppBaseUrl();
-  const adminUrl = appBaseUrl ? `${appBaseUrl}/admin` : "";
+  const adminUrl = appBaseUrl ? `${appBaseUrl.replace(/\/$/, "")}/admin` : "";
 
   return [
     "Bukti Pembayaran Baru",
@@ -127,7 +122,8 @@ function buildPaymentProofAlertMessage({ proof, member, appConfig }) {
 }
 
 async function notifyAdminPaymentProofSubmitted({ proof, member, appConfig }) {
-  const message = buildPaymentProofAlertMessage({ proof, member, appConfig });
+  const appBaseUrl = await getIntegrationConfigString("APP_URL");
+  const message = buildPaymentProofAlertMessage({ proof, member, appConfig, appBaseUrl });
   const fallbackName = `bukti-pembayaran-${proof.person_house}-${proof.period}`;
 
   return sendAlertEmail({
