@@ -3,8 +3,8 @@ import { NextResponse } from "next/server";
 import { processApprovalAction } from "@/features/approval/approvalActionService";
 import { approvePaymentProof, rejectPaymentProof } from "@/features/paymentProof/paymentProofService";
 import { recordSystemActivity } from "@/lib/adminActivity";
+import { formatJakartaDateTime } from "@/lib/localDate";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-import { queuePaymentProofDecisionNotification } from "@/lib/notificationQueue";
 import {
   answerTelegramCallback,
   editTelegramCaption,
@@ -20,6 +20,39 @@ import { isTelegramActionsEnabled } from "@/lib/webauth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const MONTH_NAMES = [
+  "Januari",
+  "Februari",
+  "Maret",
+  "April",
+  "Mei",
+  "Juni",
+  "Juli",
+  "Agustus",
+  "September",
+  "Oktober",
+  "November",
+  "Desember",
+];
+const STATUS_LABELS = {
+  draft: "Draf",
+  submitted: "Diajukan",
+  waiting_approval: "Menunggu Persetujuan",
+  waiting_payment_validation: "Menunggu Validasi Pembayaran",
+  processing: "Sedang Diproses",
+  completed: "Selesai",
+  approved: "Disetujui",
+  rejected: "Ditolak",
+  cancelled: "Dibatalkan",
+  pending: "Menunggu Verifikasi",
+};
+const ROLE_LABELS = {
+  admin: "Administrator",
+  ketua: "Ketua",
+  sekretaris: "Sekretaris",
+  bendahara: "Bendahara",
+  warga: "Warga",
+};
 const APPROVAL_REASONS = {
   doc: "Dokumen tidak lengkap",
   data: "Data pengajuan tidak sesuai",
@@ -33,11 +66,13 @@ const PAYMENT_REASONS = {
 
 const clean = (value) => String(value || "").trim();
 const html = (value) => clean(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+const rupiah = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
+const time = (value) => value ? `${formatJakartaDateTime(value, "id-ID")} WIB` : "-";
 const buttons = (...rows) => ({ inline_keyboard: rows });
-const approvalActions = (id) => buttons([{ text: "Approve", callback_data: `aa:${id}` }, { text: "Reject", callback_data: `ar:${id}` }]);
-const paymentActions = (id) => buttons([{ text: "Approve Bukti", callback_data: `pa:${id}` }, { text: "Reject Bukti", callback_data: `pr:${id}` }]);
-const approvalConfirm = (id) => buttons([{ text: "Konfirmasi Approve", callback_data: `aac:${id}` }, { text: "Batal", callback_data: `ax:${id}` }]);
-const paymentConfirm = (id) => buttons([{ text: "Konfirmasi Approve", callback_data: `pac:${id}` }, { text: "Batal", callback_data: `px:${id}` }]);
+const approvalActions = (id) => buttons([{ text: "Setujui", callback_data: `aa:${id}` }, { text: "Tolak", callback_data: `ar:${id}` }]);
+const paymentActions = (id) => buttons([{ text: "Setujui Bukti", callback_data: `pa:${id}` }, { text: "Tolak Bukti", callback_data: `pr:${id}` }]);
+const approvalConfirm = (id) => buttons([{ text: "Konfirmasi Persetujuan", callback_data: `aac:${id}` }, { text: "Batal", callback_data: `ax:${id}` }]);
+const paymentConfirm = (id) => buttons([{ text: "Konfirmasi Persetujuan", callback_data: `pac:${id}` }, { text: "Batal", callback_data: `px:${id}` }]);
 const approvalRejectReasons = (id) => buttons(
   [{ text: "Dokumen tidak lengkap", callback_data: `arr:doc:${id}` }],
   [{ text: "Data tidak sesuai", callback_data: `arr:data:${id}` }],
@@ -46,17 +81,87 @@ const approvalRejectReasons = (id) => buttons(
 );
 const paymentRejectReasons = (id) => buttons(
   [{ text: "Nominal tidak sesuai", callback_data: `prr:amount:${id}` }],
-  [{ text: "Bukti tidak jelas/valid", callback_data: `prr:proof:${id}` }],
+  [{ text: "Bukti tidak jelas", callback_data: `prr:proof:${id}` }],
   [{ text: "Data pembayaran tidak sesuai", callback_data: `prr:data:${id}` }],
   [{ text: "Batal", callback_data: `px:${id}` }],
 );
-const approvalRejectConfirm = (id, code) => buttons([{ text: `Tolak: ${APPROVAL_REASONS[code]}`, callback_data: `arc:${code}:${id}` }, { text: "Batal", callback_data: `ax:${id}` }]);
-const paymentRejectConfirm = (id, code) => buttons([{ text: `Tolak: ${PAYMENT_REASONS[code]}`, callback_data: `prc:${code}:${id}` }, { text: "Batal", callback_data: `px:${id}` }]);
+const approvalRejectConfirm = (id, code) => buttons([{ text: "Konfirmasi Penolakan", callback_data: `arc:${code}:${id}` }, { text: "Batal", callback_data: `ax:${id}` }]);
+const paymentRejectConfirm = (id, code) => buttons([{ text: "Konfirmasi Penolakan", callback_data: `prc:${code}:${id}` }, { text: "Batal", callback_data: `px:${id}` }]);
+
+function statusLabel(value) {
+  const normalized = clean(value).toLowerCase();
+  return STATUS_LABELS[normalized] || clean(value) || "-";
+}
+
+function roleLabel(value) {
+  const normalized = clean(value).toLowerCase();
+  if (!normalized) return "-";
+  if (ROLE_LABELS[normalized]) return ROLE_LABELS[normalized];
+  return normalized.replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function actorLabel(name, role) {
+  const actorName = clean(name);
+  const actorRole = roleLabel(role);
+  if (!actorName) return actorRole;
+  if (!clean(role) || actorName.toLowerCase() === clean(role).toLowerCase()) return actorName;
+  return `${actorName} (${actorRole})`;
+}
+
+function periodLabel(value) {
+  const normalized = clean(value);
+  const match = /^(\d{4})-(\d{2})$/.exec(normalized);
+  if (!match) return normalized || "-";
+  const monthIndex = Number(match[2]) - 1;
+  if (monthIndex < 0 || monthIndex >= MONTH_NAMES.length) return normalized;
+  return `${MONTH_NAMES[monthIndex]} ${match[1]}`;
+}
 
 function sameSecret(received, expected) {
   const left = Buffer.from(clean(received));
   const right = Buffer.from(clean(expected));
   return Boolean(left.length && left.length === right.length && timingSafeEqual(left, right));
+}
+
+function approvalFinalText(request, { actorName, actorRole, note }) {
+  const rejected = clean(request?.status).toLowerCase() === "rejected";
+  const completed = clean(request?.status).toLowerCase() === "completed";
+  const title = rejected ? "Pengajuan Ditolak" : completed ? "Pengajuan Selesai" : "Pengajuan Diproses";
+
+  return [
+    `<b>${title}</b>`,
+    "",
+    `<b>Nomor:</b> ${html(request?.request_no || "-")}`,
+    `<b>Jenis:</b> ${html(request?.master_name || "-")}`,
+    `<b>Pemohon:</b> ${html(request?.requester_name || "-")}`,
+    `<b>Rumah:</b> ${html(request?.requester_house || "-")}`,
+    !rejected ? "<b>Keputusan:</b> Disetujui" : "",
+    `<b>Status:</b> ${html(statusLabel(request?.status))}`,
+    request?.current_approver_role ? `<b>Tahap Berikutnya:</b> ${html(roleLabel(request.current_approver_role))}` : "",
+    note ? `<b>Alasan:</b> ${html(note)}` : "",
+    `<b>Diproses oleh:</b> ${html(actorLabel(actorName, actorRole))}`,
+    `<b>Diproses:</b> ${html(time(request?.completed_at || request?.updated_at))}`,
+    "<b>Sumber:</b> Telegram",
+  ].filter(Boolean).join("\n");
+}
+
+function paymentFinalText(proof, { rejected, actorName, actorRole, reason }) {
+  const totalAmount = Number(proof?.amount || 0) + Number(proof?.trash_amount || 0);
+  return [
+    `<b>Bukti Pembayaran ${rejected ? "Ditolak" : "Disetujui"}</b>`,
+    "",
+    `<b>Rumah:</b> ${html(proof?.person_house || "-")}`,
+    `<b>Nama:</b> ${html(proof?.person_name || "-")}`,
+    `<b>Periode:</b> ${html(periodLabel(proof?.period))}`,
+    `<b>Kas:</b> ${html(rupiah(proof?.amount))}`,
+    `<b>Sampah:</b> ${Number(proof?.trash_amount || 0) ? html(rupiah(proof.trash_amount)) : "-"}`,
+    `<b>Total:</b> ${html(rupiah(totalAmount))}`,
+    `<b>Status:</b> ${rejected ? "Ditolak" : "Disetujui"}`,
+    reason ? `<b>Alasan:</b> ${html(reason)}` : "",
+    `<b>Diproses oleh:</b> ${html(actorLabel(actorName, actorRole))}`,
+    `<b>Diproses:</b> ${html(time(proof?.reviewed_at || proof?.updated_at))}`,
+    "<b>Sumber:</b> Telegram",
+  ].filter(Boolean).join("\n");
 }
 
 async function safeAnswer(callbackId, options) {
@@ -85,20 +190,23 @@ async function auditDenied(actor, callbackData, reason) {
   }
 }
 
-async function editSuccess(message, summary) {
+async function editFinalMessage(message, text) {
   try {
-    const original = clean(message.caption || message.text || "Notifikasi Telegram");
-    const content = `${html(original)}\n\n<b>${html(summary)}</b>`;
     const common = {
       chatId: message.chat.id,
       messageId: message.message_id,
       replyMarkup: { inline_keyboard: [] },
     };
+    const usesCaption = Boolean(
+      clean(message.caption) ||
+      (Array.isArray(message.photo) && message.photo.length > 0) ||
+      message.document,
+    );
 
-    if (Array.isArray(message.photo) && message.photo.length > 0) {
-      await editTelegramCaption({ ...common, caption: content });
+    if (usesCaption) {
+      await editTelegramCaption({ ...common, caption: text });
     } else {
-      await editTelegramText({ ...common, text: content });
+      await editTelegramText({ ...common, text });
     }
   } catch (error) {
     console.error("Business action succeeded but Telegram message update failed", error);
@@ -112,12 +220,12 @@ async function handleCallback(req, callback) {
   const actor = await resolveTelegramActor(callback?.from);
 
   if (!message?.chat?.id || !message?.message_id || !data) {
-    await safeAnswer(callbackId, { text: "Callback Telegram tidak lengkap.", showAlert: true });
+    await safeAnswer(callbackId, { text: "Data tindakan Telegram tidak lengkap.", showAlert: true });
     return;
   }
   if (!isTelegramChatAllowed(message.chat.id)) {
     await auditDenied(actor, data, "chat_not_allowed");
-    await safeAnswer(callbackId, { text: "Chat ini tidak diizinkan.", showAlert: true });
+    await safeAnswer(callbackId, { text: "Grup Telegram ini tidak diizinkan.", showAlert: true });
     return;
   }
   if (!actor) {
@@ -127,7 +235,7 @@ async function handleCallback(req, callback) {
   }
   if (!(await isTelegramActionsEnabled().catch(() => false))) {
     await auditDenied(actor, data, "actions_disabled");
-    await safeAnswer(callbackId, { text: "Telegram Approval Actions sedang dinonaktifkan.", showAlert: true });
+    await safeAnswer(callbackId, { text: "Tindakan persetujuan melalui Telegram sedang dinonaktifkan.", showAlert: true });
     return;
   }
 
@@ -141,19 +249,20 @@ async function handleCallback(req, callback) {
 
   if (command === "aa") {
     await editTelegramReplyMarkup({ chatId: message.chat.id, messageId: message.message_id, replyMarkup: approvalConfirm(id) });
-    await safeAnswer(callbackId, { text: "Konfirmasi sebelum approve." });
+    await safeAnswer(callbackId, { text: "Silakan konfirmasi persetujuan." });
     return;
   }
   if (command === "ar") {
     await editTelegramReplyMarkup({ chatId: message.chat.id, messageId: message.message_id, replyMarkup: approvalRejectReasons(id) });
-    await safeAnswer(callbackId, { text: "Pilih alasan penolakan." });
+    await safeAnswer(callbackId, { text: "Silakan pilih alasan penolakan." });
     return;
   }
   if (command === "arr") {
     const code = clean(parts[1]);
-    if (!APPROVAL_REASONS[code]) throw new Error("Alasan penolakan tidak valid");
+    const reason = APPROVAL_REASONS[code];
+    if (!reason) throw new Error("Alasan penolakan tidak valid");
     await editTelegramReplyMarkup({ chatId: message.chat.id, messageId: message.message_id, replyMarkup: approvalRejectConfirm(id, code) });
-    await safeAnswer(callbackId, { text: "Konfirmasi penolakan." });
+    await safeAnswer(callbackId, { text: `Alasan dipilih: ${reason}. Silakan konfirmasi penolakan.` });
     return;
   }
   if (command === "ax") {
@@ -164,24 +273,25 @@ async function handleCallback(req, callback) {
 
   if (["pa", "pr", "prr", "pac", "prc"].includes(command) && !isPaymentProofTelegramRoleAllowed(actor.role)) {
     await auditDenied(actor, data, "payment_role_not_allowed");
-    await safeAnswer(callbackId, { text: "Role Anda tidak diizinkan memverifikasi pembayaran.", showAlert: true });
+    await safeAnswer(callbackId, { text: "Peran Anda tidak memiliki izin untuk memproses bukti pembayaran.", showAlert: true });
     return;
   }
   if (command === "pa") {
     await editTelegramReplyMarkup({ chatId: message.chat.id, messageId: message.message_id, replyMarkup: paymentConfirm(id) });
-    await safeAnswer(callbackId, { text: "Konfirmasi sebelum approve bukti." });
+    await safeAnswer(callbackId, { text: "Silakan konfirmasi persetujuan." });
     return;
   }
   if (command === "pr") {
     await editTelegramReplyMarkup({ chatId: message.chat.id, messageId: message.message_id, replyMarkup: paymentRejectReasons(id) });
-    await safeAnswer(callbackId, { text: "Pilih alasan penolakan." });
+    await safeAnswer(callbackId, { text: "Silakan pilih alasan penolakan." });
     return;
   }
   if (command === "prr") {
     const code = clean(parts[1]);
-    if (!PAYMENT_REASONS[code]) throw new Error("Alasan penolakan tidak valid");
+    const reason = PAYMENT_REASONS[code];
+    if (!reason) throw new Error("Alasan penolakan tidak valid");
     await editTelegramReplyMarkup({ chatId: message.chat.id, messageId: message.message_id, replyMarkup: paymentRejectConfirm(id, code) });
-    await safeAnswer(callbackId, { text: "Konfirmasi penolakan bukti." });
+    await safeAnswer(callbackId, { text: `Alasan dipilih: ${reason}. Silakan konfirmasi penolakan.` });
     return;
   }
   if (command === "px") {
@@ -190,7 +300,7 @@ async function handleCallback(req, callback) {
     return;
   }
 
-  await safeAnswer(callbackId, { text: "Sedang memproses..." });
+  await safeAnswer(callbackId, { text: "Permintaan sedang diproses." });
 
   if (command === "aac" || command === "arc") {
     const code = command === "arc" ? clean(parts[1]) : "";
@@ -207,7 +317,11 @@ async function handleCallback(req, callback) {
       source: "telegram",
       actorMetadata: { telegram_user_id: actor.telegramUserId, telegram_username: actor.username },
     });
-    await editSuccess(message, `${result.request.status === "rejected" ? "Ditolak" : "Berhasil diproses"} oleh ${actor.displayName} (${actor.role}). Status: ${result.request.status}.`);
+    await editFinalMessage(message, approvalFinalText(result.request, {
+      actorName: actor.displayName,
+      actorRole: actor.role,
+      note,
+    }));
     return;
   }
 
@@ -223,8 +337,12 @@ async function handleCallback(req, callback) {
       : await approvePaymentProof({ supabase, req, id, actor: actor.displayName, actorRole: actor.role, source: "telegram", actorMetadata });
     if (result.status >= 400) throw new Error(result.body?.error || "Gagal memproses bukti pembayaran");
 
-    await queuePaymentProofDecisionNotification({ proof: result.body.proof, action: command === "prc" ? "reject" : "approve", actorName: actor.displayName, actorRole: actor.role, reason, source: "telegram" });
-    await editSuccess(message, `Bukti pembayaran ${result.body.proof?.status === "rejected" ? "ditolak" : "disetujui"} oleh ${actor.displayName} (${actor.role}).`);
+    await editFinalMessage(message, paymentFinalText(result.body.proof, {
+      rejected: command === "prc",
+      actorName: actor.displayName,
+      actorRole: actor.role,
+      reason,
+    }));
     return;
   }
 
