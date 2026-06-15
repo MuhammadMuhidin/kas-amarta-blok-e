@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { isAdministrator, unauthorized, validateCSRF } from "@/lib/auth";
+import { formatJakartaDateTime } from "@/lib/localDate";
 import {
   getTelegramWebhookInfo,
   registerTelegramWebhook,
@@ -62,12 +63,13 @@ export async function POST(req) {
     } else if (action === "remove_webhook") {
       result = await removeTelegramWebhook();
     } else if (action === "test_direct") {
+      const timestamp = `${formatJakartaDateTime(new Date().toISOString(), "id-ID")} WIB`;
       result = await sendTelegramMessage({
         text: [
           "<b>Telegram Direct Test</b>",
           "",
           "Bot Token, Chat ID, dan koneksi Telegram berhasil digunakan.",
-          `<b>Waktu:</b> ${new Date().toISOString()}`,
+          `<b>Waktu:</b> ${timestamp}`,
         ].join("\n"),
       });
     } else if (action === "test_queue") {
