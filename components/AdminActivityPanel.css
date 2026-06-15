@@ -1,3 +1,23 @@
+.activity-panel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.activity-mobile-list,
+.activity-mobile-card {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.activity-mobile-top > div {
+  min-width: 0;
+}
+
+.activity-mobile-card .activity-badge {
+  flex-shrink: 0;
+}
+
 .activity-summary-bar,
 .activity-mobile-list {
   display: none;
@@ -170,6 +190,8 @@
     align-items: center;
     gap: 8px;
     overflow-x: auto;
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 10px 0 2px;
     color: var(--admin-muted);
     font-size: 12px;
@@ -212,17 +234,20 @@
 
   .activity-mobile-list {
     display: grid;
+    width: 100%;
     gap: 10px;
   }
 
   .activity-mobile-card {
     width: 100%;
+    max-width: 100%;
     padding: 13px;
     border: 1px solid var(--admin-border);
     border-radius: 16px;
     background: var(--admin-row);
     color: var(--admin-text);
     text-align: left;
+    overflow: hidden;
   }
 
   .activity-mobile-top {
@@ -230,6 +255,7 @@
     align-items: flex-start;
     justify-content: space-between;
     gap: 10px;
+    min-width: 0;
   }
 
   .activity-mobile-title {
@@ -240,6 +266,7 @@
     font-size: 14px;
     font-weight: 800;
     line-height: 1.35;
+    overflow-wrap: anywhere;
   }
 
   .activity-mobile-meta,
@@ -253,12 +280,16 @@
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
+    min-width: 0;
   }
 
   .activity-mobile-info span {
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 4px 7px;
     border-radius: 999px;
     background: var(--admin-card);
+    overflow-wrap: anywhere;
   }
 
   .activity-empty-card {
