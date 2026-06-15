@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
-import { sendWaMessage } from "@/lib/waClient";
+import { openWaMessageStream } from "@/lib/waClient";
 import { isWhatsAppServicesEnabled } from "@/lib/webauth";
 
 export const runtime = "nodejs";
@@ -13,6 +13,13 @@ function getTestChatId() {
       || process.env.WA_ERROR_CHAT_ID
       || "",
   ).trim();
+}
+
+function normalizePhoneNumber(value) {
+  let phone = String(value || "").replace(/\D/g, "");
+  if (phone.startsWith("0")) phone = `62${phone.slice(1)}`;
+  if (phone.startsWith("620")) phone = `62${phone.slice(3)}`;
+  return phone;
 }
 
 export async function POST(req) {
@@ -29,8 +36,16 @@ export async function POST(req) {
     }
 
     const body = await req.json().catch(() => ({}));
+    const phoneNumber = normalizePhoneNumber(body.phoneNumber);
     const period = String(body.period || "-").trim();
     const chatId = getTestChatId();
+
+    if (!/^62\d{8,13}$/.test(phoneNumber)) {
+      return NextResponse.json(
+        { error: "Nomor WhatsApp harus menggunakan kode negara 62 dan terdiri dari 10–15 digit." },
+        { status: 400 },
+      );
+    }
 
     if (!chatId) {
       return NextResponse.json(
@@ -39,16 +54,21 @@ export async function POST(req) {
       );
     }
 
-    await sendWaMessage({
+    const upstream = await openWaMessageStream({
       chatId,
       text: `Uji notifikasi WhatsApp Sistem Kas Amarta Residence Blok E (${period}).`,
       source: "admin-test-whatsapp-api",
+      phoneNumber,
+      pairType: "CODE",
     });
 
-    return NextResponse.json({
-      ok: true,
-      channel: "external-api",
-      message: "Pesan test WhatsApp berhasil dikirim melalui external API.",
+    return new Response(upstream.response.body, {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "X-WA-Session-Id": upstream.sessionId,
+      },
     });
   } catch (error) {
     return NextResponse.json(
