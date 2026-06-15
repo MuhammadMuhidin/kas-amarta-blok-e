@@ -32,6 +32,25 @@ const PAYMENT_REASONS = {
 
 const clean = (value) => String(value || "").trim();
 const html = (value) => clean(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+const buttons = (...rows) => ({ inline_keyboard: rows });
+const approvalActions = (id) => buttons([{ text: "Approve", callback_data: `aa:${id}` }, { text: "Reject", callback_data: `ar:${id}` }]);
+const paymentActions = (id) => buttons([{ text: "Approve Bukti", callback_data: `pa:${id}` }, { text: "Reject Bukti", callback_data: `pr:${id}` }]);
+const approvalConfirm = (id) => buttons([{ text: "Konfirmasi Approve", callback_data: `aac:${id}` }, { text: "Batal", callback_data: `ax:${id}` }]);
+const paymentConfirm = (id) => buttons([{ text: "Konfirmasi Approve", callback_data: `pac:${id}` }, { text: "Batal", callback_data: `px:${id}` }]);
+const approvalRejectReasons = (id) => buttons(
+  [{ text: "Dokumen tidak lengkap", callback_data: `arr:doc:${id}` }],
+  [{ text: "Data tidak sesuai", callback_data: `arr:data:${id}` }],
+  [{ text: "Belum memenuhi ketentuan", callback_data: `arr:rule:${id}` }],
+  [{ text: "Batal", callback_data: `ax:${id}` }],
+);
+const paymentRejectReasons = (id) => buttons(
+  [{ text: "Nominal tidak sesuai", callback_data: `prr:amount:${id}` }],
+  [{ text: "Bukti tidak jelas/valid", callback_data: `prr:proof:${id}` }],
+  [{ text: "Data pembayaran tidak sesuai", callback_data: `prr:data:${id}` }],
+  [{ text: "Batal", callback_data: `px:${id}` }],
+);
+const approvalRejectConfirm = (id, code) => buttons([{ text: `Tolak: ${APPROVAL_REASONS[code]}`, callback_data: `arc:${code}:${id}` }, { text: "Batal", callback_data: `ax:${id}` }]);
+const paymentRejectConfirm = (id, code) => buttons([{ text: `Tolak: ${PAYMENT_REASONS[code]}`, callback_data: `prc:${code}:${id}` }, { text: "Batal", callback_data: `px:${id}` }]);
 
 function sameSecret(received, expected) {
   const left = Buffer.from(clean(received));
@@ -39,17 +58,9 @@ function sameSecret(received, expected) {
   return Boolean(left.length && left.length === right.length && timingSafeEqual(left, right));
 }
 
-const approvalActions = (id) => ({ inline_keyboard: [[{ text: "Approve", callback_data: `aa:${id}` }, { text: "Reject", callback_data: `ar:${id}` }]] });
-const paymentActions = (id) => ({ inline_keyboard: [[{ text: "Approve Bukti", callback_data: `pa:${id}` }, { text: "Reject Bukti", callback_data: `pr:${id}` }]] });
-const approvalConfirm = (id) => ({ inline_keyboard: [[{ text: "Konfirmasi Approve", callback_data: `aac:${id}` }, { text: "Batal", callback_data: `ax:${id}` }]] });
-const paymentConfirm = (id) => ({ inline_keyboard: [[{ text: "Konfirmasi Approve", callback_data: `pac:${id}` }, { text: "Batal", callback_data: `px:${id}` }]] });
-const approvalRejectReasons = (id) => ({ inline_keyboard: [[{ text: "Dokumen tidak lengkap", callback_data: `arr:doc:${id}` }], [{ text: "Data tidak sesuai", callback_data: `arr:data:${id}` }], [{ text: "Belum memenuhi ketentuan", callback_data: `arr:rule:${id}` }], [{ text: "Batal", callback_data: `ax:${id}` }]] });
-const paymentRejectReasons = (id) => ({ inline_keyboard: [[{ text: "Nominal tidak sesuai", callback_data: `prr:amount:${id}` }], [{ text: "Bukti tidak jelas/valid", callback_data: `prr:proof:${id}` }], [{ text: "Data pembayaran tidak sesuai", callback_data: `prr:data:${id}` }], [{ text: "Batal", callback_data: `px:${id}` }]] });
-const approvalRejectConfirm = (id, code) => ({ inline_keyboard: [[{ text: `Tolak: ${APPROVAL_REASONS[code]}`, callback_data: `arc:${code}:${id}` }, { text: "Batal", callback_data: `ax:${id}` }]] });
-const paymentRejectConfirm = (id, code) => ({ inline_keyboard: [[{ text: `Tolak: ${PAYMENT_REASONS[code]}`, callback_data: `prc:${code}:${id}` }, { text: "Batal", callback_data: `px:${id}` }]] });
-
 async function safeAnswer(callbackId, options) {
-  try { await answerTelegramCallback(callbackId, options); } catch (error) { console.error("Failed answering Telegram callback", error); }
+  try { await answerTelegramCallback(callbackId, options); }
+  catch (error) { console.error("Failed answering Telegram callback", error); }
 }
 
 async function auditDenied(actor, callbackData, reason) {
@@ -60,9 +71,17 @@ async function auditDenied(actor, callbackData, reason) {
       severity: "warning",
       message: `Telegram action denied: ${reason}`,
       actor: actor?.displayName || "unknown-telegram-user",
-      metadata: { source: "telegram", telegram_user_id: actor?.telegramUserId || "", telegram_username: actor?.username || "", callback_data: clean(callbackData).slice(0, 120), reason },
+      metadata: {
+        source: "telegram",
+        telegram_user_id: actor?.telegramUserId || "",
+        telegram_username: actor?.username || "",
+        callback_data: clean(callbackData).slice(0, 120),
+        reason,
+      },
     });
-  } catch (error) { console.error("Failed recording denied Telegram action", error); }
+  } catch (error) {
+    console.error("Failed recording denied Telegram action", error);
+  }
 }
 
 async function editSuccess(message, summary) {
@@ -73,14 +92,16 @@ async function editSuccess(message, summary) {
       text: `${html(message.text || "Notifikasi Telegram")}\n\n<b>${html(summary)}</b>`,
       replyMarkup: { inline_keyboard: [] },
     });
-  } catch (error) { console.error("Business action succeeded but Telegram message update failed", error); }
+  } catch (error) {
+    console.error("Business action succeeded but Telegram message update failed", error);
+  }
 }
 
 async function handleCallback(req, callback) {
   const callbackId = clean(callback?.id);
   const data = clean(callback?.data);
   const message = callback?.message;
-  const actor = resolveTelegramActor(callback?.from);
+  const actor = await resolveTelegramActor(callback?.from);
 
   if (!message?.chat?.id || !message?.message_id || !data) {
     await safeAnswer(callbackId, { text: "Callback Telegram tidak lengkap.", showAlert: true });
@@ -132,7 +153,8 @@ async function handleCallback(req, callback) {
     await safeAnswer(callbackId, { text: "Tindakan dibatalkan." });
     return;
   }
-  if (["pa", "pr", "prr"].includes(command) && !isPaymentProofTelegramRoleAllowed(actor.role)) {
+
+  if (["pa", "pr", "prr", "pac", "prc"].includes(command) && !isPaymentProofTelegramRoleAllowed(actor.role)) {
     await auditDenied(actor, data, "payment_role_not_allowed");
     await safeAnswer(callbackId, { text: "Role Anda tidak diizinkan memverifikasi pembayaran.", showAlert: true });
     return;
@@ -166,6 +188,7 @@ async function handleCallback(req, callback) {
     const code = command === "arc" ? clean(parts[1]) : "";
     const note = command === "arc" ? APPROVAL_REASONS[code] : "";
     if (command === "arc" && !note) throw new Error("Alasan penolakan tidak valid");
+
     const result = await processApprovalAction({
       req,
       accessRole: actor.role,
@@ -181,10 +204,10 @@ async function handleCallback(req, callback) {
   }
 
   if (command === "pac" || command === "prc") {
-    if (!isPaymentProofTelegramRoleAllowed(actor.role)) throw new Error("Role Anda tidak diizinkan memverifikasi pembayaran");
     const code = command === "prc" ? clean(parts[1]) : "";
     const reason = command === "prc" ? PAYMENT_REASONS[code] : "";
     if (command === "prc" && !reason) throw new Error("Alasan penolakan tidak valid");
+
     const supabase = getSupabaseAdmin();
     const actorMetadata = { telegram_user_id: actor.telegramUserId, telegram_username: actor.username };
     const result = command === "prc"
@@ -218,10 +241,14 @@ export async function POST(req) {
   try {
     const update = await req.json();
     if (update?.callback_query) {
-      try { await handleCallback(req, update.callback_query); }
-      catch (error) {
+      try {
+        await handleCallback(req, update.callback_query);
+      } catch (error) {
         console.error("Telegram callback processing failed", error);
-        await safeAnswer(update.callback_query.id, { text: error instanceof Error ? error.message.slice(0, 180) : "Tindakan gagal diproses.", showAlert: true });
+        await safeAnswer(update.callback_query.id, {
+          text: error instanceof Error ? error.message.slice(0, 180) : "Tindakan gagal diproses.",
+          showAlert: true,
+        });
       }
     }
     return NextResponse.json({ ok: true });
