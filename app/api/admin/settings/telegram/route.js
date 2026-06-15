@@ -25,7 +25,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 async function integrationStatus() {
-  const config = telegramConfigSummary();
+  const config = await telegramConfigSummary();
   const queue = getNotificationQueueRuntimeStatus();
   let webhook = null;
   let webhookError = "";
