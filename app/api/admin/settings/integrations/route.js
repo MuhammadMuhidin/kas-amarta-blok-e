@@ -6,7 +6,6 @@ import {
 } from "@/features/settings/integrationSettingsService";
 import { verifyAdminRolePin } from "@/lib/adminRoleCredentials";
 import {
-  isAdmin,
   isAdministrator,
   unauthorized,
   validateCSRF,
@@ -24,7 +23,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req) {
   try {
-    if (!(await isAdmin(req))) return unauthorized();
+    if (!(await isAdministrator(req))) return unauthorized();
     return NextResponse.json(await getIntegrationSettings());
   } catch (error) {
     return NextResponse.json(
