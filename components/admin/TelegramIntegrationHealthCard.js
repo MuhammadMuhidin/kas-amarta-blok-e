@@ -6,6 +6,10 @@ import { useEffect, useState } from "react";
 
 const ENDPOINT = "/api/admin/settings/telegram";
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function statusText(status) {
   if (!status) return "Status belum dimuat";
   const config = status.config || {};
@@ -20,6 +24,14 @@ function statusText(status) {
   return status.webhook.pending_update_count
     ? `Webhook aktif • ${status.webhook.pending_update_count} update menunggu`
     : "Webhook aktif dan siap menerima action";
+}
+
+function actionSuccessText(action) {
+  if (action === "register_webhook") return "Webhook Telegram berhasil didaftarkan";
+  if (action === "remove_webhook") return "Webhook Telegram berhasil dihapus";
+  if (action === "test_direct") return "Pesan test Telegram berhasil dikirim";
+  if (action === "test_queue") return "Event test berhasil dimasukkan ke Queue";
+  return "Telegram action completed";
 }
 
 function Pill({ label, ready }) {
@@ -56,9 +68,13 @@ export default function TelegramIntegrationHealthCard() {
     if (running) return;
     try {
       setRunning(true);
-      const result = await sendJson(ENDPOINT, "POST", { action });
-      setStatus(result.status || status);
-      showToast("Telegram action completed");
+      await sendJson(ENDPOINT, "POST", { action });
+      showToast(actionSuccessText(action));
+
+      if (action === "register_webhook" || action === "remove_webhook") {
+        await delay(1200);
+        await loadStatus();
+      }
     } catch (error) {
       showToast(error.message || "Telegram action failed", "error");
     } finally {
