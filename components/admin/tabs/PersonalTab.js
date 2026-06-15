@@ -113,14 +113,6 @@ function MemberListPanel({
             Search, filter, and edit resident records.
           </p>
         </div>
-        <button
-          type="button"
-          className="admin-small-btn admin-refresh-btn"
-          disabled={loading || loadingMore}
-          onClick={refresh}
-        >
-          Refresh
-        </button>
       </div>
 
       <PersonalFilters
