@@ -1,5 +1,6 @@
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 import { sendAlertEmail } from "@/lib/emailAlert";
+import { getIntegrationConfigString } from "@/lib/integrationConfig";
 import { sendWaMessage } from "@/lib/waClient";
 
 export const runtime = "nodejs";
@@ -16,7 +17,10 @@ export async function POST(req) {
     const message = String(body.message || "").trim();
     const period = String(body.period || "-").trim();
     const source = String(body.source || "admin").trim();
-    const chatId = String(body.chatId || process.env.WA_ALERT_CHAT_ID || process.env.WA_ERROR_CHAT_ID || "").trim();
+    const configuredChatId = await getIntegrationConfigString("WA_ALERT_CHAT_ID");
+    const chatId = String(
+      body.chatId || configuredChatId || process.env.WA_ERROR_CHAT_ID || "",
+    ).trim();
 
     await sendWaMessage({ chatId, text: message, source });
     const email = await sendAlertEmail({
