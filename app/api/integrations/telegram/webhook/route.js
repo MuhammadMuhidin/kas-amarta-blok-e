@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { queuePaymentProofDecisionNotification } from "@/lib/notificationQueue";
 import {
   answerTelegramCallback,
+  editTelegramCaption,
   editTelegramReplyMarkup,
   editTelegramText,
   getTelegramRuntimeConfig,
@@ -86,12 +87,19 @@ async function auditDenied(actor, callbackData, reason) {
 
 async function editSuccess(message, summary) {
   try {
-    await editTelegramText({
+    const original = clean(message.caption || message.text || "Notifikasi Telegram");
+    const content = `${html(original)}\n\n<b>${html(summary)}</b>`;
+    const common = {
       chatId: message.chat.id,
       messageId: message.message_id,
-      text: `${html(message.text || "Notifikasi Telegram")}\n\n<b>${html(summary)}</b>`,
       replyMarkup: { inline_keyboard: [] },
-    });
+    };
+
+    if (Array.isArray(message.photo) && message.photo.length > 0) {
+      await editTelegramCaption({ ...common, caption: content });
+    } else {
+      await editTelegramText({ ...common, text: content });
+    }
   } catch (error) {
     console.error("Business action succeeded but Telegram message update failed", error);
   }
