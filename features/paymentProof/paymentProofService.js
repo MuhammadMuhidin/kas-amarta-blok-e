@@ -2,7 +2,7 @@ import { getAppConfig } from "@/lib/appConfig";
 import { generateId } from "@/lib/id";
 import { uploadPaymentProof } from "@/lib/r2Upload";
 import { sendAlertEmail } from "@/lib/emailAlert";
-import { getJakartaDateString } from "@/lib/localDate";
+import { formatJakartaDateTime, getJakartaDateString } from "@/lib/localDate";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { recordPayment } from "@/features/payment/paymentService";
 import {
@@ -16,6 +16,11 @@ import {
   updatePaymentProof,
 } from "@/features/paymentProof/paymentProofRepository";
 
+const MONTH_NAMES = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
 function normalize(value) {
   return String(value || "").trim();
 }
@@ -26,6 +31,18 @@ function normalizeUpper(value) {
 
 function money(value) {
   return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
+}
+
+function formatPeriod(value) {
+  const normalized = normalize(value);
+  const match = /^(\d{4})-(\d{2})$/.exec(normalized);
+  if (!match) return normalized || "-";
+  const month = MONTH_NAMES[Number(match[2]) - 1];
+  return month ? `${month} ${match[1]}` : normalized;
+}
+
+function formatSubmittedAt(value) {
+  return value ? `${formatJakartaDateTime(value, "id-ID")} WIB` : "-";
 }
 
 function isActiveMember(member) {
@@ -94,34 +111,34 @@ function buildPaymentProofAlertMessage({ proof, member, appConfig }) {
   const adminUrl = appBaseUrl ? `${appBaseUrl}/admin` : "";
 
   return [
-    "Ada bukti pembayaran baru yang perlu diverifikasi admin.",
+    "Bukti Pembayaran Baru",
     "",
     `Rumah: ${proof.person_house}`,
     `Nama: ${proof.person_name || "-"}`,
-    `Periode: ${proof.period}`,
+    `Periode: ${formatPeriod(proof.period)}`,
     `Kas: ${money(enrichedProof.cash_amount)}`,
     `Sampah: ${enrichedProof.trash_amount > 0 ? money(enrichedProof.trash_amount) : "-"}`,
-    `Total untuk dicocokkan: ${money(enrichedProof.total_amount)}`,
-    `Waktu submit: ${proof.submitted_at || "-"}`,
+    `Total: ${money(enrichedProof.total_amount)}`,
+    "Status: Menunggu Verifikasi",
+    `Dikirim: ${formatSubmittedAt(proof.submitted_at)}`,
     "",
-    adminUrl ? `Buka admin: ${adminUrl}` : "Buka dashboard admin untuk review bukti pembayaran.",
+    adminUrl ? `Tinjau di Admin:\n${adminUrl}` : "Tinjau melalui dashboard Admin.",
   ].join("\n");
 }
 
 async function notifyAdminPaymentProofSubmitted({ proof, member, appConfig }) {
   const message = buildPaymentProofAlertMessage({ proof, member, appConfig });
+  const fallbackName = `bukti-pembayaran-${proof.person_house}-${proof.period}`;
 
-  try {
-    return await sendAlertEmail({
-      message,
-      period: proof.period,
-      source: "payment-proof-upload",
-      subject: `[Amarta Kas] Bukti pembayaran masuk - ${proof.person_house} ${proof.period}`,
-    });
-  } catch (error) {
-    console.error("Gagal mengirim email alert bukti pembayaran", error);
-    return { ok: false, error: error.message || "Gagal mengirim email alert bukti pembayaran" };
-  }
+  return sendAlertEmail({
+    message,
+    period: proof.period,
+    source: "payment-proof-upload",
+    subject: `[Amarta Kas] Bukti Pembayaran Baru - ${proof.person_house} - ${formatPeriod(proof.period)}`,
+    attachments: proof.proof_url
+      ? [{ path: proof.proof_url, filename: proof.original_filename || fallbackName }]
+      : [],
+  });
 }
 
 export async function listPublicPaymentConfirmations(supabase) {
