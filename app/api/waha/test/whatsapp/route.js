@@ -39,13 +39,13 @@ function parseSsePayload(block) {
 }
 
 function normalizePairingCode(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
+  const raw = String(value || "")
+    .trim()
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toUpperCase();
 
-  const digits = raw.replace(/\D/g, "");
-  if (digits.length < 6 || digits.length > 12) return "";
-
-  return digits.match(/.{1,4}/g)?.join("-") || digits;
+  if (raw.length < 6 || raw.length > 12) return "";
+  return raw.match(/.{1,4}/g)?.join("-") || raw;
 }
 
 function findPairingCode(payload) {
@@ -85,7 +85,7 @@ function findPairingCode(payload) {
   ];
 
   for (const value of textCandidates) {
-    const match = String(value || "").match(/(?:pairing(?:\s+code)?|kode(?:\s+pairing)?)[^0-9]*(\d[\d\s-]{5,15})/i);
+    const match = String(value || "").match(/(?:pairing(?:\s+code)?|kode(?:\s+pairing)?)[^a-z0-9]*([a-z0-9][a-z0-9\s-]{5,15})/i);
     const code = normalizePairingCode(match?.[1]);
     if (code) return code;
   }
@@ -123,7 +123,6 @@ function normalizeExternalWhatsAppStream(body, sessionId) {
     controller.enqueue(encoder.encode(`data: ${JSON.stringify({
       status: "PAIRING_CODE",
       code: pairingCode,
-      message: "Pairing code diterima dari external WhatsApp API.",
       sessionId,
     })}\n\n`));
   }
