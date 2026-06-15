@@ -9,12 +9,6 @@
   ],
   "keep_vars": true,
   "queues": {
-    "producers": [
-      {
-        "binding": "AMARTA_NOTIFICATION_QUEUE",
-        "queue": "amarta-notification-events-development"
-      }
-    ],
     "consumers": [
       {
         "queue": "amarta-notification-events-development",
