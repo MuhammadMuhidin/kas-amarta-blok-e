@@ -92,7 +92,7 @@ export async function POST(req) {
       metadata: { action, queue_provider: result?.provider || "" },
     });
 
-    return NextResponse.json({ ok: true, result, status: await integrationStatus() });
+    return NextResponse.json({ ok: true, result });
   } catch (error) {
     return NextResponse.json({ error: error.message || "Gagal memproses konfigurasi Telegram" }, { status: 500 });
   }
