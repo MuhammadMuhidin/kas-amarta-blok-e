@@ -15,6 +15,13 @@ function normalizePhoneNumber(value) {
   return phone;
 }
 
+function getPublicOrigin(req) {
+  const forwardedHost = req.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
+  const forwardedProto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  if (forwardedHost) return `${forwardedProto || "https"}://${forwardedHost}`;
+  return new URL(req.url).origin;
+}
+
 export async function POST(req) {
   try {
     if (!(await isAdmin(req))) return unauthorized();
@@ -32,7 +39,7 @@ export async function POST(req) {
     const defaults = getWhatsAppWorkflowDefaults();
     const jobId = randomUUID();
     const period = String(body.period || "-").trim();
-    const callbackUrl = new URL("/api/waha/callback", req.url).toString();
+    const callbackUrl = new URL("/api/waha/callback", getPublicOrigin(req)).toString();
     const callbackToken = createWhatsAppTestCallbackToken(jobId);
 
     await initializeWhatsAppTestState(jobId);
