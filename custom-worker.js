@@ -11,8 +11,8 @@ async function sendTelegramEvent(env, event = {}) {
   }
 
   const token = clean(env.TELEGRAM_BOT_TOKEN);
-  const chatId = clean(env.TELEGRAM_CHAT_ID);
   const telegram = event.telegram || {};
+  const chatId = clean(telegram.chat_id || env.TELEGRAM_CHAT_ID);
   const text = clean(telegram.text);
   const photo = clean(telegram.photo);
   const document = clean(telegram.document);
@@ -48,8 +48,9 @@ async function sendTelegramEvent(env, event = {}) {
   }
 
   if (telegram.reply_markup) payload.reply_markup = telegram.reply_markup;
-  if (clean(env.TELEGRAM_MESSAGE_THREAD_ID)) {
-    payload.message_thread_id = Number(env.TELEGRAM_MESSAGE_THREAD_ID);
+  const messageThreadId = clean(telegram.message_thread_id || env.TELEGRAM_MESSAGE_THREAD_ID);
+  if (messageThreadId) {
+    payload.message_thread_id = Number(messageThreadId);
   }
 
   const response = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
