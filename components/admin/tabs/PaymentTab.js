@@ -6,7 +6,7 @@ import PaymentProofReviewCard from "@/components/admin/PaymentProofReviewCard";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
 import { getCurrentPeriod } from "@/lib/depositUtils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const START_PAYMENT_PERIOD = "2026-02";
 const PAYMENT_REMINDER_MESSAGE = [
@@ -271,6 +271,8 @@ function RecordPaymentPanel({
   wakeLock,
   deposits,
   depositsLoading,
+  depositsError,
+  onRetryDeposits,
 }) {
   const currentPeriod = getCurrentPeriod();
   const pendingCurrentDeposits = useMemo(() => deposits.filter((deposit) => (
@@ -313,6 +315,7 @@ function RecordPaymentPanel({
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
   const disabled = loadingPayment
     || depositsLoading
+    || Boolean(depositsError)
     || hasPendingCurrentDeposit
     || selectedCount === 0;
   const loadingText = paymentProgress?.total
@@ -325,6 +328,14 @@ function RecordPaymentPanel({
   return (
     <div id="payment-record-panel" role="tabpanel">
       {configError && <div className="admin-error-box">{configError}</div>}
+      {depositsError && (
+        <div className="admin-error-box" style={styles.retryBox}>
+          <span>{depositsError}</span>
+          <button type="button" className="admin-small-btn" onClick={onRetryDeposits}>
+            Retry
+          </button>
+        </div>
+      )}
       {hasPendingCurrentDeposit && (
         <div className="admin-error-box">
           Complete {pendingCurrentDeposits.length} current-month booking payments with Pay Now
@@ -417,30 +428,50 @@ export default function PaymentTab(props) {
   const [deposits, setDeposits] = useState([]);
   const [depositsLoaded, setDepositsLoaded] = useState(false);
   const [depositsLoading, setDepositsLoading] = useState(false);
+  const [depositsError, setDepositsError] = useState("");
+  const [depositLoadVersion, setDepositLoadVersion] = useState(0);
   const [showReminderPreview, setShowReminderPreview] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
+  const depositRequestRef = useRef(null);
   const { toast, showToast } = usePaymentToast();
 
   useEffect(() => {
-    if (activePanel !== "record" || depositsLoaded || depositsLoading) return undefined;
-    let active = true;
+    if (activePanel !== "record" || depositsLoaded) return undefined;
+
+    depositRequestRef.current?.abort();
+    const controller = new AbortController();
+    depositRequestRef.current = controller;
     setDepositsLoading(true);
-    readJson("/api/sheets/deposit")
+    setDepositsError("");
+
+    readJson("/api/sheets/deposit", { signal: controller.signal })
       .then((data) => {
-        if (!active) return;
+        if (controller.signal.aborted || depositRequestRef.current !== controller) return;
         setDeposits(Array.isArray(data) ? data : []);
         setDepositsLoaded(true);
       })
-      .catch(() => {
-        if (active) setDeposits([]);
+      .catch((error) => {
+        if (error?.name === "AbortError" || controller.signal.aborted) return;
+        if (depositRequestRef.current !== controller) return;
+        setDeposits([]);
+        setDepositsError(error.message || "Failed to check current booking payments");
       })
       .finally(() => {
-        if (active) setDepositsLoading(false);
+        if (!controller.signal.aborted && depositRequestRef.current === controller) {
+          setDepositsLoading(false);
+        }
       });
-    return () => {
-      active = false;
-    };
-  }, [activePanel, depositsLoaded, depositsLoading]);
+
+    return () => controller.abort();
+  }, [activePanel, depositsLoaded, depositLoadVersion]);
+
+  useEffect(() => () => depositRequestRef.current?.abort(), []);
+
+  function retryDeposits() {
+    setDepositsLoaded(false);
+    setDepositsError("");
+    setDepositLoadVersion((value) => value + 1);
+  }
 
   async function sendPaymentReminder() {
     if (sendingReminder) return;
@@ -478,6 +509,8 @@ export default function PaymentTab(props) {
           payments={props.payments || []}
           deposits={deposits}
           depositsLoading={depositsLoading}
+          depositsError={depositsError}
+          onRetryDeposits={retryDeposits}
         />
       )}
 
@@ -510,6 +543,13 @@ const styles = {
     color: "var(--admin-muted)",
     fontSize: 14,
     lineHeight: 1.5,
+  },
+  retryBox: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    flexWrap: "wrap",
   },
   modalHeader: {
     width: "100%",
