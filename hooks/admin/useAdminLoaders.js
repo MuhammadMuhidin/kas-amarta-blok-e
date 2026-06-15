@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { readJson } from "@/components/admin/adminClientApi";
+
+const MONITORING_CACHE_MS = 30 * 1000;
 
 export default function useAdminLoaders({ setPayment }) {
   const [personal, setPersonal] = useState([]);
@@ -11,6 +13,8 @@ export default function useAdminLoaders({ setPayment }) {
   const [cashflows, setCashflows] = useState([]);
   const [appConfig, setAppConfig] = useState(null);
   const [configError, setConfigError] = useState("");
+  const lastMonitoringLoadAt = useRef(0);
+  const monitoringPromise = useRef(null);
 
   async function loadAppConfig() {
     try {
@@ -44,24 +48,45 @@ export default function useAdminLoaders({ setPayment }) {
     setCashflows(await readJson("/api/sheets/cashflow"));
   }
 
-  async function refreshMonitoring() {
-    await Promise.all([
+  async function refreshMonitoring({ force = false } = {}) {
+    const fresh = Date.now() - lastMonitoringLoadAt.current < MONITORING_CACHE_MS;
+    if (!force && fresh) return;
+    if (monitoringPromise.current) return monitoringPromise.current;
+
+    monitoringPromise.current = Promise.all([
       loadAppConfig(),
       loadPayment(),
       loadTrash(),
       loadPersonal(),
       loadCashflow(),
       loadDeposit(),
-    ]);
+    ]).then(() => {
+      lastMonitoringLoadAt.current = Date.now();
+    }).finally(() => {
+      monitoringPromise.current = null;
+    });
+
+    return monitoringPromise.current;
   }
 
-  async function refreshTabData(nextTab) {
-    if (nextTab === "overview") return refreshMonitoring();
+  async function refreshTabData(nextTab, options = {}) {
+    if (nextTab === "overview") return refreshMonitoring(options);
     if (nextTab === "personal") return loadPersonal();
-    if (nextTab === "payment") return Promise.all([loadAppConfig(), loadPersonal(), loadPayment(), loadDeposit()]);
-    if (nextTab === "deposit") return Promise.all([loadAppConfig(), loadPersonal(), loadDeposit(), loadPayment(), loadTrash(), loadCashflow()]);
+    if (nextTab === "payment") {
+      return Promise.all([loadAppConfig(), loadPersonal(), loadPayment(), loadDeposit()]);
+    }
+    if (nextTab === "deposit") {
+      return Promise.all([
+        loadAppConfig(),
+        loadPersonal(),
+        loadDeposit(),
+        loadPayment(),
+        loadTrash(),
+        loadCashflow(),
+      ]);
+    }
     if (nextTab === "cashflow") return loadCashflow();
-    if (nextTab === "monitoring") return refreshMonitoring();
+    if (nextTab === "monitoring") return refreshMonitoring(options);
     if (nextTab === "settings") return loadAppConfig();
   }
 
