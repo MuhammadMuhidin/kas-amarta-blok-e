@@ -8,6 +8,14 @@
   display: none !important;
 }
 
+.admin-card > div[style*="margin-bottom: 16px"] > button.admin-refresh-btn {
+  display: none !important;
+}
+
+#monitoring-services-panel .admin-status-card > div:last-child > div:first-child > button.admin-small-btn {
+  display: none !important;
+}
+
 #overview-cashflow-panel section > div > div {
   display: grid !important;
   grid-template-columns: minmax(72px, auto) minmax(0, 1fr) !important;
