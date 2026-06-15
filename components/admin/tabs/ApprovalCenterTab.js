@@ -290,6 +290,7 @@ function ApprovalRequestsPanel({ filter, onSummary, showToast }) {
   });
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [runningId, setRunningId] = useState("");
   const [pending, setPending] = useState(null);
   const [note, setNote] = useState("");
@@ -297,6 +298,10 @@ function ApprovalRequestsPanel({ filter, onSummary, showToast }) {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
   const loader = useRef(null);
+  const initialRequestRef = useRef(null);
+  const loadMoreRequestRef = useRef(null);
+  const requestSequenceRef = useRef(0);
+  const loadingMoreGuardRef = useRef(false);
 
   const accessRole = roleKey(data.access_role) || "admin";
   const all = useMemo(() => {
@@ -331,24 +336,50 @@ function ApprovalRequestsPanel({ filter, onSummary, showToast }) {
   }, [filter, debouncedSearch]);
 
   const load = useCallback(async () => {
+    initialRequestRef.current?.abort();
+    loadMoreRequestRef.current?.abort();
+    loadingMoreGuardRef.current = false;
+    setLoadingMore(false);
+
+    const controller = new AbortController();
+    initialRequestRef.current = controller;
+    const sequence = requestSequenceRef.current + 1;
+    requestSequenceRef.current = sequence;
+
     try {
       setLoading(true);
-      const payload = await readJson(pageUrl(0));
+      setLoadError("");
+      const payload = await readJson(pageUrl(0), { signal: controller.signal });
+      if (controller.signal.aborted || requestSequenceRef.current !== sequence) return;
       setData(payload);
       setLimit(PAGE_SIZE);
       onSummary(payload.summary || {});
     } catch (error) {
-      showToast(error.message || "Failed to load Approval Center", "error");
+      if (error?.name === "AbortError" || controller.signal.aborted) return;
+      if (requestSequenceRef.current !== sequence) return;
+      const message = error.message || "Failed to load Approval Center";
+      setLoadError(message);
+      showToast(message, "error");
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted && requestSequenceRef.current === sequence) {
+        setLoading(false);
+      }
     }
   }, [pageUrl, onSummary, showToast]);
 
-  async function loadMore() {
-    if (loadingMore || !serverMore) return;
+  const loadMore = useCallback(async () => {
+    if (loadingMoreGuardRef.current || !serverMore) return;
+    loadingMoreGuardRef.current = true;
+    loadMoreRequestRef.current?.abort();
+    const controller = new AbortController();
+    loadMoreRequestRef.current = controller;
+    const sequence = requestSequenceRef.current;
+    const nextOffset = data.pagination?.next_offset || all.length;
+
     try {
       setLoadingMore(true);
-      const payload = await readJson(pageUrl(data.pagination?.next_offset || all.length));
+      const payload = await readJson(pageUrl(nextOffset), { signal: controller.signal });
+      if (controller.signal.aborted || requestSequenceRef.current !== sequence) return;
       setData((previous) => ({
         ...payload,
         requests: mergeRows(previous.requests, payload.requests),
@@ -358,11 +389,16 @@ function ApprovalRequestsPanel({ filter, onSummary, showToast }) {
       }));
       onSummary(payload.summary || data.summary || {});
     } catch (error) {
+      if (error?.name === "AbortError" || controller.signal.aborted) return;
+      if (requestSequenceRef.current !== sequence) return;
       showToast(error.message || "Failed to load more approval requests", "error");
     } finally {
-      setLoadingMore(false);
+      if (!controller.signal.aborted && requestSequenceRef.current === sequence) {
+        loadingMoreGuardRef.current = false;
+        setLoadingMore(false);
+      }
     }
-  }
+  }, [serverMore, data.pagination?.next_offset, data.summary, all.length, pageUrl, onSummary, showToast]);
 
   function open(row, action) {
     setPending({ row, action });
@@ -406,6 +442,11 @@ function ApprovalRequestsPanel({ filter, onSummary, showToast }) {
 
   useEffect(() => {
     load();
+    return () => {
+      initialRequestRef.current?.abort();
+      loadMoreRequestRef.current?.abort();
+      loadingMoreGuardRef.current = false;
+    };
   }, [load]);
 
   useEffect(() => {
@@ -414,7 +455,7 @@ function ApprovalRequestsPanel({ filter, onSummary, showToast }) {
 
   useEffect(() => {
     const node = loader.current;
-    if (!node || !more || initialLoading) return undefined;
+    if (!node || !more || initialLoading || loadError) return undefined;
     const observer = new IntersectionObserver((entries) => {
       if (!entries[0]?.isIntersecting) return;
       if (localMore) setLimit((value) => Math.min(value + PAGE_SIZE, all.length));
@@ -422,7 +463,7 @@ function ApprovalRequestsPanel({ filter, onSummary, showToast }) {
     }, { rootMargin: "120px" });
     observer.observe(node);
     return () => observer.disconnect();
-  }, [more, localMore, all.length, serverMore, loadingMore, data.pagination?.next_offset, initialLoading]);
+  }, [more, localMore, all.length, initialLoading, loadError, loadMore]);
 
   const reject = pending?.action === "reject";
   const row = pending?.row;
@@ -466,6 +507,12 @@ function ApprovalRequestsPanel({ filter, onSummary, showToast }) {
           placeholder="Search request no, type, requester, house, approver, note..."
         />
       </div>
+      {loadError && (
+        <div className="admin-error-box" style={{ marginBottom: 12 }}>
+          <span>{loadError}</span>
+          <button type="button" className="admin-small-btn" onClick={load}>Retry</button>
+        </div>
+      )}
       <section className="admin-status-card ac-section" style={{ margin: 0 }}>
         {initialLoading ? (
           <AdminDataSkeleton showSummary={false} rows={5} />
