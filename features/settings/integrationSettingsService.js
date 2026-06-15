@@ -21,6 +21,11 @@ const DEFAULTS = {
 const clean = (value) => String(value ?? "").trim();
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function parseBoolean(value) {
+  if (typeof value === "boolean") return value;
+  return clean(value).toLowerCase() === "true";
+}
+
 function normalizeUrl(value, key) {
   const text = clean(value);
   if (!text) throw new Error(`${key} wajib diisi`);
@@ -30,7 +35,7 @@ function normalizeUrl(value, key) {
   } catch {
     throw new Error(`${key} harus berupa URL yang valid`);
   }
-  if (!['http:', 'https:'].includes(url.protocol)) {
+  if (!["http:", "https:"].includes(url.protocol)) {
     throw new Error(`${key} hanya mendukung HTTP atau HTTPS`);
   }
   return text.replace(/\/$/, "");
@@ -91,7 +96,7 @@ async function getLegacyEmailSetting() {
     .maybeSingle();
   if (error) return undefined;
   if (data?.value === undefined || data?.value === null || data?.value === "") return undefined;
-  return String(data.value).trim().toLowerCase() === "true";
+  return parseBoolean(data.value);
 }
 
 function displayValue(value, definition) {
@@ -99,7 +104,7 @@ function displayValue(value, definition) {
     if (Array.isArray(value)) return value.join(", ");
     return clean(value);
   }
-  if (definition.type === "boolean") return Boolean(value);
+  if (definition.type === "boolean") return parseBoolean(value);
   return clean(value);
 }
 
