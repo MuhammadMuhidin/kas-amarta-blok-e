@@ -88,6 +88,10 @@ export default function TelegramIntegrationHealthCard() {
 
   const config = status?.config || {};
   const notificationsEnabled = status?.auth_config?.telegram_notifications_enabled !== false;
+  const queuePushConfigured = Boolean(
+    status?.queue?.http_push_url_configured &&
+    status?.queue?.http_api_token_configured,
+  );
 
   return <>
     <Toast show={!!toast} type={toast?.type} message={toast?.message} />
@@ -102,7 +106,7 @@ export default function TelegramIntegrationHealthCard() {
         <Pill label="Chat ID" ready={config.chat_id_configured} />
         <Pill label="Webhook Secret" ready={config.webhook_secret_configured} />
         <Pill label={`Authorized Users: ${config.authorized_user_count || 0}`} ready={Number(config.authorized_user_count || 0) > 0} />
-        <Pill label="Queue Push" ready={status?.queue?.http_push_configured} />
+        <Pill label="Queue Push" ready={queuePushConfigured} />
       </div>
 
       <div style={styles.actions}>
