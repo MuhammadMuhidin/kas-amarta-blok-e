@@ -53,7 +53,6 @@ export default function TelegramIntegrationHealthCard() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [toast, setToast] = useState(null);
-  const [version, setVersion] = useState(0);
   const requestRef = useRef(null);
 
   function showToast(message, type = "success") {
@@ -104,7 +103,7 @@ export default function TelegramIntegrationHealthCard() {
   useEffect(() => {
     loadStatus();
     return () => requestRef.current?.abort();
-  }, [version]);
+  }, []);
 
   const config = status?.config || {};
   const telegramNotificationsEnabled = status?.auth_config?.telegram_notifications_enabled === true;
@@ -126,14 +125,6 @@ export default function TelegramIntegrationHealthCard() {
               {loading ? "Reading Telegram status..." : statusText(status)}
             </div>
           </div>
-          <button
-            type="button"
-            className="admin-small-btn"
-            disabled={loading || running}
-            onClick={() => setVersion((value) => value + 1)}
-          >
-            Refresh
-          </button>
         </div>
 
         <div style={styles.statusGrid}>
