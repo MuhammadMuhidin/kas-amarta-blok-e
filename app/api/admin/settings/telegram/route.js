@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { recordAdminActivity } from "@/lib/adminActivity";
-import { isAdministrator, unauthorized, validateCSRF } from "@/lib/auth";
+import { getAllowedAdminModules } from "@/lib/adminAccessMatrix";
+import { getCurrentAdminSession } from "@/lib/adminSession";
+import { forbidden, unauthorized, validateCSRF } from "@/lib/auth";
 import { formatJakartaDateTime } from "@/lib/localDate";
 import {
   getTelegramWebhookInfo,
@@ -18,7 +20,25 @@ import { getAuthConfigs } from "@/lib/webauth";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-async function integrationStatus() {
+const TEST_ACTIONS = new Set(["test_direct", "test_queue"]);
+const ADMIN_ONLY_ACTIONS = new Set(["register_webhook", "remove_webhook"]);
+const VALID_ACTIONS = new Set([...TEST_ACTIONS, ...ADMIN_ONLY_ACTIONS]);
+
+async function authorizeMonitoring(req) {
+  const session = await getCurrentAdminSession(req);
+  if (!session) return { response: unauthorized() };
+
+  const modules = await getAllowedAdminModules(session.access_role);
+  if (!modules.includes("monitoring")) {
+    return {
+      response: forbidden("Anda tidak memiliki akses ke Monitoring"),
+    };
+  }
+
+  return { session };
+}
+
+async function integrationStatus(session) {
   const [config, authConfig, queue] = await Promise.all([
     telegramConfigSummary(),
     getAuthConfigs(),
@@ -47,6 +67,10 @@ async function integrationStatus() {
     queue,
     webhook,
     webhook_error: webhookError,
+    permissions: {
+      can_run_tests: true,
+      can_manage_webhook: session?.access_role === "admin",
+    },
     auth_config: {
       telegram_notifications_enabled: authConfig.telegramNotificationsEnabled === true,
       telegram_approval_actions_enabled: authConfig.telegramActionsConfigured === true,
@@ -56,8 +80,10 @@ async function integrationStatus() {
 
 export async function GET(req) {
   try {
-    if (!(await isAdministrator(req))) return unauthorized();
-    return NextResponse.json(await integrationStatus());
+    const authorization = await authorizeMonitoring(req);
+    if (authorization.response) return authorization.response;
+
+    return NextResponse.json(await integrationStatus(authorization.session));
   } catch (error) {
     return NextResponse.json({ error: error.message || "Gagal membaca status Telegram" }, { status: 500 });
   }
@@ -65,11 +91,30 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    if (!(await isAdministrator(req))) return unauthorized();
+    const authorization = await authorizeMonitoring(req);
+    if (authorization.response) return authorization.response;
     if (!validateCSRF(req)) return NextResponse.json({ error: "CSRF tidak valid" }, { status: 403 });
 
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || "").trim().toLowerCase();
+
+    if (!VALID_ACTIONS.has(action)) {
+      return NextResponse.json({ error: "Telegram action tidak valid" }, { status: 400 });
+    }
+
+    if (ADMIN_ONLY_ACTIONS.has(action) && authorization.session.access_role !== "admin") {
+      return forbidden("Pengelolaan webhook Telegram hanya dapat dilakukan Administrator");
+    }
+
+    if (TEST_ACTIONS.has(action)) {
+      const config = await telegramConfigSummary();
+      if (!config.bot_token_configured || !config.chat_id_configured) {
+        return NextResponse.json(
+          { error: "Bot Token atau Chat ID Telegram belum dikonfigurasi" },
+          { status: 422 },
+        );
+      }
+    }
 
     let result;
     if (action === "register_webhook") {
@@ -87,11 +132,9 @@ export async function POST(req) {
           `<b>Waktu:</b> ${timestamp}`,
         ].join("\n"),
       });
-    } else if (action === "test_queue") {
+    } else {
       result = await queueTelegramTestNotification();
       if (!result.queued) throw new Error(result.reason || "Event test gagal dimasukkan ke Queue");
-    } else {
-      return NextResponse.json({ error: "Telegram action tidak valid" }, { status: 400 });
     }
 
     await recordAdminActivity(req, {
@@ -99,7 +142,11 @@ export async function POST(req) {
       module: "settings-telegram",
       severity: "success",
       message: `Telegram integration action ${action}`,
-      metadata: { action, queue_provider: result?.provider || "" },
+      metadata: {
+        action,
+        access_role: authorization.session.access_role,
+        queue_provider: result?.provider || "",
+      },
     });
 
     return NextResponse.json({ ok: true, result });
