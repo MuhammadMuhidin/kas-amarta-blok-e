@@ -9,6 +9,11 @@ export default function AdminSubtabs({
   ariaLabel = "Admin section navigation",
 }) {
   const [pending, startTransition] = useTransition();
+  const minimumColumnWidth = items.length >= 4
+    ? 118
+    : items.length === 3
+      ? 82
+      : 120;
 
   function select(nextValue) {
     if (nextValue === value || pending) return;
@@ -22,7 +27,7 @@ export default function AdminSubtabs({
       className="admin-subtabs"
       style={{
         ...styles.wrap,
-        gridTemplateColumns: `repeat(${Math.min(items.length, 4)}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(auto-fit, minmax(${minimumColumnWidth}px, 1fr))`,
       }}
     >
       {items.map((item) => {
@@ -78,13 +83,13 @@ const styles = {
   },
   button: {
     minWidth: 0,
-    minHeight: 54,
+    minHeight: 62,
     display: "inline-flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
-    padding: "8px 7px",
+    padding: "9px 8px",
     border: 0,
     borderRadius: 10,
     background: "transparent",
@@ -94,11 +99,15 @@ const styles = {
     cursor: "pointer",
   },
   label: {
+    display: "block",
     minWidth: 0,
     maxWidth: "100%",
     lineHeight: 1.2,
     textAlign: "center",
-    whiteSpace: "nowrap",
+    whiteSpace: "normal",
+    wordBreak: "normal",
+    overflowWrap: "normal",
+    hyphens: "none",
   },
   active: {
     background: "var(--admin-primary)",
