@@ -1,13 +1,25 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "amarta-residence-development",
-  "main": ".open-next/worker.js",
+  "main": "custom-worker.js",
   "compatibility_date": "2026-06-13",
   "compatibility_flags": [
     "nodejs_compat",
     "nodejs_compat_populate_process_env"
   ],
   "keep_vars": true,
+  "queues": {
+    "consumers": [
+      {
+        "queue": "amarta-notification-events",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 5,
+        "retry_delay": 60,
+        "dead_letter_queue": "amarta-notification-events-dlq"
+      }
+    ]
+  },
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

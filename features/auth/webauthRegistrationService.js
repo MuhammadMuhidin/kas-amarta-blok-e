@@ -5,12 +5,16 @@ import {
 import {
   getActiveCredential,
   getWebAuthConfig,
+  getWebAuthRpName,
   saveCredential,
 } from "@/lib/webauth";
 
 export async function createWebAuthRegistrationOptions() {
-  const { rpName, rpID } = getWebAuthConfig();
-  const activeCredential = await getActiveCredential();
+  const { rpID } = getWebAuthConfig();
+  const [rpName, activeCredential] = await Promise.all([
+    getWebAuthRpName(),
+    getActiveCredential(),
+  ]);
 
   return generateRegistrationOptions({
     rpName,

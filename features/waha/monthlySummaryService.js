@@ -1,10 +1,8 @@
 import { GET as getCashSummary } from "@/app/api/sheets/summary/route";
-import {
-  getWhatsAppWorkflowDefaults,
-  triggerWhatsAppWorkflow,
-} from "@/lib/whatsappWorkflow";
+import { getIntegrationConfigString } from "@/lib/integrationConfig";
+import { sendWaMessage } from "@/lib/waClient";
 
-const PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
+const FALLBACK_PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 
 async function getSummary() {
@@ -65,11 +63,7 @@ function isAdvanceExpense(cashflow) {
   const note = normalizeLower(cashflow?.note);
   const refId = normalizeLower(cashflow?.ref_id || cashflow?.payment_id);
 
-  return (
-    note.includes("talangan") ||
-    note.includes("advance") ||
-    refId.startsWith("trashadv-")
-  );
+  return note.includes("talangan") || note.includes("advance") || refId.startsWith("trashadv-");
 }
 
 function sumCashflows(items) {
@@ -82,13 +76,10 @@ function getCurrentExpenseBreakdown(data) {
   const trashAdvanceExpense = sumCashflows(expenseCashflows.filter(isAdvanceExpense));
   const operationalExpense = Math.max(0, sumCashflows(expenseCashflows) - trashAdvanceExpense);
 
-  return {
-    operationalExpense,
-    trashAdvanceExpense,
-  };
+  return { operationalExpense, trashAdvanceExpense };
 }
 
-function buildText(data) {
+function buildText(data, publicKasUrl) {
   const lastMonth = data?.insight?.lastMonth || {};
   const currentMonth = data?.insight?.currentMonth || {};
   const summary = data?.insight?.summary || {};
@@ -127,7 +118,7 @@ function buildText(data) {
     `Sisa saldo saat ini: ${money(summary.currentBalance)}`,
     "",
     "Rincian lengkap:",
-    PUBLIC_KAS_URL,
+    publicKasUrl,
     "",
     "Terima kasih.",
     "",
@@ -136,45 +127,44 @@ function buildText(data) {
 }
 
 export async function runMonthlySummaryWorkflow(body = {}) {
-  const summary = await getSummary();
-  const text = buildText(summary);
-  const defaults = getWhatsAppWorkflowDefaults();
+  const [summary, configuredChatId, configuredSessionId, appUrl] = await Promise.all([
+    getSummary(),
+    getIntegrationConfigString("WA_REPORT_CHAT_ID"),
+    getIntegrationConfigString("WA_SESSION_ID", "main"),
+    getIntegrationConfigString("APP_URL"),
+  ]);
+  const publicKasUrl = appUrl ? `${appUrl.replace(/\/$/, "")}/kas` : FALLBACK_PUBLIC_KAS_URL;
+  const text = buildText(summary, publicKasUrl);
   const period = String(body.period || getCurrentPeriod(summary));
-  const chatId = String(body.chatId || defaults.reportChatId || "").trim();
-  const sessionId = String(body.sessionId || defaults.sessionId || "main").trim();
-  const targetEnv = String(body.targetEnv || defaults.targetEnv || "development").trim();
+  const chatId = normalize(body.chatId || configuredChatId || process.env.WA_CHAT_ID);
+  const sessionId = normalize(configuredSessionId) || "main";
 
   if (body.preview === true) {
     return {
       ok: true,
       preview: true,
+      delivery: "external-api",
       source: "/api/sheets/summary",
       chatId,
       session: sessionId,
-      targetEnv,
       period,
       text,
     };
   }
 
-  const workflow = await triggerWhatsAppWorkflow({
+  await sendWaMessage({
     chatId,
-    message: text,
-    period,
-    sessionId,
-    targetEnv,
+    text,
     source: "admin-overview",
   });
 
   return {
     ok: true,
-    queued: true,
-    jobId: workflow.jobId,
-    workflow,
+    sent: true,
+    delivery: "external-api",
     source: "/api/sheets/summary",
     chatId,
     session: sessionId,
-    targetEnv,
     period,
     text,
   };

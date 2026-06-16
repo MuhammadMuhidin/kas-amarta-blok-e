@@ -1,353 +1,922 @@
-import { useEffect,useMemo,useState } from "react";
+"use client";
+
+import AdminSubtabs from "@/components/admin/AdminSubtabs";
 import MonitoringCard from "@/components/admin/MonitoringCard";
-import { sendJson } from "@/components/admin/adminClientApi";
+import TelegramIntegrationHealthCard from "@/components/admin/TelegramIntegrationHealthCard";
+import { getCookieValue, readJson, sendJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod } from "@/lib/depositUtils";
 import { formatJakartaDateTimeLong } from "@/lib/localDate";
+import { useEffect, useMemo, useRef, useState } from "react";
 
-function IssueTable({title,rows,columns}) {
-  if (!rows?.length) return null;
-  return <div className="admin-monitor-detail"><h3>{title}</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr>{columns.map((c)=><th key={c} className="admin-th">{c==="detail"?"Issue":c}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i} className={i%2?"admin-row-alt admin-clickable-row":"admin-clickable-row"}>{columns.map((c)=><td key={c} className="admin-td admin-issue-text">{r[c]}</td>)}</tr>)}</tbody></table></div></div>;
-}
+const PAGE_SIZE = 25;
+const EMPTY_ARRAY = [];
 
-function TrashIssueTable({rows,repairingPaymentId,onRepair}) {
-  if (!rows?.length) return null;
-  return <div className="admin-monitor-detail"><h3>Payment ⇄ Trash Integrity</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th className="admin-th">house</th><th className="admin-th">name</th><th className="admin-th">period</th><th className="admin-th">Issue</th><th className="admin-th">Action</th></tr></thead><tbody>{rows.map((row,i)=>{
-    const canRepair = row.type === "PAYMENT_WITHOUT_TRASH" && row.payment_id;
-    const repairing = repairingPaymentId === row.payment_id;
-    const rowClassName = [i%2?"admin-row-alt":"","admin-clickable-row",repairing?"monitoring-row-repairing":""].filter(Boolean).join(" ");
-    return <tr key={`${row.type}-${row.payment_id || row.house}-${row.period}-${i}`} className={rowClassName}><td className="admin-td admin-issue-text">{row.house}</td><td className="admin-td admin-issue-text">{row.name}</td><td className="admin-td admin-issue-text">{row.period}</td><td className="admin-td admin-issue-text">{row.detail}</td><td className="admin-td admin-issue-text">{canRepair ? <button type="button" className="admin-small-btn monitoring-repair-btn" disabled={repairing || Boolean(repairingPaymentId)} onClick={()=>onRepair(row)}>{repairing ? "Repairing..." : "Repair"}</button> : <span style={{color:"var(--admin-muted)",fontSize:12}}>Manual review</span>}</td></tr>;
-  })}</tbody></table></div></div>;
-}
-
-function ReimbursementIssueTable({rows,repairingPaymentId,onRepair}) {
-  if (!rows?.length) return null;
-  return <div className="admin-monitor-detail"><h3>Trash Advance ⇄ Reimbursement Integrity</h3><div className="admin-table-wrapper"><table className="admin-table"><thead><tr><th className="admin-th">house</th><th className="admin-th">name</th><th className="admin-th">period</th><th className="admin-th">Issue</th><th className="admin-th">Action</th></tr></thead><tbody>{rows.map((row,i)=>{
-    const canRepair = row.type === "MISSING_REIMBURSEMENT" && row.payment_id;
-    const repairing = repairingPaymentId === row.payment_id;
-    const rowClassName = [i%2?"admin-row-alt":"","admin-clickable-row",repairing?"monitoring-row-repairing":""].filter(Boolean).join(" ");
-    return <tr key={`${row.type}-${row.payment_id || row.house}-${row.period}-${i}`} className={rowClassName}><td className="admin-td admin-issue-text">{row.house}</td><td className="admin-td admin-issue-text">{row.name}</td><td className="admin-td admin-issue-text">{row.period}</td><td className="admin-td admin-issue-text">{row.detail}</td><td className="admin-td admin-issue-text">{canRepair ? <button type="button" className="admin-small-btn monitoring-repair-btn" disabled={repairing || Boolean(repairingPaymentId)} onClick={()=>onRepair(row)}>{repairing ? "Repairing..." : "Repair"}</button> : <span style={{color:"var(--admin-muted)",fontSize:12}}>Manual review</span>}</td></tr>;
-  })}</tbody></table></div></div>;
-}
-
-function Section({title,children}) {
-  return <div className="admin-monitor-section" style={{marginBottom:20}}><h2 style={{margin:"0 0 12px"}}>{title}</h2>{children}</div>;
-}
-
-const rupiah = (v) => new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(Number(v||0));
-const n = (v) => Number.isFinite(Number(v||0)) ? Number(v||0) : 0;
-const normalize = (v) => String(v || "").trim();
+const rupiah = (value) => new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  maximumFractionDigits: 0,
+}).format(Number(value || 0));
+const n = (value) => Number.isFinite(Number(value || 0)) ? Number(value || 0) : 0;
+const normalize = (value) => String(value || "").trim();
 const keyOf = (personId, period) => `${normalize(personId)}|${normalize(period)}`;
+
+function fmtTime(value) {
+  if (!value || value === "unknown") return value || "unknown";
+  return `${formatJakartaDateTimeLong(value, "id-ID")} WIB`;
+}
 
 function parseTrashAdvanceRefId(refId) {
   const parts = normalize(refId).split("-");
   if (parts.length < 4 || parts[0].toUpperCase() !== "TRASHADV") return null;
-
   const period = `${parts.at(-2)}-${parts.at(-1)}`;
   if (!/^\d{4}-\d{2}$/.test(period)) return null;
-
   const personId = parts.slice(1, -2).join("-");
-  if (!personId) return null;
-
-  return { personId, period };
+  return personId ? { personId, period } : null;
 }
 
 function parseTrashReimbursementRefId(refId) {
-  const normalized = normalize(refId);
+  const value = normalize(refId);
   const prefix = "TRASHREIMB-";
-  if (!normalized.toUpperCase().startsWith(prefix)) return null;
-  const paymentId = normalized.slice(prefix.length);
+  if (!value.toUpperCase().startsWith(prefix)) return null;
+  const paymentId = value.slice(prefix.length);
   return paymentId ? { paymentId } : null;
 }
 
-function getSettlement({cashflows,deposits,trashRecords,payments}) {
+function getSettlement({ cashflows, deposits, trashRecords, payments }) {
   const periodNow = getCurrentPeriod();
-  const recon = deposits.filter((d)=>String(d.status||"").toLowerCase()!=="paid").reduce((t,d)=>t+n(d.amount)+n(d.trash_amount),0);
-  const paymentById = new Map(payments.map((payment)=>[normalize(payment.id),payment]));
-  const trashPayments = trashRecords.map((trash)=>{
-    const payment = paymentById.get(normalize(trash.payment_id));
-    return { trash, payment };
-  }).filter(({payment})=>payment && normalize(payment.period) === periodNow);
-  const trashPaymentKeys = new Set(trashPayments.map(({payment})=>keyOf(payment.person_id, payment.period)));
-  const advanceRecords = cashflows.map((cashflow)=>{
-    const parsed = parseTrashAdvanceRefId(cashflow.ref_id);
-    return parsed ? { cashflow, ...parsed } : null;
-  }).filter((item)=>item && normalize(item.cashflow.type).toLowerCase()==="expense" && item.period === periodNow);
-  const reimbursementRecords = cashflows.map((cashflow)=>{
-    const parsed = parseTrashReimbursementRefId(cashflow.ref_id);
-    const payment = parsed ? paymentById.get(normalize(parsed.paymentId)) : null;
-    return payment ? { cashflow, payment } : null;
-  }).filter((item)=>item && normalize(item.cashflow.type).toLowerCase()==="income" && normalize(item.payment.period) === periodNow);
-  const advanceKeys = new Set(advanceRecords.map((item)=>keyOf(item.personId,item.period)));
-  const trashMonthlyReceived = trashPayments.reduce((total,{trash})=>total+n(trash.amount),0);
-  const trashReimbursed = reimbursementRecords.reduce((total,item)=>total+n(item.cashflow.amount),0);
-  const trashAdvanceOutstanding = advanceRecords.reduce((total,item)=>trashPaymentKeys.has(keyOf(item.personId,item.period)) ? total : total+n(item.cashflow.amount),0);
-  const trashPaidDirect = trashPayments.reduce((total,{trash,payment})=>advanceKeys.has(keyOf(payment.person_id,payment.period)) ? total : total+n(trash.amount),0);
+  const recon = deposits
+    .filter((deposit) => String(deposit.status || "").toLowerCase() !== "paid")
+    .reduce((total, deposit) => total + n(deposit.amount) + n(deposit.trash_amount), 0);
+  const paymentById = new Map(payments.map((payment) => [normalize(payment.id), payment]));
+  const trashPayments = trashRecords
+    .map((trash) => ({ trash, payment: paymentById.get(normalize(trash.payment_id)) }))
+    .filter(({ payment }) => payment && normalize(payment.period) === periodNow);
+  const trashPaymentKeys = new Set(
+    trashPayments.map(({ payment }) => keyOf(payment.person_id, payment.period)),
+  );
+  const advanceRecords = cashflows
+    .map((cashflow) => {
+      const parsed = parseTrashAdvanceRefId(cashflow.ref_id);
+      return parsed ? { cashflow, ...parsed } : null;
+    })
+    .filter((item) => item
+      && normalize(item.cashflow.type).toLowerCase() === "expense"
+      && item.period === periodNow);
+  const reimbursementRecords = cashflows
+    .map((cashflow) => {
+      const parsed = parseTrashReimbursementRefId(cashflow.ref_id);
+      const payment = parsed ? paymentById.get(normalize(parsed.paymentId)) : null;
+      return payment ? { cashflow, payment } : null;
+    })
+    .filter((item) => item
+      && normalize(item.cashflow.type).toLowerCase() === "income"
+      && normalize(item.payment.period) === periodNow);
+  const advanceKeys = new Set(
+    advanceRecords.map((item) => keyOf(item.personId, item.period)),
+  );
 
-  return {recon,trashMonthlyReceived,trashAdvanceOutstanding,trashReimbursed,trashPaidDirect};
+  return {
+    recon,
+    trashMonthlyReceived: trashPayments.reduce(
+      (total, { trash }) => total + n(trash.amount),
+      0,
+    ),
+    trashAdvanceOutstanding: advanceRecords.reduce(
+      (total, item) => trashPaymentKeys.has(keyOf(item.personId, item.period))
+        ? total
+        : total + n(item.cashflow.amount),
+      0,
+    ),
+    trashReimbursed: reimbursementRecords.reduce(
+      (total, item) => total + n(item.cashflow.amount),
+      0,
+    ),
+    trashPaidDirect: trashPayments.reduce(
+      (total, { trash, payment }) => advanceKeys.has(keyOf(payment.person_id, payment.period))
+        ? total
+        : total + n(trash.amount),
+      0,
+    ),
+  };
 }
 
-function fmtTime(value) {
-  if (!value || value==="unknown") return value || "unknown";
-  return `${formatJakartaDateTimeLong(value, "id-ID")} WIB`;
-}
-
-function BuildBadge({loading,buildInfo}) {
-  const ok = Boolean(buildInfo);
-  const text = loading ? "Checking build..." : ok ? `${String(buildInfo.platform||"UNKNOWN").toUpperCase()} - ${buildInfo.branch}` : "Build info not found";
-  const title = ok ? `Commit: ${buildInfo.commitShort}\nMessage: ${buildInfo.commitMessage||"unknown"}\nEnv: ${buildInfo.environment}\nBuilt: ${fmtTime(buildInfo.buildTime)}` : "";
-  const dotClassName = loading ? "monitoring-build-dot monitoring-build-dot-loading" : ok ? "monitoring-build-dot monitoring-build-dot-ok" : "monitoring-build-dot monitoring-build-dot-error";
-  return <div className="monitoring-build-badge" title={title} style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 10px",borderRadius:999,border:"1px solid var(--admin-border)",background:"var(--admin-row)",color:"var(--admin-muted)",fontSize:12,fontWeight:700,lineHeight:1.2,whiteSpace:"nowrap",position:"static",alignSelf:"flex-start",flexShrink:0}}>
-    <span className={dotClassName} />
-    <span>{text}</span>
-  </div>;
-}
-
-function AlertTestCard({loading,result,onSend}) {
-  const resultText = result?.message || "";
-  const resultColor = result?.type === "error" ? "#dc2626" : result?.type === "success" ? "#16a34a" : "var(--admin-muted)";
-
-  return <div className={loading ? "monitoring-alert-test-card monitoring-alert-test-card-loading" : "monitoring-alert-test-card"} style={{marginBottom:20,padding:16,borderRadius:16,border:"1px solid var(--admin-border)",background:"var(--admin-row)",display:"grid",gap:12}}>
-    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,flexWrap:"wrap"}}>
-      <div style={{minWidth:220,flex:"1 1 260px"}}>
-        <h3 style={{margin:"0 0 4px"}}>Alert Channel Test</h3>
-        <div style={{fontSize:13,color:"var(--admin-muted)",fontWeight:600,lineHeight:1.5}}>Send a test alert to WhatsApp and email to verify alert delivery.</div>
+function Pagination({ page, totalPages, totalRows, onChange }) {
+  if (totalPages <= 1) return null;
+  return (
+    <div style={styles.pagination}>
+      <span style={styles.paginationMeta}>
+        Page {page + 1} of {totalPages} · {totalRows.toLocaleString("id-ID")} rows
+      </span>
+      <div style={styles.paginationActions}>
+        <button
+          type="button"
+          className="admin-small-btn"
+          disabled={page <= 0}
+          onClick={() => onChange(Math.max(0, page - 1))}
+        >
+          Previous
+        </button>
+        <button
+          type="button"
+          className="admin-small-btn"
+          disabled={page >= totalPages - 1}
+          onClick={() => onChange(Math.min(totalPages - 1, page + 1))}
+        >
+          Next
+        </button>
       </div>
-      <button type="button" className="admin-small-btn admin-refresh-btn" disabled={loading} onClick={onSend} style={{minWidth:140}}>{loading ? "Sending..." : "Send Test Alert"}</button>
     </div>
-    {resultText && <div className="monitoring-alert-result" style={{fontSize:12,fontWeight:800,color:resultColor,lineHeight:1.5}}>{resultText}</div>}
-  </div>;
+  );
 }
 
-function DatabaseStatusCard({loading,connected,rows}) {
-  const items = [
-    {label:"Personal", value:rows.personal.length},
-    {label:"Payment", value:rows.payments.length},
-    {label:"Cashflow", value:rows.cashflows.length},
-    {label:"Trash", value:rows.trashRecords.length},
-    {label:"Deposit", value:rows.deposits.length},
-  ];
-  const totalRows = items.reduce((sum,item)=>sum+item.value,0);
-  const statusText = loading ? "Checking..." : connected ? "Connected" : "Need check";
-  const statusColor = loading ? "#64748b" : connected ? "#16a34a" : "#dc2626";
+function IssueTable({ title, rows = EMPTY_ARRAY, columns }) {
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const visibleRows = useMemo(
+    () => rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [rows, page],
+  );
 
-  return <div className="admin-status-card" style={{display:"grid",gap:14}}>
-    <div style={{display:"flex",justifyContent:"space-between",gap:12,alignItems:"flex-start"}}>
-      <div>
-        <div className="admin-status-label">Database API</div>
-        <div className={connected ? "admin-status-value" : "admin-status-error"} style={{fontSize:30,lineHeight:1.1,marginTop:4}}>{loading ? "..." : totalRows.toLocaleString("id-ID")}</div>
-        <div className="admin-status-meta">total rows loaded from Supabase</div>
+  useEffect(() => setPage(0), [rows]);
+  if (!rows.length) return null;
+
+  return (
+    <div className="admin-monitor-detail">
+      <h3>{title}</h3>
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              {columns.map((column) => (
+                <th key={column} className="admin-th">
+                  {column === "detail" ? "Issue" : column}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {visibleRows.map((row, index) => (
+              <tr
+                key={`${page}-${row.id || row.payment_id || row.house || row.row || index}`}
+                className={index % 2 ? "admin-row-alt" : ""}
+              >
+                {columns.map((column) => (
+                  <td key={column} className="admin-td admin-issue-text">
+                    {row[column] ?? "-"}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-      <div style={{display:"inline-flex",alignItems:"center",gap:7,border:`1px solid ${statusColor}33`,background:`${statusColor}12`,color:statusColor,borderRadius:999,padding:"7px 10px",fontSize:12,fontWeight:900,whiteSpace:"nowrap"}}>
-        <span style={{width:8,height:8,borderRadius:999,background:statusColor,display:"inline-block"}} />
-        {statusText}
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        totalRows={rows.length}
+        onChange={setPage}
+      />
+    </div>
+  );
+}
+
+function RepairIssueTable({ title, rows = EMPTY_ARRAY, runningId, onRepair, repairType }) {
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const visibleRows = useMemo(
+    () => rows.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE),
+    [rows, page],
+  );
+
+  useEffect(() => setPage(0), [rows]);
+  if (!rows.length) return null;
+
+  return (
+    <div className="admin-monitor-detail">
+      <h3>{title}</h3>
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th className="admin-th">House</th>
+              <th className="admin-th">Name</th>
+              <th className="admin-th">Period</th>
+              <th className="admin-th">Issue</th>
+              <th className="admin-th">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleRows.map((row, index) => {
+              const canRepair = row.type === repairType && row.payment_id;
+              const repairing = runningId === row.payment_id;
+              return (
+                <tr
+                  key={`${row.type}-${row.payment_id || row.house}-${row.period}-${index}`}
+                  className={index % 2 ? "admin-row-alt" : ""}
+                >
+                  <td className="admin-td">{row.house || "-"}</td>
+                  <td className="admin-td">{row.name || "-"}</td>
+                  <td className="admin-td">{row.period || "-"}</td>
+                  <td className="admin-td admin-issue-text">{row.detail || "-"}</td>
+                  <td className="admin-td">
+                    {canRepair ? (
+                      <button
+                        type="button"
+                        className="admin-small-btn"
+                        disabled={repairing || Boolean(runningId)}
+                        onClick={() => onRepair(row)}
+                      >
+                        {repairing ? "Repairing..." : "Repair"}
+                      </button>
+                    ) : (
+                      <span style={styles.muted}>Manual review</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <Pagination
+        page={page}
+        totalPages={totalPages}
+        totalRows={rows.length}
+        onChange={setPage}
+      />
+    </div>
+  );
+}
+
+function HealthPanel() {
+  const [version, setVersion] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [buildInfo, setBuildInfo] = useState(null);
+  const [receiptStorage, setReceiptStorage] = useState(null);
+  const requestRef = useRef(null);
+
+  useEffect(() => {
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    setLoading(true);
+    setError("");
+
+    Promise.allSettled([
+      readJson("/api/build-info", { signal: controller.signal }),
+      readJson("/api/health/receipt-storage", { signal: controller.signal }),
+    ])
+      .then(([buildResult, receiptResult]) => {
+        if (controller.signal.aborted || requestRef.current !== controller) return;
+        setBuildInfo(buildResult.status === "fulfilled" ? buildResult.value?.build || null : null);
+        setReceiptStorage(
+          receiptResult.status === "fulfilled"
+            ? receiptResult.value
+            : { ok: false, message: receiptResult.reason?.message || "Receipt health check failed" },
+        );
+        if (buildResult.status === "rejected" && receiptResult.status === "rejected") {
+          setError("System health checks could not be loaded.");
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && requestRef.current === controller) {
+          setLoading(false);
+        }
+      });
+
+    return () => controller.abort();
+  }, [version]);
+
+  const receiptOk = receiptStorage?.ok || receiptStorage?.status === "no_sample";
+  const receiptValue = loading
+    ? "Checking..."
+    : receiptStorage?.status === "no_sample"
+      ? "No sample"
+      : receiptStorage?.ok
+        ? "Reachable"
+        : "Unreachable";
+
+  return (
+    <div id="monitoring-overview-panel" role="tabpanel">
+      <div style={styles.panelHeader}>
+        <div>
+          <h3 style={styles.panelTitle}>Operational Overview</h3>
+          <p style={styles.muted}>Lightweight build and storage checks.</p>
+        </div>
+        <button
+          type="button"
+          className="admin-small-btn admin-refresh-btn"
+          disabled={loading}
+          onClick={() => setVersion((value) => value + 1)}
+        >
+          Refresh
+        </button>
+      </div>
+      {error && <div className="admin-error-box">{error}</div>}
+      <div className="admin-monitor-grid">
+        <MonitoringCard
+          label="Current Build"
+          value={loading
+            ? "Checking..."
+            : buildInfo
+              ? `${String(buildInfo.platform || "UNKNOWN").toUpperCase()} - ${buildInfo.branch}`
+              : "Build info unavailable"}
+          meta={buildInfo
+            ? [
+                `Commit: ${buildInfo.commitShort}`,
+                `Env: ${buildInfo.environment}`,
+                `Built: ${fmtTime(buildInfo.buildTime)}`,
+              ]
+            : []}
+          error={!loading && !buildInfo}
+        />
+        <MonitoringCard
+          label="Receipt Storage"
+          value={receiptValue}
+          meta={[receiptStorage?.message || "Checking public receipt access."]}
+          error={!loading && !receiptOk}
+        />
       </div>
     </div>
+  );
+}
 
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(92px,1fr))",gap:8}}>
-      {items.map((item)=><div key={item.label} style={{border:"1px solid var(--admin-border)",background:"var(--admin-row)",borderRadius:12,padding:"10px 11px"}}>
-        <div className="admin-status-label" style={{fontSize:11}}>{item.label}</div>
-        <div className="admin-status-value" style={{fontSize:21,lineHeight:1.15,marginTop:4}}>{loading ? "-" : item.value.toLocaleString("id-ID")}</div>
-        <div className="admin-status-meta">rows</div>
-      </div>)}
+function PhoneNumberModal({ open, value, loading, onChange, onCancel, onConfirm }) {
+  if (!open) return null;
+  return (
+    <div
+      role="presentation"
+      style={styles.modalOverlay}
+      onMouseDown={(event) => event.target === event.currentTarget && !loading && onCancel()}
+    >
+      <form
+        style={styles.modalBox}
+        onSubmit={(event) => {
+          event.preventDefault();
+          onConfirm();
+        }}
+      >
+        <div>
+          <h3 style={{ margin: "0 0 6px" }}>Confirm WhatsApp Number</h3>
+          <div style={styles.muted}>
+            The number is used temporarily to generate a pairing code when the session is disconnected.
+          </div>
+        </div>
+        <input
+          className="admin-input"
+          inputMode="tel"
+          autoComplete="tel"
+          placeholder="Example: 628123456789"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={loading}
+          autoFocus
+        />
+        <div style={styles.modalActions}>
+          <button type="button" className="admin-small-btn" disabled={loading} onClick={onCancel}>
+            Cancel
+          </button>
+          <button type="submit" className="admin-small-btn admin-refresh-btn" disabled={loading || !value.trim()}>
+            {loading ? "Starting..." : "Start Test"}
+          </button>
+        </div>
+      </form>
     </div>
-  </div>;
+  );
 }
 
-function getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch,trashAdvanceReimbursementIntegrity,depositPaymentIntegrity,suspiciousData}) {
-  const databaseOk = !loadingSettlement && (rows.personal.length + rows.cashflows.length + rows.deposits.length + rows.payments.length + rows.trashRecords.length) > 0;
-  const buildOk = Boolean(buildInfo);
-  const integrityIssueCount = paymentCashflowIntegrity.length + trashMismatch.length + trashAdvanceReimbursementIntegrity.length + depositPaymentIntegrity.length + suspiciousData.length;
-  const integrityOk = integrityIssueCount === 0;
-  const reportReady = databaseOk && buildOk;
-  return { databaseOk, buildOk, integrityOk, reportReady, integrityIssueCount };
-}
-
-function getReceiptStorageView(loading, data) {
-  if (loading) return { value: "Checking...", meta: ["Checking public access to R2 receipts."], error: false };
-  if (!data) return { value: "Need check", meta: ["Receipt health check is not available yet."], error: true };
-  if (data.status === "no_sample") return { value: "No receipt sample", meta: [data.message || "No receipt_url sample is available for automatic checking yet."], error: false };
-  if (data.ok) {
-    return { value: "Reachable", meta: [data.host ? `Host: ${data.host}` : "R2 public receipts are reachable.", data.status_code ? `HTTP ${data.status_code}` : data.message].filter(Boolean), error: false };
+function parseSseBlock(block, sessionId) {
+  const data = block
+    .split(/\r?\n/)
+    .filter((line) => line.trim().startsWith("data:"))
+    .map((line) => line.trim().slice(5).trim())
+    .join("\n");
+  const payload = data || block.trim();
+  if (!payload || payload.startsWith(":")) return null;
+  try {
+    const parsed = JSON.parse(payload);
+    const source = parsed?.event && typeof parsed.event === "object" ? parsed.event : parsed;
+    return {
+      ...source,
+      status: String(source?.status || source?.type || "INFO").trim().toUpperCase(),
+      sessionId: source?.sessionId || source?.session_id || sessionId,
+      code: source?.code || source?.pairingCode || source?.pairing_code || source?.data?.code || "",
+      message: source?.message || source?.error || "",
+      receivedAt: new Date().toISOString(),
+    };
+  } catch {
+    return null;
   }
-  return { value: "Unreachable", meta: [data.message || "R2 public receipts are not reachable.", data.status_code ? `HTTP ${data.status_code}` : "Residents may not be able to open receipts."], error: true };
 }
 
-export default function MonitoringTab({paymentCashflowIntegrity,trashMismatch,trashAdvanceReimbursementIntegrity,depositPaymentIntegrity,suspiciousData,onRepairComplete}) {
-  const [buildInfo,setBuildInfo] = useState(null);
-  const [loadingBuildInfo,setLoadingBuildInfo] = useState(false);
-  const [loadingSettlement,setLoadingSettlement] = useState(false);
-  const [loadingReceiptStorage,setLoadingReceiptStorage] = useState(false);
-  const [receiptStorage,setReceiptStorage] = useState(null);
-  const [repairingPaymentId,setRepairingPaymentId] = useState("");
-  const [repairingReimbursementPaymentId,setRepairingReimbursementPaymentId] = useState("");
-  const [repairedPaymentIds,setRepairedPaymentIds] = useState([]);
-  const [repairedReimbursementPaymentIds,setRepairedReimbursementPaymentIds] = useState([]);
-  const [sendingTestAlert,setSendingTestAlert] = useState(false);
-  const [testAlertResult,setTestAlertResult] = useState(null);
-  const [rows,setRows] = useState({personal:[],cashflows:[],deposits:[],payments:[],trashRecords:[]});
-  const displayedTrashMismatch = useMemo(()=>trashMismatch.filter((row)=>!repairedPaymentIds.includes(row.payment_id)),[trashMismatch,repairedPaymentIds]);
-  const displayedReimbursementIssues = useMemo(()=>trashAdvanceReimbursementIntegrity.filter((row)=>!repairedReimbursementPaymentIds.includes(row.payment_id)),[trashAdvanceReimbursementIntegrity,repairedReimbursementPaymentIds]);
-  const settlement = useMemo(()=>getSettlement(rows),[rows]);
-  const health = useMemo(()=>getHealthStatus({loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,trashMismatch: displayedTrashMismatch,trashAdvanceReimbursementIntegrity: displayedReimbursementIssues,depositPaymentIntegrity,suspiciousData}),[loadingSettlement,rows,buildInfo,paymentCashflowIntegrity,displayedTrashMismatch,displayedReimbursementIssues,depositPaymentIntegrity,suspiciousData]);
-  const receiptStorageView = useMemo(()=>getReceiptStorageView(loadingReceiptStorage,receiptStorage),[loadingReceiptStorage,receiptStorage]);
+async function readWhatsAppEventStream(response, onEvent) {
+  if (!response.body) throw new Error("External API did not return a response stream.");
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const sessionId = response.headers.get("x-wa-session-id") || "";
+  let buffer = "";
+  let count = 0;
 
-  async function handleRepairTrash(row) {
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+    const blocks = buffer.split(/\r?\n\r?\n/);
+    buffer = blocks.pop() || "";
+    for (const block of blocks) {
+      const event = parseSseBlock(block, sessionId);
+      if (event) {
+        count += 1;
+        onEvent(event);
+      }
+    }
+    if (done) break;
+  }
+
+  const finalEvent = parseSseBlock(buffer, sessionId);
+  if (finalEvent) {
+    count += 1;
+    onEvent(finalEvent);
+  }
+  return count;
+}
+
+function ServiceTestsPanel() {
+  const [testingWhatsApp, setTestingWhatsApp] = useState(false);
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [whatsappEvents, setWhatsappEvents] = useState([]);
+  const [emailResult, setEmailResult] = useState(null);
+
+  async function startWhatsAppTest() {
+    if (testingWhatsApp) return;
+    setTestingWhatsApp(true);
+    setWhatsappEvents([{
+      status: "CONNECTING",
+      message: "Connecting to the external WhatsApp API...",
+      receivedAt: new Date().toISOString(),
+    }]);
+
+    try {
+      const response = await fetch("/api/waha/test/whatsapp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-csrf-token": getCookieValue("csrf_token"),
+        },
+        body: JSON.stringify({ phoneNumber, period: getCurrentPeriod() }),
+      });
+      if (!response.ok) {
+        const raw = await response.text();
+        let message = raw;
+        try {
+          message = JSON.parse(raw)?.error || raw;
+        } catch {
+          // Keep the raw response.
+        }
+        throw new Error(message || "Failed to start WhatsApp test");
+      }
+
+      setPhoneModalOpen(false);
+      setPhoneNumber("");
+      const received = await readWhatsAppEventStream(response, (event) => {
+        setWhatsappEvents((previous) => [...previous, event].slice(-30));
+      });
+      if (!received) throw new Error("The external API returned no WhatsApp events.");
+    } catch (error) {
+      setWhatsappEvents((previous) => [...previous, {
+        status: "FAILED",
+        message: error.message || "WhatsApp test failed",
+        receivedAt: new Date().toISOString(),
+      }].slice(-30));
+    } finally {
+      setTestingWhatsApp(false);
+    }
+  }
+
+  async function testEmail() {
+    if (testingEmail) return;
+    setTestingEmail(true);
+    setEmailResult(null);
+    try {
+      const data = await sendJson("/api/waha/test/email", "POST", {
+        period: getCurrentPeriod(),
+      });
+      const email = data?.email || {};
+      if (email.ok) setEmailResult({ ok: true, message: "The test email was sent successfully." });
+      else if (email.skipped) setEmailResult({ ok: false, message: `Email test skipped: ${email.reason || "disabled"}.` });
+      else setEmailResult({ ok: false, message: `Email test failed: ${email.error || "unknown error"}.` });
+    } catch (error) {
+      setEmailResult({ ok: false, message: error.message || "Failed to send the test email" });
+    } finally {
+      setTestingEmail(false);
+    }
+  }
+
+  const pairingCode = [...whatsappEvents]
+    .reverse()
+    .find((event) => event.status === "PAIRING_CODE" && event.code)?.code || "";
+
+  return (
+    <div id="monitoring-services-panel" role="tabpanel">
+      <PhoneNumberModal
+        open={phoneModalOpen}
+        value={phoneNumber}
+        loading={testingWhatsApp}
+        onChange={setPhoneNumber}
+        onCancel={() => setPhoneModalOpen(false)}
+        onConfirm={startWhatsAppTest}
+      />
+      <div className="admin-status-card" style={styles.serviceCard}>
+        <div style={styles.panelHeader}>
+          <div>
+            <h3 style={styles.panelTitle}>Alert Channel Tests</h3>
+            <p style={styles.muted}>Only mounted while Service Tests is active.</p>
+          </div>
+          <div style={styles.serviceActions}>
+            <button
+              type="button"
+              className="admin-small-btn admin-refresh-btn"
+              disabled={testingWhatsApp}
+              onClick={() => setPhoneModalOpen(true)}
+            >
+              {testingWhatsApp ? "Testing WhatsApp..." : "Test WhatsApp"}
+            </button>
+            <button
+              type="button"
+              className="admin-small-btn admin-refresh-btn"
+              disabled={testingEmail}
+              onClick={testEmail}
+            >
+              {testingEmail ? "Testing Email..." : "Test Email"}
+            </button>
+          </div>
+        </div>
+
+        {pairingCode && (
+          <div style={styles.pairingBox}>
+            <strong>Pairing Code: {pairingCode}</strong>
+            <button
+              type="button"
+              className="admin-small-btn"
+              onClick={() => navigator.clipboard?.writeText(pairingCode)}
+            >
+              Copy Code
+            </button>
+          </div>
+        )}
+
+        {whatsappEvents.length > 0 && (
+          <div style={styles.eventList}>
+            {whatsappEvents.slice(-8).map((event, index) => (
+              <div key={`${event.status}-${event.receivedAt}-${index}`} style={styles.eventRow}>
+                <strong>{event.status}</strong>
+                <span>{event.message || event.sessionId || ""}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {emailResult && (
+          <div className={emailResult.ok ? "admin-success-box" : "admin-error-box"}>
+            {emailResult.message}
+          </div>
+        )}
+
+        <TelegramIntegrationHealthCard />
+      </div>
+    </div>
+  );
+}
+
+export default function MonitoringTab({
+  paymentCashflowIntegrity = EMPTY_ARRAY,
+  trashMismatch = EMPTY_ARRAY,
+  trashAdvanceReimbursementIntegrity = EMPTY_ARRAY,
+  depositPaymentIntegrity = EMPTY_ARRAY,
+  suspiciousData = EMPTY_ARRAY,
+  personal = EMPTY_ARRAY,
+  payments = EMPTY_ARRAY,
+  trashRecords = EMPTY_ARRAY,
+  cashflows = EMPTY_ARRAY,
+  deposits = EMPTY_ARRAY,
+  loading = false,
+  error = "",
+  onRefresh,
+  onRepairComplete,
+}) {
+  const [activePanel, setActivePanel] = useState("overview");
+  const [repairingPaymentId, setRepairingPaymentId] = useState("");
+  const [repairingReimbursementPaymentId, setRepairingReimbursementPaymentId] = useState("");
+  const [repairedPaymentIds, setRepairedPaymentIds] = useState([]);
+  const [repairedReimbursementPaymentIds, setRepairedReimbursementPaymentIds] = useState([]);
+
+  const displayedTrashMismatch = useMemo(
+    () => trashMismatch.filter((row) => !repairedPaymentIds.includes(row.payment_id)),
+    [trashMismatch, repairedPaymentIds],
+  );
+  const displayedReimbursementIssues = useMemo(
+    () => trashAdvanceReimbursementIntegrity.filter(
+      (row) => !repairedReimbursementPaymentIds.includes(row.payment_id),
+    ),
+    [trashAdvanceReimbursementIntegrity, repairedReimbursementPaymentIds],
+  );
+  const integrityIssueCount = useMemo(
+    () => paymentCashflowIntegrity.length
+      + displayedTrashMismatch.length
+      + displayedReimbursementIssues.length
+      + depositPaymentIntegrity.length
+      + suspiciousData.length,
+    [
+      paymentCashflowIntegrity,
+      displayedTrashMismatch,
+      displayedReimbursementIssues,
+      depositPaymentIntegrity,
+      suspiciousData,
+    ],
+  );
+  const settlement = useMemo(
+    () => activePanel === "settlement"
+      ? getSettlement({ cashflows, deposits, trashRecords, payments })
+      : null,
+    [activePanel, cashflows, deposits, trashRecords, payments],
+  );
+
+  async function repairTrash(row) {
     if (!row?.payment_id || repairingPaymentId) return;
     setRepairingPaymentId(row.payment_id);
     try {
       await sendJson("/api/sheets/trash/repair", "POST", { payment_id: row.payment_id });
-      setRepairedPaymentIds((prev)=>prev.includes(row.payment_id) ? prev : [...prev,row.payment_id]);
+      setRepairedPaymentIds((previous) => [...new Set([...previous, row.payment_id])]);
       await onRepairComplete?.();
     } finally {
       setRepairingPaymentId("");
     }
   }
 
-  async function handleRepairReimbursement(row) {
+  async function repairReimbursement(row) {
     if (!row?.payment_id || repairingReimbursementPaymentId) return;
     setRepairingReimbursementPaymentId(row.payment_id);
     try {
-      await sendJson("/api/sheets/trash/reimbursement-repair", "POST", { payment_id: row.payment_id });
-      setRepairedReimbursementPaymentIds((prev)=>prev.includes(row.payment_id) ? prev : [...prev,row.payment_id]);
+      await sendJson("/api/sheets/trash/reimbursement-repair", "POST", {
+        payment_id: row.payment_id,
+      });
+      setRepairedReimbursementPaymentIds((previous) => [
+        ...new Set([...previous, row.payment_id]),
+      ]);
       await onRepairComplete?.();
     } finally {
       setRepairingReimbursementPaymentId("");
     }
   }
 
-  async function handleSendTestAlert() {
-    if (sendingTestAlert) return;
-    setSendingTestAlert(true);
-    setTestAlertResult(null);
-
-    try {
-      const period = getCurrentPeriod();
-      const data = await sendJson("/api/waha/workflow", "POST", {
-        period,
-        source: "admin-test-alert",
-        message: `[TEST] Admin alert channel test for ${period}. WhatsApp and email alert delivery should be verified from Monitoring.`,
-        emailSubject: `[TEST] Amarta Admin Alert - ${period}`,
-      });
-      const emailStatus = data?.email?.ok ? " Email sent." : data?.email?.skipped ? ` Email skipped: ${data.email.reason}.` : data?.email?.error ? ` Email failed: ${data.email.error}.` : "";
-      setTestAlertResult({type:data?.email?.error ? "error" : "success",message:`Test alert sent to WhatsApp.${emailStatus}`});
-    } catch (error) {
-      setTestAlertResult({type:"error",message:error.message || "Failed to send test alert"});
-    } finally {
-      setSendingTestAlert(false);
-    }
-  }
-
-  useEffect(()=>{
-    let active = true;
-    async function loadSettlement() {
-      setLoadingSettlement(true);
-      try {
-        const endpoints = ["personal","payment","cashflow","trash","deposit"];
-        const res = await Promise.all(endpoints.map((x)=>fetch(`/api/sheets/${x}`,{cache:"no-store"})));
-        const data = await Promise.all(res.map((r)=>r.json()));
-        if (active) setRows({
-          personal:Array.isArray(data[0])?data[0]:[],
-          payments:Array.isArray(data[1])?data[1]:[],
-          cashflows:Array.isArray(data[2])?data[2]:[],
-          trashRecords:Array.isArray(data[3])?data[3]:[],
-          deposits:Array.isArray(data[4])?data[4]:[],
-        });
-      } catch {
-        if (active) setRows({personal:[],cashflows:[],deposits:[],payments:[],trashRecords:[]});
-      } finally {
-        if (active) setLoadingSettlement(false);
-      }
-    }
-    loadSettlement();
-    return ()=>{active=false};
-  },[]);
-
-  useEffect(()=>{
-    let active = true;
-    async function loadBuildInfo() {
-      setLoadingBuildInfo(true);
-      try {
-        const res = await fetch("/api/build-info",{cache:"no-store"});
-        const data = await res.json();
-        if (active) setBuildInfo(data?.build||null);
-      } catch {
-        if (active) setBuildInfo(null);
-      } finally {
-        if (active) setLoadingBuildInfo(false);
-      }
-    }
-    loadBuildInfo();
-    return ()=>{active=false};
-  },[]);
-
-  useEffect(()=>{
-    let active = true;
-    async function loadReceiptStorage() {
-      setLoadingReceiptStorage(true);
-      try {
-        const res = await fetch("/api/health/receipt-storage",{cache:"no-store"});
-        const data = await res.json();
-        if (active) setReceiptStorage(data);
-      } catch (error) {
-        if (active) setReceiptStorage({ok:false,status:"error",message:error.message || "Failed to check R2 public receipts."});
-      } finally {
-        if (active) setLoadingReceiptStorage(false);
-      }
-    }
-    loadReceiptStorage();
-    return ()=>{active=false};
-  },[]);
-
-  return <div className="admin-card">
-    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:10,marginBottom:18,flexWrap:"wrap",position:"static"}}>
-      <div>
-        <h2 style={{margin:"0 0 4px"}}>Monitoring</h2>
-        <div style={{fontSize:13,color:"var(--admin-muted)",fontWeight:600}}>Settlement, system status, and data quality.</div>
+  return (
+    <div className="admin-card">
+      <div style={styles.pageHeader}>
+        <div>
+          <h2 style={{ margin: "0 0 4px" }}>Monitoring</h2>
+          <p style={styles.muted}>System health, data integrity, settlement, and channel tests.</p>
+        </div>
+        <button
+          type="button"
+          className="admin-small-btn admin-refresh-btn"
+          disabled={loading}
+          onClick={() => onRefresh?.()}
+        >
+          {loading ? "Refreshing..." : "Refresh Data"}
+        </button>
       </div>
-      <BuildBadge loading={loadingBuildInfo} buildInfo={buildInfo} />
+
+      {error && <div className="admin-error-box">{error}</div>}
+
+      <AdminSubtabs
+        value={activePanel}
+        onChange={setActivePanel}
+        ariaLabel="Monitoring navigation"
+        items={[
+          { value: "overview", label: "Overview", panelId: "monitoring-overview-panel" },
+          {
+            value: "integrity",
+            label: "Data Integrity",
+            badge: integrityIssueCount,
+            panelId: "monitoring-integrity-panel",
+          },
+          { value: "settlement", label: "Settlement", panelId: "monitoring-settlement-panel" },
+          { value: "services", label: "Service Tests", panelId: "monitoring-services-panel" },
+        ]}
+      />
+
+      {activePanel === "overview" && <HealthPanel />}
+
+      {activePanel === "integrity" && (
+        <div id="monitoring-integrity-panel" role="tabpanel">
+          {loading && <div className="admin-empty-state">Refreshing integrity data...</div>}
+          <div className="admin-monitor-grid" style={{ marginBottom: 18 }}>
+            <MonitoringCard
+              label="Payment ⇄ Cashflow"
+              value={`${paymentCashflowIntegrity.length} issue`}
+              meta={[paymentCashflowIntegrity.length ? "Need review" : "Clean"]}
+              error={paymentCashflowIntegrity.length > 0}
+            />
+            <MonitoringCard
+              label="Payment ⇄ Deposit"
+              value={`${depositPaymentIntegrity.length} issue`}
+              meta={[depositPaymentIntegrity.length ? "Need review" : "Clean"]}
+              error={depositPaymentIntegrity.length > 0}
+            />
+            <MonitoringCard
+              label="Payment ⇄ Trash"
+              value={`${displayedTrashMismatch.length} issue`}
+              meta={[displayedTrashMismatch.length ? "Need review" : "Clean"]}
+              error={displayedTrashMismatch.length > 0}
+            />
+            <MonitoringCard
+              label="Trash Reimbursement"
+              value={`${displayedReimbursementIssues.length} issue`}
+              meta={[displayedReimbursementIssues.length ? "Need review" : "Clean"]}
+              error={displayedReimbursementIssues.length > 0}
+            />
+            <MonitoringCard
+              label="Suspicious Data"
+              value={`${suspiciousData.length} issue`}
+              meta={[suspiciousData.length ? "Need review" : "Clean"]}
+              error={suspiciousData.length > 0}
+            />
+          </div>
+
+          <IssueTable
+            title="Payment ⇄ Cashflow Integrity"
+            rows={paymentCashflowIntegrity}
+            columns={["house", "name", "period", "type", "detail"]}
+          />
+          <IssueTable
+            title="Payment ⇄ Deposit Integrity"
+            rows={depositPaymentIntegrity}
+            columns={["house", "name", "period", "type", "detail"]}
+          />
+          <RepairIssueTable
+            title="Payment ⇄ Trash Integrity"
+            rows={displayedTrashMismatch}
+            runningId={repairingPaymentId}
+            onRepair={repairTrash}
+            repairType="PAYMENT_WITHOUT_TRASH"
+          />
+          <RepairIssueTable
+            title="Trash Advance ⇄ Reimbursement Integrity"
+            rows={displayedReimbursementIssues}
+            runningId={repairingReimbursementPaymentId}
+            onRepair={repairReimbursement}
+            repairType="MISSING_REIMBURSEMENT"
+          />
+          <IssueTable
+            title="Suspicious Data"
+            rows={suspiciousData}
+            columns={["sheet", "row", "type", "detail"]}
+          />
+        </div>
+      )}
+
+      {activePanel === "settlement" && (
+        <div id="monitoring-settlement-panel" role="tabpanel">
+          {loading ? (
+            <div className="admin-empty-state">Refreshing settlement data...</div>
+          ) : error ? (
+            <div className="admin-error-box">Settlement cannot be calculated until monitoring data loads successfully.</div>
+          ) : (
+            <>
+              <div className="admin-monitor-grid">
+                <MonitoringCard
+                  label="Database Dataset"
+                  value={`${personal.length + payments.length + cashflows.length + trashRecords.length + deposits.length} rows`}
+                  meta={[
+                    `Personal ${personal.length}`,
+                    `Payment ${payments.length}`,
+                    `Cashflow ${cashflows.length}`,
+                    `Trash ${trashRecords.length}`,
+                    `Deposit ${deposits.length}`,
+                  ]}
+                />
+                <MonitoringCard
+                  label="Reconciliation Balance"
+                  value={rupiah(settlement?.recon)}
+                  meta={["Total unpaid booking payments."]}
+                />
+                <MonitoringCard
+                  label="Monthly Trash Received"
+                  value={rupiah(settlement?.trashMonthlyReceived)}
+                  meta={["Trash payments received for the current period."]}
+                />
+                <MonitoringCard
+                  label="Trash Advance Outstanding"
+                  value={rupiah(settlement?.trashAdvanceOutstanding)}
+                  meta={["Advanced trash fees not reimbursed yet."]}
+                  error={Number(settlement?.trashAdvanceOutstanding || 0) > 0}
+                />
+                <MonitoringCard
+                  label="Trash Reimbursed"
+                  value={rupiah(settlement?.trashReimbursed)}
+                  meta={["Recorded reimbursement income."]}
+                />
+                <MonitoringCard
+                  label="Trash Paid Direct"
+                  value={rupiah(settlement?.trashPaidDirect)}
+                  meta={["Trash fees paid without prior advance."]}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {activePanel === "services" && <ServiceTestsPanel />}
     </div>
-
-    <AlertTestCard loading={sendingTestAlert} result={testAlertResult} onSend={handleSendTestAlert} />
-
-    <Section title="Operational Health Check">
-      <div className="admin-monitor-grid">
-        <DatabaseStatusCard loading={loadingSettlement} connected={health.databaseOk} rows={rows} />
-        <MonitoringCard label="Integrity Health" value={health.integrityOk?"Clean":`${health.integrityIssueCount} issue`} meta={[health.integrityOk?"No integrity issue detected.":"There are issues that need review."]} error={!health.integrityOk} />
-        <MonitoringCard label="Report Readiness" value={health.reportReady?"Ready":"At risk"} meta={[health.reportReady?"Data and build metadata are available for reports.":"Reports may fail if data/build status is unhealthy."]} error={!health.reportReady} />
-        <MonitoringCard label="Receipt Storage" value={receiptStorageView.value} meta={receiptStorageView.meta} error={receiptStorageView.error} />
-      </div>
-    </Section>
-
-    <Section title="Settlement">
-      <div className="admin-monitor-grid">
-        <MonitoringCard label="Reconciliation Balance" value={loadingSettlement?"Checking...":rupiah(settlement.recon)} meta={["Total unpaid booking payments."]} />
-        <MonitoringCard label="Monthly Trash Received" value={loadingSettlement?"Checking...":rupiah(settlement.trashMonthlyReceived)} meta={["Trash fee payments received for the current period."]} />
-        <MonitoringCard label="Trash Advance Outstanding" value={loadingSettlement?"Checking...":rupiah(settlement.trashAdvanceOutstanding)} meta={["Advanced trash fees not reimbursed by residents yet."]} error={!loadingSettlement && settlement.trashAdvanceOutstanding > 0} />
-        <MonitoringCard label="Trash Reimbursed" value={loadingSettlement?"Checking...":rupiah(settlement.trashReimbursed)} meta={["Recorded reimbursement income from trash advance."]} />
-        <MonitoringCard label="Trash Paid Direct" value={loadingSettlement?"Checking...":rupiah(settlement.trashPaidDirect)} meta={["Trash fees paid without prior cash advance."]} />
-      </div>
-    </Section>
-
-    <Section title="System Status">
-      <div className="admin-monitor-grid">
-        <MonitoringCard label="Current Build" value={loadingBuildInfo?"Checking...":buildInfo?`${String(buildInfo.platform||"UNKNOWN").toUpperCase()} - ${buildInfo.branch}`:"Build info not found"} meta={buildInfo?[`Commit: ${buildInfo.commitShort}`,`Message: ${buildInfo.commitMessage||"unknown"}`,`Env: ${buildInfo.environment}`,`Built: ${fmtTime(buildInfo.buildTime)}`]:[]} error={!loadingBuildInfo&&!buildInfo} />
-      </div>
-    </Section>
-
-    <Section title="Integrity & Data Quality">
-      <div className="admin-monitor-grid">
-        <MonitoringCard label="Payment ⇄ Cashflow Integrity" value={`${paymentCashflowIntegrity.length} issue`} meta={[paymentCashflowIntegrity.length===0?"No issue detected":"Need review"]} />
-        <MonitoringCard label="Payment ⇄ Deposit Integrity" value={`${depositPaymentIntegrity.length} issue`} meta={[depositPaymentIntegrity.length===0?"No issue detected":"Need review"]} />
-        <MonitoringCard label="Payment ⇄ Trash Integrity" value={`${displayedTrashMismatch.length} issue`} meta={[displayedTrashMismatch.length===0?"No issue detected":"Need review"]} />
-        <MonitoringCard label="Trash Advance ⇄ Reimbursement Integrity" value={`${displayedReimbursementIssues.length} issue`} meta={[displayedReimbursementIssues.length===0?"No issue detected":"Need review"]} />
-        <MonitoringCard label="Data Quality Check" value={`${suspiciousData.length} issue`} meta={[suspiciousData.length===0?"No suspicious data":"Need review"]} />
-      </div>
-    </Section>
-
-    <IssueTable title="Payment ⇄ Cashflow Integrity" rows={paymentCashflowIntegrity} columns={["house","name","period","type","detail"]} />
-    <IssueTable title="Payment ⇄ Deposit Integrity" rows={depositPaymentIntegrity} columns={["house","name","period","type","detail"]} />
-    <TrashIssueTable rows={displayedTrashMismatch} repairingPaymentId={repairingPaymentId} onRepair={handleRepairTrash} />
-    <ReimbursementIssueTable rows={displayedReimbursementIssues} repairingPaymentId={repairingReimbursementPaymentId} onRepair={handleRepairReimbursement} />
-    <IssueTable title="Suspicious Data" rows={suspiciousData} columns={["sheet","row","type","detail"]} />
-  </div>;
+  );
 }
+
+const styles = {
+  pageHeader: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+    marginBottom: 16,
+  },
+  panelHeader: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+    marginBottom: 14,
+  },
+  panelTitle: { margin: 0 },
+  muted: {
+    margin: "4px 0 0",
+    color: "var(--admin-muted)",
+    fontSize: 12,
+    lineHeight: 1.5,
+  },
+  pagination: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    flexWrap: "wrap",
+    marginTop: 10,
+  },
+  paginationMeta: {
+    color: "var(--admin-muted)",
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  paginationActions: { display: "flex", gap: 8 },
+  serviceCard: { display: "grid", gap: 14 },
+  serviceActions: { display: "flex", gap: 8, flexWrap: "wrap" },
+  eventList: { display: "grid", gap: 6 },
+  eventRow: {
+    display: "grid",
+    gridTemplateColumns: "minmax(100px,auto) minmax(0,1fr)",
+    gap: 10,
+    padding: "8px 10px",
+    border: "1px solid var(--admin-border)",
+    borderRadius: 10,
+    background: "var(--admin-row)",
+    fontSize: 12,
+  },
+  pairingBox: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 10,
+    flexWrap: "wrap",
+    padding: 12,
+    border: "1px dashed #d97706",
+    borderRadius: 12,
+  },
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 1000,
+    display: "grid",
+    placeItems: "center",
+    padding: 18,
+    background: "rgba(15,23,42,.58)",
+  },
+  modalBox: {
+    width: "min(100%,430px)",
+    display: "grid",
+    gap: 14,
+    padding: 20,
+    border: "1px solid var(--admin-border)",
+    borderRadius: 18,
+    background: "var(--admin-card)",
+    boxShadow: "0 22px 60px rgba(15,23,42,.3)",
+  },
+  modalActions: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2,minmax(0,1fr))",
+    gap: 10,
+  },
+};

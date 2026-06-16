@@ -1,36 +1,24 @@
 import { getLatestReceiptUrl } from "@/features/health/receiptStorageRepository";
+import { getIntegrationConfigString } from "@/lib/integrationConfig";
 
 const RECEIPT_PREFIX = "/cashflow-receipts/";
 const CHECK_TIMEOUT_MS = 5000;
 
-function getConfiguredPublicUrl() {
-  return process.env.R2_PUBLIC_URL || process.env.CLOUDFLARE_R2_PUBLIC_URL || "";
-}
-
-function normalizeReceiptUrl(value) {
+async function normalizeReceiptUrl(value) {
   const rawUrl = String(value || "").trim();
-
   if (!rawUrl) return null;
 
   const url = new URL(rawUrl);
-
   if (url.protocol !== "https:") {
     throw new Error("URL nota harus menggunakan HTTPS");
   }
-
-  if (url.username || url.password) {
-    throw new Error("URL nota tidak valid");
-  }
-
   if (!url.pathname.startsWith(RECEIPT_PREFIX)) {
     throw new Error("Path nota tidak valid");
   }
 
-  const configuredPublicUrl = getConfiguredPublicUrl();
-
+  const configuredPublicUrl = await getIntegrationConfigString("R2_PUBLIC_URL");
   if (configuredPublicUrl) {
     const configured = new URL(configuredPublicUrl);
-
     if (url.hostname !== configured.hostname) {
       throw new Error("Host nota tidak sesuai konfigurasi R2 public URL");
     }
@@ -49,9 +37,7 @@ async function testPublicReceiptAccess(url) {
     const res = await fetch(url.toString(), {
       method: "GET",
       cache: "no-store",
-      headers: {
-        Range: "bytes=0-0",
-      },
+      headers: { Range: "bytes=0-0" },
       signal: controller.signal,
     });
 
@@ -67,7 +53,6 @@ async function testPublicReceiptAccess(url) {
 
 export async function checkReceiptStorageHealth() {
   const receiptUrl = await getLatestReceiptUrl();
-
   if (!receiptUrl) {
     return {
       ok: true,
@@ -76,7 +61,7 @@ export async function checkReceiptStorageHealth() {
     };
   }
 
-  const url = normalizeReceiptUrl(receiptUrl);
+  const url = await normalizeReceiptUrl(receiptUrl);
   const result = await testPublicReceiptAccess(url);
 
   if (!result.reachable) {

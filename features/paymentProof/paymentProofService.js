@@ -1,8 +1,9 @@
 import { getAppConfig } from "@/lib/appConfig";
+import { getIntegrationConfigString } from "@/lib/integrationConfig";
 import { generateId } from "@/lib/id";
 import { uploadPaymentProof } from "@/lib/r2Upload";
 import { sendAlertEmail } from "@/lib/emailAlert";
-import { getJakartaDateString } from "@/lib/localDate";
+import { formatJakartaDateTime, getJakartaDateString } from "@/lib/localDate";
 import { recordAdminActivity } from "@/lib/adminActivity";
 import { recordPayment } from "@/features/payment/paymentService";
 import {
@@ -16,6 +17,11 @@ import {
   updatePaymentProof,
 } from "@/features/paymentProof/paymentProofRepository";
 
+const MONTH_NAMES = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
 function normalize(value) {
   return String(value || "").trim();
 }
@@ -26,6 +32,18 @@ function normalizeUpper(value) {
 
 function money(value) {
   return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
+}
+
+function formatPeriod(value) {
+  const normalized = normalize(value);
+  const match = /^(\d{4})-(\d{2})$/.exec(normalized);
+  if (!match) return normalized || "-";
+  const month = MONTH_NAMES[Number(match[2]) - 1];
+  return month ? `${month} ${match[1]}` : normalized;
+}
+
+function formatSubmittedAt(value) {
+  return value ? `${formatJakartaDateTime(value, "id-ID")} WIB` : "-";
 }
 
 function isActiveMember(member) {
@@ -49,9 +67,14 @@ function getFileName(file) {
   return normalize(file?.name);
 }
 
-function getAppBaseUrl() {
-  return normalize(process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || process.env.VERCEL_PROJECT_PRODUCTION_URL)
-    .replace(/\/$/, "");
+function getActivityContext({ actor, actorRole, source, actorMetadata }) {
+  const role = normalize(actorRole).toLowerCase() || "admin";
+  return {
+    actor: normalize(actor) || role,
+    role,
+    source: normalize(source) || "web",
+    metadata: actorMetadata && typeof actorMetadata === "object" ? actorMetadata : {},
+  };
 }
 
 async function getConfiguredMonthlyFee() {
@@ -78,40 +101,40 @@ function withPaymentVerificationBreakdown(proof, member, appConfig) {
   };
 }
 
-function buildPaymentProofAlertMessage({ proof, member, appConfig }) {
+function buildPaymentProofAlertMessage({ proof, member, appConfig, appBaseUrl }) {
   const enrichedProof = withPaymentVerificationBreakdown(proof, member, appConfig);
-  const appBaseUrl = getAppBaseUrl();
-  const adminUrl = appBaseUrl ? `${appBaseUrl}/admin` : "";
+  const adminUrl = appBaseUrl ? `${appBaseUrl.replace(/\/$/, "")}/admin` : "";
 
   return [
-    "Ada bukti pembayaran baru yang perlu diverifikasi admin.",
+    "Bukti Pembayaran Baru",
     "",
     `Rumah: ${proof.person_house}`,
     `Nama: ${proof.person_name || "-"}`,
-    `Periode: ${proof.period}`,
+    `Periode: ${formatPeriod(proof.period)}`,
     `Kas: ${money(enrichedProof.cash_amount)}`,
     `Sampah: ${enrichedProof.trash_amount > 0 ? money(enrichedProof.trash_amount) : "-"}`,
-    `Total untuk dicocokkan: ${money(enrichedProof.total_amount)}`,
-    `Waktu submit: ${proof.submitted_at || "-"}`,
+    `Total: ${money(enrichedProof.total_amount)}`,
+    "Status: Menunggu Verifikasi",
+    `Dikirim: ${formatSubmittedAt(proof.submitted_at)}`,
     "",
-    adminUrl ? `Buka admin: ${adminUrl}` : "Buka dashboard admin untuk review bukti pembayaran.",
+    adminUrl ? `Tinjau di Admin:\n${adminUrl}` : "Tinjau melalui dashboard Admin.",
   ].join("\n");
 }
 
 async function notifyAdminPaymentProofSubmitted({ proof, member, appConfig }) {
-  const message = buildPaymentProofAlertMessage({ proof, member, appConfig });
+  const appBaseUrl = await getIntegrationConfigString("APP_URL");
+  const message = buildPaymentProofAlertMessage({ proof, member, appConfig, appBaseUrl });
+  const fallbackName = `bukti-pembayaran-${proof.person_house}-${proof.period}`;
 
-  try {
-    return await sendAlertEmail({
-      message,
-      period: proof.period,
-      source: "payment-proof-upload",
-      subject: `[Amarta Kas] Bukti pembayaran masuk - ${proof.person_house} ${proof.period}`,
-    });
-  } catch (error) {
-    console.error("Gagal mengirim email alert bukti pembayaran", error);
-    return { ok: false, error: error.message || "Gagal mengirim email alert bukti pembayaran" };
-  }
+  return sendAlertEmail({
+    message,
+    period: proof.period,
+    source: "payment-proof-upload",
+    subject: `[Amarta Kas] Bukti Pembayaran Baru - ${proof.person_house} - ${formatPeriod(proof.period)}`,
+    attachments: proof.proof_url
+      ? [{ path: proof.proof_url, filename: proof.original_filename || fallbackName }]
+      : [],
+  });
 }
 
 export async function listPublicPaymentConfirmations(supabase) {
@@ -226,8 +249,17 @@ export async function listAdminPaymentProofs({ supabase, searchParams }) {
   return { ok: true, proofs: enrichedProofs };
 }
 
-export async function approvePaymentProof({ supabase, req, id }) {
+export async function approvePaymentProof({
+  supabase,
+  req,
+  id,
+  actor = "admin",
+  actorRole = "admin",
+  source = "web",
+  actorMetadata = {},
+}) {
   const proof = await findPaymentProofById(supabase, id);
+  const activity = getActivityContext({ actor, actorRole, source, actorMetadata });
 
   if (!proof) {
     return { status: 404, body: { error: "Bukti pembayaran tidak ditemukan" } };
@@ -265,7 +297,7 @@ export async function approvePaymentProof({ supabase, req, id }) {
   const updated = await updatePaymentProof(supabase, proof.id, {
     status: "approved",
     reviewed_at: reviewedAt,
-    reviewed_by: "admin",
+    reviewed_by: activity.actor,
     approved_payment_id: paymentId,
     reject_reason: "",
   });
@@ -274,6 +306,7 @@ export async function approvePaymentProof({ supabase, req, id }) {
     type: "approve",
     module: "payment-proof",
     severity: "success",
+    actor: activity.actor,
     message: `Approve payment proof ${proof.person_house} ${proof.period}`,
     metadata: {
       proof_id: proof.id,
@@ -284,6 +317,9 @@ export async function approvePaymentProof({ supabase, req, id }) {
       period: proof.period,
       amount: proof.amount,
       trash_amount: proof.trash_amount,
+      source: activity.source,
+      role: activity.role,
+      ...activity.metadata,
     },
   });
 
@@ -298,9 +334,19 @@ export async function approvePaymentProof({ supabase, req, id }) {
   };
 }
 
-export async function rejectPaymentProof({ supabase, req, id, reason }) {
+export async function rejectPaymentProof({
+  supabase,
+  req,
+  id,
+  reason,
+  actor = "admin",
+  actorRole = "admin",
+  source = "web",
+  actorMetadata = {},
+}) {
   const proof = await findPaymentProofById(supabase, id);
   const rejectReason = normalize(reason);
+  const activity = getActivityContext({ actor, actorRole, source, actorMetadata });
 
   if (!proof) {
     return { status: 404, body: { error: "Bukti pembayaran tidak ditemukan" } };
@@ -317,7 +363,7 @@ export async function rejectPaymentProof({ supabase, req, id, reason }) {
   const updated = await updatePaymentProof(supabase, proof.id, {
     status: "rejected",
     reviewed_at: new Date().toISOString(),
-    reviewed_by: "admin",
+    reviewed_by: activity.actor,
     reject_reason: rejectReason,
   });
 
@@ -325,6 +371,7 @@ export async function rejectPaymentProof({ supabase, req, id, reason }) {
     type: "reject",
     module: "payment-proof",
     severity: "warning",
+    actor: activity.actor,
     message: `Reject payment proof ${proof.person_house} ${proof.period}`,
     metadata: {
       proof_id: proof.id,
@@ -334,6 +381,9 @@ export async function rejectPaymentProof({ supabase, req, id, reason }) {
       amount: proof.amount,
       trash_amount: proof.trash_amount,
       reason: rejectReason,
+      source: activity.source,
+      role: activity.role,
+      ...activity.metadata,
     },
   });
 

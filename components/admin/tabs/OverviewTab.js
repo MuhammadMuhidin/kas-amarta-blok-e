@@ -1,16 +1,15 @@
 "use client";
 
+import AdminSubtabs from "@/components/admin/AdminSubtabs";
 import AdminActionButton from "@/components/admin/AdminActionButton";
 import AdminConfirmModal from "@/components/admin/AdminConfirmModal";
 import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-const DETAIL_MODAL_PAGE_SIZE = 13;
-const TRASH_MODAL_DESKTOP_PAGE_SIZE = 13;
-const TRASH_MODAL_MOBILE_PAGE_SIZE = 3;
+const DETAIL_PAGE_SIZE = 13;
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 const normalize = (value) => String(value || "").trim();
 const normalizeUpper = (value) => normalize(value).toUpperCase();
@@ -19,107 +18,47 @@ function formatDate(value) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+  return date.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function formatPeriod(period) {
   if (!period || period === "-") return "-";
   const normalized = String(period).slice(0, 7);
   if (!/^\d{4}-\d{2}$/.test(normalized)) return period;
-  return new Date(`${normalized}-01`).toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  return new Date(`${normalized}-01`).toLocaleDateString("en-US", {
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function sortMembers(items) {
-  return [...items].sort((a, b) => normalize(a.house).localeCompare(normalize(b.house), "id-ID", { numeric: true }));
-}
-
-function isPaidDetailType(type) {
-  return String(type || "").endsWith("-paid");
+  return [...items].sort((a, b) => normalize(a.house).localeCompare(
+    normalize(b.house),
+    "id-ID",
+    { numeric: true },
+  ));
 }
 
 function getPercent(value, total) {
   if (!total) return 0;
-  return Math.min(100, Math.max(0, Math.round((Number(value || 0) / Number(total || 0)) * 100)));
-}
-
-function chunkItems(items, pageSize) {
-  const chunks = [];
-  for (let index = 0; index < items.length; index += pageSize) {
-    chunks.push(items.slice(index, index + pageSize));
-  }
-  return chunks.length ? chunks : [[]];
-}
-
-function getTrashModalPageSize() {
-  if (typeof window === "undefined") return TRASH_MODAL_DESKTOP_PAGE_SIZE;
-  return window.matchMedia("(max-width: 640px)").matches ? TRASH_MODAL_MOBILE_PAGE_SIZE : TRASH_MODAL_DESKTOP_PAGE_SIZE;
-}
-
-function getSnapPage(event, totalPages) {
-  const width = event.currentTarget.clientWidth || 1;
-  return Math.min(totalPages - 1, Math.max(0, Math.round(event.currentTarget.scrollLeft / width)));
-}
-
-function scrollToSnapPage(ref, page) {
-  const slider = ref.current;
-  if (!slider) return;
-  slider.scrollTo({ left: slider.clientWidth * page, behavior: "smooth" });
+  return Math.min(100, Math.max(0, Math.round((Number(value || 0) / Number(total)) * 100)));
 }
 
 function getTrashAdvanceRefId(personId, period) {
   return `TRASHADV-${normalize(personId)}-${normalize(period)}`;
 }
 
-function getTrashStatusLabel(person) {
-  if (person.trashReimbursed) return "Reimbursed";
-  if (person.trashPaid) return "Paid";
-  if (person.trashAdvanced) return "Advanced";
-  return "Need Advance";
-}
-
-function getTrashStatusStyle(person) {
-  if (person.trashReimbursed) return styles.trashStatusReimbursed;
-  if (person.trashPaid) return styles.trashStatusPaid;
-  if (person.trashAdvanced) return styles.trashStatusAdvanced;
-  return styles.trashStatusNeedAdvance;
-}
-
-function Section({ title, children }) {
-  return <section style={{ display: "grid", gap: 12 }}><h3 style={{ margin: 0 }}>{title}</h3>{children}</section>;
-}
-
-function QuickAction({ title, subtitle, onClick }) {
-  return (
-    <button type="button" className="overview-quick-action" onClick={onClick} style={styles.quickActionCard}>
-      <span style={styles.quickActionTitle}>{title}</span>
-      <span style={styles.quickActionSubtitle}>{subtitle}</span>
-    </button>
-  );
-}
-
-function AlertItem({ tone = "info", title, detail, action, onClick }) {
-  const color = tone === "danger" ? "#dc2626" : tone === "warning" ? "#d97706" : "#2563eb";
-  return (
-    <div style={styles.alertItem}>
-      <div>
-        <div style={{ ...styles.alertTitle, color }}>{title}</div>
-        <div style={styles.alertDetail}>{detail}</div>
-      </div>
-      {action && <AdminActionButton onClick={onClick}>{action}</AdminActionButton>}
-    </div>
-  );
-}
-
 function useModalScrollLock(open) {
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
-
     const previousBodyOverflow = document.body.style.overflow;
     const previousDocumentOverflow = document.documentElement.style.overflow;
-
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
-
     return () => {
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousDocumentOverflow;
@@ -127,281 +66,240 @@ function useModalScrollLock(open) {
   }, [open]);
 }
 
-function ModalCloseButton({ onClose }) {
-  return <button type="button" className="overview-modal-close" style={styles.modalCloseButton} onClick={onClose} aria-label="Close modal">×</button>;
-}
-
-function PaymentDots({ totalPages, page, onChange }) {
-  if (totalPages <= 1) return null;
-
+function Section({ title, children }) {
   return (
-    <div className="pay-dots">
-      {Array.from({ length: totalPages }).map((_, index) => (
-        <span
-          key={index}
-          className={index === page ? "active" : ""}
-          role="button"
-          tabIndex={0}
-          aria-label={`Go to page ${index + 1}`}
-          onClick={() => onChange(index)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault();
-              onChange(index);
-            }
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function DetailMembersModal({ open, title, members, statusText, emptyText, shareLabel = "Share JPG", sharing = false, onShareJpg, onClose }) {
-  useModalScrollLock(open);
-  const [page, setPage] = useState(0);
-  const sliderRef = useRef(null);
-  const pages = chunkItems(members, DETAIL_MODAL_PAGE_SIZE);
-
-  useEffect(() => {
-    if (!open) return;
-    setPage(0);
-    sliderRef.current?.scrollTo({ left: 0, behavior: "auto" });
-  }, [open, members.length]);
-
-  if (!open) return null;
-
-  function handleDotChange(nextPage) {
-    setPage(nextPage);
-    scrollToSnapPage(sliderRef, nextPage);
-  }
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-        <div className="modal-header">
-          <div style={styles.modalHeaderTop}>
-            <div style={styles.modalTitleGroup}>
-              <div className="modal-title">{title}</div>
-              <div className="modal-section">{members.length} houses {statusText}.</div>
-            </div>
-            <ModalCloseButton onClose={onClose} />
-          </div>
-          <div style={styles.modalActions}>
-            {onShareJpg && (
-              <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0} onClick={onShareJpg}>{shareLabel}</AdminActionButton>
-            )}
-          </div>
-        </div>
-
-        <div
-          ref={sliderRef}
-          className="pay-slider"
-          onScroll={(event) => setPage(getSnapPage(event, pages.length))}
-        >
-          {pages.map((pageItems, pageIndex) => (
-            <div className="pay-slide-page" key={pageIndex}>
-              <table className="detail-table">
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>House</th>
-                    <th>Name</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {members.length === 0 ? (
-                    <tr><td colSpan={3}>{emptyText}</td></tr>
-                  ) : pageItems.map((person, index) => (
-                    <tr key={person.id || `${person.house}-${pageIndex}-${index}`}>
-                      <td>{pageIndex * DETAIL_MODAL_PAGE_SIZE + index + 1}</td>
-                      <td>{person.house || "-"}</td>
-                      <td>{person.name || "-"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ))}
-        </div>
-        <PaymentDots totalPages={pages.length} page={page} onChange={handleDotChange} />
-      </div>
-    </div>
-  );
-}
-
-function TrashAllMembersModal({
-  open,
-  periodLabel,
-  members,
-  paidDirectCount,
-  reimbursedCount,
-  needAdvanceCount,
-  advancedCount,
-  totalNeedAdvance,
-  totalAdvanced,
-  totalReimbursed,
-  currentBalance,
-  sharing,
-  advancing,
-  onShareJpg,
-  onAdvance,
-  onClose,
-}) {
-  useModalScrollLock(open);
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(getTrashModalPageSize);
-  const sliderRef = useRef(null);
-  const pages = chunkItems(members, pageSize);
-  const balanceAfterAdvance = Number(currentBalance || 0) - Number(totalNeedAdvance || 0);
-  const hasEnoughCash = balanceAfterAdvance >= 0;
-
-  useEffect(() => {
-    if (typeof window === "undefined") return undefined;
-
-    const media = window.matchMedia("(max-width: 640px)");
-    const updatePageSize = () => {
-      setPageSize(media.matches ? TRASH_MODAL_MOBILE_PAGE_SIZE : TRASH_MODAL_DESKTOP_PAGE_SIZE);
-    };
-
-    updatePageSize();
-    media.addEventListener?.("change", updatePageSize);
-    return () => media.removeEventListener?.("change", updatePageSize);
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    setPage(0);
-    sliderRef.current?.scrollTo({ left: 0, behavior: "auto" });
-  }, [open, members.length, pageSize]);
-
-  if (!open) return null;
-
-  function handleDotChange(nextPage) {
-    setPage(nextPage);
-    scrollToSnapPage(sliderRef, nextPage);
-  }
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-        <div className="modal-header">
-          <div style={styles.modalHeaderTop}>
-            <div style={styles.modalTitleGroup}>
-              <div className="modal-title">All Trash Payment Details</div>
-              <div className="modal-section">{members.length} trash members for {periodLabel}.</div>
-            </div>
-            <ModalCloseButton onClose={onClose} />
-          </div>
-          <div style={styles.trashModalActions}>
-            <AdminActionButton loading={sharing} loadingText="Creating JPG..." disabled={members.length === 0 || advancing} onClick={onShareJpg}>Share JPG</AdminActionButton>
-            <AdminActionButton loading={advancing} loadingText="Advancing..." disabled={needAdvanceCount === 0 || sharing} onClick={onAdvance}>Advance Unpaid Trash</AdminActionButton>
-          </div>
-        </div>
-
-        <div style={styles.trashSummaryGrid}>
-          <div style={styles.trashSummaryItem}><span>Total Members</span><strong>{members.length}</strong></div>
-          <div style={styles.trashSummaryItem}><span>Paid Direct</span><strong style={{ color: "#16a34a" }}>{paidDirectCount}</strong></div>
-          <div style={styles.trashSummaryItem}><span>Reimbursed</span><strong style={{ color: "#2563eb" }}>{reimbursedCount}</strong></div>
-          <div style={styles.trashSummaryItem}><span>Advanced</span><strong style={{ color: "#dc2626" }}>{advancedCount}</strong></div>
-          <div style={styles.trashSummaryItem}><span>Need Advance</span><strong style={{ color: "#d97706" }}>{needAdvanceCount}</strong></div>
-        </div>
-        <div style={{ ...styles.trashAdvanceNote, ...(hasEnoughCash ? styles.trashAdvanceSafe : styles.trashAdvanceDanger) }}>
-          Need to advance: <strong>{money(totalNeedAdvance)}</strong><br />
-          Outstanding advance: <strong>{money(totalAdvanced)}</strong><br />
-          Reimbursed advance: <strong>{money(totalReimbursed)}</strong><br />
-          Projected balance: <strong>{money(balanceAfterAdvance)}</strong><br />
-          Status: <strong>{hasEnoughCash ? "Safe" : "Not enough cash"}</strong>
-        </div>
-
-        <div
-          ref={sliderRef}
-          className="pay-slider"
-          onScroll={(event) => setPage(getSnapPage(event, pages.length))}
-        >
-          {pages.map((pageItems, pageIndex) => (
-            <div className="pay-slide-page" key={pageIndex}>
-              <div style={styles.trashMemberList}>
-                {members.length === 0 ? (
-                  <div className="admin-empty-state">No trash member data.</div>
-                ) : pageItems.map((person, index) => (
-                  <div key={person.id || `${person.house}-${pageIndex}-${index}`} style={styles.trashMemberItem}>
-                    <div style={styles.trashMemberNo}>{pageIndex * pageSize + index + 1}</div>
-                    <div style={styles.trashMemberMain}>
-                      <div style={styles.trashMemberHouse}>{person.house || "-"}</div>
-                      <div style={styles.trashMemberName}>{person.name || "-"}</div>
-                    </div>
-                    <span style={{ ...styles.trashStatusBadge, ...getTrashStatusStyle(person) }}>
-                      {getTrashStatusLabel(person)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-        <PaymentDots totalPages={pages.length} page={page} onChange={handleDotChange} />
-      </div>
-    </div>
+    <section style={styles.section}>
+      <h3 style={{ margin: 0 }}>{title}</h3>
+      {children}
+    </section>
   );
 }
 
 function CashBalanceHero({ value }) {
   const negative = Number(value || 0) < 0;
   return (
-    <section className={negative ? "overview-hero-card overview-hero-card-danger" : "overview-hero-card overview-hero-card-healthy"} style={{ ...styles.heroCard, borderColor: negative ? "#dc2626" : "var(--admin-border)" }}>
+    <section
+      className={negative
+        ? "overview-hero-card overview-hero-card-danger"
+        : "overview-hero-card overview-hero-card-healthy"}
+      style={{ ...styles.heroCard, borderColor: negative ? "#dc2626" : "var(--admin-border)" }}
+    >
       <div>
         <div style={styles.heroLabel}>Cash Balance</div>
-        <div style={{ ...styles.heroValue, color: negative ? "#dc2626" : "var(--admin-text)" }}>{money(value)}</div>
-        <div style={styles.heroMeta}>Income minus expenses across all periods.</div>
+        <div style={{ ...styles.heroValue, color: negative ? "#dc2626" : "var(--admin-text)" }}>
+          {money(value)}
+        </div>
+        <div style={styles.muted}>Income minus expenses across all periods.</div>
       </div>
-      <div style={{ ...styles.heroBadge, color: negative ? "#dc2626" : "#16a34a" }}>{negative ? "Need Review" : "Healthy"}</div>
+      <div style={{ ...styles.heroBadge, color: negative ? "#dc2626" : "#16a34a" }}>
+        {negative ? "Need Review" : "Healthy"}
+      </div>
     </section>
   );
 }
 
-function ProgressCard({ label, paid, total, unpaid, metaActions = [], error = false }) {
+function ProgressCard({ label, paid, total, unpaid, actions = [], error = false }) {
   const percent = getPercent(paid, total);
-  const actions = metaActions.filter(Boolean);
-  const cardClassName = actions.length
-    ? "overview-progress-card overview-progress-card-actionable"
-    : "overview-progress-card";
-
   return (
-    <div className={cardClassName} style={{ ...styles.progressCard, borderColor: error ? "#d97706" : "var(--admin-border)" }}>
+    <div style={{ ...styles.progressCard, borderColor: error ? "#d97706" : "var(--admin-border)" }}>
       <div style={styles.progressHeader}>
         <div>
-          <div style={styles.progressLabel}>{label}</div>
+          <div style={styles.heroLabel}>{label}</div>
           <div style={styles.progressValue}>{paid}/{total} houses</div>
         </div>
-        <div className="overview-progress-percent" style={{ ...styles.progressPercent, color: error ? "#d97706" : "#16a34a" }}>{percent}%</div>
+        <strong style={{ color: error ? "#d97706" : "#16a34a" }}>{percent}%</strong>
       </div>
-      <div className="overview-progress-track" style={styles.progressTrack}>
-        <div className="overview-progress-fill" style={{ ...styles.progressFill, width: `${percent}%` }} />
+      <div style={styles.progressTrack}>
+        <div style={{ ...styles.progressFill, width: `${percent}%` }} />
       </div>
-      <div style={styles.progressMetaRow}>
-        <span>{unpaid} houses unpaid.</span>
-        <span>{paid} houses paid.</span>
+      <div style={styles.progressMeta}>
+        <span>{unpaid} unpaid</span>
+        <span>{paid} paid</span>
       </div>
-      <div style={styles.progressActions}>
-        {actions.map((action) => (
-          <button key={action.label} type="button" className="overview-progress-action-btn" style={styles.progressActionButton} onClick={action.onClick}>{action.label}</button>
-        ))}
+      {actions.filter(Boolean).length > 0 && (
+        <div style={styles.rowActions}>
+          {actions.filter(Boolean).map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              className="admin-small-btn"
+              onClick={action.onClick}
+            >
+              {action.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MemberDetailModal({ detail, onClose, onShare, sharing }) {
+  const [page, setPage] = useState(0);
+  useModalScrollLock(Boolean(detail));
+
+  useEffect(() => setPage(0), [detail]);
+  if (!detail) return null;
+
+  const members = detail.members || [];
+  const totalPages = Math.max(1, Math.ceil(members.length / DETAIL_PAGE_SIZE));
+  const visible = members.slice(page * DETAIL_PAGE_SIZE, (page + 1) * DETAIL_PAGE_SIZE);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div style={styles.modalHeader}>
+            <div>
+              <div className="modal-title">{detail.title}</div>
+              <div className="modal-section">{members.length} houses.</div>
+            </div>
+            <button type="button" className="admin-small-btn" onClick={onClose}>Close</button>
+          </div>
+          <AdminActionButton
+            loading={sharing}
+            loadingText="Creating JPG..."
+            disabled={!members.length}
+            onClick={onShare}
+          >
+            Share JPG
+          </AdminActionButton>
+        </div>
+        <div className="admin-table-wrapper">
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th className="admin-th">No</th>
+                <th className="admin-th">House</th>
+                <th className="admin-th">Name</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visible.map((person, index) => (
+                <tr key={person.id || `${person.house}-${index}`}>
+                  <td className="admin-td">{page * DETAIL_PAGE_SIZE + index + 1}</td>
+                  <td className="admin-td">{person.house || "-"}</td>
+                  <td className="admin-td">{person.name || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {totalPages > 1 && (
+          <div style={styles.pagination}>
+            <button
+              type="button"
+              className="admin-small-btn"
+              disabled={page === 0}
+              onClick={() => setPage((value) => Math.max(0, value - 1))}
+            >
+              Previous
+            </button>
+            <span>{page + 1}/{totalPages}</span>
+            <button
+              type="button"
+              className="admin-small-btn"
+              disabled={page >= totalPages - 1}
+              onClick={() => setPage((value) => Math.min(totalPages - 1, value + 1))}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-function CompactCashflowItem({ item }) {
-  const isIncome = item.type === "income";
-  const label = isIncome ? "Income" : "Expense";
+function TrashDetailModal({
+  open,
+  members,
+  periodLabel,
+  currentBalance,
+  totalNeedAdvance,
+  totalAdvanced,
+  totalReimbursed,
+  advancing,
+  sharing,
+  onAdvance,
+  onShare,
+  onClose,
+}) {
+  useModalScrollLock(open);
+  if (!open) return null;
+  const projected = Number(currentBalance || 0) - Number(totalNeedAdvance || 0);
+
   return (
-    <div style={styles.cashflowItem}>
-      <span style={{ ...styles.cashflowBadge, color: isIncome ? "#16a34a" : "#dc2626" }}>{label}</span>
-      <span style={styles.cashflowNote}>{item.note || "-"}</span>
-      <span aria-hidden="true" />
-      <span style={styles.cashflowAmount}>{money(item.amount)}</span>
-      <span aria-hidden="true" />
-      <span style={styles.cashflowDate}>{formatDate(item.date)}</span>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div style={styles.modalHeader}>
+            <div>
+              <div className="modal-title">Trash Payment Details</div>
+              <div className="modal-section">{members.length} members · {periodLabel}</div>
+            </div>
+            <button type="button" className="admin-small-btn" onClick={onClose}>Close</button>
+          </div>
+          <div style={styles.rowActions}>
+            <AdminActionButton loading={sharing} disabled={advancing} onClick={onShare}>
+              Share JPG
+            </AdminActionButton>
+            <AdminActionButton
+              loading={advancing}
+              disabled={sharing || totalNeedAdvance <= 0}
+              onClick={onAdvance}
+            >
+              Advance Unpaid Trash
+            </AdminActionButton>
+          </div>
+        </div>
+        <div className="admin-monitor-grid" style={{ marginBottom: 12 }}>
+          <MonitoringCard label="Need Advance" value={money(totalNeedAdvance)} meta={[]} error={totalNeedAdvance > 0} />
+          <MonitoringCard label="Outstanding" value={money(totalAdvanced)} meta={[]} error={totalAdvanced > 0} />
+          <MonitoringCard label="Reimbursed" value={money(totalReimbursed)} meta={[]} />
+          <MonitoringCard
+            label="Projected Balance"
+            value={money(projected)}
+            meta={[]}
+            error={projected < 0}
+          />
+        </div>
+        <div style={styles.memberList}>
+          {members.map((person) => (
+            <div key={person.id} style={styles.memberItem}>
+              <div>
+                <strong>{person.house}</strong>
+                <div style={styles.muted}>{person.name}</div>
+              </div>
+              <span>{person.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuickAction({ title, subtitle, onClick }) {
+  return (
+    <button type="button" style={styles.quickAction} onClick={onClick}>
+      <strong>{title}</strong>
+      <span style={styles.muted}>{subtitle}</span>
+    </button>
+  );
+}
+
+function AlertItem({ alert, onNavigate }) {
+  const color = alert.tone === "danger" ? "#dc2626" : alert.tone === "warning" ? "#d97706" : "#2563eb";
+  return (
+    <div style={styles.alertItem}>
+      <div>
+        <strong style={{ color }}>{alert.title}</strong>
+        <div style={styles.muted}>{alert.detail}</div>
+      </div>
+      <button type="button" className="admin-small-btn" onClick={() => onNavigate(alert.tab)}>
+        {alert.action}
+      </button>
     </div>
   );
 }
@@ -420,13 +318,13 @@ export default function OverviewTab({
   onNavigate,
   onTrashAdvanceComplete,
 }) {
+  const [activePanel, setActivePanel] = useState("summary");
   const [sendingReport, setSendingReport] = useState(false);
   const [loadingReportPreview, setLoadingReportPreview] = useState(false);
   const [reportPreview, setReportPreview] = useState("");
   const [showReportConfirm, setShowReportConfirm] = useState(false);
-  const [unpaidDetail, setUnpaidDetail] = useState(null);
-  const [showPaidTrashDetail, setShowPaidTrashDetail] = useState(false);
-  const [showAllTrashDetail, setShowAllTrashDetail] = useState(false);
+  const [memberDetail, setMemberDetail] = useState(null);
+  const [showTrashDetail, setShowTrashDetail] = useState(false);
   const [showTrashAdvanceConfirm, setShowTrashAdvanceConfirm] = useState(false);
   const [advancingTrash, setAdvancingTrash] = useState(false);
   const [exportingDetailJpg, setExportingDetailJpg] = useState("");
@@ -434,9 +332,103 @@ export default function OverviewTab({
 
   useModalScrollLock(showReportConfirm || showTrashAdvanceConfirm);
 
+  const derived = useMemo(() => {
+    const activeMembers = personal.filter((person) => person.active === "Y");
+    const activeCurrentMembers = activeMembers.filter(
+      (person) => !person.join_date || String(person.join_date).slice(0, 7) <= currentPeriod,
+    );
+    const activeTrashMembers = activeCurrentMembers.filter(
+      (person) => normalizeUpper(person.trash) === "Y",
+    );
+    const paymentById = new Map(payments.map((payment) => [normalize(payment.id), payment]));
+    const paidCurrentKeys = new Set(
+      payments
+        .filter((payment) => String(payment.period || "").slice(0, 7) === currentPeriod)
+        .map((payment) => normalize(payment.person_house || payment.house || payment.person_id)),
+    );
+    const paidMembers = sortMembers(activeCurrentMembers.filter(
+      (person) => paidCurrentKeys.has(normalize(person.house)),
+    ));
+    const unpaidMembers = sortMembers(activeCurrentMembers.filter(
+      (person) => !paidCurrentKeys.has(normalize(person.house)),
+    ));
+    const trashPaidPersonIds = new Set(
+      trashRecords
+        .map((trash) => paymentById.get(normalize(trash.payment_id)))
+        .filter((payment) => payment && String(payment.date || "").slice(0, 7) === currentPeriod)
+        .map((payment) => normalize(payment.person_id))
+        .filter(Boolean),
+    );
+    const trashAdvanceRefIds = new Set(
+      cashflows
+        .map((item) => normalize(item.ref_id))
+        .filter((refId) => refId.startsWith("TRASHADV-") && refId.endsWith(`-${currentPeriod}`)),
+    );
+    const paidTrashMembers = sortMembers(activeTrashMembers.filter(
+      (person) => trashPaidPersonIds.has(normalize(person.id)),
+    ));
+    const unpaidTrashMembers = sortMembers(activeTrashMembers.filter(
+      (person) => !trashPaidPersonIds.has(normalize(person.id)),
+    ));
+    const allTrashMembers = sortMembers(activeTrashMembers).map((person) => {
+      const personId = normalize(person.id);
+      const trashPaid = trashPaidPersonIds.has(personId);
+      const hasTrashAdvance = trashAdvanceRefIds.has(getTrashAdvanceRefId(personId, currentPeriod));
+      const trashReimbursed = trashPaid && hasTrashAdvance;
+      const trashAdvanced = !trashPaid && hasTrashAdvance;
+      return {
+        ...person,
+        trashPaid,
+        trashAdvanced,
+        trashReimbursed,
+        status: trashReimbursed
+          ? "Reimbursed"
+          : trashPaid
+            ? "Paid"
+            : trashAdvanced
+              ? "Advanced"
+              : "Need Advance",
+      };
+    });
+    const needAdvanceCount = allTrashMembers.filter(
+      (person) => !person.trashPaid && !person.trashAdvanced,
+    ).length;
+    const advancedCount = allTrashMembers.filter((person) => person.trashAdvanced).length;
+    const reimbursedCount = allTrashMembers.filter((person) => person.trashReimbursed).length;
+    const allIncome = cashflows
+      .filter((item) => item.type === "income")
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const allExpense = cashflows
+      .filter((item) => item.type === "expense")
+      .reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return {
+      activeCurrentMembers,
+      activeTrashMembers,
+      paidMembers,
+      unpaidMembers,
+      paidTrashMembers,
+      unpaidTrashMembers,
+      allTrashMembers,
+      needAdvanceCount,
+      advancedCount,
+      reimbursedCount,
+      totalNeedAdvance: needAdvanceCount * Number(appConfig?.trash_fee || 0),
+      totalAdvanced: advancedCount * Number(appConfig?.trash_fee || 0),
+      totalReimbursed: reimbursedCount * Number(appConfig?.trash_fee || 0),
+      currentBalance: allIncome - allExpense,
+      readyBookings: sortedDeposits.filter((deposit) => getDepositStatus(deposit) === "pending"),
+      waitingBookings: sortedDeposits.filter((deposit) => getDepositStatus(deposit) === "waiting"),
+      recentCashflows: [...cashflows]
+        .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
+        .slice(0, 8),
+    };
+  }, [personal, payments, trashRecords, cashflows, sortedDeposits, currentPeriod, appConfig, getDepositStatus]);
+
   function showToast(type, message) {
     setToast({ show: true, type, message });
-    setTimeout(() => setToast((current) => (current.message === message ? { ...current, show: false } : current)), 2800);
+    setTimeout(() => setToast((current) => (
+      current.message === message ? { ...current, show: false } : current
+    )), 2800);
   }
 
   async function openResidentReportConfirm() {
@@ -446,8 +438,8 @@ export default function OverviewTab({
       const data = await sendJson("/api/waha/monthly-summary", "POST", { preview: true });
       setReportPreview(data.text || "");
       setShowReportConfirm(true);
-    } catch (err) {
-      showToast("error", err.message || "Failed to load report preview.");
+    } catch (error) {
+      showToast("error", error.message || "Failed to load report preview.");
     } finally {
       setLoadingReportPreview(false);
     }
@@ -461,301 +453,335 @@ export default function OverviewTab({
       setShowReportConfirm(false);
       setReportPreview("");
       showToast("success", "Report successfully sent to the WhatsApp group.");
-    } catch (err) {
-      showToast("error", err.message || "Failed to send report to the group.");
+    } catch (error) {
+      showToast("error", error.message || "Failed to send report to the group.");
     } finally {
       setSendingReport(false);
     }
   }
 
-  function closeReportConfirm() {
-    if (!sendingReport) setShowReportConfirm(false);
-  }
-
-  const activeMembers = personal.filter((person) => person.active === "Y");
-  const activeCurrentMembers = activeMembers.filter((person) => !person.join_date || String(person.join_date).slice(0, 7) <= currentPeriod);
-  const activeCurrentTrashMembers = activeCurrentMembers.filter((person) => normalizeUpper(person.trash) === "Y");
-  const paymentById = new Map(payments.map((payment) => [normalize(payment.id), payment]));
-  const paidCurrentKeys = new Set(payments.filter((payment) => String(payment.period || "").slice(0, 7) === currentPeriod).map((payment) => normalize(payment.person_house || payment.house || payment.person_id)));
-  const paidCurrentCount = activeCurrentMembers.filter((person) => paidCurrentKeys.has(normalize(person.house))).length;
-  const paidCurrentMembers = sortMembers(activeCurrentMembers.filter((person) => paidCurrentKeys.has(normalize(person.house))));
-  const unpaidCurrentMembers = sortMembers(activeCurrentMembers.filter((person) => !paidCurrentKeys.has(normalize(person.house))));
-  const unpaidCurrentCount = unpaidCurrentMembers.length;
-  const trashPaidPersonIds = new Set(trashRecords.map((trash) => paymentById.get(normalize(trash.payment_id))).filter((payment) => payment && String(payment.date || "").slice(0, 7) === currentPeriod).map((payment) => normalize(payment.person_id)).filter(Boolean));
-  const trashAdvanceRefIds = new Set(cashflows.map((item) => normalize(item.ref_id)).filter((refId) => refId.startsWith("TRASHADV-") && refId.endsWith(`-${currentPeriod}`)));
-  const paidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => trashPaidPersonIds.has(normalize(person.id))));
-  const paidCurrentTrashCount = paidCurrentTrashMembers.length;
-  const unpaidCurrentTrashMembers = sortMembers(activeCurrentTrashMembers.filter((person) => !trashPaidPersonIds.has(normalize(person.id))));
-  const unpaidCurrentTrashCount = unpaidCurrentTrashMembers.length;
-  const allTrashMembers = sortMembers(activeCurrentTrashMembers).map((person) => {
-    const personId = normalize(person.id);
-    const trashPaid = trashPaidPersonIds.has(personId);
-    const hasTrashAdvance = trashAdvanceRefIds.has(getTrashAdvanceRefId(personId, currentPeriod));
-    const trashReimbursed = trashPaid && hasTrashAdvance;
-    const trashAdvanced = !trashPaid && hasTrashAdvance;
-
-    return {
-      ...person,
-      trashPaid,
-      trashAdvanced,
-      trashReimbursed,
-      status: trashReimbursed ? "Reimbursed" : trashPaid ? "Paid" : trashAdvanced ? "Advanced" : "Need Advance",
-    };
-  });
-  const needAdvanceTrashCount = allTrashMembers.filter((person) => !person.trashPaid && !person.trashAdvanced).length;
-  const advancedTrashCount = allTrashMembers.filter((person) => person.trashAdvanced).length;
-  const reimbursedTrashCount = allTrashMembers.filter((person) => person.trashReimbursed).length;
-  const paidDirectTrashCount = allTrashMembers.filter((person) => person.trashPaid && !person.trashReimbursed).length;
-  const totalNeedAdvanceTrash = needAdvanceTrashCount * Number(appConfig?.trash_fee || 0);
-  const totalAdvancedTrash = advancedTrashCount * Number(appConfig?.trash_fee || 0);
-  const totalReimbursedTrash = reimbursedTrashCount * Number(appConfig?.trash_fee || 0);
-  const allIncome = cashflows.filter((item) => item.type === "income").reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const allExpense = cashflows.filter((item) => item.type === "expense").reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const currentBalance = allIncome - allExpense;
-  const readyBookings = sortedDeposits.filter((deposit) => getDepositStatus(deposit) === "pending");
-  const waitingBookings = sortedDeposits.filter((deposit) => getDepositStatus(deposit) === "waiting");
-  const backupOk = Boolean(dailyBackup?.ok);
-  const recentCashflows = [...cashflows].sort((a, b) => String(b.date || "").localeCompare(String(a.date || ""))).slice(0, 5);
-  const periodLabel = formatPeriod(currentPeriod);
-
-  async function handleShareDetailJpg({ id, members, totalMembers, statusText, paymentLabel, amount, footerNote }) {
-    if (exportingDetailJpg) return;
-    setExportingDetailJpg(id);
-    const isTrashPayment = paymentLabel === "Trash";
-    const isPaidStatus = statusText === "Paid";
-
+  async function shareDetail(detail) {
+    if (!detail || exportingDetailJpg) return;
+    setExportingDetailJpg(detail.id);
     try {
       const result = await shareMembersJpgReport({
-        title: isTrashPayment ? "Trash Fee Payment" : "Cash Payment",
+        title: detail.paymentLabel === "Trash" ? "Trash Fee Payment" : "Cash Payment",
         period: currentPeriod,
-        members,
+        members: detail.members,
         summaryItems: [
-          ["Recorded", `${members.length}/${totalMembers} houses`, isPaidStatus ? "Fully paid" : "Unpaid"],
-          ["Fee", money(amount), "per house"],
-          ["Total", money(members.length * Number(amount || 0)), isPaidStatus ? "collected funds" : "uncollected funds"],
+          ["Recorded", `${detail.members.length}/${detail.totalMembers} houses`, detail.statusText],
+          ["Fee", money(detail.amount), "per house"],
+          ["Total", money(detail.members.length * Number(detail.amount || 0)), "amount"],
         ],
-        badgeText: isPaidStatus ? "PAID" : "UNPAID",
+        badgeText: detail.statusText.toUpperCase(),
         listTitle: "House List",
-        noteText: isTrashPayment
-          ? `The following houses have ${isPaidStatus ? "paid the trash fee" : "not paid the trash fee"}.`
-          : `The following houses have ${isPaidStatus ? "paid cash dues" : "not paid cash dues"}.`,
-        footerNote,
-        fileName: `${paymentLabel.toLowerCase()}-${statusText.toLowerCase().replaceAll(" ", "-")}-${currentPeriod}.jpg`,
+        noteText: detail.note,
+        footerNote: "If any data is inaccurate, please confirm with the cash admin.",
+        fileName: `${detail.paymentLabel.toLowerCase()}-${detail.statusText.toLowerCase()}-${currentPeriod}.jpg`,
       });
       showToast("success", result === "shared" ? "JPG is ready to share." : "JPG downloaded successfully.");
-    } catch (err) {
-      showToast("error", err.message || "Failed to create JPG.");
+    } catch (error) {
+      showToast("error", error.message || "Failed to create JPG.");
     } finally {
       setExportingDetailJpg("");
     }
   }
 
-  async function handleShareAllTrashJpg() {
-    if (exportingDetailJpg) return;
-    setExportingDetailJpg("sampah-all");
-    try {
-      const result = await shareMembersJpgReport({
-        title: "Trash Payment Report",
-        period: currentPeriod,
-        members: allTrashMembers,
-        summaryItems: [
-          ["Members", `${allTrashMembers.length} houses`, "Trash registered"],
-          ["Outstanding", money(totalAdvancedTrash + totalNeedAdvanceTrash), `${advancedTrashCount + needAdvanceTrashCount} houses`],
-          ["Reimbursed", money(totalReimbursedTrash), `${reimbursedTrashCount} houses`],
-        ],
-        badgeText: "TRASH REPORT",
-        listTitle: "Trash Member Status",
-        noteText: "Paid = paid without prior advance. Reimbursed = previously advanced and already paid. Advanced = temporarily paid by cash. Need Advance = not yet advanced.",
-        footerNote: `Paid direct: ${paidDirectTrashCount} houses. Advanced outstanding: ${money(totalAdvancedTrash)} from ${advancedTrashCount} houses.`,
-        fileName: `trash-payment-all-${currentPeriod}.jpg`,
-      });
-      showToast("success", result === "shared" ? "JPG is ready to share." : "JPG downloaded successfully.");
-    } catch (err) {
-      showToast("error", err.message || "Failed to create JPG.");
-    } finally {
-      setExportingDetailJpg("");
-    }
+  async function shareAllTrash() {
+    const detail = {
+      id: "trash-all",
+      paymentLabel: "Trash",
+      statusText: "Report",
+      members: derived.allTrashMembers,
+      totalMembers: derived.allTrashMembers.length,
+      amount: appConfig?.trash_fee,
+      note: "Paid, reimbursed, advanced, and unpaid trash member status.",
+    };
+    await shareDetail(detail);
   }
 
-  async function handleAdvanceUnpaidTrash() {
-    if (advancingTrash || needAdvanceTrashCount === 0) return;
+  async function advanceTrash() {
+    if (advancingTrash || derived.needAdvanceCount === 0) return;
     setAdvancingTrash(true);
     try {
-      const data = await sendJson("/api/sheets/trash/advance-bulk", "POST", { period: currentPeriod });
+      const data = await sendJson("/api/sheets/trash/advance-bulk", "POST", {
+        period: currentPeriod,
+      });
       await onTrashAdvanceComplete?.();
       setShowTrashAdvanceConfirm(false);
+      setShowTrashDetail(false);
       showToast("success", `Advanced ${data.advanced || 0} trash expenses. Total ${money(data.total || 0)}.`);
-    } catch (err) {
-      showToast("error", err.message || "Failed to advance unpaid trash.");
+    } catch (error) {
+      showToast("error", error.message || "Failed to advance unpaid trash.");
     } finally {
       setAdvancingTrash(false);
     }
   }
 
+  const periodLabel = formatPeriod(currentPeriod);
   const alerts = [
-    unpaidCurrentCount > 0 && { tone: "warning", title: `${unpaidCurrentCount} houses have not paid cash dues this month`, detail: `${periodLabel} still needs follow-up or checking.`, action: "Open Payment", tab: "payment" },
-    unpaidCurrentTrashCount > 0 && { tone: "warning", title: `${unpaidCurrentTrashCount} houses have not paid trash fees this month`, detail: `${periodLabel} still needs follow-up or checking.`, action: "Open Payment", tab: "payment" },
-    readyBookings.length > 0 && { tone: "info", title: `${readyBookings.length} bookings ready to pay`, detail: "There are booking payments ready to be paid.", action: "Open Booking", tab: "deposit" },
-    monitoringIssueCount > 0 && { tone: "danger", title: `${monitoringIssueCount} monitoring issues`, detail: "There are data integrity or data quality items that need review.", action: "Open Monitoring", tab: "monitoring" },
-    !backupOk && { tone: "danger", title: "Backup is not healthy yet", detail: "Daily backup status is not valid or has not been found.", action: "Open Monitoring", tab: "monitoring" },
+    derived.unpaidMembers.length > 0 && {
+      tone: "warning",
+      title: `${derived.unpaidMembers.length} houses have not paid cash dues`,
+      detail: `${periodLabel} still needs follow-up.`,
+      action: "Open Payment",
+      tab: "payment",
+    },
+    derived.unpaidTrashMembers.length > 0 && {
+      tone: "warning",
+      title: `${derived.unpaidTrashMembers.length} houses have not paid trash fees`,
+      detail: `${periodLabel} still needs follow-up.`,
+      action: "Open Payment",
+      tab: "payment",
+    },
+    derived.readyBookings.length > 0 && {
+      tone: "info",
+      title: `${derived.readyBookings.length} bookings ready to pay`,
+      detail: "Booking payments are ready for processing.",
+      action: "Open Booking",
+      tab: "deposit",
+    },
+    monitoringIssueCount > 0 && {
+      tone: "danger",
+      title: `${monitoringIssueCount} monitoring issues`,
+      detail: "Data integrity items need review.",
+      action: "Open Monitoring",
+      tab: "monitoring",
+    },
+    !dailyBackup?.ok && {
+      tone: "danger",
+      title: "Backup is not healthy",
+      detail: "Daily backup status is not valid.",
+      action: "Open Backup",
+      tab: "summary",
+    },
   ].filter(Boolean);
 
   return (
     <>
       <Toast show={toast.show} type={toast.type} message={toast.message} />
-      <div className="admin-card" style={{ display: "grid", gap: 22 }}>
+      <div className="admin-card" style={{ display: "grid", gap: 18 }}>
         <div style={styles.header}>
           <div>
             <h2 style={{ margin: "0 0 4px" }}>Overview</h2>
-            <div style={styles.muted}>Operational summary for cash, payments, bookings, and system health.</div>
+            <div style={styles.muted}>Operational summary for the current period.</div>
           </div>
           <div style={styles.periodBadge}>{periodLabel}</div>
         </div>
 
-        <CashBalanceHero value={currentBalance} />
+        <AdminSubtabs
+          value={activePanel}
+          onChange={setActivePanel}
+          ariaLabel="Overview navigation"
+          items={[
+            { value: "summary", label: "Summary", panelId: "overview-summary-panel" },
+            {
+              value: "actions",
+              label: "Actions & Alerts",
+              badge: alerts.length,
+              panelId: "overview-actions-panel",
+            },
+            { value: "cashflow", label: "Recent Cashflow", panelId: "overview-cashflow-panel" },
+          ]}
+        />
 
-        <Section title="Payment Progress">
-          <div style={styles.twoColumnGrid}>
-            <ProgressCard
-              label="Cash Payment"
-              paid={paidCurrentCount}
-              total={activeCurrentMembers.length}
-              unpaid={unpaidCurrentCount}
-              metaActions={[
-                unpaidCurrentCount > 0 ? { label: "View Unpaid", onClick: () => setUnpaidDetail({ type: "kas-unpaid", title: "Unpaid Cash Details", members: unpaidCurrentMembers }) } : null,
-                paidCurrentCount > 0 ? { label: "View Paid", onClick: () => setUnpaidDetail({ type: "kas-paid", title: "Paid Cash Details", members: paidCurrentMembers }) } : null,
-              ]}
-              error={unpaidCurrentCount > 0}
-            />
-            <ProgressCard
-              label="Trash Payment"
-              paid={paidCurrentTrashCount}
-              total={activeCurrentTrashMembers.length}
-              unpaid={unpaidCurrentTrashCount}
-              metaActions={[
-                unpaidCurrentTrashCount > 0 ? { label: "View Unpaid", onClick: () => setUnpaidDetail({ type: "sampah-unpaid", title: "Unpaid Trash Details", members: unpaidCurrentTrashMembers }) } : null,
-                { label: "View Paid", onClick: () => setShowPaidTrashDetail(true) },
-                { label: "View All", onClick: () => setShowAllTrashDetail(true) },
-              ]}
-              error={unpaidCurrentTrashCount > 0}
-            />
+        {activePanel === "summary" && (
+          <div id="overview-summary-panel" role="tabpanel" style={styles.panel}>
+            <CashBalanceHero value={derived.currentBalance} />
+            <Section title="Payment Progress">
+              <div style={styles.twoColumnGrid}>
+                <ProgressCard
+                  label="Cash Payment"
+                  paid={derived.paidMembers.length}
+                  total={derived.activeCurrentMembers.length}
+                  unpaid={derived.unpaidMembers.length}
+                  error={derived.unpaidMembers.length > 0}
+                  actions={[
+                    derived.unpaidMembers.length > 0 && {
+                      label: "View Unpaid",
+                      onClick: () => setMemberDetail({
+                        id: "cash-unpaid",
+                        title: "Unpaid Cash Details",
+                        members: derived.unpaidMembers,
+                        totalMembers: derived.activeCurrentMembers.length,
+                        statusText: "Unpaid",
+                        paymentLabel: "Cash",
+                        amount: appConfig?.monthly_fee,
+                        note: "Houses that have not paid cash dues.",
+                      }),
+                    },
+                    derived.paidMembers.length > 0 && {
+                      label: "View Paid",
+                      onClick: () => setMemberDetail({
+                        id: "cash-paid",
+                        title: "Paid Cash Details",
+                        members: derived.paidMembers,
+                        totalMembers: derived.activeCurrentMembers.length,
+                        statusText: "Paid",
+                        paymentLabel: "Cash",
+                        amount: appConfig?.monthly_fee,
+                        note: "Houses that have paid cash dues.",
+                      }),
+                    },
+                  ]}
+                />
+                <ProgressCard
+                  label="Trash Payment"
+                  paid={derived.paidTrashMembers.length}
+                  total={derived.activeTrashMembers.length}
+                  unpaid={derived.unpaidTrashMembers.length}
+                  error={derived.unpaidTrashMembers.length > 0}
+                  actions={[
+                    derived.unpaidTrashMembers.length > 0 && {
+                      label: "View Unpaid",
+                      onClick: () => setMemberDetail({
+                        id: "trash-unpaid",
+                        title: "Unpaid Trash Details",
+                        members: derived.unpaidTrashMembers,
+                        totalMembers: derived.activeTrashMembers.length,
+                        statusText: "Unpaid",
+                        paymentLabel: "Trash",
+                        amount: appConfig?.trash_fee,
+                        note: "Houses that have not paid trash fees.",
+                      }),
+                    },
+                    { label: "View All", onClick: () => setShowTrashDetail(true) },
+                  ]}
+                />
+              </div>
+            </Section>
+            <Section title="Action Status">
+              <div className="admin-monitor-grid">
+                <MonitoringCard
+                  label="Ready Booking"
+                  value={`${derived.readyBookings.length} houses`}
+                  meta={[`${derived.waitingBookings.length} bookings are waiting.`]}
+                  error={derived.readyBookings.length > 0}
+                />
+                <MonitoringCard
+                  label="Monitoring Issue"
+                  value={`${monitoringIssueCount} issue`}
+                  meta={[monitoringIssueCount ? "Need review" : "No issue detected"]}
+                  error={monitoringIssueCount > 0}
+                />
+              </div>
+            </Section>
           </div>
-        </Section>
+        )}
 
-        <Section title="Action Status">
-          <div className="admin-monitor-grid">
-            <MonitoringCard label="Ready Booking" value={`${readyBookings.length} houses`} meta={[`${waitingBookings.length} bookings waiting for the payment period.`]} error={readyBookings.length > 0} />
-            <MonitoringCard label="Monitoring Issue" value={`${monitoringIssueCount} issue`} meta={[monitoringIssueCount ? "Need review" : "No issue detected"]} error={monitoringIssueCount > 0} />
+        {activePanel === "actions" && (
+          <div id="overview-actions-panel" role="tabpanel" style={styles.panel}>
+            <Section title="Resident Report">
+              <div style={styles.reportCard}>
+                <div>
+                  <strong>WhatsApp Cash Report</strong>
+                  <div style={styles.muted}>Preview before sending to the resident group.</div>
+                </div>
+                <AdminActionButton
+                  onClick={openResidentReportConfirm}
+                  loading={loadingReportPreview}
+                  loadingText="Loading preview..."
+                  disabled={sendingReport}
+                >
+                  Preview & Send
+                </AdminActionButton>
+              </div>
+            </Section>
+            <Section title="Quick Actions">
+              <div style={styles.quickActions}>
+                <QuickAction title="Payment" subtitle="Record dues" onClick={() => onNavigate("payment")} />
+                <QuickAction title="Booking" subtitle="Process booking" onClick={() => onNavigate("deposit")} />
+                <QuickAction title="Cashflow" subtitle="Add transaction" onClick={() => onNavigate("cashflow")} />
+                <QuickAction title="Monitoring" subtitle="Review issues" onClick={() => onNavigate("monitoring")} />
+                <QuickAction title="Backup" subtitle="Open summary" onClick={() => onNavigate("summary")} />
+              </div>
+            </Section>
+            <Section title="Attention Needed">
+              {alerts.length === 0 ? (
+                <div className="admin-empty-state">No special attention is needed.</div>
+              ) : (
+                <div style={styles.alertList}>
+                  {alerts.map((alert) => (
+                    <AlertItem key={alert.title} alert={alert} onNavigate={onNavigate} />
+                  ))}
+                </div>
+              )}
+            </Section>
           </div>
-        </Section>
+        )}
 
-        <Section title="Resident Report">
-          <div style={styles.reportCard}>
-            <div>
-              <div style={styles.reportTitle}>WhatsApp Cash Report</div>
-              <div style={styles.reportDetail}>Preview the monthly cash report before sending it to the resident group.</div>
-            </div>
-            <AdminActionButton onClick={openResidentReportConfirm} loading={loadingReportPreview} loadingText="Loading preview..." disabled={sendingReport}>Preview & Send WhatsApp Report</AdminActionButton>
+        {activePanel === "cashflow" && (
+          <div id="overview-cashflow-panel" role="tabpanel" style={styles.panel}>
+            <Section title="Recent Cashflow">
+              {derived.recentCashflows.length === 0 ? (
+                <div className="admin-empty-state">No cashflow transactions yet.</div>
+              ) : (
+                <div style={styles.cashflowList}>
+                  {derived.recentCashflows.map((item) => (
+                    <div key={item.id || `${item.date}-${item.note}`} style={styles.cashflowItem}>
+                      <span style={{ color: item.type === "income" ? "#16a34a" : "#dc2626", fontWeight: 900 }}>
+                        {item.type === "income" ? "Income" : "Expense"}
+                      </span>
+                      <span>{item.note || "-"}</span>
+                      <strong>{money(item.amount)}</strong>
+                      <span style={styles.muted}>{formatDate(item.date)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Section>
           </div>
-        </Section>
-
-        <Section title="Quick Actions">
-          <div style={styles.quickActions}>
-            <QuickAction title="Payment" subtitle="Record dues" onClick={() => onNavigate("payment")} />
-            <QuickAction title="Booking" subtitle="Process booking" onClick={() => onNavigate("deposit")} />
-            <QuickAction title="Cashflow" subtitle="Add transaction" onClick={() => onNavigate("cashflow")} />
-            <QuickAction title="Monitoring" subtitle="Review issues" onClick={() => onNavigate("monitoring")} />
-            <QuickAction title="Backup" subtitle="Open summary" onClick={() => onNavigate("summary")} />
-          </div>
-        </Section>
-
-        <Section title="Attention Needed">
-          {alerts.length === 0 ? <div className="admin-empty-state">No special attention needed. The system looks stable.</div> : <div style={styles.alertList}>{alerts.map((alert) => <AlertItem key={alert.title} tone={alert.tone} title={alert.title} detail={alert.detail} action={alert.action} onClick={() => onNavigate(alert.tab)} />)}</div>}
-        </Section>
-
-        <Section title="Recent Cashflow">
-          {recentCashflows.length === 0 ? <div className="admin-empty-state">No cashflow transactions yet.</div> : (
-            <div style={styles.cashflowList}>{recentCashflows.map((item) => <CompactCashflowItem key={item.id || `${item.date}-${item.note}-${item.amount}`} item={item} />)}</div>
-          )}
-        </Section>
+        )}
       </div>
 
-      <DetailMembersModal
-        open={Boolean(unpaidDetail)}
-        title={unpaidDetail?.title || "Payment Details"}
-        members={unpaidDetail?.members || []}
-        statusText={isPaidDetailType(unpaidDetail?.type) ? "paid" : "unpaid"}
-        emptyText="No house data."
-        sharing={exportingDetailJpg === unpaidDetail?.type}
-        onShareJpg={unpaidDetail ? () => handleShareDetailJpg({
-          id: unpaidDetail.type,
-          members: unpaidDetail.members,
-          totalMembers: unpaidDetail.type?.startsWith("sampah") ? activeCurrentTrashMembers.length : activeCurrentMembers.length,
-          statusText: isPaidDetailType(unpaidDetail.type) ? "Paid" : "Unpaid",
-          paymentLabel: unpaidDetail.type?.startsWith("sampah") ? "Trash" : "Cash",
-          amount: unpaidDetail.type?.startsWith("sampah") ? appConfig?.trash_fee : appConfig?.monthly_fee,
-          footerNote: "If any data is inaccurate, please confirm with the cash admin.",
-        }) : undefined}
-        onClose={() => setUnpaidDetail(null)}
+      <MemberDetailModal
+        detail={memberDetail}
+        sharing={exportingDetailJpg === memberDetail?.id}
+        onShare={() => shareDetail(memberDetail)}
+        onClose={() => setMemberDetail(null)}
       />
-      <DetailMembersModal
-        open={showPaidTrashDetail}
-        title="Paid Trash Details"
-        members={paidCurrentTrashMembers}
-        statusText="paid"
-        emptyText="No houses have paid the trash fee this month yet."
-        sharing={exportingDetailJpg === "sampah-paid"}
-        onShareJpg={() => handleShareDetailJpg({
-          id: "sampah-paid",
-          members: paidCurrentTrashMembers,
-          totalMembers: activeCurrentTrashMembers.length,
-          statusText: "Paid",
-          paymentLabel: "Trash",
-          amount: appConfig?.trash_fee,
-          footerNote: "If any data is inaccurate, please confirm with the cash admin.",
-        })}
-        onClose={() => setShowPaidTrashDetail(false)}
-      />
-      <TrashAllMembersModal
-        open={showAllTrashDetail}
+      <TrashDetailModal
+        open={showTrashDetail}
+        members={derived.allTrashMembers}
         periodLabel={periodLabel}
-        members={allTrashMembers}
-        paidDirectCount={paidDirectTrashCount}
-        reimbursedCount={reimbursedTrashCount}
-        needAdvanceCount={needAdvanceTrashCount}
-        advancedCount={advancedTrashCount}
-        totalNeedAdvance={totalNeedAdvanceTrash}
-        totalAdvanced={totalAdvancedTrash}
-        totalReimbursed={totalReimbursedTrash}
-        currentBalance={currentBalance}
-        sharing={exportingDetailJpg === "sampah-all"}
+        currentBalance={derived.currentBalance}
+        totalNeedAdvance={derived.totalNeedAdvance}
+        totalAdvanced={derived.totalAdvanced}
+        totalReimbursed={derived.totalReimbursed}
         advancing={advancingTrash}
-        onShareJpg={handleShareAllTrashJpg}
+        sharing={exportingDetailJpg === "trash-all"}
+        onShare={shareAllTrash}
         onAdvance={() => setShowTrashAdvanceConfirm(true)}
-        onClose={() => setShowAllTrashDetail(false)}
+        onClose={() => setShowTrashDetail(false)}
       />
 
       <AdminConfirmModal
         open={showTrashAdvanceConfirm}
         title="Confirm Trash Advance"
-        description={`This will create cashflow expense for ${needAdvanceTrashCount} unpaid trash members.`}
-        confirmText="Yes, Advance Trash"
+        description={`This creates a cashflow expense for ${derived.needAdvanceCount} unpaid trash members.`}
+        confirmText="Advance Trash"
         cancelText="Cancel"
         loading={advancingTrash}
-        onCancel={() => {
-          if (!advancingTrash) setShowTrashAdvanceConfirm(false);
-        }}
-        onConfirm={handleAdvanceUnpaidTrash}
+        onCancel={() => !advancingTrash && setShowTrashAdvanceConfirm(false)}
+        onConfirm={advanceTrash}
       >
-        <div style={styles.confirmSummaryBox}>
-          <div style={styles.confirmSummaryRow}><span>Period</span><strong>{periodLabel}</strong></div>
-          <div style={styles.confirmSummaryRow}><span>Members to advance</span><strong>{needAdvanceTrashCount} houses</strong></div>
-          <div style={styles.confirmSummaryRow}><span>Total advance</span><strong>{money(totalNeedAdvanceTrash)}</strong></div>
-          <div style={styles.confirmSummaryRow}><span>Projected balance</span><strong>{money(currentBalance - totalNeedAdvanceTrash)}</strong></div>
+        <div style={styles.confirmGrid}>
+          <span>Period</span><strong>{periodLabel}</strong>
+          <span>Total advance</span><strong>{money(derived.totalNeedAdvance)}</strong>
+          <span>Projected balance</span><strong>{money(derived.currentBalance - derived.totalNeedAdvance)}</strong>
         </div>
       </AdminConfirmModal>
 
-      <AdminConfirmModal open={showReportConfirm} title="Confirm resident report delivery" description="Make sure the message content is correct before sending it to the WhatsApp group." confirmText="Send to Group" cancelText="Check Again" loading={sendingReport} onCancel={closeReportConfirm} onConfirm={sendResidentReport}>
+      <AdminConfirmModal
+        open={showReportConfirm}
+        title="Confirm resident report delivery"
+        description="Check the message before sending it to the WhatsApp group."
+        confirmText="Send to Group"
+        cancelText="Check Again"
+        loading={sendingReport}
+        onCancel={() => !sendingReport && setShowReportConfirm(false)}
+        onConfirm={sendResidentReport}
+      >
         <pre style={styles.previewBox}>{reportPreview}</pre>
       </AdminConfirmModal>
     </>
@@ -763,64 +789,190 @@ export default function OverviewTab({
 }
 
 const styles = {
-  header: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
-  muted: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 600, lineHeight: 1.6 },
-  periodBadge: { padding: "8px 12px", borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-muted)", fontSize: 12, fontWeight: 800 },
-  modalHeaderTop: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, width: "100%" },
-  modalTitleGroup: { minWidth: 0, flex: "1 1 auto" },
-  modalActions: { display: "flex", alignItems: "center", justifyContent: "flex-start", gap: 8, flexWrap: "wrap", paddingRight: 0 },
-  modalCloseButton: { width: 36, height: 36, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer", fontSize: 24, fontWeight: 900, lineHeight: 1, alignItems: "center", justifyContent: "center", flexShrink: 0 },
-  heroCard: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, padding: 22, borderRadius: 20, border: "1px solid var(--admin-border)", background: "linear-gradient(135deg, var(--admin-card), var(--admin-row))", flexWrap: "wrap" },
-  heroLabel: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 900, letterSpacing: "0.02em", textTransform: "uppercase" },
-  heroValue: { fontSize: "clamp(28px, 5vw, 44px)", fontWeight: 950, lineHeight: 1.1, marginTop: 8 },
-  heroMeta: { color: "var(--admin-muted)", fontSize: 13, fontWeight: 650, lineHeight: 1.55, marginTop: 8 },
-  heroBadge: { padding: "8px 12px", borderRadius: 999, background: "var(--admin-row)", border: "1px solid var(--admin-border)", fontSize: 12, fontWeight: 900 },
-  twoColumnGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 },
-  progressCard: { padding: 16, borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)", display: "grid", gap: 12 },
-  progressHeader: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
-  progressLabel: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: "0.02em" },
-  progressValue: { color: "var(--admin-text)", fontSize: 22, fontWeight: 950, marginTop: 4 },
-  progressPercent: { fontSize: 18, fontWeight: 950 },
-  progressTrack: { height: 9, borderRadius: 999, background: "var(--admin-card)", overflow: "hidden", border: "1px solid var(--admin-border)" },
-  progressFill: { height: "100%", borderRadius: 999, background: "var(--admin-primary)", transition: "width 0.2s ease" },
-  progressMetaRow: { display: "flex", justifyContent: "space-between", gap: 8, color: "var(--admin-muted)", fontSize: 12, fontWeight: 700, flexWrap: "wrap" },
-  progressActions: { display: "flex", gap: 10, flexWrap: "wrap" },
-  progressActionButton: { border: "none", background: "none", color: "var(--admin-primary)", cursor: "pointer", font: "inherit", fontSize: 13, fontWeight: 800, padding: 0 },
-  quickActions: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 10 },
-  quickActionCard: { display: "grid", gap: 4, textAlign: "left", padding: 14, borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", cursor: "pointer" },
-  quickActionTitle: { fontSize: 14, fontWeight: 950 },
-  quickActionSubtitle: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 650 },
-  reportCard: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14, padding: 16, borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
-  reportTitle: { fontSize: 15, fontWeight: 900, marginBottom: 4 },
-  reportDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
-  previewBox: { margin: 0, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", fontFamily: "inherit", fontSize: 13, fontWeight: 600, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word" },
-  confirmSummaryBox: { display: "grid", gap: 10 },
-  confirmSummaryRow: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "10px 12px", borderRadius: 12, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", fontSize: 13, fontWeight: 700 },
+  header: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+  section: { display: "grid", gap: 12 },
+  panel: { display: "grid", gap: 20 },
+  muted: {
+    color: "var(--admin-muted)",
+    fontSize: 12,
+    fontWeight: 650,
+    lineHeight: 1.5,
+  },
+  periodBadge: {
+    padding: "8px 12px",
+    borderRadius: 999,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+    color: "var(--admin-muted)",
+    fontSize: 12,
+    fontWeight: 800,
+  },
+  heroCard: {
+    display: "flex",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 16,
+    padding: 22,
+    borderRadius: 20,
+    border: "1px solid var(--admin-border)",
+    background: "linear-gradient(135deg, var(--admin-card), var(--admin-row))",
+    flexWrap: "wrap",
+  },
+  heroLabel: {
+    color: "var(--admin-muted)",
+    fontSize: 12,
+    fontWeight: 900,
+    textTransform: "uppercase",
+  },
+  heroValue: {
+    fontSize: "clamp(28px,5vw,44px)",
+    fontWeight: 950,
+    lineHeight: 1.1,
+    margin: "8px 0",
+  },
+  heroBadge: {
+    padding: "8px 12px",
+    borderRadius: 999,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+    fontSize: 12,
+    fontWeight: 900,
+  },
+  twoColumnGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))",
+    gap: 12,
+  },
+  progressCard: {
+    display: "grid",
+    gap: 12,
+    padding: 16,
+    borderRadius: 16,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+  },
+  progressHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  progressValue: { fontSize: 22, fontWeight: 950, marginTop: 4 },
+  progressTrack: {
+    height: 9,
+    borderRadius: 999,
+    background: "var(--admin-card)",
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 999,
+    background: "var(--admin-primary)",
+  },
+  progressMeta: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 8,
+    color: "var(--admin-muted)",
+    fontSize: 12,
+    fontWeight: 700,
+  },
+  rowActions: { display: "flex", gap: 8, flexWrap: "wrap" },
+  reportCard: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 14,
+    padding: 16,
+    border: "1px solid var(--admin-border)",
+    borderRadius: 16,
+    background: "var(--admin-row)",
+    flexWrap: "wrap",
+  },
+  quickActions: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(145px,1fr))",
+    gap: 10,
+  },
+  quickAction: {
+    display: "grid",
+    gap: 4,
+    padding: 14,
+    textAlign: "left",
+    border: "1px solid var(--admin-border)",
+    borderRadius: 14,
+    background: "var(--admin-row)",
+    color: "var(--admin-text)",
+    cursor: "pointer",
+  },
   alertList: { display: "grid", gap: 10 },
-  alertItem: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: 14, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", flexWrap: "wrap" },
-  alertTitle: { fontSize: 14, fontWeight: 800, marginBottom: 4 },
-  alertDetail: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 600, lineHeight: 1.5 },
-  trashModalActions: { display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", paddingRight: 0 },
-  trashSummaryGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 10, margin: "12px 0" },
-  trashSummaryItem: { display: "grid", gap: 6, padding: 12, borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)", minWidth: 0 },
-  trashAdvanceNote: { margin: "6px 0 12px", padding: 12, borderRadius: 14, border: "1px solid #fed7aa", background: "#fff7ed", color: "#9a3412", fontSize: 13, fontWeight: 800, lineHeight: 1.5 },
-  trashAdvanceSafe: { borderColor: "#bbf7d0", background: "#f0fdf4", color: "#166534" },
-  trashAdvanceDanger: { borderColor: "#fecaca", background: "#fef2f2", color: "#b91c1c" },
-  trashMemberList: { display: "grid", alignContent: "start", gap: 8, marginTop: 10, minHeight: 0 },
-  trashMemberItem: { display: "grid", gridTemplateColumns: "32px minmax(0, 1fr) auto", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 14, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
-  trashMemberNo: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 900, textAlign: "center" },
-  trashMemberMain: { minWidth: 0, display: "grid", gap: 2 },
-  trashMemberHouse: { color: "var(--admin-text)", fontSize: 14, fontWeight: 950, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  trashMemberName: { color: "var(--admin-muted)", fontSize: 12, fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  trashStatusBadge: { display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "5px 9px", borderRadius: 999, fontSize: 11, fontWeight: 900, whiteSpace: "nowrap" },
-  trashStatusPaid: { background: "#dcfce7", color: "#16a34a" },
-  trashStatusReimbursed: { background: "#dbeafe", color: "#2563eb" },
-  trashStatusAdvanced: { background: "#fee2e2", color: "#dc2626" },
-  trashStatusNeedAdvance: { background: "#fef3c7", color: "#d97706" },
-  cashflowList: { display: "grid", gap: 0, padding: "6px 14px", borderRadius: 16, border: "1px solid var(--admin-border)", background: "var(--admin-row)" },
-  cashflowItem: { display: "grid", gridTemplateColumns: "72px minmax(0, 1fr)", alignItems: "center", columnGap: 10, rowGap: 4, padding: "12px 0", borderBottom: "1px solid var(--admin-border)" },
-  cashflowBadge: { fontSize: 12, fontWeight: 950, alignSelf: "start", paddingTop: 1 },
-  cashflowNote: { color: "var(--admin-text)", fontSize: 13, fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 },
-  cashflowAmount: { color: "var(--admin-text)", fontSize: 13, fontWeight: 950, whiteSpace: "nowrap" },
-  cashflowDate: { color: "var(--admin-muted)", fontSize: 11, fontWeight: 700 },
+  alertItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    border: "1px solid var(--admin-border)",
+    borderRadius: 14,
+    background: "var(--admin-row)",
+    flexWrap: "wrap",
+  },
+  cashflowList: { display: "grid", gap: 8 },
+  cashflowItem: {
+    display: "grid",
+    gridTemplateColumns: "auto minmax(0,1fr) auto auto",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    border: "1px solid var(--admin-border)",
+    borderRadius: 12,
+    background: "var(--admin-row)",
+  },
+  modalHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 12,
+    width: "100%",
+  },
+  pagination: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 12,
+  },
+  memberList: {
+    display: "grid",
+    gap: 8,
+    maxHeight: "55vh",
+    overflow: "auto",
+  },
+  memberItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: 10,
+    border: "1px solid var(--admin-border)",
+    borderRadius: 10,
+  },
+  confirmGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr auto",
+    gap: 10,
+  },
+  previewBox: {
+    margin: 0,
+    padding: 14,
+    border: "1px solid var(--admin-border)",
+    borderRadius: 14,
+    background: "var(--admin-row)",
+    whiteSpace: "pre-wrap",
+    lineHeight: 1.55,
+  },
 };

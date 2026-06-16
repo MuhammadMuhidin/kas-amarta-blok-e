@@ -16,9 +16,55 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const WHATSAPP_SESSION_ERROR_TERMS = [
+  "loggedout",
+  "logged out",
+  "logout",
+  "unpaired",
+  "pairing ulang",
+  "perlu pairing",
+  "session whatsapp perlu pairing",
+  "whatsapp belum connected",
+  "whatsapp is not connected",
+  "not connected",
+  "timeout menunggu koneksi whatsapp",
+];
+
+const WHATSAPP_DELIVERY_ERROR_TERMS = [
+  "wa_api_url",
+  "wa_api_key",
+  "gagal mengirim whatsapp",
+  "failed to send whatsapp",
+  "whatsapp belum mengembalikan status terkirim",
+  "unauthorized",
+];
+
 function buildOtpMessage({ role, otp }) {
   const label = getAdminAccessRoleLabel(role);
   return `Kode OTP login pengurus ${label}: ${otp}. Berlaku 5 menit. Jangan bagikan kode ini.`;
+}
+
+function classifyWhatsAppDeliveryError(error) {
+  const message = String(error?.message || "").trim();
+  const normalized = message.toLowerCase();
+
+  if (WHATSAPP_SESSION_ERROR_TERMS.some((term) => normalized.includes(term))) {
+    return {
+      status: 503,
+      error_code: "WHATSAPP_SESSION_UNAVAILABLE",
+      error: "WhatsApp Services are active, but the WhatsApp session is logged out. Please contact the administrator.",
+    };
+  }
+
+  if (WHATSAPP_DELIVERY_ERROR_TERMS.some((term) => normalized.includes(term))) {
+    return {
+      status: 503,
+      error_code: "WHATSAPP_DELIVERY_UNAVAILABLE",
+      error: "WhatsApp Services are active, but OTP delivery is unavailable. Please contact the administrator.",
+    };
+  }
+
+  return null;
 }
 
 export async function POST(req) {
@@ -71,8 +117,9 @@ export async function POST(req) {
       return NextResponse.json({
         ok: true,
         otp_delivery: "disabled",
+        error_code: "WHATSAPP_SERVICES_DISABLED",
         login_otp: otp,
-        message: "WhatsApp Services sedang OFF. Login dilanjutkan tanpa pengiriman OTP WhatsApp.",
+        message: "WhatsApp Services are disabled. Login will continue without a WhatsApp OTP.",
       });
     }
 
@@ -91,7 +138,12 @@ export async function POST(req) {
       metadata: { role },
     });
 
-    return NextResponse.json({ ok: true, message: "OTP terkirim ke WhatsApp role terdaftar" });
+    return NextResponse.json({
+      ok: true,
+      otp_delivery: "whatsapp",
+      error_code: "WHATSAPP_OTP_SENT",
+      message: "OTP sent to the registered WhatsApp number.",
+    });
   } catch (err) {
     if (otpId) {
       try {
@@ -101,16 +153,36 @@ export async function POST(req) {
       }
     }
 
+    const whatsappFailure = classifyWhatsAppDeliveryError(err);
+
     await recordAdminActivity(req, {
       type: "otp-request",
       module: "login",
       severity: "error",
       message: `OTP login request failed${role ? ` for ${role}` : ""}`,
-      metadata: { role: role || null, error: err.message || "Unknown error" },
+      metadata: {
+        role: role || null,
+        error: err.message || "Unknown error",
+        error_code: whatsappFailure?.error_code || "OTP_REQUEST_FAILED",
+      },
     });
 
+    if (whatsappFailure) {
+      return NextResponse.json(
+        {
+          error: whatsappFailure.error,
+          error_code: whatsappFailure.error_code,
+          whatsapp_services_enabled: true,
+        },
+        { status: whatsappFailure.status },
+      );
+    }
+
     return NextResponse.json(
-      { error: err.message || "Gagal mengirim OTP" },
+      {
+        error: "Unable to request an OTP. Please contact the administrator.",
+        error_code: "OTP_REQUEST_FAILED",
+      },
       { status: 400 },
     );
   }

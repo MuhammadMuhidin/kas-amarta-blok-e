@@ -1,10 +1,8 @@
 import { isAdmin, unauthorized, validateCSRF } from "@/lib/auth";
 import { recordAdminActivity } from "@/lib/adminActivity";
-import {
-  enforceRateLimit,
-  RATE_LIMIT_SCOPES,
-} from "@/lib/rateLimit";
-import { getWhatsAppWorkflowDefaults, triggerWhatsAppWorkflow } from "@/lib/whatsappWorkflow";
+import { getIntegrationConfigString } from "@/lib/integrationConfig";
+import { enforceRateLimit, RATE_LIMIT_SCOPES } from "@/lib/rateLimit";
+import { sendWaMessage } from "@/lib/waClient";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,9 +27,7 @@ function getCurrentPeriod() {
 
 export async function POST(req) {
   try {
-    if (!(await isAdmin(req))) {
-      return unauthorized();
-    }
+    if (!(await isAdmin(req))) return unauthorized();
 
     if (!validateCSRF(req)) {
       return Response.json({ error: "CSRF tidak valid" }, { status: 403 });
@@ -46,31 +42,30 @@ export async function POST(req) {
     if (rateLimit) return rateLimit;
 
     const body = await req.json().catch(() => ({}));
-    const defaults = getWhatsAppWorkflowDefaults();
     const text = normalize(body.message) || DEFAULT_PAYMENT_REMINDER_MESSAGE;
     const period = normalize(body.period) || getCurrentPeriod();
-    const chatId = normalize(body.chatId) || defaults.reportChatId;
-    const sessionId = normalize(body.sessionId) || defaults.sessionId || "main";
-    const targetEnv = normalize(body.targetEnv) || defaults.targetEnv || "development";
+    const [configuredChatId, configuredSessionId] = await Promise.all([
+      getIntegrationConfigString("WA_REPORT_CHAT_ID"),
+      getIntegrationConfigString("WA_SESSION_ID", "main"),
+    ]);
+    const chatId = normalize(body.chatId || configuredChatId || process.env.WA_CHAT_ID);
+    const sessionId = normalize(configuredSessionId) || "main";
 
     if (body.preview === true) {
       return Response.json({
         ok: true,
         preview: true,
+        delivery: "external-api",
         chatId,
         session: sessionId,
-        targetEnv,
         period,
         text,
       });
     }
 
-    const workflow = await triggerWhatsAppWorkflow({
+    await sendWaMessage({
       chatId,
-      message: text,
-      period,
-      sessionId,
-      targetEnv,
+      text,
       source: "admin-payment-reminder",
     });
 
@@ -81,7 +76,7 @@ export async function POST(req) {
       message: "Send payment reminder WhatsApp",
       metadata: {
         target: "resident_group",
-        job_id: workflow.jobId,
+        delivery: "external-api",
         message_length: text.length,
         period,
         source: "admin-payment-reminder",
@@ -90,12 +85,10 @@ export async function POST(req) {
 
     return Response.json({
       ok: true,
-      queued: true,
-      jobId: workflow.jobId,
-      workflow,
+      sent: true,
+      delivery: "external-api",
       chatId,
       session: sessionId,
-      targetEnv,
       period,
       text,
     });

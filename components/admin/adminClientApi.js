@@ -31,6 +31,7 @@ function isRetryableHttpStatus(status) {
 }
 
 function isRetryableError(error) {
+  if (error?.name === "AbortError") return false;
   const message = String(error?.message || "").toLowerCase();
 
   return (
@@ -110,12 +111,22 @@ function broadcastMutation({ path, method, body, data }) {
   }));
 }
 
-export async function readJson(path) {
+export async function readJson(path, options = {}) {
+  const {
+    retries = 1,
+    signal,
+    ...fetchOptions
+  } = options || {};
+
   return requestJson({
     path,
     method: "GET",
-    fetchOptions: { cache: "no-store" },
-    retries: 1,
+    fetchOptions: {
+      cache: "no-store",
+      ...fetchOptions,
+      ...(signal ? { signal } : {}),
+    },
+    retries,
   });
 }
 
