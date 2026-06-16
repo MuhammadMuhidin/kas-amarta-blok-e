@@ -1,6 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const SUBMIT_LABELS = {
+  idle: "Kirim Bukti",
+  processing: "Memproses...",
+  still_processing: "Masih Diproses...",
+  almost_done: "Hampir Selesai...",
+  success: "Bukti Terkirim",
+  error: "Coba Lagi",
+};
 
 function getFileLabel(file) {
   if (!file?.name) return "Belum ada file dipilih";
@@ -8,23 +17,47 @@ function getFileLabel(file) {
   return file.name.length > 28 ? `${file.name.slice(0, 24)}...` : file.name;
 }
 
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 export default function PaymentProofUploadForm({ resident, selectedPeriod, onSubmitted }) {
   const [proofFile, setProofFile] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState("idle");
   const [submitted, setSubmitted] = useState(false);
   const [message, setMessage] = useState(null);
   const fileInputRef = useRef(null);
+  const progressTimersRef = useRef([]);
+
+  const submitting = ["processing", "still_processing", "almost_done"].includes(submitStatus);
+
+  function clearProgressTimers() {
+    progressTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    progressTimersRef.current = [];
+  }
+
+  function startProgress() {
+    clearProgressTimers();
+    setSubmitStatus("processing");
+    progressTimersRef.current = [
+      window.setTimeout(() => setSubmitStatus("still_processing"), 4000),
+      window.setTimeout(() => setSubmitStatus("almost_done"), 8000),
+    ];
+  }
+
+  useEffect(() => () => clearProgressTimers(), []);
 
   async function submitProof(event) {
     event.preventDefault();
 
-    if (submitting || submitted) return;
+    if (submitting || submitted || submitStatus === "success") return;
     if (!proofFile) {
+      setSubmitStatus("error");
       setMessage({ type: "error", text: "Bukti pembayaran wajib dilampirkan." });
       return;
     }
 
-    setSubmitting(true);
+    startProgress();
     setMessage(null);
 
     try {
@@ -41,15 +74,21 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
 
       if (!res.ok) throw new Error(data.error || "Gagal mengirim bukti pembayaran");
 
+      clearProgressTimers();
       setProofFile(null);
-      setSubmitted(true);
+      setSubmitStatus("success");
       if (fileInputRef.current) fileInputRef.current.value = "";
       setMessage({ type: "success", text: "Bukti pembayaran berhasil dikirim. Menunggu persetujuan admin." });
-      await onSubmitted?.();
+
+      await Promise.all([
+        Promise.resolve(onSubmitted?.()).catch(() => undefined),
+        wait(1000),
+      ]);
+      setSubmitted(true);
     } catch (err) {
+      clearProgressTimers();
+      setSubmitStatus("error");
       setMessage({ type: "error", text: err.message || "Gagal mengirim bukti pembayaran" });
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -67,7 +106,10 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,application/pdf"
-        onChange={(event) => setProofFile(event.target.files?.[0] || null)}
+        onChange={(event) => {
+          setProofFile(event.target.files?.[0] || null);
+          if (submitStatus === "error") setSubmitStatus("idle");
+        }}
         style={hiddenFileInputStyle}
       />
 
@@ -75,6 +117,7 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
         type="button"
         style={filePickerStyle}
         onClick={() => fileInputRef.current?.click()}
+        disabled={submitting || submitStatus === "success"}
       >
         <span style={filePickerButtonStyle}>Pilih File</span>
         <span style={fileNameStyle}>{getFileLabel(proofFile)}</span>
@@ -86,8 +129,12 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
         </div>
       )}
 
-      <button type="submit" style={submitButtonStyle} disabled={submitting}>
-        {submitting ? "Mengirim..." : "Kirim Bukti Pembayaran"}
+      <button
+        type="submit"
+        style={submitButtonStyle}
+        disabled={submitting || submitStatus === "success"}
+      >
+        {SUBMIT_LABELS[submitStatus] || SUBMIT_LABELS.idle}
       </button>
     </form>
   );
