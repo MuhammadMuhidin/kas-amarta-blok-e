@@ -55,6 +55,10 @@ const isProduction = deploymentBranch
   ? deploymentBranch === "main"
   : ["production", "prod"].includes(explicitEnvironment);
 
+const workerName = isProduction
+  ? "amarta-residence-production"
+  : "amarta-residence-development";
+
 const queueNames = isProduction
   ? {
       events: "amarta-notification-events",
@@ -78,6 +82,7 @@ let originalWranglerConfig = null;
 console.log("Cloudflare deployment target:", {
   branch: deploymentBranch || "unknown",
   environment: isProduction ? "production" : "development",
+  worker: workerName,
   queue: queueNames.events,
   deadLetterQueue: queueNames.deadLetter,
 });
@@ -92,6 +97,7 @@ function runOpenNext(args) {
     env: {
       ...process.env,
       APP_PLATFORM: "cloudflare",
+      APP_ENV: isProduction ? "production" : "development",
     },
     stdio: "inherit",
   });
@@ -129,13 +135,17 @@ function ensureCloudflareQueue(queueName) {
   if (output) console.warn(output);
 }
 
-function configureCloudflareQueues() {
+function configureCloudflareDeployment() {
   if (!existsSync(wranglerConfigPath)) {
     throw new Error(`Wrangler config tidak ditemukan: ${wranglerConfigPath}`);
   }
 
   originalWranglerConfig = readFileSync(wranglerConfigPath, "utf8");
   const updatedConfig = originalWranglerConfig
+    .replace(
+      /("name"\s*:\s*)"amarta-residence-(?:development|production)"/,
+      `$1"${workerName}"`,
+    )
     .replace(
       /("queue"\s*:\s*)"amarta-notification-events(?:-development)?"/,
       `$1"${queueNames.events}"`,
@@ -144,6 +154,10 @@ function configureCloudflareQueues() {
       /("dead_letter_queue"\s*:\s*)"amarta-notification-events(?:-development)?-dlq"/,
       `$1"${queueNames.deadLetter}"`,
     );
+
+  if (!updatedConfig.includes(`"name": "${workerName}"`)) {
+    throw new Error(`Nama Worker tidak dapat dikonfigurasi ke ${workerName}`);
+  }
 
   if (!updatedConfig.includes(`"queue": "${queueNames.events}"`)) {
     throw new Error(`Queue consumer tidak dapat dikonfigurasi ke ${queueNames.events}`);
@@ -215,7 +229,7 @@ function restoreProjectFiles() {
 }
 
 try {
-  configureCloudflareQueues();
+  configureCloudflareDeployment();
 
   if (mode === "deploy") {
     for (const queueName of REQUIRED_QUEUES) ensureCloudflareQueue(queueName);
