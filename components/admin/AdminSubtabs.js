@@ -9,11 +9,7 @@ export default function AdminSubtabs({
   ariaLabel = "Admin section navigation",
 }) {
   const [pending, startTransition] = useTransition();
-  const minimumColumnWidth = items.length >= 4
-    ? 118
-    : items.length === 3
-      ? 82
-      : 120;
+  const scrollable = items.length >= 4;
 
   function select(nextValue) {
     if (nextValue === value || pending) return;
@@ -27,7 +23,11 @@ export default function AdminSubtabs({
       className="admin-subtabs"
       style={{
         ...styles.wrap,
-        gridTemplateColumns: `repeat(auto-fit, minmax(${minimumColumnWidth}px, 1fr))`,
+        ...(scrollable
+          ? styles.scrollableWrap
+          : {
+              gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))`,
+            }),
       }}
     >
       {items.map((item) => {
@@ -48,6 +48,7 @@ export default function AdminSubtabs({
             className={active ? "admin-subtab admin-subtab-active" : "admin-subtab"}
             style={{
               ...styles.button,
+              ...(scrollable ? styles.scrollableButton : {}),
               ...(active ? styles.active : {}),
               opacity: item.disabled ? 0.5 : 1,
             }}
@@ -73,6 +74,8 @@ export default function AdminSubtabs({
 
 const styles = {
   wrap: {
+    width: "100%",
+    boxSizing: "border-box",
     display: "grid",
     gap: 8,
     marginBottom: 18,
@@ -80,6 +83,17 @@ const styles = {
     border: "1px solid var(--admin-border)",
     borderRadius: 14,
     background: "var(--admin-row)",
+  },
+  scrollableWrap: {
+    gridAutoFlow: "column",
+    gridAutoColumns: "minmax(118px, max-content)",
+    gridTemplateColumns: "none",
+    overflowX: "auto",
+    overflowY: "hidden",
+    overscrollBehaviorX: "contain",
+    WebkitOverflowScrolling: "touch",
+    scrollSnapType: "x proximity",
+    touchAction: "pan-x",
   },
   button: {
     minWidth: 0,
@@ -98,13 +112,17 @@ const styles = {
     fontWeight: 900,
     cursor: "pointer",
   },
+  scrollableButton: {
+    minWidth: 118,
+    scrollSnapAlign: "start",
+  },
   label: {
     display: "block",
     minWidth: 0,
     maxWidth: "100%",
     lineHeight: 1.2,
     textAlign: "center",
-    whiteSpace: "normal",
+    whiteSpace: "nowrap",
     wordBreak: "normal",
     overflowWrap: "normal",
     hyphens: "none",
