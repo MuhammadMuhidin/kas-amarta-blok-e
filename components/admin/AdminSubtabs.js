@@ -27,6 +27,10 @@ export default function AdminSubtabs({
     >
       {items.map((item) => {
         const active = item.value === value;
+        const displayLabel = item.label === "Actions & Alerts"
+          ? "Action Alert"
+          : item.label;
+
         return (
           <button
             key={item.value}
@@ -43,7 +47,7 @@ export default function AdminSubtabs({
               opacity: item.disabled ? 0.5 : 1,
             }}
           >
-            <span style={styles.label}>{item.label}</span>
+            <span style={styles.label}>{displayLabel}</span>
             {Number(item.badge || 0) > 0 && (
               <span
                 className="admin-subtab-counter"
