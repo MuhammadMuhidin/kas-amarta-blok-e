@@ -28,8 +28,10 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
   const [message, setMessage] = useState(null);
   const fileInputRef = useRef(null);
   const progressTimersRef = useRef([]);
+  const submitLockRef = useRef(false);
 
   const submitting = ["processing", "still_processing", "almost_done"].includes(submitStatus);
+  const blocked = submitting || submitted || submitStatus === "success";
 
   function clearProgressTimers() {
     progressTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
@@ -50,13 +52,14 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
   async function submitProof(event) {
     event.preventDefault();
 
-    if (submitting || submitted || submitStatus === "success") return;
+    if (submitLockRef.current || blocked) return;
     if (!proofFile) {
       setSubmitStatus("error");
       setMessage({ type: "error", text: "Bukti pembayaran wajib dilampirkan." });
       return;
     }
 
+    submitLockRef.current = true;
     startProgress();
     setMessage(null);
 
@@ -87,6 +90,7 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
       setSubmitted(true);
     } catch (err) {
       clearProgressTimers();
+      submitLockRef.current = false;
       setSubmitStatus("error");
       setMessage({ type: "error", text: err.message || "Gagal mengirim bukti pembayaran" });
     }
@@ -115,9 +119,10 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
 
       <button
         type="button"
-        style={filePickerStyle}
+        style={{ ...filePickerStyle, ...(blocked ? disabledButtonStyle : {}) }}
         onClick={() => fileInputRef.current?.click()}
-        disabled={submitting || submitStatus === "success"}
+        disabled={blocked}
+        aria-busy={submitting}
       >
         <span style={filePickerButtonStyle}>Pilih File</span>
         <span style={fileNameStyle}>{getFileLabel(proofFile)}</span>
@@ -131,8 +136,9 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
 
       <button
         type="submit"
-        style={submitButtonStyle}
-        disabled={submitting || submitStatus === "success"}
+        style={{ ...submitButtonStyle, ...(blocked ? disabledButtonStyle : {}) }}
+        disabled={blocked}
+        aria-busy={submitting}
       >
         {SUBMIT_LABELS[submitStatus] || SUBMIT_LABELS.idle}
       </button>
@@ -151,6 +157,12 @@ const hiddenFileInputStyle = {
   height: 1,
   opacity: 0,
   pointerEvents: "none",
+};
+
+const disabledButtonStyle = {
+  pointerEvents: "none",
+  cursor: "not-allowed",
+  opacity: 0.65,
 };
 
 const filePickerStyle = {
