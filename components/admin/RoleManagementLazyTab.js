@@ -15,7 +15,7 @@ export default function RoleManagementLazyTab() {
         onChange={setPanel}
         ariaLabel="Role Management navigation"
         items={[
-          { value: "control", label: "Role Control", panelId: "role-control-panel" },
+          { value: "control", label: "Role Center", panelId: "role-control-panel" },
           { value: "security", label: "Security Overview", panelId: "role-security-panel" },
         ]}
       />
