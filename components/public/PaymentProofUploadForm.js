@@ -81,7 +81,7 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
       setMessage({ type: "success", text: "Bukti pembayaran berhasil dikirim. Menunggu persetujuan admin." });
 
       await Promise.all([
-        Promise.resolve(onSubmitted?.()).catch(() => undefined),
+        Promise.resolve().then(() => onSubmitted?.()).catch(() => undefined),
         wait(1000),
       ]);
       setSubmitted(true);
