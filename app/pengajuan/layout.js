@@ -1,4 +1,5 @@
 import PublicHero from "@/components/public/PublicHero";
+import PengajuanSubmitProgress from "@/components/public/PengajuanSubmitProgress";
 import "@/app/public-theme-state.css";
 import "@/app/timeline.css";
 import "@/app/timeline-overrides.css";
@@ -13,6 +14,7 @@ export default function PengajuanLayout({ children }) {
   return (
     <>
       <PengajuanMasterLoadingGuard />
+      <PengajuanSubmitProgress />
       <div className="page-wrap public-home-hero-wrap">
         <PublicHero description="Ajukan kebutuhan warga dan pantau proses persetujuannya secara transparan." />
       </div>
