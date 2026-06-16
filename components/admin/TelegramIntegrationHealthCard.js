@@ -109,10 +109,20 @@ export default function TelegramIntegrationHealthCard() {
   const telegramNotificationsEnabled = status?.auth_config?.telegram_notifications_enabled === true;
   const telegramApprovalActionsEnabled = status?.auth_config?.telegram_approval_actions_enabled === true;
   const telegramTestsDisabled = !telegramNotificationsEnabled && !telegramApprovalActionsEnabled;
+  const telegramConfigComplete = Boolean(config.bot_token_configured && config.chat_id_configured);
+  const canRunTests = status?.permissions?.can_run_tests === true;
+  const canManageWebhook = status?.permissions?.can_manage_webhook === true;
   const queuePushConfigured = Boolean(
     status?.queue?.http_push_url_configured
       && status?.queue?.http_api_token_configured,
   );
+  const testDisabledReason = !canRunTests
+    ? "Your role does not have permission to run Telegram tests."
+    : !telegramConfigComplete
+      ? "Telegram Bot Token and Chat ID must be configured first."
+      : telegramTestsDisabled
+        ? "Telegram notifications and approval actions are disabled in Settings."
+        : "";
 
   return (
     <>
@@ -142,10 +152,8 @@ export default function TelegramIntegrationHealthCard() {
           <button
             type="button"
             className="admin-small-btn"
-            disabled={loading || running || telegramTestsDisabled}
-            title={telegramTestsDisabled
-              ? "Telegram notifications and approval actions are disabled in Settings."
-              : ""}
+            disabled={loading || running || Boolean(testDisabledReason)}
+            title={testDisabledReason}
             onClick={() => runAction("test_direct")}
           >
             Test Direct
@@ -153,32 +161,34 @@ export default function TelegramIntegrationHealthCard() {
           <button
             type="button"
             className="admin-small-btn"
-            disabled={loading || running || telegramTestsDisabled || !queuePushConfigured}
+            disabled={loading || running || Boolean(testDisabledReason) || !queuePushConfigured}
             title={!queuePushConfigured
               ? "Cloudflare Queue push configuration is incomplete."
-              : telegramTestsDisabled
-                ? "Telegram notifications and approval actions are disabled in Settings."
-                : ""}
+              : testDisabledReason}
             onClick={() => runAction("test_queue")}
           >
             Test Queue
           </button>
-          <button
-            type="button"
-            className="admin-small-btn"
-            disabled={loading || running}
-            onClick={() => runAction("register_webhook")}
-          >
-            Register Webhook
-          </button>
-          <button
-            type="button"
-            className="admin-small-btn"
-            disabled={loading || running || !status?.webhook?.url}
-            onClick={() => runAction("remove_webhook")}
-          >
-            Remove Webhook
-          </button>
+          {canManageWebhook && (
+            <>
+              <button
+                type="button"
+                className="admin-small-btn"
+                disabled={loading || running}
+                onClick={() => runAction("register_webhook")}
+              >
+                Register Webhook
+              </button>
+              <button
+                type="button"
+                className="admin-small-btn"
+                disabled={loading || running || !status?.webhook?.url}
+                onClick={() => runAction("remove_webhook")}
+              >
+                Remove Webhook
+              </button>
+            </>
+          )}
         </div>
       </div>
     </>
