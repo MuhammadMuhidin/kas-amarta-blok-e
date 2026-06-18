@@ -9,6 +9,7 @@ import AdminMobileDrawer from "@/components/admin/AdminMobileDrawer";
 import AdminThemeBoot from "@/components/admin/AdminThemeBoot";
 import AdminTopActions from "@/components/admin/AdminTopActions";
 import ApprovalMasterLifecycleControllerV2 from "@/components/admin/ApprovalMasterLifecycleControllerV2";
+import AdminDomErrorBoundary from "@/components/admin/AdminDomErrorBoundary";
 import { getCurrentAdminSession } from "@/lib/adminSession";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -32,7 +33,9 @@ export default async function AdminLayout({ children }) {
       <AdminThemeBoot />
       <AdminMobileDrawer />
       <AdminTopActions />
-      <ApprovalMasterLifecycleControllerV2 />
+      <AdminDomErrorBoundary>
+        <ApprovalMasterLifecycleControllerV2 />
+      </AdminDomErrorBoundary>
       {children}
     </>
   );

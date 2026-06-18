@@ -225,9 +225,14 @@ export default function ApprovalMasterLifecycleControllerV2() {
   }
 
   const deleting = pending?.action === "delete";
+
+  const safeTargets = targets.filter(({ target }) => {
+    try { return document.contains(target); } catch { return false; }
+  });
+
   return <>
     <Toast show={!!toast} type={toast?.type} message={toast?.message} />
-    {targets.map(({ action, master, target }) => createPortal(
+    {safeTargets.map(({ action, master, target }) => createPortal(
       <button type="button" className={`admin-small-btn ${action === "delete" ? "mm-danger-btn" : ""}`} disabled={saving} onClick={() => setPending({ action, master })}>
         {action === "delete" ? "Delete Draft" : "Activate Again"}
       </button>, target, `${action}-${master.id}`,

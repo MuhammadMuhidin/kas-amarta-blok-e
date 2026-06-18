@@ -130,11 +130,15 @@ export default function ArchivedMasterReactivationEnhancer() {
     }
   }
 
+  const safeTargets = targets.filter(({ target }) => {
+    try { return document.contains(target); } catch { return false; }
+  });
+
   return (
     <>
       <Toast show={!!toast} type={toast?.type} message={toast?.message} />
 
-      {targets.map(({ master, target }) => createPortal(
+      {safeTargets.map(({ master, target }) => createPortal(
         <button
           type="button"
           className="admin-small-btn"
