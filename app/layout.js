@@ -224,13 +224,14 @@ const routeCanvasBootScript = `
 export default function RootLayout({ children }) {
   return (
     <html suppressHydrationWarning style={{ backgroundColor: "var(--route-bg, #f8fafc)" }}>
-      <head>
+      <head suppressHydrationWarning>
+        <meta name="theme-color" content="#f8fafc" />
         <style>{`html,body{background:var(--route-bg,#f8fafc);}`}</style>
         <script dangerouslySetInnerHTML={{ __html: routeCanvasBootScript }} />
         <script dangerouslySetInnerHTML={{ __html: publicThemeBootScript }} />
         <script dangerouslySetInnerHTML={{ __html: adminThemeBootScript }} />
       </head>
-      <body style={{ margin: 0, backgroundColor: "var(--route-bg, #f8fafc)" }}>
+      <body suppressHydrationWarning style={{ margin: 0, backgroundColor: "var(--route-bg, #f8fafc)" }}>
         <RouteDocumentTheme />
         <PublicThemePicker />
         {children}
