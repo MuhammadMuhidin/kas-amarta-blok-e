@@ -345,14 +345,24 @@ export async function shareMembersJpgReportMinimalist({
   if (typeof document === "undefined") throw new Error("JPG export is only available in the browser.");
 
   const scale = clampExportScale(exportScale);
-  const padding = 32;
-  const lineHeight = 24;
-  const sectionGap = 16;
-  const width = 600;
+  const padding = 28;
+  const lineHeight = 22;
+  const sectionGap = 14;
+  const width = 720;
+  const columnGap = 24;
+  const columnWidth = (width - padding * 2 - columnGap) / 2;
+
+  // Split members into two columns
+  const firstColumnCount = Math.ceil(members.length / 2);
+  const leftMembers = members.slice(0, firstColumnCount);
+  const rightMembers = members.slice(firstColumnCount);
 
   // Calculate dynamic height based on content
-  const fieldCount = 2 + summaryItems.length + 1 + members.length + 2;
-  const height = padding + 48 + sectionGap + 20 + sectionGap + fieldCount * lineHeight + sectionGap + 20 + sectionGap + lineHeight * 3 + padding;
+  const headerRows = 1;
+  const maxRows = Math.max(leftMembers.length, rightMembers.length);
+  const memberRows = maxRows + headerRows;
+  const summaryRows = 2 + summaryItems.length;
+  const height = padding + 48 + sectionGap + 16 + sectionGap + summaryRows * lineHeight + sectionGap + 16 + sectionGap + memberRows * lineHeight + sectionGap + 16 + sectionGap + lineHeight * 3 + padding;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -420,23 +430,61 @@ export async function shareMembersJpgReportMinimalist({
   ctx.stroke();
   y += sectionGap;
 
-  // ── Member list ──
-  const noFont = "400 12px monospace";
-  const houseFont = "700 14px monospace";
-  const nameFont = "400 14px monospace";
+  // ── Member list (two columns) ──
+  const noFont = "400 11px monospace";
+  const houseFont = "700 13px monospace";
+  const nameFont = "400 13px monospace";
+  const headerFont = "700 11px monospace";
 
-  const noCol = contentX;
-  const houseCol = contentX + 36;
-  const nameCol = contentX + 96;
+  const colLeftX = contentX;
+  const colRightX = contentX + columnWidth + columnGap;
+  const colNoW = 30;
+  const colHouseW = 56;
 
-  members.forEach((member, index) => {
-    const rowNumber = String(index + 1).padStart(2, "0");
-    drawText(ctx, rowNumber, noCol, y, noFont, "#666666");
-    drawText(ctx, clean(member.house) || "-", houseCol, y, houseFont, "#000000");
-    const memberName = truncateText(ctx, clean(member.name) || "-", contentW - 100);
-    drawText(ctx, memberName, nameCol, y, nameFont, "#333333");
+  function drawColumnHeader(x, headerY) {
+    drawText(ctx, "NO", x + 2, headerY, headerFont, "#999999");
+    drawText(ctx, "HOUSE", x + colNoW + 2, headerY, headerFont, "#999999");
+    drawText(ctx, "NAME", x + colNoW + colHouseW + 2, headerY, headerFont, "#999999");
+  }
+
+  function drawMemberRow(member, index, x, rowY) {
+    const rowNumber = String(index).padStart(2, "0");
+    // alternate row shading
+    if ((index - 1) % 2 === 0) {
+      fillRoundedRect(ctx, x - 4, rowY - 3, columnWidth + 4, lineHeight - 2, 4, "#f7f7f7");
+    }
+    drawText(ctx, rowNumber, x + 2, rowY, noFont, "#666666");
+    drawText(ctx, clean(member.house) || "-", x + colNoW + 2, rowY, houseFont, "#000000");
+    const nameMaxW = columnWidth - colNoW - colHouseW - 10;
+    drawText(ctx, truncateText(ctx, clean(member.name) || "-", nameMaxW), x + colNoW + colHouseW + 2, rowY, nameFont, "#333333");
+  }
+
+  // Column headers
+  drawColumnHeader(colLeftX, y);
+  drawColumnHeader(colRightX, y);
+  y += lineHeight;
+
+  // Separator line under headers
+  ctx.strokeStyle = "#cccccc";
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(colLeftX, y - 2);
+  ctx.lineTo(colLeftX + columnWidth, y - 2);
+  ctx.moveTo(colRightX, y - 2);
+  ctx.lineTo(colRightX + columnWidth, y - 2);
+  ctx.stroke();
+
+  // Draw rows for both columns in parallel
+  for (let rowIndex = 0; rowIndex < maxRows; rowIndex++) {
+    const rowY = y;
+    if (rowIndex < leftMembers.length) {
+      drawMemberRow(leftMembers[rowIndex], rowIndex + 1, colLeftX, rowY);
+    }
+    if (rowIndex < rightMembers.length) {
+      drawMemberRow(rightMembers[rowIndex], firstColumnCount + rowIndex + 1, colRightX, rowY);
+    }
     y += lineHeight;
-  });
+  }
 
   // ── Separator ──
   y += 4;
