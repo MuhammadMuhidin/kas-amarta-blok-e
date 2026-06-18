@@ -232,7 +232,7 @@ const routeCanvasBootScript = `
 export default function RootLayout({ children }) {
   return (
     <html suppressHydrationWarning style={{ backgroundColor: "var(--route-bg, #f8fafc)" }}>
-      <head suppressHydrationWarning>
+      <head>
         <style>{`html,body{background:var(--route-bg,#f8fafc);}`}</style>
         <script dangerouslySetInnerHTML={{ __html: routeCanvasBootScript }} />
         <script dangerouslySetInnerHTML={{ __html: publicThemeBootScript }} />
