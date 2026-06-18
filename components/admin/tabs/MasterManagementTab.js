@@ -192,7 +192,7 @@ function validateMaster(value, full = true) {
 
   if (value.payment_required) {
     if (Number(value.payment_amount || 0) <= 0) errors.push({ step: 3, message: "Payment amount must be greater than 0" });
-    if (flow[0]?.action !== "validate_payment") errors.push({ step: 3, message: "A paid request must start with payment validation" });
+    if (!flow.some((step) => step.action === "validate_payment")) errors.push({ step: 3, message: "A paid request must include a payment validation step" });
   }
   return errors;
 }
@@ -335,10 +335,10 @@ function BasicInformation({ value, onChange, autoCode, setAutoCode }) {
 
 function PaymentSettings({ value, onChange }) {
   const set = (key, nextValue) => onChange((prev) => ({ ...prev, [key]: nextValue }));
-  const hasPaymentValidation = value.flow_schema?.[0]?.action === "validate_payment";
+  const hasPaymentValidation = (value.flow_schema || []).some((step) => step.action === "validate_payment");
   const [validatorRole, setValidatorRole] = useState("bendahara");
   function addValidation() {
-    onChange((prev) => ({ ...prev, payment_required: true, flow_schema: renumberFlow([{ role: validatorRole, label: `Validasi Pembayaran oleh ${roleLabel(validatorRole)}`, action: "validate_payment" }, ...prev.flow_schema.filter((step) => step.action !== "validate_payment")]) }));
+    onChange((prev) => ({ ...prev, payment_required: true, flow_schema: renumberFlow([...prev.flow_schema.filter((step) => step.action !== "validate_payment"), { role: validatorRole, label: `Validasi Pembayaran oleh ${roleLabel(validatorRole)}`, action: "validate_payment" }]) }));
   }
   return (
     <div className="mm-panel-grid">
@@ -347,7 +347,7 @@ function PaymentSettings({ value, onChange }) {
       {value.payment_required ? <>
         <div className="mm-grid-2"><label>Payment amount<input className="admin-input" type="number" min="0" value={value.payment_amount} onChange={(event) => set("payment_amount", event.target.value)} /></label><label>Payment validator<select className="admin-input" value={validatorRole} onChange={(event) => setValidatorRole(event.target.value)}>{ROLE_OPTIONS.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label></div>
         <label>Payment instructions<textarea className="admin-input" rows={3} value={value.payment_instruction} onChange={(event) => set("payment_instruction", event.target.value)} placeholder="Transfer to the residents' fund account and wait for validation." /></label>
-        {!hasPaymentValidation ? <div className="mm-warning"><div><strong>Payment validation step is missing</strong><p>The system recommends placing this step first.</p></div><button type="button" className="admin-small-btn" onClick={addValidation}>Add Automatically</button></div> : <div className="mm-success-note">✓ The first step already validates payment.</div>}
+        {!hasPaymentValidation ? <div className="mm-warning"><div><strong>Payment validation step is missing</strong><p>Add a payment validation step to any position in the flow.</p></div><button type="button" className="admin-small-btn" onClick={addValidation}>Add Automatically</button></div> : <div className="mm-success-note">✓ Payment validation step is present.</div>}
       </> : <div className="mm-direct-info">The request will be displayed as free of charge.</div>}
     </div>
   );

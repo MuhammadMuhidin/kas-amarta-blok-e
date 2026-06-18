@@ -132,7 +132,7 @@ function validate(config) {
   const empty = config.fields_schema.find((field) => ["select", "radio"].includes(field.type) && !(field.options || []).length);
   if (empty) throw new Error(`Pilihan untuk field ${empty.label} belum diisi`);
   if (config.payment_required && config.payment_amount <= 0) throw new Error("Nominal pembayaran wajib lebih dari 0");
-  if (config.payment_required && config.flow_schema[0]?.action !== "validate_payment") throw new Error("Master berbayar harus diawali tahap validasi pembayaran");
+  if (config.payment_required && !config.flow_schema.some((step) => step.action === "validate_payment")) throw new Error("Master berbayar wajib memiliki tahap validasi pembayaran");
 }
 
 function pack({ lifecycle, published, draft, history }) {
