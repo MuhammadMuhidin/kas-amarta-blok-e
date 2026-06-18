@@ -5,7 +5,7 @@ import AdminActionButton from "@/components/admin/AdminActionButton";
 import AdminConfirmModal from "@/components/admin/AdminConfirmModal";
 import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
-import { shareMembersJpgReport } from "@/components/admin/exportMembersJpg";
+import { shareMembersJpgReport, shareMembersJpgReportMinimalist } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
 import { useEffect, useMemo, useState } from "react";
 
@@ -134,11 +134,13 @@ function ProgressCard({ label, paid, total, unpaid, actions = [], error = false 
   );
 }
 
-function MemberDetailModal({ detail, onClose, onShare, sharing }) {
+function MemberDetailModal({ detail, onClose, onShareFull, onShareMinimalist, sharing }) {
   const [page, setPage] = useState(0);
+  const [showFormatChoice, setShowFormatChoice] = useState(false);
   useModalScrollLock(Boolean(detail));
 
   useEffect(() => setPage(0), [detail]);
+  useEffect(() => setShowFormatChoice(false), [detail, sharing]);
   if (!detail) return null;
 
   const members = detail.members || [];
@@ -156,14 +158,42 @@ function MemberDetailModal({ detail, onClose, onShare, sharing }) {
             </div>
             <button type="button" className="admin-small-btn" onClick={onClose}>Close</button>
           </div>
-          <AdminActionButton
-            loading={sharing}
-            loadingText="Creating JPG..."
-            disabled={!members.length}
-            onClick={onShare}
-          >
-            Share JPG
-          </AdminActionButton>
+          <div style={{ position: "relative" }}>
+            <AdminActionButton
+              loading={sharing}
+              loadingText="Creating JPG..."
+              disabled={!members.length || sharing}
+              onClick={() => setShowFormatChoice((v) => !v)}
+            >
+              Share JPG
+            </AdminActionButton>
+            {showFormatChoice && !sharing && (
+              <div style={styles.formatChoiceDropdown}>
+                <button
+                  type="button"
+                  style={styles.formatChoiceOption}
+                  onClick={() => { setShowFormatChoice(false); onShareFull(); }}
+                >
+                  <span style={styles.formatChoiceIcon}>🖼️</span>
+                  <div>
+                    <strong>Full (Existing)</strong>
+                    <div style={styles.muted}>Current full-color format</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  style={styles.formatChoiceOption}
+                  onClick={() => { setShowFormatChoice(false); onShareMinimalist(); }}
+                >
+                  <span style={styles.formatChoiceIcon}>🧾</span>
+                  <div>
+                    <strong>Minimalist (Receipt)</strong>
+                    <div style={styles.muted}>Black &amp; white receipt style</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
         <div className="admin-table-wrapper">
           <table className="admin-table">
@@ -222,10 +252,13 @@ function TrashDetailModal({
   advancing,
   sharing,
   onAdvance,
-  onShare,
+  onShareFull,
+  onShareMinimalist,
   onClose,
 }) {
   useModalScrollLock(open);
+  const [showFormatChoice, setShowFormatChoice] = useState(false);
+  useEffect(() => setShowFormatChoice(false), [open, sharing]);
   if (!open) return null;
   const projected = Number(currentBalance || 0) - Number(totalNeedAdvance || 0);
 
@@ -241,9 +274,37 @@ function TrashDetailModal({
             <button type="button" className="admin-small-btn" onClick={onClose}>Close</button>
           </div>
           <div style={styles.rowActions}>
-            <AdminActionButton loading={sharing} disabled={advancing} onClick={onShare}>
-              Share JPG
-            </AdminActionButton>
+            <div style={{ position: "relative" }}>
+              <AdminActionButton loading={sharing} disabled={advancing || sharing} onClick={() => setShowFormatChoice((v) => !v)}>
+                Share JPG
+              </AdminActionButton>
+              {showFormatChoice && !sharing && (
+                <div style={styles.formatChoiceDropdown}>
+                  <button
+                    type="button"
+                    style={styles.formatChoiceOption}
+                    onClick={() => { setShowFormatChoice(false); onShareFull(); }}
+                  >
+                    <span style={styles.formatChoiceIcon}>🖼️</span>
+                    <div>
+                      <strong>Full (Existing)</strong>
+                      <div style={styles.muted}>Current full-color format</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    style={styles.formatChoiceOption}
+                    onClick={() => { setShowFormatChoice(false); onShareMinimalist(); }}
+                  >
+                    <span style={styles.formatChoiceIcon}>🧾</span>
+                    <div>
+                      <strong>Minimalist (Receipt)</strong>
+                      <div style={styles.muted}>Black &amp; white receipt style</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
             <AdminActionButton
               loading={advancing}
               disabled={sharing || totalNeedAdvance <= 0}
@@ -460,11 +521,14 @@ export default function OverviewTab({
     }
   }
 
-  async function shareDetail(detail) {
+  async function shareDetail(detail, format = "full") {
     if (!detail || exportingDetailJpg) return;
     setExportingDetailJpg(detail.id);
     try {
-      const result = await shareMembersJpgReport({
+      const exportFn = format === "minimalist" ? shareMembersJpgReportMinimalist : shareMembersJpgReport;
+      const fileNameBase = `${detail.paymentLabel.toLowerCase()}-${detail.statusText.toLowerCase()}-${currentPeriod}`;
+      const fileName = format === "minimalist" ? `${fileNameBase}-receipt.jpg` : `${fileNameBase}.jpg`;
+      const result = await exportFn({
         title: detail.paymentLabel === "Trash" ? "Trash Fee Payment" : "Cash Payment",
         period: currentPeriod,
         members: detail.members,
@@ -477,7 +541,7 @@ export default function OverviewTab({
         listTitle: "House List",
         noteText: detail.note,
         footerNote: "If any data is inaccurate, please confirm with the cash admin.",
-        fileName: `${detail.paymentLabel.toLowerCase()}-${detail.statusText.toLowerCase()}-${currentPeriod}.jpg`,
+        fileName,
       });
       showToast("success", result === "shared" ? "JPG is ready to share." : "JPG downloaded successfully.");
     } catch (error) {
@@ -487,7 +551,7 @@ export default function OverviewTab({
     }
   }
 
-  async function shareAllTrash() {
+  async function shareAllTrash(format = "full") {
     const detail = {
       id: "trash-all",
       paymentLabel: "Trash",
@@ -497,7 +561,7 @@ export default function OverviewTab({
       amount: appConfig?.trash_fee,
       note: "Paid, reimbursed, advanced, and unpaid trash member status.",
     };
-    await shareDetail(detail);
+    await shareDetail(detail, format);
   }
 
   async function advanceTrash() {
@@ -737,7 +801,8 @@ export default function OverviewTab({
       <MemberDetailModal
         detail={memberDetail}
         sharing={exportingDetailJpg === memberDetail?.id}
-        onShare={() => shareDetail(memberDetail)}
+        onShareFull={() => shareDetail(memberDetail, "full")}
+        onShareMinimalist={() => shareDetail(memberDetail, "minimalist")}
         onClose={() => setMemberDetail(null)}
       />
       <TrashDetailModal
@@ -750,7 +815,8 @@ export default function OverviewTab({
         totalReimbursed={derived.totalReimbursed}
         advancing={advancingTrash}
         sharing={exportingDetailJpg === "trash-all"}
-        onShare={shareAllTrash}
+        onShareFull={() => shareAllTrash("full")}
+        onShareMinimalist={() => shareAllTrash("minimalist")}
         onAdvance={() => setShowTrashAdvanceConfirm(true)}
         onClose={() => setShowTrashDetail(false)}
       />
@@ -974,5 +1040,41 @@ const styles = {
     background: "var(--admin-row)",
     whiteSpace: "pre-wrap",
     lineHeight: 1.55,
+  },
+  formatChoiceDropdown: {
+    position: "absolute",
+    top: "100%",
+    left: 0,
+    marginTop: 6,
+    minWidth: 260,
+    background: "var(--admin-card)",
+    border: "1px solid var(--admin-border)",
+    borderRadius: 12,
+    boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+    zIndex: 100,
+    overflow: "hidden",
+    display: "grid",
+    gap: 2,
+    padding: 4,
+  },
+  formatChoiceOption: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 12,
+    padding: "10px 12px",
+    border: "none",
+    borderRadius: 8,
+    background: "transparent",
+    color: "var(--admin-text)",
+    cursor: "pointer",
+    textAlign: "left",
+    transition: "background 0.15s",
+    width: "100%",
+  },
+  formatChoiceIcon: {
+    fontSize: 22,
+    lineHeight: 1,
+    flex: "0 0 auto",
+    marginTop: 2,
   },
 };

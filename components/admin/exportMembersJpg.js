@@ -331,4 +331,180 @@ export async function shareMembersJpgReport({
   return shareOrDownloadBlob(blob, fileName, title);
 }
 
+export async function shareMembersJpgReportMinimalist({
+  title = "Payment Receipt",
+  subtitle = "AMARTA RESIDENCE 2 BLOK E",
+  period = "",
+  members = [],
+  summaryItems = [],
+  badgeText = "PAID",
+  footerNote = "If any data is inaccurate, please confirm with the cash admin.",
+  fileName = "receipt.jpg",
+  exportScale = DEFAULT_EXPORT_SCALE,
+} = {}) {
+  if (typeof document === "undefined") throw new Error("JPG export is only available in the browser.");
+
+  const scale = clampExportScale(exportScale);
+  const padding = 28;
+  const lineHeight = 22;
+  const sectionGap = 14;
+  const width = 720;
+  const columnGap = 24;
+  const columnWidth = (width - padding * 2 - columnGap) / 2;
+
+  // Split members into two columns
+  const firstColumnCount = Math.ceil(members.length / 2);
+  const leftMembers = members.slice(0, firstColumnCount);
+  const rightMembers = members.slice(firstColumnCount);
+
+  // Calculate dynamic height based on content
+  const headerRows = 1;
+  const maxRows = Math.max(leftMembers.length, rightMembers.length);
+  const memberRows = maxRows + headerRows;
+  const summaryRows = 2 + summaryItems.length;
+  const height = padding + 48 + sectionGap + 16 + sectionGap + summaryRows * lineHeight + sectionGap + 16 + sectionGap + memberRows * lineHeight + sectionGap + 16 + sectionGap + lineHeight * 3 + padding;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Browser does not support canvas export.");
+
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  // White background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  const contentX = padding;
+  const contentW = width - padding * 2;
+  let y = padding;
+
+  // ── Header ──
+  ctx.fillStyle = "#000000";
+  drawCenteredText(ctx, subtitle, width / 2, y + 10, "700 18px monospace", "#000000");
+  y += 28;
+  drawCenteredText(ctx, title, width / 2, y + 4, "700 15px monospace", "#000000");
+  y += 24;
+  drawCenteredText(ctx, `Period: ${formatPeriod(period)}`, width / 2, y, "400 13px monospace", "#333333");
+  y += sectionGap + 8;
+
+  // ── Separator ──
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += sectionGap;
+
+  // ── Summary fields ──
+  const labelFont = "700 14px monospace";
+  const valueFont = "400 14px monospace";
+  const labelX = contentX;
+  const valueX = contentX + 200;
+
+  drawText(ctx, "Status:", labelX, y, labelFont, "#000000");
+  drawText(ctx, clean(badgeText).toUpperCase(), valueX, y, valueFont, "#000000");
+  y += lineHeight;
+
+  drawText(ctx, "Total Houses:", labelX, y, labelFont, "#000000");
+  drawText(ctx, String(members.length), valueX, y, valueFont, "#000000");
+  y += lineHeight;
+
+  summaryItems.forEach(([label, value]) => {
+    drawText(ctx, `${label}:`, labelX, y, labelFont, "#000000");
+    drawText(ctx, clean(value), valueX, y, valueFont, "#000000");
+    y += lineHeight;
+  });
+
+  // ── Separator ──
+  y += 4;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += sectionGap;
+
+  // ── Member list (two columns) ──
+  const noFont = "400 11px monospace";
+  const houseFont = "700 13px monospace";
+  const nameFont = "400 13px monospace";
+  const headerFont = "700 11px monospace";
+
+  const colLeftX = contentX;
+  const colRightX = contentX + columnWidth + columnGap;
+  const colNoW = 30;
+  const colHouseW = 56;
+
+  function drawColumnHeader(x, headerY) {
+    drawText(ctx, "NO", x + 2, headerY, headerFont, "#999999");
+    drawText(ctx, "HOUSE", x + colNoW + 2, headerY, headerFont, "#999999");
+    drawText(ctx, "NAME", x + colNoW + colHouseW + 2, headerY, headerFont, "#999999");
+  }
+
+  function drawMemberRow(member, index, x, rowY) {
+    const rowNumber = String(index).padStart(2, "0");
+    // alternate row shading
+    if ((index - 1) % 2 === 0) {
+      fillRoundedRect(ctx, x - 4, rowY - 3, columnWidth + 4, lineHeight - 2, 4, "#f7f7f7");
+    }
+    drawText(ctx, rowNumber, x + 2, rowY, noFont, "#666666");
+    drawText(ctx, clean(member.house) || "-", x + colNoW + 2, rowY, houseFont, "#000000");
+    const nameMaxW = columnWidth - colNoW - colHouseW - 10;
+    drawText(ctx, truncateText(ctx, clean(member.name) || "-", nameMaxW), x + colNoW + colHouseW + 2, rowY, nameFont, "#333333");
+  }
+
+  // Column headers
+  drawColumnHeader(colLeftX, y);
+  drawColumnHeader(colRightX, y);
+  y += lineHeight;
+
+  // Separator line under headers
+  ctx.strokeStyle = "#cccccc";
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(colLeftX, y - 2);
+  ctx.lineTo(colLeftX + columnWidth, y - 2);
+  ctx.moveTo(colRightX, y - 2);
+  ctx.lineTo(colRightX + columnWidth, y - 2);
+  ctx.stroke();
+
+  // Draw rows for both columns in parallel
+  for (let rowIndex = 0; rowIndex < maxRows; rowIndex++) {
+    const rowY = y;
+    if (rowIndex < leftMembers.length) {
+      drawMemberRow(leftMembers[rowIndex], rowIndex + 1, colLeftX, rowY);
+    }
+    if (rowIndex < rightMembers.length) {
+      drawMemberRow(rightMembers[rowIndex], firstColumnCount + rowIndex + 1, colRightX, rowY);
+    }
+    y += lineHeight;
+  }
+
+  // ── Separator ──
+  y += 4;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += sectionGap;
+
+  // ── Footer ──
+  const footerFont = "400 12px monospace";
+  const exportDate = formatDate(new Date().toISOString());
+  drawCenteredText(ctx, `Printed: ${exportDate}`, width / 2, y, footerFont, "#666666");
+  y += lineHeight;
+  drawCenteredText(ctx, footerNote, width / 2, y, footerFont, "#666666");
+  y += lineHeight;
+  drawCenteredText(ctx, `ID: ${fileName.replace(/\.jpg$/i, "")}`, width / 2, y, footerFont, "#999999");
+
+  const blob = await canvasToBlob(canvas, "image/jpeg", 0.95);
+  return shareOrDownloadBlob(blob, fileName, title);
+}
+
 export { money, formatDate, formatPeriod };
