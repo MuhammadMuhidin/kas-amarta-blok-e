@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Toast from "@/components/Toast";
 import AdminConfirmModal from "@/components/admin/AdminConfirmModal";
 import { ADMIN_DATA_MUTATED_EVENT, readJson, sendJson } from "@/components/admin/adminClientApi";
@@ -9,6 +8,7 @@ import { ADMIN_DATA_MUTATED_EVENT, readJson, sendJson } from "@/components/admin
 const API = "/api/admin/approval-masters";
 const REACTIVATE_API = `${API}/reactivate`;
 const clean = (value) => String(value || "").trim();
+const INJECTED_CLASS = "mm-lifecycle-injected-btn";
 
 function lifecycle(card) {
   if (card.querySelector(".mm-status-archived")) return "archived";
@@ -65,17 +65,26 @@ function updateButton(target, { hidden, text, title }) {
   if (title) target.title = title;
 }
 
-function sameTargets(previous, next) {
-  return previous.length === next.length && previous.every((item, index) => (
-    item.action === next[index].action &&
-    item.master.id === next[index].master.id &&
-    item.target === next[index].target
-  ));
+function removeInjectedButtons(container) {
+  if (!container) return;
+  container.querySelectorAll(`.${INJECTED_CLASS}`).forEach((btn) => btn.remove());
 }
 
-function configureCard(card, source) {
+function injectButton(container, { className, text, title, disabled, onClick }) {
+  if (!container) return;
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = `admin-small-btn ${INJECTED_CLASS} ${className || ""}`;
+  btn.textContent = text;
+  if (title) btn.title = title;
+  if (disabled) btn.disabled = true;
+  btn.addEventListener("click", onClick);
+  container.appendChild(btn);
+}
+
+function configureCard(card, source, callbacks) {
   const actions = card.querySelector(".mm-master-actions");
-  if (!actions) return [];
+  if (!actions) return;
 
   const status = lifecycle(card);
   const badges = [...card.querySelectorAll(".mm-master-title-row .mm-status")];
@@ -105,10 +114,27 @@ function configureCard(card, source) {
   updateButton(button(actions, ["Discard Draft"]), { hidden: !hasDraft || !hasPublished });
   updateButton(button(actions, ["Archive"]), { hidden: status !== "active" || !hasPublished });
 
-  const extra = [];
-  if (status === "archived" && hasPublished) extra.push({ action: "reactivate", master, target: actions });
-  if (initialDraft) extra.push({ action: "delete", master, target: actions });
-  return extra;
+  // Inject lifecycle buttons directly into DOM (avoiding React createPortal which
+  // causes "removeChild" errors when the parent React component re-renders the list).
+  removeInjectedButtons(actions);
+
+  if (status === "archived" && hasPublished) {
+    injectButton(actions, {
+      text: "Activate Again",
+      title: `Activate Version ${master.published_revision} again`,
+      disabled: callbacks.saving,
+      onClick: () => callbacks.onAction({ action: "reactivate", master }),
+    });
+  }
+  if (initialDraft) {
+    injectButton(actions, {
+      className: "mm-danger-btn",
+      text: "Delete Draft",
+      title: "Delete this draft permanently",
+      disabled: callbacks.saving,
+      onClick: () => callbacks.onAction({ action: "delete", master }),
+    });
+  }
 }
 
 function configureEditor(master) {
@@ -135,13 +161,19 @@ function refreshActiveTab() {
 
 export default function ApprovalMasterLifecycleControllerV2() {
   const [masters, setMasters] = useState([]);
-  const [targets, setTargets] = useState([]);
   const [selectedId, setSelectedId] = useState("");
   const [pending, setPending] = useState(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const requestId = useRef(0);
   const timer = useRef(0);
+  const callbacksRef = useRef({ saving: false, onAction: () => {} });
+
+  // Keep the ref in sync with latest state so vanilla DOM click handlers always have fresh values
+  callbacksRef.current = useMemo(() => ({
+    saving,
+    onAction: (payload) => setPending(payload),
+  }), [saving]);
 
   async function load() {
     const id = ++requestId.current;
@@ -186,14 +218,13 @@ export default function ApprovalMasterLifecycleControllerV2() {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const usedIds = new Set();
-        const extra = [...document.querySelectorAll(".mm-master-card")].flatMap((card) => {
+        [...document.querySelectorAll(".mm-master-card")].forEach((card) => {
           const master = resolveMaster(card, masters, usedIds);
-          if (!master) return [];
+          if (!master) return;
           usedIds.add(master.id);
-          return configureCard(card, master);
+          configureCard(card, master, callbacksRef.current);
         });
         configureEditor(masters.find((master) => master.id === selectedId) || null);
-        setTargets((previous) => sameTargets(previous, extra) ? previous : extra);
       });
     };
     scan();
@@ -226,17 +257,8 @@ export default function ApprovalMasterLifecycleControllerV2() {
 
   const deleting = pending?.action === "delete";
 
-  const safeTargets = targets.filter(({ target }) => {
-    try { return document.contains(target); } catch { return false; }
-  });
-
   return <>
     <Toast show={!!toast} type={toast?.type} message={toast?.message} />
-    {safeTargets.map(({ action, master, target }) => createPortal(
-      <button type="button" className={`admin-small-btn ${action === "delete" ? "mm-danger-btn" : ""}`} disabled={saving} onClick={() => setPending({ action, master })}>
-        {action === "delete" ? "Delete Draft" : "Activate Again"}
-      </button>, target, `${action}-${master.id}`,
-    ))}
     <AdminConfirmModal
       open={!!pending}
       title={deleting ? "Delete Initial Draft" : "Activate Archived Master"}
