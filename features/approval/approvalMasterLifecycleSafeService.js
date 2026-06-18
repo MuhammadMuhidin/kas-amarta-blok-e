@@ -201,7 +201,7 @@ export async function saveLifecycleDraft({ req, payload = {} }) {
   const fieldsEnvelope = pack({ lifecycle, published: clone(current.published), draft, history: clone(current.history) });
   const effective = lifecycle === "active" && current.published ? current.published : draft;
   const updated = await updateLocked(supabase, row, rowPayload(effective, lifecycle === "active", fieldsEnvelope));
-  await record(req, `Save draft approval master ${draft.code} sebagai draft versi ${revision}`, { id: row.id, code: draft.code, lifecycle_status: lifecycle, published_revision: current.published?.revision || 0, draft_revision: revision });
+  try { await record(req, `Save draft approval master ${draft.code} sebagai draft versi ${revision}`, { id: row.id, code: draft.code, lifecycle_status: lifecycle, published_revision: current.published?.revision || 0, draft_revision: revision }); } catch { /* non-critical */ }
   return { ok: true, master: updated, lifecycle_status: lifecycle, draft_revision: revision };
 }
 
@@ -217,7 +217,7 @@ export async function publishLifecycleMaster({ req, payload = {} }) {
   const history = current.published ? [...current.history, clone(current.published)].slice(-MAX_HISTORY) : clone(current.history);
   const fieldsEnvelope = pack({ lifecycle: "active", published, draft: null, history });
   const updated = await updateLocked(supabase, row, rowPayload(published, true, fieldsEnvelope));
-  await record(req, `Publish approval master ${published.code} sebagai versi ${revision}`, { id: row.id, code: published.code, lifecycle_status: "active", published_revision: revision, draft_revision: 0 });
+  try { await record(req, `Publish approval master ${published.code} sebagai versi ${revision}`, { id: row.id, code: published.code, lifecycle_status: "active", published_revision: revision, draft_revision: 0 }); } catch { /* non-critical */ }
   return { ok: true, master: updated, lifecycle_status: "active", published_revision: revision };
 }
 
@@ -230,7 +230,7 @@ export async function archiveLifecycleMaster({ req, payload = {} }) {
   const draft = clone(current.draft);
   const fieldsEnvelope = pack({ lifecycle: "archived", published, draft, history: clone(current.history) });
   const updated = await updateLocked(supabase, row, rowPayload(draft || published, false, fieldsEnvelope));
-  await record(req, `Archive approval master ${(draft || published).code}`, { id: row.id, code: (draft || published).code, lifecycle_status: "archived", published_revision: published.revision, draft_revision: draft?.revision || 0, draft_preserved: Boolean(draft) }, "warning");
+  try { await record(req, `Archive approval master ${(draft || published).code}`, { id: row.id, code: (draft || published).code, lifecycle_status: "archived", published_revision: published.revision, draft_revision: draft?.revision || 0, draft_preserved: Boolean(draft) }, "warning"); } catch { /* non-critical */ }
   return { ok: true, master: updated, lifecycle_status: "archived", draft_preserved: Boolean(draft) };
 }
 
@@ -243,7 +243,7 @@ export async function reactivateLifecycleMaster({ req, payload = {} }) {
   const draft = clone(current.draft);
   const fieldsEnvelope = pack({ lifecycle: "active", published, draft, history: clone(current.history) });
   const updated = await updateLocked(supabase, row, rowPayload(published, true, fieldsEnvelope));
-  await record(req, `Reactivate approval master ${published.code} menggunakan versi ${published.revision}`, { id: row.id, code: published.code, lifecycle_status: "active", published_revision: published.revision, draft_revision: draft?.revision || 0, revision_changed: false });
+  try { await record(req, `Reactivate approval master ${published.code} menggunakan versi ${published.revision}`, { id: row.id, code: published.code, lifecycle_status: "active", published_revision: published.revision, draft_revision: draft?.revision || 0, revision_changed: false }); } catch { /* non-critical */ }
   return { ok: true, master: updated, lifecycle_status: "active", published_revision: published.revision, message: `Versi ${published.revision} berhasil diaktifkan kembali tanpa membuat versi baru.` };
 }
 
@@ -257,7 +257,7 @@ export async function discardLifecycleDraft({ req, payload = {} }) {
   const published = clone(current.published);
   const fieldsEnvelope = pack({ lifecycle, published, draft: null, history: clone(current.history) });
   const updated = await updateLocked(supabase, row, rowPayload(published, lifecycle === "active", fieldsEnvelope));
-  await record(req, `Discard draft approval master ${published.code}; kembali ke ${lifecycle}`, { id: row.id, code: published.code, lifecycle_status: lifecycle, published_revision: published.revision, draft_revision: 0 }, "warning");
+  try { await record(req, `Discard draft approval master ${published.code}; kembali ke ${lifecycle}`, { id: row.id, code: published.code, lifecycle_status: lifecycle, published_revision: published.revision, draft_revision: 0 }, "warning"); } catch { /* non-critical */ }
   return { ok: true, master: updated, lifecycle_status: lifecycle };
 }
 
@@ -272,6 +272,6 @@ export async function deleteInitialDraft({ req, payload = {} }) {
   if (error) throw new Error(error.message || "Gagal menghapus draft approval master");
   if (!data) throw conflict();
   const draft = current.draft || fallbackConfig(row);
-  await recordAdminActivity(req, { type: "delete", module: "master-management", severity: "warning", message: `Delete initial draft approval master ${draft.code}`, metadata: { id: row.id, code: draft.code, lifecycle_status: "draft" } });
+  try { await recordAdminActivity(req, { type: "delete", module: "master-management", severity: "warning", message: `Delete initial draft approval master ${draft.code}`, metadata: { id: row.id, code: draft.code, lifecycle_status: "draft" } }); } catch { /* non-critical */ }
   return { ok: true, deleted: true, id: row.id };
 }

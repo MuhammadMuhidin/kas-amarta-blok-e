@@ -399,7 +399,7 @@ export async function saveApprovalMaster({ req, payload = {} }) {
     const fallback = envelope.published || rowConfig(existing);
     const { data, error } = await supabase.from(MASTERS).update(configToRow(fallback, state === "active", packed)).eq("id", id).select("*").single();
     if (error) throw new Error(error.message || "Gagal membuang draft");
-    await recordAdminActivity(req, { type: "update", module: "master-management", severity: "warning", message: `Discard draft approval master ${fallback.code}`, metadata: { id, code: fallback.code } });
+    try { await recordAdminActivity(req, { type: "update", module: "master-management", severity: "warning", message: `Discard draft approval master ${fallback.code}`, metadata: { id, code: fallback.code } }); } catch { /* non-critical */ }
     return { ok: true, master: mappedMaster(data) };
   }
 
