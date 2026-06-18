@@ -636,6 +636,19 @@ export default function MonitoringTab({
       suspiciousData,
     ],
   );
+
+  const overviewDataCount = useMemo(
+    () => personal.length + payments.length + cashflows.length + trashRecords.length + deposits.length,
+    [personal.length, payments.length, cashflows.length, trashRecords.length, deposits.length],
+  );
+
+  const settlementIssueCount = useMemo(
+    () => {
+      const s = getSettlement({ cashflows, deposits, trashRecords, payments });
+      return (Number(s.recon) > 0 ? 1 : 0) + (Number(s.trashAdvanceOutstanding) > 0 ? 1 : 0);
+    },
+    [cashflows, deposits, trashRecords, payments],
+  );
   const settlement = useMemo(
     () => activePanel === "settlement"
       ? getSettlement({ cashflows, deposits, trashRecords, payments })
@@ -695,14 +708,14 @@ export default function MonitoringTab({
         onChange={setActivePanel}
         ariaLabel="Monitoring navigation"
         items={[
-          { value: "overview", label: "Overview", panelId: "monitoring-overview-panel" },
+          { value: "overview", label: "Overview", badge: overviewDataCount, panelId: "monitoring-overview-panel" },
           {
             value: "integrity",
             label: "Data Integrity",
             badge: integrityIssueCount,
             panelId: "monitoring-integrity-panel",
           },
-          { value: "settlement", label: "Settlement", panelId: "monitoring-settlement-panel" },
+          { value: "settlement", label: "Settlement", badge: settlementIssueCount, panelId: "monitoring-settlement-panel" },
           { value: "services", label: "Service Tests", panelId: "monitoring-services-panel" },
         ]}
       />
