@@ -218,7 +218,7 @@ function validatePublished(config) {
   const emptyOptions = fields.find((field) => ["select", "radio"].includes(field.type) && !(field.options || []).length);
   if (emptyOptions) throw new Error(`Pilihan untuk field ${emptyOptions.label} belum diisi`);
   if (config.payment_required && config.payment_amount <= 0) throw new Error("Nominal pembayaran wajib lebih dari 0");
-  if (config.payment_required && flow[0]?.action !== "validate_payment") throw new Error("Master berbayar harus diawali tahap validasi pembayaran");
+  if (config.payment_required && !flow.some((step) => step.action === "validate_payment")) throw new Error("Master berbayar wajib memiliki tahap validasi pembayaran");
 }
 
 function submitted(value) {
@@ -399,7 +399,7 @@ export async function saveApprovalMaster({ req, payload = {} }) {
     const fallback = envelope.published || rowConfig(existing);
     const { data, error } = await supabase.from(MASTERS).update(configToRow(fallback, state === "active", packed)).eq("id", id).select("*").single();
     if (error) throw new Error(error.message || "Gagal membuang draft");
-    await recordAdminActivity(req, { type: "update", module: "master-management", severity: "warning", message: `Discard draft approval master ${fallback.code}`, metadata: { id, code: fallback.code } });
+    try { await recordAdminActivity(req, { type: "update", module: "master-management", severity: "warning", message: `Discard draft approval master ${fallback.code}`, metadata: { id, code: fallback.code } }); } catch { /* non-critical */ }
     return { ok: true, master: mappedMaster(data) };
   }
 

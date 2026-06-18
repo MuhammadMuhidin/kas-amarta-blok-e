@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 const APPROVAL_MASTERS_API = "/api/admin/approval-masters";
+const REACTIVATE_API = "/api/admin/approval-masters/reactivate";
 const WIZARD_STEPS = ["Information", "Form", "Approval", "Payment", "Preview", "Publish"];
 
 const ROLE_LABELS = {
@@ -192,7 +193,7 @@ function validateMaster(value, full = true) {
 
   if (value.payment_required) {
     if (Number(value.payment_amount || 0) <= 0) errors.push({ step: 3, message: "Payment amount must be greater than 0" });
-    if (flow[0]?.action !== "validate_payment") errors.push({ step: 3, message: "A paid request must start with payment validation" });
+    if (!flow.some((step) => step.action === "validate_payment")) errors.push({ step: 3, message: "A paid request must include a payment validation step" });
   }
   return errors;
 }
@@ -335,10 +336,10 @@ function BasicInformation({ value, onChange, autoCode, setAutoCode }) {
 
 function PaymentSettings({ value, onChange }) {
   const set = (key, nextValue) => onChange((prev) => ({ ...prev, [key]: nextValue }));
-  const hasPaymentValidation = value.flow_schema?.[0]?.action === "validate_payment";
+  const hasPaymentValidation = (value.flow_schema || []).some((step) => step.action === "validate_payment");
   const [validatorRole, setValidatorRole] = useState("bendahara");
   function addValidation() {
-    onChange((prev) => ({ ...prev, payment_required: true, flow_schema: renumberFlow([{ role: validatorRole, label: `Validasi Pembayaran oleh ${roleLabel(validatorRole)}`, action: "validate_payment" }, ...prev.flow_schema.filter((step) => step.action !== "validate_payment")]) }));
+    onChange((prev) => ({ ...prev, payment_required: true, flow_schema: renumberFlow([...prev.flow_schema.filter((step) => step.action !== "validate_payment"), { role: validatorRole, label: `Validasi Pembayaran oleh ${roleLabel(validatorRole)}`, action: "validate_payment" }]) }));
   }
   return (
     <div className="mm-panel-grid">
@@ -347,7 +348,7 @@ function PaymentSettings({ value, onChange }) {
       {value.payment_required ? <>
         <div className="mm-grid-2"><label>Payment amount<input className="admin-input" type="number" min="0" value={value.payment_amount} onChange={(event) => set("payment_amount", event.target.value)} /></label><label>Payment validator<select className="admin-input" value={validatorRole} onChange={(event) => setValidatorRole(event.target.value)}>{ROLE_OPTIONS.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}</select></label></div>
         <label>Payment instructions<textarea className="admin-input" rows={3} value={value.payment_instruction} onChange={(event) => set("payment_instruction", event.target.value)} placeholder="Transfer to the residents' fund account and wait for validation." /></label>
-        {!hasPaymentValidation ? <div className="mm-warning"><div><strong>Payment validation step is missing</strong><p>The system recommends placing this step first.</p></div><button type="button" className="admin-small-btn" onClick={addValidation}>Add Automatically</button></div> : <div className="mm-success-note">✓ The first step already validates payment.</div>}
+        {!hasPaymentValidation ? <div className="mm-warning"><div><strong>Payment validation step is missing</strong><p>Add a payment validation step to any position in the flow.</p></div><button type="button" className="admin-small-btn" onClick={addValidation}>Add Automatically</button></div> : <div className="mm-success-note">✓ Payment validation step is present.</div>}
       </> : <div className="mm-direct-info">The request will be displayed as free of charge.</div>}
     </div>
   );
@@ -440,6 +441,7 @@ export default function MasterManagementTab() {
   const [flowText, setFlowText] = useState("[]");
   const [advancedError, setAdvancedError] = useState("");
   const [pendingAction, setPendingAction] = useState(null);
+  const [lifecycleAction, setLifecycleAction] = useState(null);
   const [preview, setPreview] = useState(null);
   const saving = Boolean(savingAction);
 
@@ -572,6 +574,27 @@ export default function MasterManagementTab() {
     }
   }
 
+  async function executeLifecycleAction() {
+    if (!lifecycleAction) return;
+    const { type, master } = lifecycleAction;
+    try {
+      setSavingAction(type);
+      if (type === "reactivate") {
+        const result = await sendJson(REACTIVATE_API, "POST", { id: master.id });
+        showToast(result?.message || "Master activated again");
+      } else if (type === "delete_draft") {
+        await sendJson(APPROVAL_MASTERS_API, "POST", { id: master.id, operation: "delete_initial_draft" });
+        showToast("Initial draft deleted");
+      }
+      setLifecycleAction(null);
+      await loadData();
+    } catch (err) {
+      showToast(err.message || "Failed to process approval master", "error");
+    } finally {
+      setSavingAction("");
+    }
+  }
+
   useEffect(() => { loadData(); }, []);
   useEffect(() => {
     if (!editor || advancedEditable) return;
@@ -582,12 +605,14 @@ export default function MasterManagementTab() {
   if (loading && !(data.masters || []).length) return <div className="admin-card"><AdminDataSkeleton showSummary={false} rows={6} /></div>;
 
   const pendingIsDiscard = pendingAction?.type === "discard";
+  const lifecycleIsDelete = lifecycleAction?.type === "delete_draft";
 
   return (
     <>
       <Toast show={!!toast} type={toast?.type} message={toast?.message} />
       <style jsx global>{CSS}</style>
       <AdminConfirmModal open={!!pendingAction} title={pendingIsDiscard ? "Discard Draft Changes" : "Archive Approval Master"} description={pendingAction ? (pendingIsDiscard ? `The draft for ${pendingAction.master.name} will be deleted, while the active version remains available.` : `${pendingAction.master.name} will no longer appear on the resident request page.`) : ""} confirmText={pendingIsDiscard ? "Discard Draft" : "Archive"} cancelText="Cancel" loading={saving} loadingText="Processing..." onCancel={() => !saving && setPendingAction(null)} onConfirm={executePendingAction} />
+      <AdminConfirmModal open={!!lifecycleAction} title={lifecycleIsDelete ? "Delete Initial Draft" : "Activate Archived Master"} description={lifecycleAction ? (lifecycleIsDelete ? `${lifecycleAction.master.name} has never been published and will be permanently deleted.` : `${lifecycleAction.master.name} Version ${lifecycleAction.master.published_revision} will be shown to residents again.`) : ""} confirmText={lifecycleIsDelete ? "Delete Draft" : "Activate Again"} cancelText="Cancel" loading={saving} loadingText={lifecycleIsDelete ? "Deleting..." : "Activating..."} onCancel={() => !saving && setLifecycleAction(null)} onConfirm={executeLifecycleAction} />
       <ReadOnlyPreviewModal preview={preview} onClose={() => setPreview(null)} onEdit={() => { const master = preview?.master; setPreview(null); if (master) editMaster(master); }} />
       <div className="admin-card mm-root">
         {!editor ? (
@@ -597,19 +622,25 @@ export default function MasterManagementTab() {
             <div className="mm-master-list">
               {filteredMasters.map((master) => {
                 const status = lifecycleMeta(master.lifecycle_status);
-                const activeConfig = master.published_config || (master.lifecycle_status === "active" && !master.has_draft ? master : null);
-                const draftConfig = master.has_draft || !master.published_revision ? master : null;
+                const isArchived = master.lifecycle_status === "archived";
+                const hasPublished = Number(master.published_revision || 0) > 0;
+                const hasDraft = Boolean(master.has_draft);
+                const isInitialDraft = master.lifecycle_status === "draft" && !hasPublished;
+                const activeConfig = master.published_config || (master.lifecycle_status === "active" && !hasDraft ? master : null);
+                const draftConfig = hasDraft || !hasPublished ? master : null;
                 return (
                   <article className="mm-master-card" key={master.id}>
-                    <div className="mm-master-main"><span className="mm-master-icon" style={{ background: master.color || "#2563eb" }}>{master.icon || "📄"}</span><div><div className="mm-master-title-row"><h4>{master.name}</h4><span className={`mm-status ${status.className}`}>{status.label}</span>{master.has_draft ? <span className="mm-status mm-status-draft">Draft v{master.draft_revision} available</span> : null}</div><p>{master.category || "General"} · {(master.fields_schema || []).length} fields · {(master.flow_schema || []).length} steps · Active version {master.published_revision || "-"}</p><small>{(master.flow_schema || []).map((step) => roleLabel(step.role)).join(" → ") || "No approval"}</small></div></div>
+                    <div className="mm-master-main"><span className="mm-master-icon" style={{ background: master.color || "#2563eb" }}>{master.icon || "📄"}</span><div><div className="mm-master-title-row"><h4>{master.name}</h4><span className={`mm-status ${status.className}`}>{status.label}</span>{hasDraft ? <span className="mm-status mm-status-draft">Draft v{master.draft_revision} available</span> : null}</div><p>{master.category || "General"} · {(master.fields_schema || []).length} fields · {(master.flow_schema || []).length} steps · Active version {master.published_revision || "-"}</p><small>{(master.flow_schema || []).map((step) => roleLabel(step.role)).join(" → ") || "No approval"}</small></div></div>
                     <div className="mm-master-payment">{master.payment_required ? money(master.payment_amount) : "Free"}</div>
                     <div className="mm-master-actions">
-                      <button type="button" className="admin-small-btn" onClick={() => editMaster(master)}>Edit{master.has_draft ? " Draft" : ""}</button>
-                      <button type="button" className="admin-small-btn" onClick={() => duplicateMaster(master)}>Duplicate</button>
+                      <button type="button" className="admin-small-btn" onClick={() => editMaster(master)}>{isInitialDraft || hasDraft ? "Edit Draft" : "Create New Draft"}</button>
+                      {!isInitialDraft ? <button type="button" className="admin-small-btn" onClick={() => duplicateMaster(master)}>Duplicate</button> : null}
                       {draftConfig ? <button type="button" className="admin-small-btn" onClick={() => setPreview({ master, kind: "draft", config: draftConfig })}>Preview Draft</button> : null}
-                      {activeConfig ? <button type="button" className="admin-small-btn" onClick={() => setPreview({ master, kind: "active", config: activeConfig })}>View Active Version</button> : null}
-                      {master.has_draft && master.published_revision ? <button type="button" className="admin-small-btn mm-warning-btn" onClick={() => setPendingAction({ type: "discard", master })}>Discard Draft</button> : null}
-                      {master.lifecycle_status !== "archived" ? <button type="button" className="admin-small-btn mm-danger-btn" onClick={() => setPendingAction({ type: "archive", master })}>Archive</button> : null}
+                      {activeConfig && !isArchived ? <button type="button" className="admin-small-btn" onClick={() => setPreview({ master, kind: "active", config: activeConfig })}>View Active Version</button> : null}
+                      {hasDraft && hasPublished ? <button type="button" className="admin-small-btn mm-warning-btn" onClick={() => setPendingAction({ type: "discard", master })}>Discard Draft</button> : null}
+                      {!isArchived ? <button type="button" className="admin-small-btn mm-danger-btn" onClick={() => setPendingAction({ type: "archive", master })}>Archive</button> : null}
+                      {isArchived && hasPublished ? <button type="button" className="admin-small-btn" onClick={() => setLifecycleAction({ type: "reactivate", master })}>Activate Again</button> : null}
+                      {isInitialDraft ? <button type="button" className="admin-small-btn mm-danger-btn" onClick={() => setLifecycleAction({ type: "delete_draft", master })}>Delete Draft</button> : null}
                     </div>
                   </article>
                 );

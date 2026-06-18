@@ -215,14 +215,6 @@ const routeCanvasBootScript = `
     root.style.setProperty("background", background, "important");
     root.style.setProperty("background-color", background, "important");
     root.style.setProperty("color-scheme", colorScheme);
-
-    var meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta) {
-      meta = document.createElement("meta");
-      meta.setAttribute("name", "theme-color");
-      document.head.appendChild(meta);
-    }
-    meta.setAttribute("content", background);
   } catch (error) {
     document.documentElement.style.setProperty("--route-bg", "#f8fafc");
   }
@@ -233,6 +225,7 @@ export default function RootLayout({ children }) {
   return (
     <html suppressHydrationWarning style={{ backgroundColor: "var(--route-bg, #f8fafc)" }}>
       <head>
+        <meta name="theme-color" content="#f8fafc" />
         <style>{`html,body{background:var(--route-bg,#f8fafc);}`}</style>
         <script dangerouslySetInnerHTML={{ __html: routeCanvasBootScript }} />
         <script dangerouslySetInnerHTML={{ __html: publicThemeBootScript }} />
