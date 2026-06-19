@@ -41,13 +41,13 @@ button {
 
 .admin-wrapper {
   width: 100%;
-  max-width: 900px;
+  max-width: 1200px;
   min-height: 100vh;
   margin: 0 auto;
   padding: 20px;
   box-sizing: border-box;
   overflow-x: hidden;
-  font-family: system-ui;
+  font-family: Inter, system-ui, sans-serif;
   background: var(--admin-bg);
   color: var(--admin-text);
 }

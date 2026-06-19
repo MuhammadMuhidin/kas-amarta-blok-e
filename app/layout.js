@@ -32,7 +32,7 @@ const publicThemeBootScript = `
         "--shadow-soft": "0 3px 10px rgba(15,23,42,.05)"
       },
       ledger: {
-        "--public-font-family": "Merriweather Sans, Inter, system-ui, sans-serif",
+        "--public-font-family": 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         "--bg": "#fdf6e3",
         "--text": "#2f281f",
         "--muted": "#7c6f57",
@@ -50,7 +50,7 @@ const publicThemeBootScript = `
         "--shadow-soft": "0 5px 14px rgba(92,64,36,.09)"
       },
       midnight: {
-        "--public-font-family": 'Inter, "Segoe UI", system-ui, sans-serif',
+        "--public-font-family": 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         "--bg": "#020617",
         "--text": "#e5e7eb",
         "--muted": "#94a3b8",
@@ -68,7 +68,7 @@ const publicThemeBootScript = `
         "--shadow-soft": "0 6px 16px rgba(0,0,0,.22)"
       },
       emerald: {
-        "--public-font-family": "Manrope, Inter, system-ui, sans-serif",
+        "--public-font-family": 'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
         "--bg": "#ecfdf5",
         "--text": "#064e3b",
         "--muted": "#047857",
@@ -86,7 +86,7 @@ const publicThemeBootScript = `
         "--shadow-soft": "0 3px 10px rgba(6,78,59,.08)"
       },
       amoled: {
-        "--public-font-family": '"SF Mono", "Roboto Mono", Consolas, monospace',
+        "--public-font-family": 'ui-monospace, SF Mono, Menlo, Monaco, Consolas, monospace',
         "--bg": "#000000",
         "--text": "#f8fafc",
         "--muted": "#94a3b8",
@@ -104,7 +104,7 @@ const publicThemeBootScript = `
         "--shadow-soft": "none"
       },
       hacker: {
-        "--public-font-family": 'Ubuntu Mono, "Roboto Mono", Consolas, monospace',
+        "--public-font-family": 'ui-monospace, SF Mono, Menlo, Monaco, Consolas, monospace',
         "--bg": "#020b02",
         "--text": "#4ade80",
         "--muted": "#22c55e",

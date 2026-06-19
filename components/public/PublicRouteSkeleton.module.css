@@ -1,6 +1,6 @@
 .page {
   width: 100%;
-  max-width: 1060px;
+  max-width: 1320px;
   min-height: 100dvh;
   margin: 0 auto;
   padding: 14px 12px calc(108px + env(safe-area-inset-bottom, 0px));

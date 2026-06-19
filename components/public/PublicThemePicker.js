@@ -34,7 +34,7 @@ const themes = [
     label: "Ledger",
     colors: ["#fdf6e3", "#2f6f4e", "#fffaf0"],
     vars: {
-      "--public-font-family": "Merriweather Sans, Inter, system-ui, sans-serif",
+      "--public-font-family": "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
       "--bg": "#fdf6e3",
       "--text": "#2f281f",
       "--muted": "#7c6f57",
@@ -57,7 +57,7 @@ const themes = [
     label: "Midnight",
     colors: ["#020617", "#60a5fa", "#111827"],
     vars: {
-      "--public-font-family": 'Inter, "Segoe UI", system-ui, sans-serif',
+      "--public-font-family": "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
       "--bg": "#020617",
       "--text": "#e5e7eb",
       "--muted": "#94a3b8",
@@ -80,7 +80,7 @@ const themes = [
     label: "Emerald",
     colors: ["#ecfdf5", "#10b981", "#ffffff"],
     vars: {
-      "--public-font-family": "Manrope, Inter, system-ui, sans-serif",
+      "--public-font-family": "Inter, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
       "--bg": "#ecfdf5",
       "--text": "#064e3b",
       "--muted": "#047857",
@@ -103,7 +103,7 @@ const themes = [
     label: "AMOLED",
     colors: ["#000000", "#ffffff", "#111111"],
     vars: {
-      "--public-font-family": '"SF Mono", "Roboto Mono", Consolas, monospace',
+      "--public-font-family": "ui-monospace, SF Mono, Menlo, Monaco, Consolas, monospace",
       "--bg": "#000000",
       "--text": "#f8fafc",
       "--muted": "#94a3b8",
@@ -126,7 +126,7 @@ const themes = [
     label: "Hacker",
     colors: ["#020b02", "#22c55e", "#14532d"],
     vars: {
-      "--public-font-family": 'Ubuntu Mono, "Roboto Mono", Consolas, monospace',
+      "--public-font-family": "ui-monospace, SF Mono, Menlo, Monaco, Consolas, monospace",
       "--bg": "#020b02",
       "--text": "#4ade80",
       "--muted": "#22c55e",

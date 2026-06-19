@@ -4,8 +4,30 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getAdminAccessRoleInitials, getAdminAccessRoleLabel } from "@/lib/adminRoles";
 
+const ROLE_CACHE_KEY = "amarta_admin_role_cache";
+
+function getCachedRole() {
+  try {
+    return localStorage.getItem(ROLE_CACHE_KEY) || null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedRole(role) {
+  try {
+    if (role) {
+      localStorage.setItem(ROLE_CACHE_KEY, role);
+    } else {
+      localStorage.removeItem(ROLE_CACHE_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 export default function AdminProfileLink({ compact = false }) {
-  const [role, setRole] = useState(null);
+  const [role, setRole] = useState(getCachedRole);
 
   useEffect(() => {
     let active = true;
@@ -15,7 +37,6 @@ export default function AdminProfileLink({ compact = false }) {
       controller?.abort();
       const requestController = new AbortController();
       controller = requestController;
-      if (active) setRole(null);
 
       try {
         const res = await fetch(`/api/admin/sessions/check?_=${Date.now()}`, {
@@ -24,9 +45,16 @@ export default function AdminProfileLink({ compact = false }) {
           signal: requestController.signal,
         });
         const data = res.ok ? await res.json() : null;
-        if (active && controller === requestController) setRole(data?.access_role || null);
+        const accessRole = data?.access_role || null;
+        if (active && controller === requestController) {
+          setRole(accessRole);
+          setCachedRole(accessRole);
+        }
       } catch (error) {
-        if (error.name !== "AbortError" && active && controller === requestController) setRole(null);
+        if (error.name !== "AbortError" && active && controller === requestController) {
+          setRole(null);
+          setCachedRole(null);
+        }
       }
     }
 
@@ -44,16 +72,17 @@ export default function AdminProfileLink({ compact = false }) {
     };
   }, []);
 
-  if (!role) return null;
+  const label = role ? getAdminAccessRoleLabel(role) : "Administrator";
+  const initials = role ? getAdminAccessRoleInitials(role) : "AD";
 
   return (
     <Link
       href="/admin/profile"
       className={compact ? "admin-profile-link admin-profile-link-compact" : "admin-profile-link"}
-      aria-label={`Buka profile ${getAdminAccessRoleLabel(role)}`}
+      aria-label={`Buka profile ${label}`}
     >
-      <span className="admin-profile-avatar">{getAdminAccessRoleInitials(role)}</span>
-      {!compact && <span className="admin-profile-label">{getAdminAccessRoleLabel(role)}</span>}
+      <span className="admin-profile-avatar">{initials}</span>
+      {!compact && <span className="admin-profile-label">{label}</span>}
     </Link>
   );
 }

@@ -51,7 +51,7 @@ body:has(.public-bottom-nav) .public-theme-button {
   text-decoration: none;
   cursor: pointer;
   transition: 0.18s ease;
-  font-family: var(--public-font-family, Inter, Arial, sans-serif);
+  font-family: var(--public-font-family, Inter, system-ui, sans-serif);
   -webkit-tap-highlight-color: transparent;
 }
 
