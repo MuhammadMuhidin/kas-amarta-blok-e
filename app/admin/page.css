@@ -47,7 +47,7 @@ button {
   padding: 20px;
   box-sizing: border-box;
   overflow-x: hidden;
-  font-family: system-ui;
+  font-family: Inter, system-ui, sans-serif;
   background: var(--admin-bg);
   color: var(--admin-text);
 }
