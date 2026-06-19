@@ -40,7 +40,7 @@ body:has(.hero-header)::before {
   isolation: isolate;
   overflow: hidden;
   width: 100%;
-  max-width: 940px;
+  max-width: 1200px;
   margin: 0 auto 18px !important;
   padding: 26px 18px 22px !important;
   border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border));

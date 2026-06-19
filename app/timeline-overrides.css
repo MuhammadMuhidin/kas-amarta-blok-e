@@ -7,7 +7,7 @@
 
 .timeline-page {
   width: 100%;
-  max-width: 1060px;
+  max-width: 1320px;
 }
 
 .timeline-hero {
@@ -45,7 +45,7 @@
 .timeline-load-more,
 .timeline-end-message,
 .timeline-placeholder {
-  width: min(100%, 940px);
+  width: min(100%, 1200px);
   margin-left: auto;
   margin-right: auto;
 }

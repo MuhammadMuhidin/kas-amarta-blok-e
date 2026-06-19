@@ -8,7 +8,7 @@
 .admin-desktop-actions {
   position: absolute;
   top: 18px;
-  right: max(20px, calc((100vw - 900px) / 2 + 20px));
+  right: max(20px, calc((100vw - 1200px) / 2 + 20px));
   z-index: 20;
   display: flex;
   align-items: center;
