@@ -287,6 +287,7 @@ export default function AdminProfilePageClient() {
     if (loggingOut) return;
     setLoggingOut(true);
     try {
+      localStorage.removeItem("amarta_admin_role_cache");
       await sendJson("/api/logout", "POST", {});
       window.location.replace("/login");
     } catch (error) {
