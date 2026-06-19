@@ -75,6 +75,7 @@ export default function AdminSessionCard() {
   const [error, setError] = useState("");
 
   async function redirectToLogin() {
+    localStorage.removeItem("amarta_admin_role_cache");
     await fetch("/api/logout", {
       method: "POST",
       cache: "no-store",

@@ -72,17 +72,17 @@ export default function AdminProfileLink({ compact = false }) {
     };
   }, []);
 
-  const label = role ? getAdminAccessRoleLabel(role) : "Administrator";
-  const initials = role ? getAdminAccessRoleInitials(role) : "AD";
+  const label = role ? getAdminAccessRoleLabel(role) : null;
+  const initials = role ? getAdminAccessRoleInitials(role) : null;
 
   return (
     <Link
       href="/admin/profile"
       className={compact ? "admin-profile-link admin-profile-link-compact" : "admin-profile-link"}
-      aria-label={`Buka profile ${label}`}
+      aria-label={label ? `Buka profile ${label}` : "Buka profile"}
     >
-      <span className="admin-profile-avatar">{initials}</span>
-      {!compact && <span className="admin-profile-label">{label}</span>}
+      {initials && <span className="admin-profile-avatar">{initials}</span>}
+      {!compact && label && <span className="admin-profile-label">{label}</span>}
     </Link>
   );
 }
