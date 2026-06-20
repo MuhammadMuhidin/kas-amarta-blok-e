@@ -109,40 +109,47 @@
     gap: 8px !important;
   }
 
-  .admin-wrapper {
-    margin-left: 248px;
-    max-width: calc(100vw - 248px);
-    width: auto;
-  }
-
   .admin-header {
     margin-bottom: 16px !important;
   }
 
-  /* Override top-right actions into sidebar flow */
-  .admin-desktop-actions {
-    position: static;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-    padding: 0 4px 10px;
+  /* Sidebar profile link — compact, top of sidebar */
+  .admin-sidebar-profile {
+    flex-shrink: 0;
     margin-bottom: 6px;
+    padding-bottom: 8px;
     border-bottom: 1px solid var(--admin-border);
   }
 
-  .admin-profile-link {
-    justify-content: flex-start;
+  .admin-sidebar-profile .admin-profile-link,
+  .admin-sidebar-profile .admin-profile-link-compact {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 14px;
     border: 0;
     border-radius: 12px;
     background: transparent;
-    box-shadow: none;
-    padding: 8px 10px;
+    color: var(--admin-text);
+    text-decoration: none;
+    font-family: var(--admin-font), system-ui, sans-serif;
     font-size: 13px;
+    font-weight: 750;
+    box-shadow: none;
+    box-sizing: border-box;
+    min-height: auto;
   }
 
-  .admin-profile-link:hover {
+  .admin-sidebar-profile .admin-profile-link:hover,
+  .admin-sidebar-profile .admin-profile-link-compact:hover {
     background: var(--admin-row);
+  }
+
+  .admin-sidebar-profile .admin-profile-avatar {
+    width: 26px;
+    height: 26px;
+    font-size: 9px;
   }
 }
 
