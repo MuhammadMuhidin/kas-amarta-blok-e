@@ -1,19 +1,12 @@
 html,
 body {
+  --admin-font: Inter, system-ui, sans-serif;
   transition:
     background 0.2s ease,
     color 0.2s ease;
 }
 
 :root[data-admin-theme="default"] {
-  --admin-font:
-    Inter,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-
   --admin-bg: #f1f5f9;
   --admin-text: #0f172a;
   --admin-card: #ffffff;
@@ -38,13 +31,6 @@ body {
 }
 
 :root[data-admin-theme="ios"] {
-  --admin-font:
-    -apple-system,
-    BlinkMacSystemFont,
-    "SF Pro Display",
-    "Segoe UI",
-    sans-serif;
-
   --admin-bg: #f2f2f7;
   --admin-text: #111827;
   --admin-card: rgba(255,255,255,.78);
@@ -69,12 +55,6 @@ body {
 }
 
 :root[data-admin-theme="midnight"] {
-  --admin-font:
-    Inter,
-    "Segoe UI",
-    system-ui,
-    sans-serif;
-
   --admin-bg: #020617;
   --admin-text: #e2e8f0;
   --admin-card: #0f172a;
@@ -99,12 +79,6 @@ body {
 }
 
 :root[data-admin-theme="emerald"] {
-  --admin-font:
-    Manrope,
-    Inter,
-    system-ui,
-    sans-serif;
-
   --admin-bg: #ecfdf5;
   --admin-text: #064e3b;
   --admin-card: #ffffff;
@@ -129,12 +103,6 @@ body {
 }
 
 :root[data-admin-theme="amoled"] {
-  --admin-font:
-    "SF Mono",
-    "Roboto Mono",
-    Consolas,
-    monospace;
-
   --admin-bg: #000000;
   --admin-text: #f8fafc;
   --admin-card: #050505;
@@ -159,12 +127,6 @@ body {
 }
 
 :root[data-admin-theme="hacker"] {
-  --admin-font:
-    Ubuntu Mono,
-    "Roboto Mono",
-    Consolas,
-    monospace;
-
   --admin-bg: #020b02;
   --admin-text: #4ade80;
   --admin-card: #031303;

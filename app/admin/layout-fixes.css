@@ -9,6 +9,15 @@
   touch-action: pan-x;
 }
 
+/* ── Desktop sidebar: push content to the right ── */
+@media (min-width: 721px) {
+  .admin-wrapper {
+    margin-left: 248px !important;
+    max-width: calc(100vw - 248px) !important;
+    width: auto !important;
+  }
+}
+
 .admin-subtabs > .admin-subtab {
   flex: 1 0 auto !important;
   min-width: max-content !important;

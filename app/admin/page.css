@@ -103,7 +103,7 @@ button {
 
 .admin-tab-active {
   background: var(--admin-primary);
-  color: #020617;
+  color: #ffffff;
   border-color: var(--admin-primary);
   font-weight: 600;
 }
@@ -191,7 +191,7 @@ button {
   border: none;
   border-radius: 10px;
   background: var(--admin-primary);
-  color: #020617;
+  color: #ffffff;
   font-size: 16px;
   font-weight: 600;
 }
@@ -382,7 +382,7 @@ button {
 
 .admin-deposit-chip-active {
   background: var(--admin-primary);
-  color: #020617;
+  color: #ffffff;
   border-color: var(--admin-primary);
 }
 
@@ -391,7 +391,7 @@ button {
   border-radius: 10px;
   border: none;
   background: var(--admin-primary);
-  color: #020617;
+  color: #ffffff;
   font-weight: 700;
 }
 

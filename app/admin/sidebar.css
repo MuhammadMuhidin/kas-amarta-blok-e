@@ -4,7 +4,7 @@
   display: none;
 }
 
-
+/* ── Non-sidebar pages (profile, etc.): top-right actions ── */
 .admin-desktop-actions {
   position: absolute;
   top: 18px;
@@ -30,6 +30,88 @@
   font-size: 12px;
   font-weight: 850;
   box-shadow: 0 8px 24px rgba(15, 23, 42, .08);
+}
+
+/* ── Desktop: permanent left sidebar ── */
+@media (min-width: 721px) {
+  .admin-tabs {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 248px;
+    z-index: 50;
+    display: flex !important;
+    flex-direction: column;
+    gap: 6px !important;
+    margin: 0 !important;
+    padding: 16px 10px 18px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--admin-bg);
+    border-right: 1px solid var(--admin-border);
+    box-sizing: border-box;
+    overscroll-behavior: contain;
+  }
+
+  .admin-tab {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 10px 14px !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    color: var(--admin-text) !important;
+    font-size: 13.5px !important;
+    font-weight: 700;
+    box-shadow: none !important;
+    flex-shrink: 0;
+  }
+
+  .admin-tab:hover {
+    background: var(--admin-row) !important;
+  }
+
+  .admin-tab-active {
+    background: var(--admin-primary) !important;
+    color: #ffffff !important;
+    font-weight: 850;
+  }
+
+  .admin-tab-active:hover {
+    background: var(--admin-primary) !important;
+    filter: brightness(1.05);
+  }
+
+  .admin-home-btn {
+    width: 100%;
+    justify-content: flex-start;
+    text-align: left;
+    padding: 10px 14px !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    color: var(--admin-text) !important;
+    font-size: 13.5px !important;
+    font-weight: 700;
+    box-shadow: none !important;
+    flex-shrink: 0;
+  }
+
+  .admin-home-btn:hover {
+    background: var(--admin-row) !important;
+  }
+
+  .admin-tab-content {
+    width: 100%;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .admin-header {
+    margin-bottom: 16px !important;
+  }
 }
 
 .admin-profile-avatar {
@@ -192,7 +274,7 @@
 
   .admin-tab-active {
     background: var(--admin-primary) !important;
-    color: var(--admin-on-primary) !important;
+    color: #ffffff !important;
     font-weight: 900;
   }
 

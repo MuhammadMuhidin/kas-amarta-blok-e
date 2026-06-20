@@ -283,7 +283,7 @@ const styles = {
   meta: { marginTop: 4, color: "var(--admin-muted)", fontSize: 12, fontWeight: 700, lineHeight: 1.5 },
   actions: { display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" },
   rejectButton: { borderColor: "var(--admin-expense)", color: "var(--admin-expense)" },
-  modal: { width: "min(100%, 760px)", maxHeight: "calc(100dvh - 24px)", display: "grid", gap: 14, overflow: "auto" },
+  modal: { width: "min(100%, 760px)", maxHeight: "calc(100dvh - 64px)", display: "grid", gap: 14, overflow: "auto" },
   modalHeaderTop: { width: "100%", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 14 },
   modalTitleGroup: { display: "grid", gap: 6 },
   modalCloseButton: { width: 34, height: 34, borderRadius: 999, border: "1px solid var(--admin-border)", background: "var(--admin-row)", color: "var(--admin-text)", fontSize: 22, lineHeight: 1, fontWeight: 800, cursor: "pointer", flexShrink: 0 },

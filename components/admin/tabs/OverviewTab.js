@@ -149,7 +149,11 @@ function MemberDetailModal({ detail, onClose, onShareFull, onShareMinimalist, sh
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="modal-box"
+        style={{ maxHeight: "calc(100dvh - 64px)" }}
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="modal-header">
           <div style={styles.modalHeader}>
             <div>
@@ -264,7 +268,11 @@ function TrashDetailModal({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={(event) => event.stopPropagation()}>
+      <div
+        className="modal-box"
+        style={{ maxHeight: "calc(100dvh - 64px)" }}
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="modal-header">
           <div style={styles.modalHeader}>
             <div>
