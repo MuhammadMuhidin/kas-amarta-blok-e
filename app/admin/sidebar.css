@@ -112,45 +112,6 @@
   .admin-header {
     margin-bottom: 16px !important;
   }
-
-  /* Sidebar profile link — compact, top of sidebar */
-  .admin-sidebar-profile {
-    flex-shrink: 0;
-    margin-bottom: 6px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--admin-border);
-  }
-
-  .admin-sidebar-profile .admin-profile-link,
-  .admin-sidebar-profile .admin-profile-link-compact {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    width: 100%;
-    padding: 8px 14px;
-    border: 0;
-    border-radius: 12px;
-    background: transparent;
-    color: var(--admin-text);
-    text-decoration: none;
-    font-family: var(--admin-font), system-ui, sans-serif;
-    font-size: 13px;
-    font-weight: 750;
-    box-shadow: none;
-    box-sizing: border-box;
-    min-height: auto;
-  }
-
-  .admin-sidebar-profile .admin-profile-link:hover,
-  .admin-sidebar-profile .admin-profile-link-compact:hover {
-    background: var(--admin-row);
-  }
-
-  .admin-sidebar-profile .admin-profile-avatar {
-    width: 26px;
-    height: 26px;
-    font-size: 9px;
-  }
 }
 
 .admin-profile-avatar {
