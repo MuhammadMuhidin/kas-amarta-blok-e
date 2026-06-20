@@ -14,6 +14,7 @@ import RoleManagementTab from "@/components/admin/tabs/RoleManagementTab";
 import SettingsTab from "@/components/admin/tabs/SettingsTab";
 import SummaryBackupTab from "@/components/admin/tabs/SummaryBackupTab";
 import TimelineTab from "@/components/admin/tabs/TimelineTab";
+import AdminTopActions from "@/components/admin/AdminTopActions";
 import Toast from "@/components/Toast";
 import { ADMIN_DATA_MUTATED_EVENT, readJson, sendJson } from "@/components/admin/adminClientApi";
 import { getCurrentPeriod } from "@/lib/depositUtils";
@@ -303,6 +304,7 @@ export default function AdminPageClient() {
             <h1 className="admin-title">Cash Flow Management</h1>
           </div>
           <div className="admin-tabs">
+            <AdminTopActions />
             <button className="admin-tab admin-home-btn" onClick={() => router.push("/")}>
               {icon(0x1F3E0)} Home
             </button>

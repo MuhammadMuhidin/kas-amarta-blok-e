@@ -7,7 +7,7 @@ import "./master-management-english.css";
 import AdminDocumentReset from "@/components/admin/AdminDocumentReset";
 import AdminMobileDrawer from "@/components/admin/AdminMobileDrawer";
 import AdminThemeBoot from "@/components/admin/AdminThemeBoot";
-import AdminTopActions from "@/components/admin/AdminTopActions";
+import AdminConditionalTopActions from "@/components/admin/AdminConditionalTopActions";
 import { getCurrentAdminSession } from "@/lib/adminSession";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -30,7 +30,7 @@ export default async function AdminLayout({ children }) {
       <AdminDocumentReset />
       <AdminThemeBoot />
       <AdminMobileDrawer />
-      <AdminTopActions />
+      <AdminConditionalTopActions />
       {children}
     </>
   );
