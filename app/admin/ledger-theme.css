@@ -1,10 +1,4 @@
 :root[data-admin-theme="ledger"] {
-  --admin-font:
-    "Merriweather Sans",
-    Inter,
-    system-ui,
-    sans-serif;
-
   --admin-bg: #fdf6e3;
   --admin-text: #2f281f;
   --admin-card: #fffaf0;
