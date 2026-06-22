@@ -7,7 +7,6 @@ import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { shareMembersJpgReport, shareMembersJpgReportMinimalist } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
-import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import { useEffect, useMemo, useState } from "react";
 
 const DETAIL_PAGE_SIZE = 13;
@@ -161,33 +160,50 @@ function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, to
 
 function CashDetailModalInner({ status, periodLabel, paidCount, unpaidCount, totalPaidAmount, totalDueAmount, unpaidAmount, sharing, onShareFull, onShareMinimalist, onClose }) {
   const [showFormatChoice, setShowFormatChoice] = useState(false);
+  const [fetchedMembers, setFetchedMembers] = useState([]);
+  const [fetchedTotal, setFetchedTotal] = useState(0);
+  const [fetchError, setFetchError] = useState(null);
+  const [fetchLoading, setFetchLoading] = useState(false);
   useEffect(() => setShowFormatChoice(false), [sharing]);
 
-  const {
-    items: members,
-    total,
-    loading,
-    loadingMore,
-    error,
-    hasMore,
-    loaderRef,
-    refresh,
-  } = useInfiniteRows({
-    pageSize: 15,
-    buildUrl: ({ page, limit }) => {
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(limit),
-        status,
-      });
-      return `/api/sheets/payment/view?${params.toString()}`;
-    },
-    deps: [status],
-    getItems: (data) => data.members || [],
-    getPagination: (data) => data.pagination || {},
-  });
+  useEffect(() => {
+    if (!status) return;
+    let cancelled = false;
+    async function fetchMembers() {
+      setFetchLoading(true);
+      setFetchError(null);
+      try {
+        const params = new URLSearchParams({ page: "1", limit: "100", status });
+        const res = await fetch(`/api/sheets/payment/view?${params.toString()}`, { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load");
+        if (!cancelled) {
+          setFetchedMembers(data.members || []);
+          setFetchedTotal(data.pagination?.total || 0);
+        }
+      } catch (err) {
+        if (!cancelled) setFetchError(err.message);
+      } finally {
+        if (!cancelled) setFetchLoading(false);
+      }
+    }
+    fetchMembers();
+    return () => { cancelled = true; };
+  }, [status]);
 
-  if (!open) return null;
+  if (fetchError) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <div className="modal-title">Cash Payment Details</div>
+            <button type="button" className="admin-small-btn" onClick={onClose}>Close</button>
+          </div>
+          <div className="admin-error-box">{fetchError}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -201,7 +217,7 @@ function CashDetailModalInner({ status, periodLabel, paidCount, unpaidCount, tot
             <div>
               <div className="modal-title">Cash Payment Details</div>
               <div className="modal-section">
-                {total} members · {periodLabel} · {status === "paid" ? "Paid" : status === "unpaid" ? "Unpaid" : "All"}
+                {fetchedTotal} members · {periodLabel} · {status === "paid" ? "Paid" : status === "unpaid" ? "Unpaid" : "All"}
               </div>
             </div>
             <button type="button" className="admin-small-btn" onClick={onClose}>Close</button>
@@ -210,7 +226,7 @@ function CashDetailModalInner({ status, periodLabel, paidCount, unpaidCount, tot
             <div style={{ position: "relative" }}>
               <AdminActionButton
                 loading={sharing}
-                disabled={!members.length || sharing}
+                disabled={!fetchedMembers.length || sharing}
                 onClick={() => setShowFormatChoice((v) => !v)}
               >
                 Share JPG
@@ -245,8 +261,23 @@ function CashDetailModalInner({ status, periodLabel, paidCount, unpaidCount, tot
             <button
               type="button"
               className="admin-small-btn overview-cash-modal-refresh"
-              disabled={loading || loadingMore}
-              onClick={refresh}
+              disabled={fetchLoading}
+              onClick={() => {
+                setFetchedMembers([]);
+                setFetchedTotal(0);
+                setFetchError(null);
+                setFetchLoading(true);
+                const params = new URLSearchParams({ page: "1", limit: "100", status });
+                fetch(`/api/sheets/payment/view?${params.toString()}`, { cache: "no-store" })
+                  .then(res => res.json())
+                  .then(data => {
+                    if (!data.ok) throw new Error(data.error || "Failed to load");
+                    setFetchedMembers(data.members || []);
+                    setFetchedTotal(data.pagination?.total || 0);
+                  })
+                  .catch(err => setFetchError(err.message))
+                  .finally(() => setFetchLoading(false));
+              }}
             >
               Refresh
             </button>
@@ -256,9 +287,8 @@ function CashDetailModalInner({ status, periodLabel, paidCount, unpaidCount, tot
           <MonitoringCard label="Paid" value={money(totalPaidAmount)} meta={[`${paidCount} houses`]} />
           <MonitoringCard label="Unpaid" value={money(unpaidAmount)} meta={[`${unpaidCount} houses`]} />
         </div>
-        {error && <div className="admin-error-box">{error}</div>}
         <div style={styles.memberList}>
-          {members.map((person) => (
+          {fetchedMembers.map((person) => (
             <div key={person.id} style={styles.memberItem}>
               <div>
                 <strong>{person.house}</strong>
@@ -267,12 +297,10 @@ function CashDetailModalInner({ status, periodLabel, paidCount, unpaidCount, tot
               <span>{person.paymentStatus}</span>
             </div>
           ))}
-          {loading && <div className="admin-empty-state">Loading...</div>}
-          {!loading && !loadingMore && members.length === 0 && (
+          {fetchLoading && <div className="admin-empty-state">Loading...</div>}
+          {!fetchLoading && fetchedMembers.length === 0 && (
             <div className="admin-empty-state">No members found.</div>
           )}
-          {hasMore && <div ref={loaderRef} style={{ height: 1 }} />}
-          {loadingMore && <div className="admin-empty-state">Loading more...</div>}
         </div>
       </div>
     </div>
