@@ -798,6 +798,21 @@ export default function OverviewTab({
                   unpaid={derived.unpaidMembers.length}
                   error={derived.unpaidMembers.length > 0}
                   actions={[
+                    derived.unpaidMembers.length > 0
+                      ? derived.paidMembers.length > 0 && {
+                          label: "View Paid",
+                          onClick: () => {
+                            setCashDetailStatus("paid");
+                            setShowCashDetail(true);
+                          },
+                        }
+                      : {
+                          label: "View All",
+                          onClick: () => {
+                            setCashDetailStatus("all");
+                            setShowCashDetail(true);
+                          },
+                        },
                     derived.unpaidMembers.length > 0 && {
                       label: "View Unpaid",
                       onClick: () => {
@@ -805,10 +820,6 @@ export default function OverviewTab({
                         setShowCashDetail(true);
                       },
                     },
-                    { label: "View All", onClick: () => {
-                        setCashDetailStatus("all");
-                        setShowCashDetail(true);
-                      } },
                   ]}
                 />
                 <ProgressCard
@@ -818,6 +829,24 @@ export default function OverviewTab({
                   unpaid={derived.unpaidTrashMembers.length}
                   error={derived.unpaidTrashMembers.length > 0}
                   actions={[
+                    derived.unpaidTrashMembers.length > 0
+                      ? derived.paidTrashMembers.length > 0 && {
+                          label: "View Paid",
+                          onClick: () => setMemberDetail({
+                            id: "trash-paid",
+                            title: "Paid Trash Details",
+                            members: derived.paidTrashMembers,
+                            totalMembers: derived.activeTrashMembers.length,
+                            statusText: "Paid",
+                            paymentLabel: "Trash",
+                            amount: appConfig?.trash_fee,
+                            note: "Houses that have paid trash fees.",
+                          }),
+                        }
+                      : {
+                          label: "View All",
+                          onClick: () => setShowTrashDetail(true),
+                        },
                     derived.unpaidTrashMembers.length > 0 && {
                       label: "View Unpaid",
                       onClick: () => setMemberDetail({
@@ -831,7 +860,6 @@ export default function OverviewTab({
                         note: "Houses that have not paid trash fees.",
                       }),
                     },
-                    { label: "View All", onClick: () => setShowTrashDetail(true) },
                   ]}
                 />
               </div>
