@@ -7,6 +7,7 @@ import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { shareMembersJpgReport, shareMembersJpgReportMinimalist } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
+import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import { useEffect, useMemo, useState } from "react";
 
 const DETAIL_PAGE_SIZE = 13;
@@ -130,6 +131,128 @@ function ProgressCard({ label, paid, total, unpaid, actions = [], error = false 
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, totalPaidAmount, totalDueAmount, sharing, onShareFull, onShareMinimalist, onClose }) {
+  useModalScrollLock(open);
+  const [showFormatChoice, setShowFormatChoice] = useState(false);
+  useEffect(() => setShowFormatChoice(false), [open, sharing]);
+  if (!open) return null;
+
+  const {
+    items: members,
+    total,
+    loading,
+    loadingMore,
+    error,
+    hasMore,
+    loaderRef,
+    refresh,
+  } = useInfiniteRows({
+    pageSize: 15,
+    buildUrl: ({ page, limit }) => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        status,
+      });
+      return `/api/sheets/payment/view?${params.toString()}`;
+    },
+    deps: [status],
+    getItems: (data) => data.members || [],
+    getPagination: (data) => data.pagination || {},
+  });
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-box"
+        style={{ maxHeight: "calc(100dvh - 64px)" }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="modal-header">
+          <div style={styles.modalHeader}>
+            <div>
+              <div className="modal-title">Cash Payment Details</div>
+              <div className="modal-section">
+                {total} members · {periodLabel} · {status === "paid" ? "Paid" : status === "unpaid" ? "Unpaid" : "All"}
+              </div>
+            </div>
+            <button type="button" className="admin-small-btn" onClick={onClose}>Close</button>
+          </div>
+          <div style={styles.rowActions}>
+            <div style={{ position: "relative" }}>
+              <AdminActionButton
+                loading={sharing}
+                disabled={!members.length || sharing}
+                onClick={() => setShowFormatChoice((v) => !v)}
+              >
+                Share JPG
+              </AdminActionButton>
+              {showFormatChoice && !sharing && (
+                <div style={styles.formatChoiceDropdown}>
+                  <button
+                    type="button"
+                    style={styles.formatChoiceOption}
+                    onClick={() => { setShowFormatChoice(false); onShareFull(); }}
+                  >
+                    <span style={styles.formatChoiceIcon}>🖼️</span>
+                    <div>
+                      <strong>Full (Existing)</strong>
+                      <div style={styles.muted}>Current full-color format</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    style={styles.formatChoiceOption}
+                    onClick={() => { setShowFormatChoice(false); onShareMinimalist(); }}
+                  >
+                    <span style={styles.formatChoiceIcon}>🧾</span>
+                    <div>
+                      <strong>Minimalist (Receipt)</strong>
+                      <div style={styles.muted}>Black & white receipt style</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              className="admin-small-btn"
+              disabled={loading || loadingMore}
+              onClick={refresh}
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div className="admin-monitor-grid" style={{ marginBottom: 12 }}>
+          <MonitoringCard label="Paid" value={money(paidCount)} meta={[]} />
+          <MonitoringCard label="Unpaid" value={money(unpaidCount)} meta={[]} />
+          <MonitoringCard label="Total Paid" value={money(totalPaidAmount)} meta={[]} />
+          <MonitoringCard label="Total Due" value={money(totalDueAmount)} meta={[]} />
+        </div>
+        {error && <div className="admin-error-box">{error}</div>}
+        <div style={styles.memberList}>
+          {members.map((person) => (
+            <div key={person.id} style={styles.memberItem}>
+              <div>
+                <strong>{person.house}</strong>
+                <div style={styles.muted}>{person.name}</div>
+              </div>
+              <span>{person.paymentStatus}</span>
+            </div>
+          ))}
+          {loading && <div className="admin-empty-state">Loading...</div>}
+          {!loading && !loadingMore && members.length === 0 && (
+            <div className="admin-empty-state">No members found.</div>
+          )}
+          {hasMore && <div ref={loaderRef} style={{ height: 1 }} />}
+          {loadingMore && <div className="admin-empty-state">Loading more...</div>}
+        </div>
+      </div>
     </div>
   );
 }
@@ -398,8 +521,10 @@ export default function OverviewTab({
   const [advancingTrash, setAdvancingTrash] = useState(false);
   const [exportingDetailJpg, setExportingDetailJpg] = useState("");
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
+  const [showCashDetail, setShowCashDetail] = useState(false);
+  const [cashDetailStatus, setCashDetailStatus] = useState("all");
 
-  useModalScrollLock(showReportConfirm || showTrashAdvanceConfirm);
+  useModalScrollLock(showReportConfirm || showTrashAdvanceConfirm || showCashDetail);
 
   const derived = useMemo(() => {
     const activeMembers = personal.filter((person) => person.active === "Y");
@@ -490,6 +615,10 @@ export default function OverviewTab({
       recentCashflows: [...cashflows]
         .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
         .slice(0, 8),
+      paidCount: paidMembers.length,
+      unpaidCount: unpaidMembers.length,
+      totalPaidAmount: paidMembers.length * Number(appConfig?.monthly_fee || 0),
+      totalDueAmount: activeCurrentMembers.length * Number(appConfig?.monthly_fee || 0),
     };
   }, [personal, payments, trashRecords, cashflows, sortedDeposits, currentPeriod, appConfig, getDepositStatus]);
 
@@ -671,29 +800,24 @@ export default function OverviewTab({
                   actions={[
                     derived.unpaidMembers.length > 0 && {
                       label: "View Unpaid",
-                      onClick: () => setMemberDetail({
-                        id: "cash-unpaid",
-                        title: "Unpaid Cash Details",
-                        members: derived.unpaidMembers,
-                        totalMembers: derived.activeCurrentMembers.length,
-                        statusText: "Unpaid",
-                        paymentLabel: "Cash",
-                        amount: appConfig?.monthly_fee,
-                        note: "Houses that have not paid cash dues.",
-                      }),
+                      onClick: () => {
+                        setCashDetailStatus("unpaid");
+                        setShowCashDetail(true);
+                      },
                     },
                     derived.paidMembers.length > 0 && {
                       label: "View Paid",
-                      onClick: () => setMemberDetail({
-                        id: "cash-paid",
-                        title: "Paid Cash Details",
-                        members: derived.paidMembers,
-                        totalMembers: derived.activeCurrentMembers.length,
-                        statusText: "Paid",
-                        paymentLabel: "Cash",
-                        amount: appConfig?.monthly_fee,
-                        note: "Houses that have paid cash dues.",
-                      }),
+                      onClick: () => {
+                        setCashDetailStatus("paid");
+                        setShowCashDetail(true);
+                      },
+                    },
+                    {
+                      label: "View All",
+                      onClick: () => {
+                        setCashDetailStatus("all");
+                        setShowCashDetail(true);
+                      },
                     },
                   ]}
                 />
@@ -827,6 +951,43 @@ export default function OverviewTab({
         onShareMinimalist={() => shareAllTrash("minimalist")}
         onAdvance={() => setShowTrashAdvanceConfirm(true)}
         onClose={() => setShowTrashDetail(false)}
+      />
+      <CashDetailModal
+        open={showCashDetail}
+        status={cashDetailStatus}
+        periodLabel={periodLabel}
+        paidCount={derived.paidCount}
+        unpaidCount={derived.unpaidCount}
+        totalPaidAmount={derived.totalPaidAmount}
+        totalDueAmount={derived.totalDueAmount}
+        sharing={exportingDetailJpg === "cash-detail"}
+        onShareFull={() => {
+          setExportingDetailJpg("cash-detail");
+          const detail = {
+            id: "cash-detail",
+            paymentLabel: "Cash",
+            statusText: cashDetailStatus === "paid" ? "Paid" : cashDetailStatus === "unpaid" ? "Unpaid" : "All",
+            members: [],
+            totalMembers: derived.activeCurrentMembers.length,
+            amount: appConfig?.monthly_fee,
+            note: `Cash payment ${cashDetailStatus} member status.`,
+          };
+          shareDetail(detail, "full").finally(() => setExportingDetailJpg(""));
+        }}
+        onShareMinimalist={() => {
+          setExportingDetailJpg("cash-detail");
+          const detail = {
+            id: "cash-detail",
+            paymentLabel: "Cash",
+            statusText: cashDetailStatus === "paid" ? "Paid" : cashDetailStatus === "unpaid" ? "Unpaid" : "All",
+            members: [],
+            totalMembers: derived.activeCurrentMembers.length,
+            amount: appConfig?.monthly_fee,
+            note: `Cash payment ${cashDetailStatus} member status.`,
+          };
+          shareDetail(detail, "minimalist").finally(() => setExportingDetailJpg(""));
+        }}
+        onClose={() => setShowCashDetail(false)}
       />
 
       <AdminConfirmModal
