@@ -53,16 +53,20 @@ function getTrashAdvanceRefId(personId, period) {
   return `TRASHADV-${normalize(personId)}-${normalize(period)}`;
 }
 
+let modalScrollLockCount = 0;
+
 function useModalScrollLock(open) {
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousDocumentOverflow = document.documentElement.style.overflow;
+    modalScrollLockCount += 1;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousDocumentOverflow;
+      modalScrollLockCount = Math.max(0, modalScrollLockCount - 1);
+      if (modalScrollLockCount === 0) {
+        document.body.style.overflow = "";
+        document.documentElement.style.overflow = "";
+      }
     };
   }, [open]);
 }
