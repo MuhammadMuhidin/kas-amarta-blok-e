@@ -138,7 +138,7 @@ function ProgressCard({ label, paid, total, unpaid, actions = [], error = false 
   );
 }
 
-function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, totalPaidAmount, totalDueAmount, sharing, onShareFull, onShareMinimalist, onClose }) {
+function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, totalPaidAmount, totalDueAmount, unpaidAmount, sharing, onShareFull, onShareMinimalist, onClose }) {
   useModalScrollLock(open);
 
   if (!open) return null;
