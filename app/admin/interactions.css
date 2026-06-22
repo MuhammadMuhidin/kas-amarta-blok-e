@@ -686,13 +686,13 @@
   }
 
   .admin-wrapper .overview-cash-modal-refresh {
-    display: inline-flex;
+    display: none;
   }
 }
 
 @media (min-width: 641px) {
   .admin-wrapper .overview-cash-modal-refresh {
-    display: none;
+    display: inline-flex;
   }
 }
 
