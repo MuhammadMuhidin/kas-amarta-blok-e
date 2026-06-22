@@ -432,7 +432,7 @@ export default function PaymentTab(props) {
   const [depositLoadVersion, setDepositLoadVersion] = useState(0);
   const [showReminderPreview, setShowReminderPreview] = useState(false);
   const [sendingReminder, setSendingReminder] = useState(false);
-  const [pendingProofCount, setPendingProofCount] = useState(0);
+  const pendingProofCount = props.pendingProofCount ?? 0;
   const depositRequestRef = useRef(null);
   const { toast, showToast } = usePaymentToast();
 
@@ -468,19 +468,6 @@ export default function PaymentTab(props) {
 
   useEffect(() => () => depositRequestRef.current?.abort(), []);
 
-  useEffect(() => {
-    let cancelled = false;
-    readJson("/api/admin/payment-proofs?status=pending")
-      .then((data) => {
-        if (cancelled) return;
-        setPendingProofCount(Array.isArray(data?.proofs) ? data.proofs.length : 0);
-      })
-      .catch(() => {
-        if (!cancelled) setPendingProofCount(0);
-      });
-    return () => { cancelled = true; };
-  }, []);
-
   function retryDeposits() {
     setDepositsLoaded(false);
     setDepositsError("");
@@ -500,15 +487,6 @@ export default function PaymentTab(props) {
       showToast("error", error.message || "Failed to send WhatsApp payment reminder.");
     } finally {
       setSendingReminder(false);
-    }
-  }
-
-  async function refreshProofCount() {
-    try {
-      const data = await readJson("/api/admin/payment-proofs?status=pending");
-      setPendingProofCount(Array.isArray(data?.proofs) ? data.proofs.length : 0);
-    } catch {
-      setPendingProofCount(0);
     }
   }
 
@@ -540,7 +518,7 @@ export default function PaymentTab(props) {
       {activePanel === "proofs" && (
         <div id="payment-proofs-panel" role="tabpanel">
           <PaymentProofReviewCard
-            onReviewed={() => { props.onPaymentProofReviewed?.(); refreshProofCount(); }}
+            onReviewed={() => { props.onPaymentProofReviewed?.(); }}
             onToast={showToast}
           />
         </div>
