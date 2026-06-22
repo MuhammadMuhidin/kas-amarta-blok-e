@@ -619,6 +619,10 @@ export default function OverviewTab({
       unpaidCount: unpaidMembers.length,
       totalPaidAmount: paidMembers.length * Number(appConfig?.monthly_fee || 0),
       totalDueAmount: activeCurrentMembers.length * Number(appConfig?.monthly_fee || 0),
+      membersWithPaymentStatus: activeCurrentMembers.map(member => ({
+        ...member,
+        paymentStatus: paidCurrentKeys.has(normalize(member.house)) || paidCurrentKeys.has(normalize(member.id)) ? 'Paid' : 'Unpaid',
+      })),
     };
   }, [personal, payments, trashRecords, cashflows, sortedDeposits, currentPeriod, appConfig, getDepositStatus]);
 
@@ -981,27 +985,47 @@ export default function OverviewTab({
         sharing={exportingDetailJpg === "cash-detail"}
         onShareFull={() => {
           setExportingDetailJpg("cash-detail");
+          const isAll = cashDetailStatus === "all";
+          const members = isAll
+            ? derived.membersWithPaymentStatus
+            : cashDetailStatus === "paid"
+              ? derived.paidMembers.map(m => ({ ...m, paymentStatus: "Paid" }))
+              : derived.unpaidMembers.map(m => ({ ...m, paymentStatus: "Unpaid" }));
           const detail = {
             id: "cash-detail",
             paymentLabel: "Cash",
-            statusText: cashDetailStatus === "paid" ? "Paid" : cashDetailStatus === "unpaid" ? "Unpaid" : "All",
-            members: [],
+            statusText: isAll ? "All" : cashDetailStatus === "paid" ? "Paid" : "Unpaid",
+            members,
             totalMembers: derived.activeCurrentMembers.length,
             amount: appConfig?.monthly_fee,
-            note: `Cash payment ${cashDetailStatus} member status.`,
+            note: isAll
+              ? "Paid and unpaid cash member status."
+              : cashDetailStatus === "paid"
+                ? "Houses that have paid cash dues."
+                : "Houses that have not paid cash dues.",
           };
           shareDetail(detail, "full").finally(() => setExportingDetailJpg(""));
         }}
         onShareMinimalist={() => {
           setExportingDetailJpg("cash-detail");
+          const isAll = cashDetailStatus === "all";
+          const members = isAll
+            ? derived.membersWithPaymentStatus
+            : cashDetailStatus === "paid"
+              ? derived.paidMembers.map(m => ({ ...m, paymentStatus: "Paid" }))
+              : derived.unpaidMembers.map(m => ({ ...m, paymentStatus: "Unpaid" }));
           const detail = {
             id: "cash-detail",
             paymentLabel: "Cash",
-            statusText: cashDetailStatus === "paid" ? "Paid" : cashDetailStatus === "unpaid" ? "Unpaid" : "All",
-            members: [],
+            statusText: isAll ? "All" : cashDetailStatus === "paid" ? "Paid" : "Unpaid",
+            members,
             totalMembers: derived.activeCurrentMembers.length,
             amount: appConfig?.monthly_fee,
-            note: `Cash payment ${cashDetailStatus} member status.`,
+            note: isAll
+              ? "Paid and unpaid cash member status."
+              : cashDetailStatus === "paid"
+                ? "Houses that have paid cash dues."
+                : "Houses that have not paid cash dues.",
           };
           shareDetail(detail, "minimalist").finally(() => setExportingDetailJpg(""));
         }}
