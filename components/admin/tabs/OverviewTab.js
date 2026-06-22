@@ -151,6 +151,7 @@ function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, to
     unpaidCount={unpaidCount}
     totalPaidAmount={totalPaidAmount}
     totalDueAmount={totalDueAmount}
+    unpaidAmount={unpaidAmount}
     sharing={sharing}
     onShareFull={onShareFull}
     onShareMinimalist={onShareMinimalist}
@@ -158,7 +159,7 @@ function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, to
   />;
 }
 
-function CashDetailModalInner({ status, periodLabel, paidCount, unpaidCount, totalPaidAmount, totalDueAmount, sharing, onShareFull, onShareMinimalist, onClose }) {
+function CashDetailModalInner({ status, periodLabel, paidCount, unpaidCount, totalPaidAmount, totalDueAmount, unpaidAmount, sharing, onShareFull, onShareMinimalist, onClose }) {
   const [showFormatChoice, setShowFormatChoice] = useState(false);
   useEffect(() => setShowFormatChoice(false), [sharing]);
 
@@ -1004,6 +1005,7 @@ export default function OverviewTab({
         unpaidCount={derived.unpaidCount}
         totalPaidAmount={derived.totalPaidAmount}
         totalDueAmount={derived.totalDueAmount}
+        unpaidAmount={derived.unpaidAmount}
         sharing={exportingDetailJpg === "cash-detail"}
         onShareFull={() => {
           setExportingDetailJpg("cash-detail");
