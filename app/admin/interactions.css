@@ -684,6 +684,16 @@
   .admin-wrapper .overview-progress-row-actions {
     grid-template-columns: 1fr;
   }
+
+  .admin-wrapper .overview-cash-modal-refresh {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 641px) {
+  .admin-wrapper .overview-cash-modal-refresh {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -221,7 +221,7 @@ function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, to
             </div>
             <button
               type="button"
-              className="admin-small-btn"
+              className="admin-small-btn overview-cash-modal-refresh"
               disabled={loading || loadingMore}
               onClick={refresh}
             >
@@ -230,10 +230,8 @@ function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, to
           </div>
         </div>
         <div className="admin-monitor-grid" style={{ marginBottom: 12 }}>
-          <MonitoringCard label="Paid" value={money(paidCount)} meta={[]} />
-          <MonitoringCard label="Unpaid" value={money(unpaidCount)} meta={[]} />
-          <MonitoringCard label="Total Paid" value={money(totalPaidAmount)} meta={[]} />
-          <MonitoringCard label="Total Due" value={money(totalDueAmount)} meta={[]} />
+          <MonitoringCard label="Paid" value={money(totalPaidAmount)} meta={[`${paidCount} houses`]} />
+          <MonitoringCard label="Unpaid" value={money(unpaidAmount)} meta={[`${unpaidCount} houses`]} />
         </div>
         {error && <div className="admin-error-box">{error}</div>}
         <div style={styles.memberList}>
@@ -620,6 +618,7 @@ export default function OverviewTab({
       unpaidCount: unpaidMembers.length,
       totalPaidAmount: paidMembers.length * Number(appConfig?.monthly_fee || 0),
       totalDueAmount: activeCurrentMembers.length * Number(appConfig?.monthly_fee || 0),
+      unpaidAmount: unpaidMembers.length * Number(appConfig?.monthly_fee || 0),
       membersWithPaymentStatus: activeCurrentMembers.map(member => ({
         ...member,
         paymentStatus: paidCurrentKeys.has(normalize(member.house)) || paidCurrentKeys.has(normalize(member.id)) ? 'Paid' : 'Unpaid',
@@ -1260,9 +1259,10 @@ const styles = {
   formatChoiceDropdown: {
     position: "absolute",
     top: "100%",
-    left: 0,
+    right: 0,
     marginTop: 6,
-    minWidth: 260,
+    minWidth: 220,
+    maxWidth: "calc(100vw - 32px)",
     background: "var(--admin-card)",
     border: "1px solid var(--admin-border)",
     borderRadius: 12,
