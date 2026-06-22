@@ -137,8 +137,26 @@ function ProgressCard({ label, paid, total, unpaid, actions = [], error = false 
 
 function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, totalPaidAmount, totalDueAmount, sharing, onShareFull, onShareMinimalist, onClose }) {
   useModalScrollLock(open);
+
+  if (!open) return null;
+
+  return <CashDetailModalInner
+    status={status}
+    periodLabel={periodLabel}
+    paidCount={paidCount}
+    unpaidCount={unpaidCount}
+    totalPaidAmount={totalPaidAmount}
+    totalDueAmount={totalDueAmount}
+    sharing={sharing}
+    onShareFull={onShareFull}
+    onShareMinimalist={onShareMinimalist}
+    onClose={onClose}
+  />;
+}
+
+function CashDetailModalInner({ status, periodLabel, paidCount, unpaidCount, totalPaidAmount, totalDueAmount, sharing, onShareFull, onShareMinimalist, onClose }) {
   const [showFormatChoice, setShowFormatChoice] = useState(false);
-  useEffect(() => setShowFormatChoice(false), [open, sharing]);
+  useEffect(() => setShowFormatChoice(false), [sharing]);
 
   const {
     items: members,
