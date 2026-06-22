@@ -52,16 +52,20 @@ function getTrashAdvanceRefId(personId, period) {
   return `TRASHADV-${normalize(personId)}-${normalize(period)}`;
 }
 
+let modalScrollLockCount = 0;
+
 function useModalScrollLock(open) {
   useEffect(() => {
     if (!open || typeof document === "undefined") return undefined;
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousDocumentOverflow = document.documentElement.style.overflow;
+    modalScrollLockCount += 1;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousDocumentOverflow;
+      modalScrollLockCount = Math.max(0, modalScrollLockCount - 1);
+      if (modalScrollLockCount === 0) {
+        document.body.style.overflow = "";
+        document.documentElement.style.overflow = "";
+      }
     };
   }, [open]);
 }
@@ -117,7 +121,7 @@ function ProgressCard({ label, paid, total, unpaid, actions = [], error = false 
         <span>{paid} paid</span>
       </div>
       {actions.filter(Boolean).length > 0 && (
-        <div style={styles.rowActions}>
+        <div className="overview-progress-row-actions" style={styles.rowActions}>
           {actions.filter(Boolean).map((action) => (
             <button
               key={action.label}
@@ -130,6 +134,175 @@ function ProgressCard({ label, paid, total, unpaid, actions = [], error = false 
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, totalPaidAmount, totalDueAmount, unpaidAmount, sharing, onShareFull, onShareMinimalist, onClose }) {
+  useModalScrollLock(open);
+
+  if (!open) return null;
+
+  return <CashDetailModalInner
+    status={status}
+    periodLabel={periodLabel}
+    paidCount={paidCount}
+    unpaidCount={unpaidCount}
+    totalPaidAmount={totalPaidAmount}
+    totalDueAmount={totalDueAmount}
+    unpaidAmount={unpaidAmount}
+    sharing={sharing}
+    onShareFull={onShareFull}
+    onShareMinimalist={onShareMinimalist}
+    onClose={onClose}
+  />;
+}
+
+function CashDetailModalInner({ status, periodLabel, paidCount, unpaidCount, totalPaidAmount, totalDueAmount, unpaidAmount, sharing, onShareFull, onShareMinimalist, onClose }) {
+  const [showFormatChoice, setShowFormatChoice] = useState(false);
+  const [fetchedMembers, setFetchedMembers] = useState([]);
+  const [fetchedTotal, setFetchedTotal] = useState(0);
+  const [fetchError, setFetchError] = useState(null);
+  const [fetchLoading, setFetchLoading] = useState(false);
+  useEffect(() => setShowFormatChoice(false), [sharing]);
+
+  useEffect(() => {
+    if (!status) return;
+    let cancelled = false;
+    async function fetchMembers() {
+      setFetchLoading(true);
+      setFetchError(null);
+      try {
+        const params = new URLSearchParams({ page: "1", limit: "100", status });
+        const res = await fetch(`/api/sheets/payment/view?${params.toString()}`, { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to load");
+        if (!cancelled) {
+          setFetchedMembers(data.members || []);
+          setFetchedTotal(data.pagination?.total || 0);
+        }
+      } catch (err) {
+        if (!cancelled) setFetchError(err.message);
+      } finally {
+        if (!cancelled) setFetchLoading(false);
+      }
+    }
+    fetchMembers();
+    return () => { cancelled = true; };
+  }, [status]);
+
+  if (fetchError) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <div className="modal-title">Cash Payment Details</div>
+            <button type="button" className="admin-small-btn" onClick={onClose}>Close</button>
+          </div>
+          <div className="admin-error-box">{fetchError}</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-box"
+        style={{ maxHeight: "calc(100dvh - 64px)" }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="modal-header">
+          <div style={styles.modalHeader}>
+            <div>
+              <div className="modal-title">Cash Payment Details</div>
+              <div className="modal-section">
+                {fetchedTotal} members · {periodLabel} · {status === "paid" ? "Paid" : status === "unpaid" ? "Unpaid" : "All"}
+              </div>
+            </div>
+            <button type="button" className="admin-small-btn" onClick={onClose}>Close</button>
+          </div>
+          <div style={styles.rowActions}>
+            <div style={{ position: "relative" }}>
+              <AdminActionButton
+                loading={sharing}
+                disabled={!fetchedMembers.length || sharing}
+                onClick={() => setShowFormatChoice((v) => !v)}
+              >
+                Share JPG
+              </AdminActionButton>
+              {showFormatChoice && !sharing && (
+                <div style={styles.formatChoiceDropdown}>
+                  <button
+                    type="button"
+                    style={styles.formatChoiceOption}
+                    onClick={() => { setShowFormatChoice(false); onShareFull(); }}
+                  >
+                    <span style={styles.formatChoiceIcon}>🖼️</span>
+                    <div>
+                      <strong>Full (Existing)</strong>
+                      <div style={styles.muted}>Current full-color format</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    style={styles.formatChoiceOption}
+                    onClick={() => { setShowFormatChoice(false); onShareMinimalist(); }}
+                  >
+                    <span style={styles.formatChoiceIcon}>🧾</span>
+                    <div>
+                      <strong>Minimalist (Receipt)</strong>
+                      <div style={styles.muted}>Black & white receipt style</div>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              className="admin-small-btn overview-cash-modal-refresh"
+              disabled={fetchLoading}
+              onClick={() => {
+                setFetchedMembers([]);
+                setFetchedTotal(0);
+                setFetchError(null);
+                setFetchLoading(true);
+                const params = new URLSearchParams({ page: "1", limit: "100", status });
+                fetch(`/api/sheets/payment/view?${params.toString()}`, { cache: "no-store" })
+                  .then(res => res.json())
+                  .then(data => {
+                    if (!data.ok) throw new Error(data.error || "Failed to load");
+                    setFetchedMembers(data.members || []);
+                    setFetchedTotal(data.pagination?.total || 0);
+                  })
+                  .catch(err => setFetchError(err.message))
+                  .finally(() => setFetchLoading(false));
+              }}
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div className="admin-monitor-grid" style={{ marginBottom: 12 }}>
+          <MonitoringCard label="Paid" value={money(totalPaidAmount)} meta={[`${paidCount} houses`]} />
+          <MonitoringCard label="Unpaid" value={money(unpaidAmount)} meta={[`${unpaidCount} houses`]} />
+        </div>
+        <div style={styles.memberList}>
+          {fetchedMembers.map((person) => (
+            <div key={person.id} style={styles.memberItem}>
+              <div>
+                <strong>{person.house}</strong>
+                <div style={styles.muted}>{person.name}</div>
+              </div>
+              <span>{person.paymentStatus}</span>
+            </div>
+          ))}
+          {fetchLoading && <div className="admin-empty-state">Loading...</div>}
+          {!fetchLoading && fetchedMembers.length === 0 && (
+            <div className="admin-empty-state">No members found.</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -398,8 +571,10 @@ export default function OverviewTab({
   const [advancingTrash, setAdvancingTrash] = useState(false);
   const [exportingDetailJpg, setExportingDetailJpg] = useState("");
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
+  const [showCashDetail, setShowCashDetail] = useState(false);
+  const [cashDetailStatus, setCashDetailStatus] = useState("all");
 
-  useModalScrollLock(showReportConfirm || showTrashAdvanceConfirm);
+  useModalScrollLock(showReportConfirm || showTrashAdvanceConfirm || showCashDetail);
 
   const derived = useMemo(() => {
     const activeMembers = personal.filter((person) => person.active === "Y");
@@ -490,6 +665,15 @@ export default function OverviewTab({
       recentCashflows: [...cashflows]
         .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))
         .slice(0, 8),
+      paidCount: paidMembers.length,
+      unpaidCount: unpaidMembers.length,
+      totalPaidAmount: paidMembers.length * Number(appConfig?.monthly_fee || 0),
+      totalDueAmount: activeCurrentMembers.length * Number(appConfig?.monthly_fee || 0),
+      unpaidAmount: unpaidMembers.length * Number(appConfig?.monthly_fee || 0),
+      membersWithPaymentStatus: activeCurrentMembers.map(member => ({
+        ...member,
+        paymentStatus: paidCurrentKeys.has(normalize(member.house)) || paidCurrentKeys.has(normalize(member.id)) ? 'Paid' : 'Unpaid',
+      })),
     };
   }, [personal, payments, trashRecords, cashflows, sortedDeposits, currentPeriod, appConfig, getDepositStatus]);
 
@@ -669,31 +853,27 @@ export default function OverviewTab({
                   unpaid={derived.unpaidMembers.length}
                   error={derived.unpaidMembers.length > 0}
                   actions={[
+                    derived.unpaidMembers.length > 0
+                      ? derived.paidMembers.length > 0 && {
+                          label: "View Paid",
+                          onClick: () => {
+                            setCashDetailStatus("paid");
+                            setShowCashDetail(true);
+                          },
+                        }
+                      : {
+                          label: "View All",
+                          onClick: () => {
+                            setCashDetailStatus("all");
+                            setShowCashDetail(true);
+                          },
+                        },
                     derived.unpaidMembers.length > 0 && {
                       label: "View Unpaid",
-                      onClick: () => setMemberDetail({
-                        id: "cash-unpaid",
-                        title: "Unpaid Cash Details",
-                        members: derived.unpaidMembers,
-                        totalMembers: derived.activeCurrentMembers.length,
-                        statusText: "Unpaid",
-                        paymentLabel: "Cash",
-                        amount: appConfig?.monthly_fee,
-                        note: "Houses that have not paid cash dues.",
-                      }),
-                    },
-                    derived.paidMembers.length > 0 && {
-                      label: "View Paid",
-                      onClick: () => setMemberDetail({
-                        id: "cash-paid",
-                        title: "Paid Cash Details",
-                        members: derived.paidMembers,
-                        totalMembers: derived.activeCurrentMembers.length,
-                        statusText: "Paid",
-                        paymentLabel: "Cash",
-                        amount: appConfig?.monthly_fee,
-                        note: "Houses that have paid cash dues.",
-                      }),
+                      onClick: () => {
+                        setCashDetailStatus("unpaid");
+                        setShowCashDetail(true);
+                      },
                     },
                   ]}
                 />
@@ -704,6 +884,24 @@ export default function OverviewTab({
                   unpaid={derived.unpaidTrashMembers.length}
                   error={derived.unpaidTrashMembers.length > 0}
                   actions={[
+                    derived.unpaidTrashMembers.length > 0
+                      ? derived.paidTrashMembers.length > 0 && {
+                          label: "View Paid",
+                          onClick: () => setMemberDetail({
+                            id: "trash-paid",
+                            title: "Paid Trash Details",
+                            members: derived.paidTrashMembers,
+                            totalMembers: derived.activeTrashMembers.length,
+                            statusText: "Paid",
+                            paymentLabel: "Trash",
+                            amount: appConfig?.trash_fee,
+                            note: "Houses that have paid trash fees.",
+                          }),
+                        }
+                      : {
+                          label: "View All",
+                          onClick: () => setShowTrashDetail(true),
+                        },
                     derived.unpaidTrashMembers.length > 0 && {
                       label: "View Unpaid",
                       onClick: () => setMemberDetail({
@@ -717,7 +915,6 @@ export default function OverviewTab({
                         note: "Houses that have not paid trash fees.",
                       }),
                     },
-                    { label: "View All", onClick: () => setShowTrashDetail(true) },
                   ]}
                 />
               </div>
@@ -827,6 +1024,64 @@ export default function OverviewTab({
         onShareMinimalist={() => shareAllTrash("minimalist")}
         onAdvance={() => setShowTrashAdvanceConfirm(true)}
         onClose={() => setShowTrashDetail(false)}
+      />
+      <CashDetailModal
+        open={showCashDetail}
+        status={cashDetailStatus}
+        periodLabel={periodLabel}
+        paidCount={derived.paidCount}
+        unpaidCount={derived.unpaidCount}
+        totalPaidAmount={derived.totalPaidAmount}
+        totalDueAmount={derived.totalDueAmount}
+        unpaidAmount={derived.unpaidAmount}
+        sharing={exportingDetailJpg === "cash-detail"}
+        onShareFull={() => {
+          setExportingDetailJpg("cash-detail");
+          const isAll = cashDetailStatus === "all";
+          const members = isAll
+            ? derived.membersWithPaymentStatus
+            : cashDetailStatus === "paid"
+              ? derived.paidMembers.map(m => ({ ...m, paymentStatus: "Paid" }))
+              : derived.unpaidMembers.map(m => ({ ...m, paymentStatus: "Unpaid" }));
+          const detail = {
+            id: "cash-detail",
+            paymentLabel: "Cash",
+            statusText: isAll ? "All" : cashDetailStatus === "paid" ? "Paid" : "Unpaid",
+            members,
+            totalMembers: derived.activeCurrentMembers.length,
+            amount: appConfig?.monthly_fee,
+            note: isAll
+              ? "Paid and unpaid cash member status."
+              : cashDetailStatus === "paid"
+                ? "Houses that have paid cash dues."
+                : "Houses that have not paid cash dues.",
+          };
+          shareDetail(detail, "full").finally(() => setExportingDetailJpg(""));
+        }}
+        onShareMinimalist={() => {
+          setExportingDetailJpg("cash-detail");
+          const isAll = cashDetailStatus === "all";
+          const members = isAll
+            ? derived.membersWithPaymentStatus
+            : cashDetailStatus === "paid"
+              ? derived.paidMembers.map(m => ({ ...m, paymentStatus: "Paid" }))
+              : derived.unpaidMembers.map(m => ({ ...m, paymentStatus: "Unpaid" }));
+          const detail = {
+            id: "cash-detail",
+            paymentLabel: "Cash",
+            statusText: isAll ? "All" : cashDetailStatus === "paid" ? "Paid" : "Unpaid",
+            members,
+            totalMembers: derived.activeCurrentMembers.length,
+            amount: appConfig?.monthly_fee,
+            note: isAll
+              ? "Paid and unpaid cash member status."
+              : cashDetailStatus === "paid"
+                ? "Houses that have paid cash dues."
+                : "Houses that have not paid cash dues.",
+          };
+          shareDetail(detail, "minimalist").finally(() => setExportingDetailJpg(""));
+        }}
+        onClose={() => setShowCashDetail(false)}
       />
 
       <AdminConfirmModal
@@ -956,7 +1211,11 @@ const styles = {
     fontSize: 12,
     fontWeight: 700,
   },
-  rowActions: { display: "flex", gap: 8, flexWrap: "wrap" },
+  rowActions: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(min(140px,100%),1fr))",
+    gap: 8,
+  },
   reportCard: {
     display: "flex",
     alignItems: "center",
@@ -1052,9 +1311,10 @@ const styles = {
   formatChoiceDropdown: {
     position: "absolute",
     top: "100%",
-    left: 0,
+    right: 0,
     marginTop: 6,
-    minWidth: 260,
+    minWidth: 220,
+    maxWidth: "calc(100vw - 32px)",
     background: "var(--admin-card)",
     border: "1px solid var(--admin-border)",
     borderRadius: 12,

@@ -35,6 +35,19 @@ export async function insertPersonal(supabase, payload) {
   }
 }
 
+export async function listActiveMembers(supabase) {
+  const { data: rows, error } = await supabase
+    .from(PERSONAL_TABLE)
+    .select("id,house,name,trash,active,join_date")
+    .eq("active", "Y");
+
+  if (error) {
+    throw new Error("Gagal membaca data warga aktif");
+  }
+
+  return (rows || []).map(mapPersonal);
+}
+
 export async function findPersonalById(supabase, id) {
   const { data: rows, error } = await supabase
     .from(PERSONAL_TABLE)

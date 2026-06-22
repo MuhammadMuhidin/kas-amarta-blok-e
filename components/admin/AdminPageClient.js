@@ -38,6 +38,7 @@ function normalize(value) {
 
 const icon = (codePoint, emoji = false) => `${String.fromCodePoint(codePoint)}${emoji ? String.fromCodePoint(0xfe0f) : ""}`;
 const APPROVAL_SUMMARY_URL = "/api/admin/approval-requests?offset=0&limit=1&filter=inbox&search=";
+const PENDING_PROOFS_URL = "/api/admin/payment-proofs?status=pending";
 
 const MODULE_ICONS = {
   overview: icon(0x1F4CC),
@@ -69,6 +70,7 @@ export default function AdminPageClient() {
   const [depositForm, setDepositForm] = useState({ person_id: "", end_period: "" });
   const [bookingBatchLoading, setBookingBatchLoading] = useState(false);
   const [approvalNeedActionCount, setApprovalNeedActionCount] = useState(null);
+  const [pendingProofCount, setPendingProofCount] = useState(null);
 
   const allowedModules = useMemo(() => getAllowedModules(sessionInfo.modules), [sessionInfo.modules]);
   const allowedTabKeys = useMemo(() => allowedModules.map((module) => module.key), [allowedModules]);
@@ -281,6 +283,36 @@ export default function AdminPageClient() {
   }, [allowedTabKeys.join("|"), tabRefreshKey]);
 
   useEffect(() => {
+    if (!canAccess("payment")) {
+      setPendingProofCount(null);
+      return undefined;
+    }
+
+    let active = true;
+
+    async function refreshPendingProofCount() {
+      try {
+        const data = await readJson(PENDING_PROOFS_URL);
+        if (active) setPendingProofCount(Array.isArray(data?.proofs) ? data.proofs.length : 0);
+      } catch {
+        if (active) setPendingProofCount(null);
+      }
+    }
+
+    function handlePaymentProofMutation(event) {
+      const path = String(event.detail?.path || "");
+      if (path.startsWith("/api/admin/payment-proofs")) refreshPendingProofCount();
+    }
+
+    refreshPendingProofCount();
+    window.addEventListener(ADMIN_DATA_MUTATED_EVENT, handlePaymentProofMutation);
+    return () => {
+      active = false;
+      window.removeEventListener(ADMIN_DATA_MUTATED_EVENT, handlePaymentProofMutation);
+    };
+  }, [allowedTabKeys.join("|"), tabRefreshKey]);
+
+  useEffect(() => {
     const hasRunningBatch = loadingPayment || bookingBatchLoading;
     if (!hasRunningBatch) return undefined;
     function handleBeforeUnload(event) {
@@ -319,6 +351,9 @@ export default function AdminPageClient() {
                       <span className="admin-deposit-badge">
                         {pendingCurrentDeposits.length} booking pending
                       </span>
+                    )}
+                    {module.key === "payment" && pendingProofCount > 0 && (
+                      <span className="admin-monitoring-badge">{pendingProofCount}</span>
                     )}
                     {module.key === "monitoring" && monitoringIssueCount > 0 && (
                       <span className="admin-monitoring-badge">{monitoringIssueCount}</span>
@@ -384,6 +419,7 @@ export default function AdminPageClient() {
               paymentProgress={paymentProgress}
               wakeLock={wakeLock}
               onPaymentProofReviewed={refreshPaymentProofState}
+              pendingProofCount={pendingProofCount}
             />
           )}
           {tab === "deposit" && canAccess("deposit") && (
