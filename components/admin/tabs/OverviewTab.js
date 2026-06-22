@@ -118,7 +118,7 @@ function ProgressCard({ label, paid, total, unpaid, actions = [], error = false 
         <span>{paid} paid</span>
       </div>
       {actions.filter(Boolean).length > 0 && (
-        <div style={styles.rowActions}>
+        <div className="overview-progress-row-actions" style={styles.rowActions}>
           {actions.filter(Boolean).map((action) => (
             <button
               key={action.label}
@@ -1160,7 +1160,11 @@ const styles = {
     fontSize: 12,
     fontWeight: 700,
   },
-  rowActions: { display: "flex", gap: 8, flexWrap: "wrap" },
+  rowActions: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(min(140px,100%),1fr))",
+    gap: 8,
+  },
   reportCard: {
     display: "flex",
     alignItems: "center",
