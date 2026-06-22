@@ -139,7 +139,6 @@ function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, to
   useModalScrollLock(open);
   const [showFormatChoice, setShowFormatChoice] = useState(false);
   useEffect(() => setShowFormatChoice(false), [open, sharing]);
-  if (!open) return null;
 
   const {
     items: members,
@@ -164,6 +163,8 @@ function CashDetailModal({ open, status, periodLabel, paidCount, unpaidCount, to
     getItems: (data) => data.members || [],
     getPagination: (data) => data.pagination || {},
   });
+
+  if (!open) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
