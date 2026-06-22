@@ -805,20 +805,10 @@ export default function OverviewTab({
                         setShowCashDetail(true);
                       },
                     },
-                    derived.paidMembers.length > 0 && {
-                      label: "View Paid",
-                      onClick: () => {
-                        setCashDetailStatus("paid");
-                        setShowCashDetail(true);
-                      },
-                    },
-                    {
-                      label: "View All",
-                      onClick: () => {
+                    { label: "View All", onClick: () => {
                         setCashDetailStatus("all");
                         setShowCashDetail(true);
-                      },
-                    },
+                      } },
                   ]}
                 />
                 <ProgressCard
