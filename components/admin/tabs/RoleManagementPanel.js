@@ -72,7 +72,7 @@ function InfoPill({ label, value }) {
 }
 
 function ActionButton({ children, tone = "default", disabled, onClick }) {
-  const style = tone === "danger" ? styles.dangerButton : tone === "muted" ? styles.mutedButton : undefined;
+  const style = tone === "danger" ? styles.dangerButton : tone === "muted" ? styles.mutedButton : tone === "dangerText" ? styles.dangerTextButton : undefined;
   return <button type="button" className="admin-small-btn" disabled={disabled} onClick={onClick} style={style}>{children}</button>;
 }
 
@@ -95,7 +95,7 @@ function RoleOverviewModal({ open, rows, accessRows, onClose }) {
 }
 
 function RoleContactCard({ rows, onEdit, onToggle }) {
-  return <SectionCard title="Role Contact / OTP Receiver" description="WhatsApp OTP destination and Telegram identity for each role."><MiniTable columns={["Role", "Name", "WhatsApp", "Telegram User ID", "Status", "Action"]} rows={rows} emptyText="No role contacts found." renderRow={(row, index) => <tr key={row.role} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{row.label}</td><td className="admin-td">{row.display_name || "-"}</td><td className="admin-td">{maskPhone(row.phone)}</td><td className="admin-td">{maskTelegramUserId(row.telegram_user_id)}</td><td className="admin-td"><StatusBadge status={row.active ? "active" : "inactive"}>{row.active ? "Active" : "Inactive"}</StatusBadge></td><td className="admin-td"><div style={styles.rowActions}><ActionButton onClick={() => onEdit(row)}>Edit</ActionButton>{row.role !== "admin" && <ActionButton tone={row.active ? "muted" : "default"} onClick={() => onToggle(row)}>{row.active ? "Disable" : "Enable"}</ActionButton>}</div></td></tr>} /></SectionCard>;
+  return <SectionCard title="Role Contact / OTP Receiver" description="WhatsApp OTP destination and Telegram identity for each role."><MiniTable columns={["Role", "Name", "WhatsApp", "Telegram User ID", "Status", "Action"]} rows={rows} emptyText="No role contacts found." renderRow={(row, index) => <tr key={row.role} className={index % 2 ? "admin-row-alt" : ""}><td className="admin-td">{row.label}</td><td className="admin-td">{row.display_name || "-"}</td><td className="admin-td">{maskPhone(row.phone)}</td><td className="admin-td">{maskTelegramUserId(row.telegram_user_id)}</td><td className="admin-td"><StatusBadge status={row.active ? "active" : "inactive"}>{row.active ? "Active" : "Inactive"}</StatusBadge></td><td className="admin-td"><div style={styles.rowActions}><ActionButton onClick={() => onEdit(row)}>Edit</ActionButton>{row.role !== "admin" && <ActionButton tone={row.active ? "dangerText" : "default"} onClick={() => onToggle(row)}>{row.active ? "Disable" : "Enable"}</ActionButton>}</div></td></tr>} /></SectionCard>;
 }
 
 function ActiveRoleSessionsCard({ rows, roles, onRevoke, onRevokeRole, running }) {
@@ -261,7 +261,7 @@ const styles = {
   infoPill: { display: "flex", justifyContent: "space-between", gap: 10, padding: "9px 10px", borderRadius: 12, border: "1px solid var(--admin-border)", background: "var(--admin-card)", color: "var(--admin-muted)", fontSize: 12, fontWeight: 700 },
   rowActions: { display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" },
   mutedButton: { background: "var(--admin-button)", color: "var(--admin-text)", border: "1px solid var(--admin-border)" },
-  dangerButton: { background: "#dc2626", color: "#ffffff" },
+  dangerTextButton: { background: "var(--admin-button)", color: "var(--admin-danger, #dc2626)", border: "1px solid var(--admin-border)" },
   emptyState: { margin: 0 },
   accessHeader: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" },
   accessValue: { marginBottom: 0 },
