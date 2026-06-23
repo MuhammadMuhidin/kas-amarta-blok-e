@@ -165,3 +165,14 @@ body {
 :root[data-admin-theme] h6 {
   font-family: var(--admin-font);
 }
+
+/* ── Amoled: primary is white, so text on primary bg must be black ── */
+:root[data-admin-theme="amoled"] .admin-tab-active,
+:root[data-admin-theme="amoled"] .admin-subtab-active,
+:root[data-admin-theme="amoled"] .admin-btn,
+:root[data-admin-theme="amoled"] .admin-small-btn,
+:root[data-admin-theme="amoled"] .admin-deposit-chip-active,
+:root[data-admin-theme="amoled"] .admin-monitoring-badge,
+:root[data-admin-theme="amoled"] .admin-summary-card-active {
+  color: #000000 !important;
+}

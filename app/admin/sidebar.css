@@ -121,9 +121,13 @@
   display: grid;
   place-items: center;
   background: var(--admin-primary);
-  color: var(--admin-on-primary);
+  color: #ffffff;
   font-size: 10px;
   font-weight: 900;
+}
+
+:root[data-admin-theme="amoled"] .admin-profile-avatar {
+  color: #000000;
 }
 
 .admin-header {

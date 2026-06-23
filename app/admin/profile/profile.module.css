@@ -36,9 +36,13 @@
   display: grid;
   place-items: center;
   background: var(--admin-primary);
-  color: var(--admin-on-primary);
+  color: #ffffff;
   font-size: 17px;
   font-weight: 900;
+}
+
+:root[data-admin-theme="amoled"] .avatar {
+  color: #000000;
 }
 
 .eyebrow {
