@@ -73,7 +73,8 @@ function InfoPill({ label, value }) {
 
 function ActionButton({ children, tone = "default", disabled, onClick }) {
   const style = tone === "danger" ? styles.dangerButton : tone === "muted" ? styles.mutedButton : tone === "dangerText" ? styles.dangerTextButton : undefined;
-  return <button type="button" className="admin-small-btn" disabled={disabled} onClick={onClick} style={style}>{children}</button>;
+  const extraClass = tone === "dangerText" ? " admin-danger-text" : "";
+  return <button type="button" className={`admin-small-btn${extraClass}`} disabled={disabled} onClick={onClick} style={style}>{children}</button>;
 }
 
 function EmptyState({ children }) {
@@ -261,7 +262,7 @@ const styles = {
   infoPill: { display: "flex", justifyContent: "space-between", gap: 10, padding: "9px 10px", borderRadius: 12, border: "1px solid var(--admin-border)", background: "var(--admin-card)", color: "var(--admin-muted)", fontSize: 12, fontWeight: 700 },
   rowActions: { display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" },
   mutedButton: { background: "var(--admin-button)", color: "var(--admin-text)", border: "1px solid var(--admin-border)" },
-  dangerTextButton: { background: "var(--admin-button)", color: "var(--admin-danger, #dc2626)", border: "1px solid var(--admin-border)" },
+  dangerTextButton: { background: "var(--admin-button)", color: "var(--admin-danger, #dc2626) !important", border: "1px solid var(--admin-border)" },
   emptyState: { margin: 0 },
   accessHeader: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "flex-start" },
   accessValue: { marginBottom: 0 },
