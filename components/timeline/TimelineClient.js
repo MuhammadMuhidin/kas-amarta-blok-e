@@ -773,7 +773,7 @@ export default function TimelineClient() {
     <main className="page-wrap timeline-page">
       <style>{timelineNavCss}</style>
       <header className="hero-header timeline-hero">
-        <div className="hero-eyebrow">Amarta Residence • Blok E</div>
+        <h1 className="hero-title">Amarta Residence • Blok E</h1>
         <p className="hero-desc">Ruang informasi kegiatan warga, dan dokumentasi lingkungan.</p>
       </header>
 
