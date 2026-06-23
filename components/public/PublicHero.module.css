@@ -2,6 +2,26 @@
   text-align: center !important;
 }
 
+.hero-title {
+  margin: 0 0 10px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text) !important;
+  font-size: clamp(22px, 4vw, 32px) !important;
+  font-weight: 900 !important;
+  line-height: 1.2 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-height: auto !important;
+  text-align: center !important;
+}
+
 .hero :global(.hero-eyebrow),
 .hero :global(.hero-desc) {
   margin-left: auto !important;

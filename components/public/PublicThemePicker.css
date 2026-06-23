@@ -98,6 +98,26 @@ body:has(.hero-header)::before {
   text-transform: uppercase;
 }
 
+.hero-title {
+  margin: 0 0 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text);
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 900;
+  line-height: 1.2;
+  text-transform: none;
+  letter-spacing: normal;
+  display: block;
+  width: 100%;
+  max-width: none;
+  min-height: auto;
+  text-align: center;
+}
+
 .hero-eyebrow::before {
   content: "●";
   color: var(--success);
