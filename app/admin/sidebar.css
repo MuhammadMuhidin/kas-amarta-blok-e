@@ -75,7 +75,7 @@
 
   .admin-tab-active {
     background: var(--admin-primary) !important;
-    color: #ffffff !important;
+    color: var(--admin-on-primary) !important;
     font-weight: 850;
   }
 
@@ -121,9 +121,13 @@
   display: grid;
   place-items: center;
   background: var(--admin-primary);
-  color: var(--admin-on-primary);
+  color: #ffffff;
   font-size: 10px;
   font-weight: 900;
+}
+
+:root[data-admin-theme="amoled"] .admin-profile-avatar {
+  color: #000000;
 }
 
 .admin-header {
@@ -274,7 +278,7 @@
 
   .admin-tab-active {
     background: var(--admin-primary) !important;
-    color: #ffffff !important;
+    color: var(--admin-on-primary) !important;
     font-weight: 900;
   }
 

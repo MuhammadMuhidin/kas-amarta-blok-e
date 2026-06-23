@@ -103,7 +103,7 @@ button {
 
 .admin-tab-active {
   background: var(--admin-primary);
-  color: #ffffff;
+  color: var(--admin-on-primary);
   border-color: var(--admin-primary);
   font-weight: 600;
 }
@@ -191,7 +191,7 @@ button {
   border: none;
   border-radius: 10px;
   background: var(--admin-primary);
-  color: #ffffff;
+  color: var(--admin-on-primary);
   font-size: 16px;
   font-weight: 600;
 }
@@ -280,7 +280,7 @@ button {
 
 .admin-summary-card-active {
   background: var(--admin-primary);
-  color: #020617;
+  color: var(--admin-on-primary);
   border-color: var(--admin-primary);
 }
 
@@ -315,7 +315,7 @@ button {
 .admin-checkbox-chip-active {
   background: var(--admin-primary);
   border-color: var(--admin-primary);
-  color: #020617;
+  color: var(--admin-on-primary);
   font-weight: 700;
 }
 
@@ -382,7 +382,7 @@ button {
 
 .admin-deposit-chip-active {
   background: var(--admin-primary);
-  color: #ffffff;
+  color: var(--admin-on-primary);
   border-color: var(--admin-primary);
 }
 
@@ -391,7 +391,7 @@ button {
   border-radius: 10px;
   border: none;
   background: var(--admin-primary);
-  color: #ffffff;
+  color: var(--admin-on-primary);
   font-weight: 700;
 }
 

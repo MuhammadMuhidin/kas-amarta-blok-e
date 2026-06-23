@@ -122,8 +122,8 @@ body {
   --admin-success-soft: rgba(134,239,172,.12);
   --admin-warning: #fde68a;
   --admin-warning-soft: rgba(253,230,138,.12);
-  --admin-danger: #fca5a5;
-  --admin-danger-soft: rgba(252,165,165,.14);
+  --admin-danger: #ef4444;
+  --admin-danger-soft: rgba(239,68,68,.14);
 }
 
 :root[data-admin-theme="hacker"] {
@@ -164,4 +164,15 @@ body {
 :root[data-admin-theme] h5,
 :root[data-admin-theme] h6 {
   font-family: var(--admin-font);
+}
+
+/* ── Amoled: primary is white, so text on primary bg must be black ── */
+:root[data-admin-theme="amoled"] .admin-tab-active,
+:root[data-admin-theme="amoled"] .admin-subtab-active,
+:root[data-admin-theme="amoled"] .admin-btn,
+:root[data-admin-theme="amoled"] .admin-small-btn:not(.admin-danger-text),
+:root[data-admin-theme="amoled"] .admin-deposit-chip-active,
+:root[data-admin-theme="amoled"] .admin-monitoring-badge,
+:root[data-admin-theme="amoled"] .admin-summary-card-active {
+  color: #000000 !important;
 }
