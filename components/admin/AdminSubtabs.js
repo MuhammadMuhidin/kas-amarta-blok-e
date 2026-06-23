@@ -130,7 +130,7 @@ const styles = {
   },
   active: {
     background: "var(--admin-primary)",
-    color: "#ffffff",
+    color: "var(--admin-on-primary, #ffffff)",
     boxShadow: "0 6px 18px rgba(0,0,0,.12)",
   },
   badge: {

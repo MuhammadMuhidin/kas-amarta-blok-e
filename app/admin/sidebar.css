@@ -75,7 +75,7 @@
 
   .admin-tab-active {
     background: var(--admin-primary) !important;
-    color: #ffffff !important;
+    color: var(--admin-on-primary) !important;
     font-weight: 850;
   }
 
@@ -278,7 +278,7 @@
 
   .admin-tab-active {
     background: var(--admin-primary) !important;
-    color: #ffffff !important;
+    color: var(--admin-on-primary) !important;
     font-weight: 900;
   }
 
