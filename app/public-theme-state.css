@@ -10,8 +10,12 @@ html[data-public-theme="hacker"] {
   color-scheme: dark;
 }
 
-html[data-public-theme] body {
+html[data-public-theme] {
   background: var(--bg) !important;
+}
+
+html[data-public-theme] body {
+  background-color: var(--bg) !important;
   color: var(--text) !important;
 }
 

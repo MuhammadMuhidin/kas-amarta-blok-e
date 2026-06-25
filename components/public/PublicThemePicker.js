@@ -161,6 +161,7 @@ function clearPublicTheme() {
   document.documentElement.style.removeProperty("background");
   document.documentElement.style.removeProperty("background-color");
   delete document.documentElement.dataset.publicTheme;
+  delete document.documentElement.dataset.theme;
 }
 
 function applyTheme(themeId) {
@@ -172,6 +173,7 @@ function applyTheme(themeId) {
   });
 
   document.documentElement.dataset.publicTheme = selected.id;
+  document.documentElement.dataset.theme = selected.id;
 
   const bgValue = selected.vars["--bg"];
   if (bgValue) {
