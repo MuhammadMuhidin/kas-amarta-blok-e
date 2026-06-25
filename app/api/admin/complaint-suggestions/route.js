@@ -23,16 +23,17 @@ export async function GET(req) {
 
     const supabase = getSupabaseAdmin();
 
-    const [dataResult, countResult] = await Promise.all([
-      supabase
-        .from(PENGADUAN_TABLE)
-        .select("id, nama, rumah, kritik, photo_url, status, ip_address, created_at, updated_at")
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1),
-      supabase
-        .from(PENGADUAN_TABLE)
-        .select("id", { count: "planned", head: true }),
-    ]);
+    const dataQuery = supabase
+      .from(PENGADUAN_TABLE)
+      .select("id, nama, rumah, kritik, photo_url, ip_address, created_at")
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    const countQuery = supabase
+      .from(PENGADUAN_TABLE)
+      .select("id");
+
+    const [dataResult, countResult] = await Promise.all([dataQuery, countQuery]);
 
     if (dataResult.error) {
       console.error("COMPLAINTS LIST ERROR:", JSON.stringify(dataResult.error));
@@ -41,11 +42,11 @@ export async function GET(req) {
     }
 
     const data = dataResult.data || [];
-    const total = countResult.count || 0;
+    const total = (countResult.data || []).length;
     const total_pages = Math.max(1, Math.ceil(total / limit));
 
     return NextResponse.json({
-      complaints: data || [],
+      complaints: (data || []).map((row) => ({ ...row, status: "baru" })),
       pagination: {
         page,
         limit,

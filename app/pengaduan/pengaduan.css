@@ -1,8 +1,13 @@
+html, body {
+  scroll-behavior: smooth;
+}
+
 body:has(.pengaduan-page) {
   background: var(--bg) !important;
   color: var(--text);
   font-family: Inter, Arial, sans-serif;
   font-size: var(--font-base);
+  min-height: 100vh;
 }
 
 .pengaduan-page {

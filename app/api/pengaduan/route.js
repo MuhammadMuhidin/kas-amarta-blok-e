@@ -77,18 +77,15 @@ export async function POST(req) {
         rumah,
         kritik,
         photo_url,
-        status: "baru",
         ip_address: getClientIp(req),
       })
       .select("id")
       .single();
 
     if (error) {
-      console.error("PENGADUAN DB ERROR:", error);
-      return NextResponse.json(
-        { error: "Gagal menyimpan pengaduan" },
-        { status: 500 },
-      );
+      console.error("PENGADUAN DB ERROR:", JSON.stringify(error));
+      const detail = error.message || error.code || error.details || Object.keys(error || {});
+      return NextResponse.json({ error: "Gagal menyimpan pengaduan", detail }, { status: 500 });
     }
 
     return NextResponse.json({
