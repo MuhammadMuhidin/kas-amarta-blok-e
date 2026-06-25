@@ -158,6 +158,8 @@ function clearPublicTheme() {
   publicThemeKeys.forEach((key) => {
     document.documentElement.style.removeProperty(key);
   });
+  document.documentElement.style.removeProperty("background");
+  document.documentElement.style.removeProperty("background-color");
   delete document.documentElement.dataset.publicTheme;
 }
 
@@ -170,6 +172,13 @@ function applyTheme(themeId) {
   });
 
   document.documentElement.dataset.publicTheme = selected.id;
+
+  const bgValue = selected.vars["--bg"];
+  if (bgValue) {
+    document.documentElement.style.setProperty("background", bgValue, "important");
+    document.documentElement.style.setProperty("background-color", bgValue, "important");
+  }
+
   return selected.id;
 }
 
