@@ -63,7 +63,7 @@ export default function PublicBottomNav({ global = false } = {}) {
       <div className="public-bottom-nav-lainnya" ref={popupRef}>
         <button
           type="button"
-          className={`public-bottom-nav-item${popupOpen ? " is-active" : ""}`}
+          className="public-bottom-nav-item"
           onClick={() => setPopupOpen((v) => !v)}
           aria-expanded={popupOpen}
           aria-haspopup="true"
@@ -78,6 +78,7 @@ export default function PublicBottomNav({ global = false } = {}) {
               className="public-bottom-nav-popup-item"
               href="/pengajuan"
               role="menuitem"
+              onClick={() => setPopupOpen(false)}
             >
               <span aria-hidden="true">✅</span>
               <strong>Pengajuan</strong>
@@ -86,6 +87,7 @@ export default function PublicBottomNav({ global = false } = {}) {
               className="public-bottom-nav-popup-item"
               href="/pengaduan"
               role="menuitem"
+              onClick={() => setPopupOpen(false)}
             >
               <span aria-hidden="true">📢</span>
               <strong>Pengaduan</strong>
@@ -94,7 +96,7 @@ export default function PublicBottomNav({ global = false } = {}) {
               type="button"
               className="public-bottom-nav-popup-item"
               role="menuitem"
-              onClick={openThemePicker}
+              onClick={() => { setPopupOpen(false); openThemePicker(); }}
             >
               <span aria-hidden="true">🎨</span>
               <strong>Tema</strong>
@@ -103,6 +105,7 @@ export default function PublicBottomNav({ global = false } = {}) {
               className="public-bottom-nav-popup-item"
               href="/login"
               role="menuitem"
+              onClick={() => setPopupOpen(false)}
             >
               <span aria-hidden="true">🔐</span>
               <strong>Login Pengurus</strong>
