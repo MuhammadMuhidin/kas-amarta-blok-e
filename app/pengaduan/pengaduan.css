@@ -216,6 +216,12 @@ textarea.pengaduan-input { min-height: 92px; padding-top: 10px; padding-bottom: 
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+.pengaduan-upload-error {
+  color: var(--danger);
+  font-weight: 750;
+  line-height: 1.4;
+}
+
 @media (max-width: 700px) {
   .pengaduan-page { padding: 12px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
   .pengaduan-card { padding: 12px 14px; border-radius: var(--radius); }

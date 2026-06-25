@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { dbTable } from "@/lib/dbTable";
 import { uploadR2Object } from "@/lib/r2Upload";
+import { queuePengaduanNotification } from "@/lib/notificationQueue";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -88,10 +89,21 @@ export async function POST(req) {
       return NextResponse.json({ error: "Gagal menyimpan pengaduan", detail }, { status: 500 });
     }
 
+    let telegramResult = { queued: false, reason: "not_attempted" };
+    try {
+      telegramResult = await queuePengaduanNotification({
+        pengaduan: { id: data?.id, nama, rumah, kritik, created_at: new Date().toISOString() },
+        photoUrl: photo_url,
+      });
+    } catch (err) {
+      console.error("PENGADUAN TELEGRAM QUEUE ERROR:", err);
+    }
+
     return NextResponse.json({
       ok: true,
       message: "Pengaduan berhasil dikirim",
       id: data?.id,
+      telegram_queue: telegramResult,
     });
   } catch (err) {
     console.error("PENGADUAN ERROR:", err);

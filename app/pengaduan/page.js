@@ -13,6 +13,8 @@ export default function PengaduanPage() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
   function showMessage(text, type = "success") {
     setMessage({ text, type });
@@ -56,6 +58,7 @@ export default function PengaduanPage() {
     try {
       setSubmitting(true);
       setSuccess(false);
+      setUploadError("");
 
       const payload = new FormData();
       payload.append("nama", form.nama.trim());
@@ -65,8 +68,14 @@ export default function PengaduanPage() {
         payload.append("photo", photo, photo.name);
       }
 
+      if (photo) {
+        setUploading(true);
+      }
+
       const res = await fetch(PENGADUAN_API, { method: "POST", body: payload });
       const result = await res.json();
+
+      setUploading(false);
 
       if (!res.ok) throw new Error(result.error || "Gagal mengirim pengaduan");
 
@@ -75,7 +84,9 @@ export default function PengaduanPage() {
       handleRemovePhoto();
       showMessage("Pengaduan berhasil dikirim");
     } catch (err) {
+      setUploadError(err.message);
       showMessage(err.message, "error");
+      if (photo) setUploading(false);
     } finally {
       setSubmitting(false);
     }
@@ -159,6 +170,7 @@ export default function PengaduanPage() {
                     <div>
                       <strong>{photo.name}</strong>
                       <small>{photo.type} · {Math.round(photo.size / 1024)} KB</small>
+                      {uploading && <small>Mengunggah...</small>}
                     </div>
                   </label>
                   <button type="button" className="pengaduan-file-remove" onClick={handleRemovePhoto}>
@@ -173,6 +185,10 @@ export default function PengaduanPage() {
                     <small>JPG, PNG, WEBP — maks 5 MB</small>
                   </div>
                 </label>
+              )}
+
+              {uploadError && (
+                <small className="pengaduan-upload-error">Gagal mengunggah: {uploadError}</small>
               )}
             </div>
           </div>
