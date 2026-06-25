@@ -147,8 +147,8 @@ const themes = [
 ];
 
 const publicThemeKeys = Object.keys(themes[0].vars);
-const publicThemePaths = new Set(["/", "/kas", "/pengajuan"]);
-const themePickerPaths = new Set(["/", "/kas", "/pengajuan"]);
+const publicThemePaths = new Set(["/", "/kas", "/pengajuan", "/pengaduan"]);
+const themePickerPaths = new Set(["/", "/kas", "/pengajuan", "/pengaduan"]);
 
 function normalizeTheme(themeId) {
   return themeId === "ios" ? "ledger" : themeId;
