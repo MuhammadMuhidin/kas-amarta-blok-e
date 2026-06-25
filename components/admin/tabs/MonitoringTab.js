@@ -448,9 +448,44 @@ function ServiceTestsPanel() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [whatsappEvents, setWhatsappEvents] = useState([]);
   const [emailResult, setEmailResult] = useState(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(false);
+  const [waEnabled, setWaEnabled] = useState(false);
+  const [settingsError, setSettingsError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadSettings() {
+      try {
+        setSettingsLoading(true);
+        const data = await readJson("/api/admin/settings/status");
+        if (cancelled) return;
+        setEmailEnabled(data?.email_notifications_enabled === true);
+        setWaEnabled(data?.whatsapp_services_enabled === true);
+      } catch (error) {
+        if (!cancelled) setSettingsError(error.message || "Failed to load service settings");
+      } finally {
+        if (!cancelled) setSettingsLoading(false);
+      }
+    }
+    loadSettings();
+    return () => { cancelled = true; };
+  }, []);
+
+  const emailDisabledReason = settingsLoading
+    ? "Loading settings..."
+    : !emailEnabled
+      ? "Email notifications are disabled in Settings."
+      : "";
+
+  const waDisabledReason = settingsLoading
+    ? "Loading settings..."
+    : !waEnabled
+      ? "WhatsApp services are disabled in Settings."
+      : "";
 
   async function startWhatsAppTest() {
-    if (testingWhatsApp) return;
+    if (testingWhatsApp || !waEnabled) return;
     setTestingWhatsApp(true);
     setWhatsappEvents([{
       status: "CONNECTING",
@@ -496,7 +531,7 @@ function ServiceTestsPanel() {
   }
 
   async function testEmail() {
-    if (testingEmail) return;
+    if (testingEmail || !emailEnabled) return;
     setTestingEmail(true);
     setEmailResult(null);
     try {
@@ -535,24 +570,37 @@ function ServiceTestsPanel() {
             <p style={styles.muted}>Only mounted while Service Tests is active.</p>
           </div>
           <div style={styles.serviceActions}>
-            <button
-              type="button"
-              className="admin-small-btn admin-refresh-btn"
-              disabled={testingWhatsApp}
-              onClick={() => setPhoneModalOpen(true)}
-            >
-              {testingWhatsApp ? "Testing WhatsApp..." : "Test WhatsApp"}
-            </button>
-            <button
-              type="button"
-              className="admin-small-btn admin-refresh-btn"
-              disabled={testingEmail}
-              onClick={testEmail}
-            >
-              {testingEmail ? "Testing Email..." : "Test Email"}
-            </button>
+            <div style={styles.serviceButtonWrap}>
+              <button
+                type="button"
+                className="admin-small-btn admin-refresh-btn"
+                disabled={testingWhatsApp || settingsLoading || !waEnabled}
+                title={waDisabledReason}
+                onClick={() => setPhoneModalOpen(true)}
+              >
+                {testingWhatsApp ? "Testing WhatsApp..." : "Test WhatsApp"}
+              </button>
+              {!waEnabled && !settingsLoading && (
+                <span style={styles.serviceDisabledLabel}>disabled by admin</span>
+              )}
+            </div>
+            <div style={styles.serviceButtonWrap}>
+              <button
+                type="button"
+                className="admin-small-btn admin-refresh-btn"
+                disabled={testingEmail || settingsLoading || !emailEnabled}
+                title={emailDisabledReason}
+                onClick={testEmail}
+              >
+                {testingEmail ? "Testing Email..." : "Test Email"}
+              </button>
+              {!emailEnabled && !settingsLoading && (
+                <span style={styles.serviceDisabledLabel}>disabled by admin</span>
+              )}
+            </div>
           </div>
         </div>
+        {settingsError && <div className="admin-error-box">{settingsError}</div>}
 
         {pairingCode && (
           <div style={styles.pairingBox}>
@@ -874,6 +922,14 @@ const styles = {
   paginationActions: { display: "flex", gap: 8 },
   serviceCard: { display: "grid", gap: 14 },
   serviceActions: { display: "flex", gap: 8, flexWrap: "wrap" },
+  serviceButtonWrap: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 },
+  serviceDisabledLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#dc2626",
+    letterSpacing: "0.02em",
+    textTransform: "uppercase",
+  },
   eventList: { display: "grid", gap: 6 },
   eventRow: {
     display: "grid",

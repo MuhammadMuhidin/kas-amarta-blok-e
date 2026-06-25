@@ -149,26 +149,36 @@ export default function TelegramIntegrationHealthCard() {
         </div>
 
         <div style={styles.actions}>
-          <button
-            type="button"
-            className="admin-small-btn"
-            disabled={loading || running || Boolean(testDisabledReason)}
-            title={testDisabledReason}
-            onClick={() => runAction("test_direct")}
-          >
-            Test Direct
-          </button>
-          <button
-            type="button"
-            className="admin-small-btn"
-            disabled={loading || running || Boolean(testDisabledReason) || !queuePushConfigured}
-            title={!queuePushConfigured
-              ? "Cloudflare Queue push configuration is incomplete."
-              : testDisabledReason}
-            onClick={() => runAction("test_queue")}
-          >
-            Test Queue
-          </button>
+          <div style={styles.serviceButtonWrap}>
+            <button
+              type="button"
+              className="admin-small-btn"
+              disabled={loading || running || Boolean(testDisabledReason)}
+              title={testDisabledReason}
+              onClick={() => runAction("test_direct")}
+            >
+              Test Direct
+            </button>
+            {Boolean(testDisabledReason) && !loading && (
+              <span style={styles.serviceDisabledLabel}>disabled by admin</span>
+            )}
+          </div>
+          <div style={styles.serviceButtonWrap}>
+            <button
+              type="button"
+              className="admin-small-btn"
+              disabled={loading || running || Boolean(testDisabledReason) || !queuePushConfigured}
+              title={!queuePushConfigured
+                ? "Cloudflare Queue push configuration is incomplete."
+                : testDisabledReason}
+              onClick={() => runAction("test_queue")}
+            >
+              Test Queue
+            </button>
+            {Boolean(testDisabledReason) && !loading && (
+              <span style={styles.serviceDisabledLabel}>disabled by admin</span>
+            )}
+          </div>
           {canManageWebhook && (
             <>
               <button
@@ -232,7 +242,21 @@ const styles = {
   actions: {
     display: "flex",
     flexWrap: "wrap",
+    alignItems: "flex-start",
     gap: 8,
     marginTop: 14,
+  },
+  serviceButtonWrap: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+    gap: 4,
+  },
+  serviceDisabledLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#dc2626",
+    letterSpacing: "0.02em",
+    textTransform: "uppercase",
   },
 };
