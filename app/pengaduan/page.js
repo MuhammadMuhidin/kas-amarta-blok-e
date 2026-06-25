@@ -9,7 +9,6 @@ const PENGADUAN_API = "/api/pengaduan";
 export default function PengaduanPage() {
   const [form, setForm] = useState({ nama: "", rumah: "", kritik: "" });
   const [photo, setPhoto] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState(null);
@@ -33,13 +32,10 @@ export default function PengaduanPage() {
       return;
     }
     setPhoto(file);
-    setPreviewUrl(file ? URL.createObjectURL(file) : "");
   }
 
   function handleRemovePhoto() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPhoto(null);
-    setPreviewUrl("");
     const input = document.getElementById("pengaduan-photo");
     if (input) input.value = "";
   }
@@ -202,24 +198,6 @@ export default function PengaduanPage() {
           </button>
         </form>
       </section>
-
-      {previewUrl && (
-        <div className="pengaduan-image-modal" onClick={handleRemovePhoto}>
-          <div className="pengaduan-image-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="pengaduan-image-modal-header">
-              <div>
-                <div className="pengaduan-image-modal-title">Foto Lampiran</div>
-                <div className="pengaduan-image-modal-section">Klik gambar untuk menghapus</div>
-              </div>
-            </div>
-            <img
-              src={previewUrl}
-              alt="Preview lampiran"
-              className="pengaduan-photo-preview"
-            />
-          </div>
-        </div>
-      )}
     </main>
   );
 }
