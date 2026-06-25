@@ -11,6 +11,11 @@ html[data-public-theme="hacker"] {
 }
 
 html[data-public-theme] body {
-  background: var(--bg);
-  color: var(--text);
+  background: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+html[data-public-theme],
+html[data-public-theme] body {
+  min-height: 100%;
 }
