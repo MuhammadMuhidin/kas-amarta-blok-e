@@ -1,3 +1,26 @@
+html, body {
+  scroll-behavior: smooth;
+}
+
+.pengaduan-page input,
+.pengaduan-page button,
+.pengaduan-page textarea,
+.pengaduan-page select {
+  border-radius: var(--radius-sm) !important;
+}
+
+.pengaduan-page .pengaduan-card {
+  border-radius: var(--radius) !important;
+}
+
+.pengaduan-page .pengaduan-primary-btn {
+  border-radius: var(--radius-sm) !important;
+}
+
+.pengaduan-page .pengaduan-photo-preview {
+  border-radius: var(--radius-sm) !important;
+}
+
 body:has(.pengaduan-page) {
   background: var(--bg) !important;
   color: var(--text);
