@@ -115,7 +115,7 @@ export default function PengaduanPage() {
 
         <form onSubmit={handleSubmit} className="pengaduan-form">
           <div className="pengaduan-label">
-            <label htmlFor="pengaduan-nama">Nama Warga</label>
+            <label htmlFor="pengaduan-nama">Nama Warga *</label>
             <input
               id="pengaduan-nama"
               className="pengaduan-input"
@@ -127,7 +127,7 @@ export default function PengaduanPage() {
           </div>
 
           <div className="pengaduan-label">
-            <label htmlFor="pengaduan-rumah">Nomor Rumah</label>
+            <label htmlFor="pengaduan-rumah">Nomor Rumah *</label>
             <input
               id="pengaduan-rumah"
               className="pengaduan-input"
@@ -139,7 +139,7 @@ export default function PengaduanPage() {
           </div>
 
           <div className="pengaduan-label">
-            <label htmlFor="pengaduan-kritik">Kritik dan Saran</label>
+            <label htmlFor="pengaduan-kritik">Kritik dan Saran *</label>
             <textarea
               id="pengaduan-kritik"
               className="pengaduan-input"
