@@ -1,5 +1,4 @@
 import PublicHero from "@/components/public/PublicHero";
-import "@/app/page.css";
 import "@/app/public-theme.css";
 import "@/app/public-theme-state.css";
 import "@/app/timeline.css";
