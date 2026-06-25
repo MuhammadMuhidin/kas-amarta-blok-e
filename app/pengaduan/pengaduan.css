@@ -1,0 +1,180 @@
+body:has(.pengaduan-page) {
+  background: var(--bg) !important;
+  color: var(--text);
+  font-family: Inter, Arial, sans-serif;
+  font-size: var(--font-base);
+}
+
+html, body {
+  scroll-behavior: smooth;
+}
+
+.pengaduan-page input,
+.pengaduan-page button,
+.pengaduan-page textarea,
+.pengaduan-page select {
+  border-radius: var(--radius-sm) !important;
+}
+
+.pengaduan-page .pengaduan-card {
+  border-radius: var(--radius) !important;
+}
+
+.pengaduan-page .pengaduan-primary-btn {
+  border-radius: var(--radius-sm) !important;
+}
+
+.pengaduan-page .pengaduan-photo-preview {
+  border-radius: var(--radius-sm) !important;
+}
+
+.pengaduan-page {
+  width: 100%;
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 12px 10px calc(104px + env(safe-area-inset-bottom, 0px));
+  font-family: Inter, Arial, sans-serif;
+  font-size: var(--font-base);
+  color: var(--text);
+}
+
+.pengaduan-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
+.pengaduan-form-card { border-color: color-mix(in srgb, var(--primary) 22%, var(--border)); }
+.pengaduan-success-card { border-color: color-mix(in srgb, var(--success) 34%, var(--border)); }
+
+.pengaduan-kicker { color: var(--primary); font-size: var(--font-small); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+
+.pengaduan-card-header,
+.pengaduan-success-meta { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+
+.pengaduan-card h2,
+.pengaduan-success-meta h3,
+.pengaduan-modal-header h3 { margin: 3px 0 0; color: var(--text); line-height: 1.2; font-weight: 800; }
+
+.pengaduan-card h2 { font-size: 19px; }
+
+.pengaduan-muted { margin: 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; line-height: 1.45; }
+
+.pengaduan-form,
+.pengaduan-success-meta { display: grid; gap: 12px; }
+
+.pengaduan-label { display: grid; gap: 6px; color: var(--muted); font-size: var(--font-small); font-weight: 700; }
+
+.pengaduan-input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 12px;
+  outline: none;
+  font-family: Inter, Arial, sans-serif;
+  font-size: var(--font-base);
+  font-weight: 500;
+}
+textarea.pengaduan-input { min-height: 92px; padding-top: 10px; padding-bottom: 10px; resize: vertical; }
+.pengaduan-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 13%, transparent); }
+
+.pengaduan-primary-btn {
+  min-height: 44px;
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: var(--primary);
+  color: var(--tab-active-text);
+  font-family: Inter, Arial, sans-serif;
+  font-size: var(--font-base);
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-soft);
+  white-space: nowrap;
+}
+.pengaduan-primary-btn:disabled { opacity: .6; cursor: not-allowed; }
+
+.pengaduan-success-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: var(--font-base);
+}
+.pengaduan-success-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--success);
+  color: var(--tab-active-text);
+  font-weight: 800;
+}
+.pengaduan-success-panel p { margin: 5px 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; }
+
+/* File upload matching request-file-field */
+.pengaduan-file-field { display: grid; gap: 6px; }
+
+.pengaduan-file-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.pengaduan-file-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  cursor: pointer;
+  transition: 0.15s ease;
+}
+.pengaduan-file-picker:hover { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 4%, var(--surface)); }
+
+.pengaduan-file-picker span { font-size: 22px; }
+.pengaduan-file-picker strong { display: block; color: var(--text); font-size: var(--font-base); font-weight: 700; }
+.pengaduan-file-picker small { display: block; color: var(--muted); font-size: var(--font-small); }
+
+.pengaduan-file-remove {
+  justify-self: start;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--font-small);
+  font-weight: 700;
+  cursor: pointer;
+}
+.pengaduan-file-remove:hover { border-color: var(--danger); color: var(--danger); }
+
+/* Image modal styles removed; preview now uses file picker only */
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(8px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pengaduan-upload-error {
+  color: var(--danger);
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+@media (max-width: 700px) {
+  .pengaduan-page { padding: 12px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
+  .pengaduan-card { padding: 12px 14px; border-radius: var(--radius); }
+  .pengaduan-card h2 { font-size: 17px; }
+  .pengaduan-modal-overlay { padding: 10px 10px calc(116px + env(safe-area-inset-bottom, 0px)); }
+  .pengaduan-image-modal-box { max-height: calc(100dvh - 20px); }
+}

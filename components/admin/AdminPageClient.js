@@ -4,6 +4,7 @@ import AdminActivityPanel from "@/components/AdminActivityPanel";
 import { ApprovalNeedActionProvider } from "@/components/admin/ApprovalNeedActionContext";
 import ApprovalCenterTab from "@/components/admin/tabs/ApprovalCenterTab";
 import CashflowTab from "@/components/admin/tabs/CashflowTab";
+import ComplaintSuggestionsTab from "@/components/admin/tabs/ComplaintSuggestionsTab";
 import DepositTab from "@/components/admin/tabs/DepositTab";
 import MasterManagementTab from "@/components/admin/tabs/MasterManagementTab";
 import MonitoringTab from "@/components/admin/tabs/MonitoringTab";
@@ -52,6 +53,7 @@ const MODULE_ICONS = {
   activity: icon(0x1F4CB),
   master_management: icon(0x1F5C2, true),
   approval_center: icon(0x2705, true),
+  complaint_suggestions: icon(0x1F4E2),
   role_management: icon(0x1F9E9),
   settings: icon(0x2699, true),
 };
@@ -344,7 +346,7 @@ export default function AdminPageClient() {
                 className={tabClassName(module.key)}
                 onClick={() => handleTabClick(module.key)}
               >
-                {(module.key === "payment" || module.key === "monitoring" || module.key === "approval_center") ? (
+                {(module.key === "payment" || module.key === "monitoring" || module.key === "approval_center" || module.key === "complaint_suggestions") ? (
                   <div className="admin-tab-content">
                     <span>{MODULE_ICONS[module.key]} {module.label}</span>
                     {module.key === "payment" && pendingCurrentDeposits.length > 0 && (
@@ -488,6 +490,9 @@ export default function AdminPageClient() {
           )}
           {tab === "approval_center" && canAccess("approval_center") && (
             <ApprovalCenterTab key={`approval-center-${tabRefreshKey}`} />
+          )}
+          {tab === "complaint_suggestions" && canAccess("complaint_suggestions") && (
+            <ComplaintSuggestionsTab key={`complaints-${tabRefreshKey}`} />
           )}
           {tab === "role_management" && canAccess("role_management") && (
             <RoleManagementTab key={`role-management-${tabRefreshKey}`} />

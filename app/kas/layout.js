@@ -7,7 +7,7 @@ export default function KasLayout({ children }) {
   return (
     <>
       <div className="page-wrap public-home-hero-wrap">
-        <PublicHero description="Pusat transparansi pembayaran dan pengelolaan kas warga." />
+        <PublicHero description="Pusat transparansi pembayaran dan pengelolaan kas warga." showManagerLink={false} />
       </div>
       {children}
     </>

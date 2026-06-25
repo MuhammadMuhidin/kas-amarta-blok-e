@@ -10,7 +10,16 @@ html[data-public-theme="hacker"] {
   color-scheme: dark;
 }
 
+html[data-public-theme] {
+  background: var(--bg) !important;
+}
+
 html[data-public-theme] body {
-  background: var(--bg);
-  color: var(--text);
+  background-color: var(--bg) !important;
+  color: var(--text) !important;
+}
+
+html[data-public-theme],
+html[data-public-theme] body {
+  min-height: 100%;
 }

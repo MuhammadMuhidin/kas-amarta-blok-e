@@ -89,7 +89,25 @@ button {
   display: flex;
   gap: 10px;
   margin-bottom: 20px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  padding-bottom: 4px;
+}
+
+.admin-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.admin-tabs::-webkit-scrollbar-track {
+  background: var(--admin-border);
+  border-radius: 3px;
+}
+
+.admin-tabs::-webkit-scrollbar-thumb {
+  background: var(--admin-primary);
+  border-radius: 3px;
 }
 
 .admin-tab {

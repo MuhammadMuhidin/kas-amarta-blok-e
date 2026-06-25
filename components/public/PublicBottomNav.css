@@ -18,12 +18,12 @@ body:has(.public-bottom-nav) .public-theme-button {
   bottom: max(12px, env(safe-area-inset-bottom, 0px));
   z-index: 9000;
   width: min(430px, calc(100vw - 24px));
-  height: 70px;
-  padding: 6px;
+  height: 68px;
+  padding: 8px;
   border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
   border-radius: 999px;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   box-shadow: 0 22px 54px rgba(15, 23, 42, 0.16), var(--shadow-soft);
@@ -31,14 +31,13 @@ body:has(.public-bottom-nav) .public-theme-button {
   -webkit-backdrop-filter: blur(18px);
   transform: translateX(-50%);
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .public-bottom-nav-item {
   min-width: 0;
   width: 100%;
   height: 100%;
-  padding: 5px 4px;
+  padding: 6px 4px 4px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -74,7 +73,7 @@ body:has(.public-bottom-nav) .public-theme-button {
   white-space: nowrap;
   font-size: 11px;
   font-weight: 850;
-  line-height: 1.1;
+  line-height: 12px;
 }
 
 .public-bottom-nav-item:hover,
@@ -92,6 +91,68 @@ body:has(.public-bottom-nav) .public-theme-button {
 
 .public-bottom-nav-item:active {
   transform: scale(0.96);
+}
+
+/* === Lainnya popup === */
+.public-bottom-nav-lainnya {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.public-bottom-nav-popup {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  min-width: 180px;
+  padding: 6px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 95%, transparent);
+  border: 1px solid color-mix(in srgb, var(--primary) 12%, var(--border));
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.2), var(--shadow-soft);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 9100;
+  animation: popupFadeIn 0.16s ease-out;
+}
+
+@keyframes popupFadeIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.public-bottom-nav-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  font-family: var(--public-font-family, Inter, system-ui, sans-serif);
+  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.public-bottom-nav-popup-item span {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.public-bottom-nav-popup-item:hover,
+.public-bottom-nav-popup-item:focus-visible {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  outline: none;
 }
 
 @media (max-width: 380px) {

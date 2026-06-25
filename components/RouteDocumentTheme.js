@@ -3,7 +3,7 @@
 import { useLayoutEffect } from "react";
 import { usePathname } from "next/navigation";
 
-const PUBLIC_PATHS = new Set(["/", "/kas", "/pengajuan"]);
+const PUBLIC_PATHS = new Set(["/", "/kas", "/pengajuan", "/pengaduan"]);
 
 const PUBLIC_BACKGROUNDS = {
   default: "#f8fafc",

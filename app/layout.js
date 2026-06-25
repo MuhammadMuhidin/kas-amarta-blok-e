@@ -5,7 +5,7 @@ import RouteDocumentTheme from "@/components/RouteDocumentTheme";
 const publicThemeBootScript = `
 (function () {
   try {
-    var publicPaths = { "/": true, "/kas": true, "/pengajuan": true };
+    var publicPaths = { "/": true, "/kas": true, "/pengajuan": true, "/pengaduan": true };
     var pathname = window.location.pathname;
 
     if (!publicPaths[pathname]) return;
@@ -171,7 +171,7 @@ const routeCanvasBootScript = `
 (function () {
   try {
     var pathname = window.location.pathname;
-    var publicPaths = { "/": true, "/kas": true, "/pengajuan": true };
+    var publicPaths = { "/": true, "/kas": true, "/pengajuan": true, "/pengaduan": true };
     var darkThemes = { midnight: true, amoled: true, hacker: true };
     var publicBackgrounds = {
       default: "#f8fafc",

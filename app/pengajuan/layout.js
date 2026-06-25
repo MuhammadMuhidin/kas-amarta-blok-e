@@ -16,7 +16,7 @@ export default function PengajuanLayout({ children }) {
       <PengajuanMasterLoadingGuard />
       <PengajuanSubmitProgress />
       <div className="page-wrap public-home-hero-wrap">
-        <PublicHero description="Ajukan kebutuhan warga dan pantau proses persetujuannya secara transparan." />
+        <PublicHero description="Ajukan kebutuhan warga dan pantau proses persetujuannya secara transparan." showManagerLink={false} />
       </div>
       {children}
     </>
