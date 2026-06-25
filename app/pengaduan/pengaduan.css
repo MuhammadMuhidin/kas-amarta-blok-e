@@ -1,3 +1,10 @@
+body:has(.pengaduan-page) {
+  background: var(--bg) !important;
+  color: var(--text);
+  font-family: Inter, Arial, sans-serif;
+  font-size: var(--font-base);
+}
+
 html, body {
   scroll-behavior: smooth;
 }
@@ -21,15 +28,6 @@ html, body {
   border-radius: var(--radius-sm) !important;
 }
 
-body:has(.pengaduan-page) {
-  background: var(--bg) !important;
-  color: var(--text);
-  font-family: Inter, Arial, sans-serif;
-  font-size: var(--font-base);
-  min-height: 100vh;
-}
-
-/* Match pengajuan CSS exactly, replacing request- with pengaduan- */
 .pengaduan-page {
   width: 100%;
   max-width: 1060px;
@@ -60,7 +58,11 @@ body:has(.pengaduan-page) {
 .pengaduan-card-header,
 .pengaduan-success-meta { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
 
-.pengaduan-card h2 { margin: 3px 0 0; color: var(--text); line-height: 1.2; font-weight: 800; font-size: 19px; }
+.pengaduan-card h2,
+.pengaduan-success-meta h3,
+.pengaduan-modal-header h3 { margin: 3px 0 0; color: var(--text); line-height: 1.2; font-weight: 800; }
+
+.pengaduan-card h2 { font-size: 19px; }
 
 .pengaduan-muted { margin: 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; line-height: 1.45; }
 
@@ -68,9 +70,6 @@ body:has(.pengaduan-page) {
 .pengaduan-success-meta { display: grid; gap: 12px; }
 
 .pengaduan-label { display: grid; gap: 6px; color: var(--muted); font-size: var(--font-small); font-weight: 700; }
-
-.pengaduan-card-header,
-.pengaduan-success-meta { gap: 12px; }
 
 .pengaduan-input {
   width: 100%;
@@ -86,7 +85,7 @@ body:has(.pengaduan-page) {
   font-size: var(--font-base);
   font-weight: 500;
 }
-textarea.pengaduan-input { min-height: 120px; padding-top: 10px; padding-bottom: 10px; resize: vertical; }
+textarea.pengaduan-input { min-height: 92px; padding-top: 10px; padding-bottom: 10px; resize: vertical; }
 .pengaduan-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 13%, transparent); }
 
 .pengaduan-primary-btn {
@@ -105,10 +104,6 @@ textarea.pengaduan-input { min-height: 120px; padding-top: 10px; padding-bottom:
 .pengaduan-primary-btn:disabled { opacity: .6; cursor: not-allowed; }
 
 .pengaduan-success-panel {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  border-color: color-mix(in srgb, var(--success) 34%, var(--border));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface-soft);
@@ -116,7 +111,6 @@ textarea.pengaduan-input { min-height: 120px; padding-top: 10px; padding-bottom:
   color: var(--text);
   font-size: var(--font-base);
 }
-
 .pengaduan-success-icon {
   width: 34px;
   height: 34px;
@@ -129,7 +123,7 @@ textarea.pengaduan-input { min-height: 120px; padding-top: 10px; padding-bottom:
 }
 .pengaduan-success-panel p { margin: 5px 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; }
 
-/* File upload */
+/* File upload matching request-file-field */
 .pengaduan-file-field { display: grid; gap: 6px; }
 
 .pengaduan-file-native { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
@@ -149,7 +143,6 @@ textarea.pengaduan-input { min-height: 120px; padding-top: 10px; padding-bottom:
 
 .pengaduan-file-picker span { font-size: 22px; }
 .pengaduan-file-picker strong { display: block; color: var(--text); font-size: var(--font-base); font-weight: 700; }
-
 .pengaduan-file-picker small { display: block; color: var(--muted); font-size: var(--font-small); }
 
 .pengaduan-file-remove {
@@ -165,7 +158,39 @@ textarea.pengaduan-input { min-height: 120px; padding-top: 10px; padding-bottom:
 }
 .pengaduan-file-remove:hover { border-color: var(--danger); color: var(--danger); }
 
-/* Preview image */
+/* Image modal (unique to pengaduan) */
+.pengaduan-image-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: start center;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 14px calc(110px + env(safe-area-inset-bottom, 0px));
+  background: rgba(15, 23, 42, .55);
+  backdrop-filter: blur(4px);
+}
+.pengaduan-image-modal-box {
+  width: min(720px, 100%);
+  max-height: calc(100dvh - 28px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+  padding: 14px;
+}
+.pengaduan-image-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.pengaduan-image-modal-title { font-size: var(--font-base); font-weight: 800; }
+.pengaduan-image-modal-section { color: var(--muted); font-size: var(--font-small); font-weight: 700; }
 .pengaduan-photo-preview {
   width: 100%;
   max-height: 240px;
@@ -174,74 +199,27 @@ textarea.pengaduan-input { min-height: 120px; padding-top: 10px; padding-bottom:
   border: 1px solid var(--border);
   background: var(--surface-soft);
 }
-
-/* Modal overlay (matching pengajuan exactly) */
-.pengaduan-modal-overlay { 
-  position: fixed; 
-  inset: 0; 
-  z-index: 9999; 
-  display: grid; 
-  place-items: start center; 
-  overflow-y: auto; 
-  overscroll-behavior: contain; 
-  padding: 14px 14px calc(110px + env(safe-area-inset-bottom, 0px)); 
-  background: rgba(15, 23, 42, .55); 
-  backdrop-filter: blur(4px); 
-}
-.pengaduan-modal-box { 
-  width: min(720px, 100%); 
-  max-height: calc(100dvh - 28px); 
-  overflow: auto; 
-  overscroll-behavior: contain; 
-  border: 1px solid var(--border); 
-  border-radius: var(--radius); 
-  background: var(--surface); 
-  box-shadow: var(--shadow-soft); 
-  padding: 14px; 
-}
-.pengaduan-modal-header { 
-  display: flex; 
-  justify-content: space-between; 
-  align-items: flex-start; 
-  gap: 12px; 
-  margin-bottom: 12px; 
-}
-.pengaduan-modal-actions { 
-  display: flex; 
-  align-items: center; 
-  justify-content: flex-end; 
-  gap: 8px; 
-  flex: 0 0 auto; 
-}
-.pengaduan-modal-close { 
-  width: 34px; 
-  height: 34px; 
-  border-radius: 999px; 
-  border: 1px solid var(--border); 
-  background: var(--surface-soft); 
-  color: var(--text); 
-  font-size: 24px; 
-  line-height: 1; 
-  cursor: pointer; 
-}
-.pengaduan-modal-section-title { 
-  margin-top: 12px; 
-  color: var(--text); 
-  font-size: var(--font-base); 
-  font-weight: 800; 
-}
-.pengaduan-empty-state { 
-  padding: 12px; 
-  border: 1px solid var(--border); 
-  border-radius: var(--radius-sm); 
-  background: var(--surface-soft); 
-  color: var(--muted); 
-  font-weight: 700; 
+.pengaduan-image-modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
-/* Media queries */
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(8px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (max-width: 700px) {
   .pengaduan-page { padding: 12px 10px calc(104px + env(safe-area-inset-bottom, 0px)); }
   .pengaduan-card { padding: 12px 14px; border-radius: var(--radius); }
   .pengaduan-card h2 { font-size: 17px; }
+  .pengaduan-modal-overlay { padding: 10px 10px calc(116px + env(safe-area-inset-bottom, 0px)); }
+  .pengaduan-image-modal-box { max-height: calc(100dvh - 20px); }
 }
