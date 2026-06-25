@@ -570,24 +570,34 @@ function ServiceTestsPanel() {
             <p style={styles.muted}>Only mounted while Service Tests is active.</p>
           </div>
           <div style={styles.serviceActions}>
-            <button
-              type="button"
-              className="admin-small-btn admin-refresh-btn"
-              disabled={testingWhatsApp || settingsLoading || !waEnabled}
-              title={waDisabledReason}
-              onClick={() => setPhoneModalOpen(true)}
-            >
-              {testingWhatsApp ? "Testing WhatsApp..." : "Test WhatsApp"}
-            </button>
-            <button
-              type="button"
-              className="admin-small-btn admin-refresh-btn"
-              disabled={testingEmail || settingsLoading || !emailEnabled}
-              title={emailDisabledReason}
-              onClick={testEmail}
-            >
-              {testingEmail ? "Testing Email..." : "Test Email"}
-            </button>
+            <div style={styles.serviceButtonWrap}>
+              <button
+                type="button"
+                className="admin-small-btn admin-refresh-btn"
+                disabled={testingWhatsApp || settingsLoading || !waEnabled}
+                title={waDisabledReason}
+                onClick={() => setPhoneModalOpen(true)}
+              >
+                {testingWhatsApp ? "Testing WhatsApp..." : "Test WhatsApp"}
+              </button>
+              {!waEnabled && !settingsLoading && (
+                <span style={styles.serviceDisabledLabel}>disabled by admin</span>
+              )}
+            </div>
+            <div style={styles.serviceButtonWrap}>
+              <button
+                type="button"
+                className="admin-small-btn admin-refresh-btn"
+                disabled={testingEmail || settingsLoading || !emailEnabled}
+                title={emailDisabledReason}
+                onClick={testEmail}
+              >
+                {testingEmail ? "Testing Email..." : "Test Email"}
+              </button>
+              {!emailEnabled && !settingsLoading && (
+                <span style={styles.serviceDisabledLabel}>disabled by admin</span>
+              )}
+            </div>
           </div>
         </div>
         {settingsError && <div className="admin-error-box">{settingsError}</div>}
@@ -912,6 +922,14 @@ const styles = {
   paginationActions: { display: "flex", gap: 8 },
   serviceCard: { display: "grid", gap: 14 },
   serviceActions: { display: "flex", gap: 8, flexWrap: "wrap" },
+  serviceButtonWrap: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 },
+  serviceDisabledLabel: {
+    fontSize: 10,
+    fontWeight: 700,
+    color: "#dc2626",
+    letterSpacing: "0.02em",
+    textTransform: "uppercase",
+  },
   eventList: { display: "grid", gap: 6 },
   eventRow: {
     display: "grid",
