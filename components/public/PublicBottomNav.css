@@ -18,8 +18,8 @@ body:has(.public-bottom-nav) .public-theme-button {
   bottom: max(12px, env(safe-area-inset-bottom, 0px));
   z-index: 9000;
   width: min(430px, calc(100vw - 24px));
-  height: 70px;
-  padding: 6px;
+  height: 68px;
+  padding: 8px;
   border: 1px solid color-mix(in srgb, var(--primary) 16%, var(--border));
   border-radius: 999px;
   display: grid;
@@ -31,14 +31,13 @@ body:has(.public-bottom-nav) .public-theme-button {
   -webkit-backdrop-filter: blur(18px);
   transform: translateX(-50%);
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .public-bottom-nav-item {
   min-width: 0;
   width: 100%;
   height: 100%;
-  padding: 5px 4px;
+  padding: 6px 4px 4px;
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -74,7 +73,7 @@ body:has(.public-bottom-nav) .public-theme-button {
   white-space: nowrap;
   font-size: 11px;
   font-weight: 850;
-  line-height: 1.1;
+  line-height: 12px;
 }
 
 .public-bottom-nav-item:hover,
