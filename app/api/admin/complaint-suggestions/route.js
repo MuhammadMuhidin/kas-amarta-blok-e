@@ -23,18 +23,25 @@ export async function GET(req) {
 
     const supabase = getSupabaseAdmin();
 
-    const { data, error, count } = await supabase
-      .from(PENGADUAN_TABLE)
-      .select("id, nama, rumah, kritik, photo_url, status, ip_address, created_at, updated_at", { count: "exact" })
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+    const [dataResult, countResult] = await Promise.all([
+      supabase
+        .from(PENGADUAN_TABLE)
+        .select("id, nama, rumah, kritik, photo_url, status, ip_address, created_at, updated_at")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1),
+      supabase
+        .from(PENGADUAN_TABLE)
+        .select("id", { count: "planned", head: true }),
+    ]);
 
-    if (error) {
-      console.error("COMPLAINTS LIST ERROR:", error);
-      return NextResponse.json({ error: "Gagal mengambil data pengaduan" }, { status: 500 });
+    if (dataResult.error) {
+      console.error("COMPLAINTS LIST ERROR:", JSON.stringify(dataResult.error));
+      const detail = dataResult.error.message || dataResult.error.code || dataResult.error.details || "Supabase query failed";
+      return NextResponse.json({ error: "Gagal mengambil data pengaduan", detail }, { status: 500 });
     }
 
-    const total = count || 0;
+    const data = dataResult.data || [];
+    const total = countResult.count || 0;
     const total_pages = Math.max(1, Math.ceil(total / limit));
 
     return NextResponse.json({
