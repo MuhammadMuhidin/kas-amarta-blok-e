@@ -21,9 +21,112 @@ function date(value) {
     : "-";
 }
 
-function ComplaintCard({ row }) {
-  const [photoModal, setPhotoModal] = useState(false);
+function useModalScrollLock(open) {
+  useEffect(() => {
+    if (!open || typeof document === "undefined") return undefined;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousDocumentOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousDocumentOverflow;
+    };
+  }, [open]);
+}
 
+function PhotoProofModal({ row, onClose }) {
+  useModalScrollLock(Boolean(row));
+
+  if (!row) return null;
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div
+        className="modal-box"
+        style={{ width: "min(100%, 760px)", maxHeight: "calc(100dvh - 64px)", display: "grid", gap: 14, overflow: "auto" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="modal-header">
+          <div
+            style={{
+              width: "100%",
+              display: "flex",
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: 14,
+            }}
+          >
+            <div>
+              <div className="modal-title">Attachment — {row.rumah}</div>
+              <div className="modal-section">{row.nama} · {date(row.created_at)}</div>
+            </div>
+            <button
+              type="button"
+              className="activity-modal-close"
+              onClick={onClose}
+              aria-label="Close modal"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+        {row.photo_url ? (
+          <div
+            style={{
+              display: "grid",
+              placeItems: "center",
+              minHeight: 240,
+              borderRadius: 12,
+              border: "1px solid var(--admin-border)",
+              background: "var(--admin-row)",
+              overflow: "hidden",
+            }}
+          >
+            <img src={row.photo_url} alt="Attachment" style={{ width: "100%", maxHeight: "70dvh", objectFit: "contain", display: "block" }} />
+          </div>
+        ) : (
+          <div className="admin-empty-state">Photo is unavailable.</div>
+        )}
+        <div
+          style={{
+            display: "grid",
+            gap: 8,
+            padding: 12,
+            borderRadius: 12,
+            border: "1px solid var(--admin-border)",
+            background: "var(--admin-row)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 700,
+              color: "var(--admin-muted)",
+              textTransform: "uppercase",
+              letterSpacing: "0.03em",
+            }}
+          >
+            Message
+          </div>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              lineHeight: 1.6,
+              color: "var(--admin-text)",
+              overflowWrap: "anywhere",
+            }}
+          >
+            {row.kritik}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ComplaintCard({ row, onViewPhoto }) {
   return (
     <article className="cs-card">
       <div className="cs-head">
@@ -36,27 +139,20 @@ function ComplaintCard({ row }) {
           </div>
           <div className="cs-body-mobile">{row.kritik}</div>
         </div>
-        {row.photo_url ? (
-          <button
-            type="button"
-            className="cs-photo-btn"
-            onClick={() => setPhotoModal(true)}
-            aria-label="View photo"
-          >
-            <img src={row.photo_url} alt="Attachment" loading="lazy" className="cs-thumb-btn" />
-          </button>
-        ) : null}
+        <div className="cs-photo-grid">
+          {row.photo_url ? (
+            <button
+              type="button"
+              className="cs-photo-btn"
+              onClick={() => onViewPhoto(row)}
+              aria-label="View photo"
+            >
+              <img src={row.photo_url} alt="Attachment" loading="lazy" className="cs-thumb-btn" />
+            </button>
+          ) : null}
+        </div>
       </div>
       <div className="cs-body-desktop">{row.kritik}</div>
-
-      {photoModal && (
-        <div className="cs-modal-overlay" onClick={() => setPhotoModal(false)}>
-          <div className="cs-modal-box" onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="cs-modal-close" onClick={() => setPhotoModal(false)} aria-label="Close">×</button>
-            <img src={row.photo_url} alt="Attachment" className="cs-modal-img" />
-          </div>
-        </div>
-      )}
     </article>
   );
 }
@@ -64,7 +160,6 @@ function ComplaintCard({ row }) {
 function ComplaintListPanel({ showToast }) {
   const {
     items: rows,
-    total,
     loading,
     loadingMore,
     error,
@@ -84,16 +179,17 @@ function ComplaintListPanel({ showToast }) {
     getPagination: (data) => data.pagination || {},
   });
 
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
   const initialLoading = loading && !rows.length;
 
   return (
     <div role="tabpanel" id="complaint-suggestions-panel">
       <div className="cs-list-header">
         <div>
-          <div className="activity-kicker">Resident Complaints</div>
+          <div className="activity-kicker">Resident Feedback</div>
           <h3 className="activity-title cs-title">Complaint and Suggestions</h3>
           <p className="activity-subtitle">
-            All complaints from residents. Latest shown first.
+            Complaints, feedback, and suggestions submitted by residents via the public form.
           </p>
         </div>
       </div>
@@ -104,12 +200,12 @@ function ComplaintListPanel({ showToast }) {
         <AdminDataSkeleton rows={5} />
       ) : rows.length === 0 ? (
         <div className="admin-empty-state" style={{ padding: "14px 12px" }}>
-          No complaints from residents yet.
+          Belum ada pengaduan dari warga.
         </div>
       ) : (
         <div className="cs-list">
           {rows.map((row) => (
-            <ComplaintCard key={row.id} row={row} />
+            <ComplaintCard key={row.id} row={row} onViewPhoto={setSelectedPhoto} />
           ))}
         </div>
       )}
@@ -123,6 +219,8 @@ function ComplaintListPanel({ showToast }) {
               ? "Scroll to load more"
               : "All complaints loaded"}
       </div>
+
+      <PhotoProofModal row={selectedPhoto} onClose={() => setSelectedPhoto(null)} />
     </div>
   );
 }
@@ -147,10 +245,10 @@ export default function ComplaintSuggestionsTab() {
 }
 
 const CSS = `
-.cs-list-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.cs-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:12px}
 .cs-list{display:grid;gap:12px}
 .cs-card{display:grid;gap:10px;padding:14px;border:1px solid var(--admin-border);border-radius:16px;background:var(--admin-card)}
-.cs-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.cs-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
 .cs-main-info{min-width:0;flex:1}
 .cs-date{font-size:11px;color:var(--admin-muted);font-weight:800;letter-spacing:.03em;text-transform:uppercase}
 .cs-meta{margin-top:4px;font-size:15px;font-weight:800;color:var(--admin-text);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
@@ -162,10 +260,6 @@ const CSS = `
 .cs-photo-btn{flex:0 0 auto;width:64px;height:64px;border-radius:12px;overflow:hidden;border:1px solid var(--admin-border);cursor:pointer;background:var(--admin-row);padding:0}
 .cs-photo-btn:hover{border-color:var(--admin-primary)}
 .cs-thumb-btn{width:100%;height:100%;object-fit:cover}
-.cs-modal-overlay{position:fixed;inset:0999;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.7)}
-.cs-modal-box{position:relative;max-width:min(90vw,600px);max-height:90vh}
-.cs-modal-close{position:absolute;top:-12px;right:-12px;width:32px;height:32px;border-radius:999px;border:none;background:var(--admin-card);color:var(--admin-text);font-size:20px;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-.cs-modal-img{width:100%;max-height:85vh;object-fit:contain;border-radius:12px;border:1px solid var(--admin-border)}
 .cs-loader{text-align:center;padding:12px;color:var(--admin-muted);font-size:12px;font-weight:700}
 .cs-title{color:var(--admin-text)!important}
 @media(min-width:641px){.cs-body-mobile{display:none}.cs-body-desktop{display:block}}

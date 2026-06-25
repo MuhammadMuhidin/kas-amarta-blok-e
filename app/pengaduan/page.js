@@ -81,7 +81,6 @@ export default function PengaduanPage() {
 
   return (
     <main className="pengaduan-page">
-      <style jsx global>{pengaduanPageCss}</style>
       <Toast show={!!message} type={message?.type} message={message?.text} />
 
       <section className="pengaduan-card pengaduan-success-card" style={{ display: success ? "" : "none" }}>
@@ -152,7 +151,7 @@ export default function PengaduanPage() {
               {photo ? (
                 <>
                   <label htmlFor="pengaduan-photo" className="pengaduan-file-picker">
-                    <span>�️</span>
+                    <span>📷</span>
                     <div>
                       <strong>{photo.name}</strong>
                       <small>{photo.type} · {photo.size < 1024 * 1024 ? `${Math.ceil(photo.size / 1024)} KB` : `${(photo.size / 1024 / 1024).toFixed(1)} MB`}</small>
@@ -186,7 +185,3 @@ export default function PengaduanPage() {
     </main>
   );
 }
-
-const pengaduanPageCss = `
-body:has(.pengaduan-page){background:var(--bg)!important;color:var(--text);font-family:Inter,Arial,sans-serif;font-size:var(--font-base);min-height:100vh}.pengaduan-page{width:100%;max-width:1060px;margin:0 auto;padding:12px 10px calc(104px + env(safe-area-inset-bottom,0px));font-family:Inter,Arial,sans-serif;font-size:var(--font-base);color:var(--text)}
-`;
