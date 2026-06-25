@@ -64,7 +64,7 @@ html, body {
 
 .pengaduan-card h2 { font-size: 19px; }
 
-.pengaduan-muted { margin: 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; line-height: 1.45; }
+.pengaduan-muted { margin-bottom: 6px; color: var(--muted); font-size: var(--font-base); font-weight: 500; line-height: 1.45; }
 
 .pengaduan-form,
 .pengaduan-success-meta { display: grid; gap: 12px; }
