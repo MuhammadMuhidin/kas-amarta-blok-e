@@ -5,10 +5,16 @@ import { useEffect, useState } from "react";
 import { getAdminAccessRoleInitials, getAdminAccessRoleLabel } from "@/lib/adminRoles";
 
 const ROLE_CACHE_KEY = "amarta_admin_role_cache";
+const VALID_ROLES = new Set(["admin", "ketua", "sekretaris", "bendahara", "sapras"]);
+
+function normalizeRole(value) {
+  const raw = String(value || "").trim().toLowerCase();
+  return VALID_ROLES.has(raw) ? raw : null;
+}
 
 function getCachedRole() {
   try {
-    return localStorage.getItem(ROLE_CACHE_KEY) || null;
+    return normalizeRole(localStorage.getItem(ROLE_CACHE_KEY));
   } catch {
     return null;
   }
@@ -16,11 +22,8 @@ function getCachedRole() {
 
 function setCachedRole(role) {
   try {
-    if (role) {
-      localStorage.setItem(ROLE_CACHE_KEY, role);
-    } else {
-      localStorage.removeItem(ROLE_CACHE_KEY);
-    }
+    if (role) localStorage.setItem(ROLE_CACHE_KEY, role);
+    else localStorage.removeItem(ROLE_CACHE_KEY);
   } catch {
     // ignore
   }
@@ -45,15 +48,14 @@ export default function AdminProfileLink({ compact = false }) {
           signal: requestController.signal,
         });
         const data = res.ok ? await res.json() : null;
-        const accessRole = data?.access_role || null;
+        const normalized = normalizeRole(data?.access_role);
         if (active && controller === requestController) {
-          setRole(accessRole);
-          setCachedRole(accessRole);
+          setRole(normalized);
+          setCachedRole(normalized);
         }
       } catch (error) {
         if (error.name !== "AbortError" && active && controller === requestController) {
-          setRole(null);
-          setCachedRole(null);
+          // don't wipe valid cache on transient errors
         }
       }
     }
