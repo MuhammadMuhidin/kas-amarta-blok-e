@@ -3,7 +3,7 @@
 import AdminDataSkeleton from "@/components/admin/AdminDataSkeleton";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import Toast from "@/components/Toast";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const API = "/api/admin/complaint-suggestions";
 const PAGE_SIZE = 10;

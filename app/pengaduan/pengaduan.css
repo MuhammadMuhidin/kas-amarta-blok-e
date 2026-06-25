@@ -3,6 +3,7 @@ body:has(.pengaduan-page) {
   color: var(--text);
   font-family: Inter, Arial, sans-serif;
   font-size: var(--font-base);
+  min-height: 100vh;
 }
 
 /* Match pengajuan CSS exactly, replacing request- with pengaduan- */
@@ -33,15 +34,20 @@ body:has(.pengaduan-page) {
 
 .pengaduan-kicker { color: var(--primary); font-size: var(--font-small); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 
-.pengaduan-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.pengaduan-card-header,
+.pengaduan-success-meta { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
 
 .pengaduan-card h2 { margin: 3px 0 0; color: var(--text); line-height: 1.2; font-weight: 800; font-size: 19px; }
 
 .pengaduan-muted { margin: 0; color: var(--muted); font-size: var(--font-base); font-weight: 500; line-height: 1.45; }
 
-.pengaduan-form { display: grid; gap: 12px; }
+.pengaduan-form,
+.pengaduan-success-meta { display: grid; gap: 12px; }
 
 .pengaduan-label { display: grid; gap: 6px; color: var(--muted); font-size: var(--font-small); font-weight: 700; }
+
+.pengaduan-card-header,
+.pengaduan-success-meta { gap: 12px; }
 
 .pengaduan-input {
   width: 100%;

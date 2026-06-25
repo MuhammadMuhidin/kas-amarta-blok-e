@@ -9,6 +9,7 @@ const PENGADUAN_API = "/api/pengaduan";
 export default function PengaduanPage() {
   const [form, setForm] = useState({ nama: "", rumah: "", kritik: "" });
   const [photo, setPhoto] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [message, setMessage] = useState(null);
@@ -30,10 +31,13 @@ export default function PengaduanPage() {
       return;
     }
     setPhoto(file);
+    setPreviewUrl(file ? URL.createObjectURL(file) : "");
   }
 
   function handleRemovePhoto() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPhoto(null);
+    setPreviewUrl("");
     const input = document.getElementById("pengaduan-photo");
     if (input) input.value = "";
   }
@@ -68,9 +72,7 @@ export default function PengaduanPage() {
 
       setSuccess(true);
       setForm({ nama: "", rumah: "", kritik: "" });
-      setPhoto(null);
-      const input = document.getElementById("pengaduan-photo");
-      if (input) input.value = "";
+      handleRemovePhoto();
       showMessage("Pengaduan berhasil dikirim");
     } catch (err) {
       showMessage(err.message, "error");
@@ -86,9 +88,11 @@ export default function PengaduanPage() {
       <section className="pengaduan-card pengaduan-success-card" style={{ display: success ? "" : "none" }}>
         <div className="pengaduan-success-panel">
           <div className="pengaduan-success-icon">✓</div>
-          <div>
-            <strong>Pengaduan berhasil dikirim</strong>
-            <p>Terima kasih, pengaduan Anda sudah diterima. Pengurus akan menindaklanjuti.</p>
+          <div className="pengaduan-success-meta">
+            <div>
+              <strong>Pengaduan berhasil dikirim</strong>
+              <p>Terima kasih, pengaduan Anda sudah diterima. Pengurus akan menindaklanjuti.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -154,7 +158,7 @@ export default function PengaduanPage() {
                     <span>📷</span>
                     <div>
                       <strong>{photo.name}</strong>
-                      <small>{photo.type} · {photo.size < 1024 * 1024 ? `${Math.ceil(photo.size / 1024)} KB` : `${(photo.size / 1024 / 1024).toFixed(1)} MB`}</small>
+                      <small>{photo.type} · {Math.round(photo.size / 1024)} KB</small>
                     </div>
                   </label>
                   <button type="button" className="pengaduan-file-remove" onClick={handleRemovePhoto}>
@@ -182,6 +186,24 @@ export default function PengaduanPage() {
           </button>
         </form>
       </section>
+
+      {previewUrl && (
+        <div className="pengaduan-image-modal" onClick={handleRemovePhoto}>
+          <div className="pengaduan-image-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="pengaduan-image-modal-header">
+              <div>
+                <div className="pengaduan-image-modal-title">Foto Lampiran</div>
+                <div className="pengaduan-image-modal-section">Klik gambar untuk menghapus</div>
+              </div>
+            </div>
+            <img
+              src={previewUrl}
+              alt="Preview lampiran"
+              className="pengaduan-photo-preview"
+            />
+          </div>
+        </div>
+      )}
     </main>
   );
 }
