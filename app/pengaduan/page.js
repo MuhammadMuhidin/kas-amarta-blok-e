@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Toast from "@/components/Toast";
 import "@/app/page.css";
+import "@/app/public-theme.css";
 
 const PENGADUAN_API = "/api/pengaduan";
 
