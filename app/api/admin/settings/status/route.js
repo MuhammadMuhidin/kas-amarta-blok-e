@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { isEmailNotificationsEnabled } from "@/lib/appConfig";
 import { isWhatsAppServicesEnabled } from "@/lib/webauth";
-import { isAdministrator, unauthorized } from "@/lib/auth";
+import { isAdmin, unauthorized } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req) {
   try {
-    if (!(await isAdministrator(req))) return unauthorized();
+    if (!(await isAdmin(req))) return unauthorized();
 
     const [emailEnabled, whatsappEnabled] = await Promise.all([
       isEmailNotificationsEnabled(),
