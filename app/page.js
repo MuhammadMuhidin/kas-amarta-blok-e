@@ -14,7 +14,7 @@ export default function ResidentTimelinePage() {
   return (
     <>
       <div className="page-wrap public-home-hero-wrap">
-        <PublicHero description="Ruang informasi kegiatan warga, dan dokumentasi lingkungan." />
+        <PublicHero description="Ruang informasi kegiatan warga, dan dokumentasi lingkungan." showManagerLink={false} />
       </div>
       <TimelineClient />
       <TimelineReactionCountPopover />

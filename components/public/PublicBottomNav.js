@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useRef, useEffect } from "react";
 import "./PublicBottomNav.css";
 
-const ENABLED_PATHS = new Set(["/", "/kas", "/pengajuan"]);
+const ENABLED_PATHS = new Set(["/", "/kas", "/pengajuan", "/pengaduan"]);
 
 export default function PublicBottomNav({ global = false } = {}) {
   const pathname = usePathname();
@@ -41,12 +41,12 @@ export default function PublicBottomNav({ global = false } = {}) {
 
   const homeItem = pathname === "/" ? (
     <button type="button" className={itemClass("/")} onClick={scrollToTop}>
-      <span aria-hidden="true">🏠</span>
+      <span aria-hidden=\"true\">🏠</span>
       <strong>Beranda</strong>
     </button>
   ) : (
     <Link className={itemClass("/")} href="/">
-      <span aria-hidden="true">🏠</span>
+      <span aria-hidden=\"true\">🏠</span>
       <strong>Beranda</strong>
     </Link>
   );
@@ -55,7 +55,7 @@ export default function PublicBottomNav({ global = false } = {}) {
     <nav className="public-bottom-nav" aria-label="Navigasi utama">
       {homeItem}
       <Link className={itemClass("/kas")} href="/kas">
-        <span aria-hidden="true">Rp</span>
+        <span aria-hidden=\"true\">Rp</span>
         <strong>Kas Warga</strong>
       </Link>
 
@@ -68,7 +68,7 @@ export default function PublicBottomNav({ global = false } = {}) {
           aria-expanded={popupOpen}
           aria-haspopup="true"
         >
-          <span aria-hidden="true">⋯</span>
+          <span aria-hidden=\"true\">⋯</span>
           <strong>Lainnya</strong>
         </button>
 
@@ -79,8 +79,16 @@ export default function PublicBottomNav({ global = false } = {}) {
               href="/pengajuan"
               role="menuitem"
             >
-              <span aria-hidden="true">✅</span>
+              <span aria-hidden=\"true\">✅</span>
               <strong>Pengajuan</strong>
+            </Link>
+            <Link
+              className="public-bottom-nav-popup-item"
+              href="/pengaduan"
+              role="menuitem"
+            >
+              <span aria-hidden=\"true\">📝</span>
+              <strong>Pengaduan</strong>
             </Link>
             <button
               type="button"
@@ -88,9 +96,17 @@ export default function PublicBottomNav({ global = false } = {}) {
               role="menuitem"
               onClick={openThemePicker}
             >
-              <span aria-hidden="true">🎨</span>
+              <span aria-hidden=\"true\">🎨</span>
               <strong>Tema</strong>
             </button>
+            <Link
+              className="public-bottom-nav-popup-item"
+              href="/login"
+              role="menuitem"
+            >
+              <span aria-hidden=\"true\">🔐</span>
+              <strong>Login Pengurus</strong>
+            </Link>
           </div>
         )}
       </div>
