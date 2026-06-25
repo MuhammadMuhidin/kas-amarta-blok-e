@@ -87,7 +87,7 @@ export default function PublicBottomNav({ global = false } = {}) {
               href="/pengaduan"
               role="menuitem"
             >
-              <span aria-hidden="true">📝</span>
+              <span aria-hidden="true">📢</span>
               <strong>Pengaduan</strong>
             </Link>
             <button
