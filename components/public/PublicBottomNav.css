@@ -83,10 +83,26 @@ body:has(.public-bottom-nav) .public-theme-button {
   outline: none;
 }
 
+.public-bottom-nav-lainnya .public-bottom-nav-item:hover,
+.public-bottom-nav-lainnya .public-bottom-nav-item:focus-visible,
+.public-bottom-nav-lainnya .public-bottom-nav-item:active {
+  background: transparent;
+  color: var(--muted);
+  transform: none;
+}
+
 .public-bottom-nav-item.is-active {
-  background: color-mix(in srgb, var(--primary) 13%, var(--surface));
-  color: var(--text);
-  font-weight: 900;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.public-bottom-nav-item.is-active:hover,
+.public-bottom-nav-item.is-active:focus-visible,
+.public-bottom-nav-item.is-active:active {
+  background: transparent;
+  color: var(--muted);
+  transform: none;
 }
 
 .public-bottom-nav-item:active {
