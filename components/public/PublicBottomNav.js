@@ -63,7 +63,7 @@ export default function PublicBottomNav({ global = false } = {}) {
       <div className="public-bottom-nav-lainnya" ref={popupRef}>
         <button
           type="button"
-          className={`public-bottom-nav-item${["/pengajuan", "/pengaduan", "/login"].includes(pathname) ? " is-active" : ""}`}
+          className="public-bottom-nav-item"
           onClick={() => setPopupOpen((v) => !v)}
           aria-expanded={popupOpen}
           aria-haspopup="true"
