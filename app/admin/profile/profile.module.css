@@ -58,6 +58,7 @@
   margin: 0;
   font-size: 22px;
   line-height: 1.2;
+  color: var(--admin-text);
 }
 
 .identity span {
@@ -367,6 +368,32 @@
 .closeModalButton:disabled {
   cursor: wait;
   opacity: .6;
+}
+
+.themeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.themeCard {
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--admin-row);
+  color: var(--admin-text);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.themeCard:hover {
+  border-color: var(--admin-primary);
+}
+
+.themeCardActive {
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 2px var(--admin-primary);
 }
 
 @media (max-width: 720px) {

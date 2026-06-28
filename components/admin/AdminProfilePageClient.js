@@ -9,6 +9,15 @@ import { sendJson } from "@/components/admin/adminClientApi";
 import { getAdminAccessRoleInitials, getAdminAccessRoleLabel } from "@/lib/adminRoles";
 import styles from "@/app/admin/profile/profile.module.css";
 
+const themes = [
+  ["default", "Default", ["#f1f5f9", "#60a5fa", "#ffffff"]],
+  ["ledger", "Ledger", ["#fdf6e3", "#2f6f4e", "#fffaf0"]],
+  ["midnight", "Midnight", ["#020617", "#3b82f6", "#111827"]],
+  ["emerald", "Emerald", ["#ecfdf5", "#10b981", "#d1fae5"]],
+  ["amoled", "AMOLED", ["#000000", "#ffffff", "#111111"]],
+  ["hacker", "Hacker", ["#020b02", "#22c55e", "#14532d"]],
+].map(([id, label, colors]) => ({ id, label, colors }));
+
 const EMPTY_MODAL = { type: "", step: 1, value: "", confirmation: "" };
 
 function timeAgo(date, now) {
@@ -170,6 +179,7 @@ export default function AdminProfilePageClient() {
   const [saving, setSaving] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [toast, setToast] = useState(null);
+  const [theme, setTheme] = useState("default");
 
   async function loadProfile({ signal, showLoading = true } = {}) {
     if (showLoading) setSessionLoading(true);
@@ -232,6 +242,17 @@ export default function AdminProfilePageClient() {
     const timer = window.setInterval(() => setSessionNow(Date.now()), 30000);
     return () => window.clearInterval(timer);
   }, [profile?.current_session?.expires_at]);
+
+  function applyTheme(id) {
+    setTheme(id);
+    localStorage.setItem("admin-theme", id);
+    document.documentElement.dataset.adminTheme = id;
+  }
+
+  useEffect(() => {
+    const saved = localStorage.getItem("admin-theme") || "default";
+    setTheme(saved);
+  }, []);
 
   const passwordValid = useMemo(() => (
     modal.value.length >= 8 && modal.value.length <= 128 &&
@@ -324,6 +345,30 @@ export default function AdminProfilePageClient() {
         <div className={styles.row}>
           <div><strong>PIN</strong><span>{getCredentialStatus(profile.credentials?.pin, sessionNow)}</span></div>
           <button type="button" onClick={() => setModal({ type: "pin", step: 1, value: "", confirmation: "" })}>Ubah</button>
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <div className={styles.sectionTitle}>Tema Tampilan</div>
+        <p style={{ margin: "0 0 12px", color: "var(--admin-muted)", fontSize: 13, lineHeight: 1.5 }}>
+          Pilih warna tampilan dashboard yang nyaman untuk Anda.
+        </p>
+        <div className={styles.themeGrid}>
+          {themes.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => applyTheme(item.id)}
+              className={`${styles.themeCard} ${theme === item.id ? styles.themeCardActive : ""}`}
+            >
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                {item.colors.map((color) => (
+                  <span key={color} style={{ width: 18, height: 18, borderRadius: 999, background: color, border: "1px solid rgba(255,255,255,.2)" }} />
+                ))}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 800 }}>{item.label}</div>
+            </button>
+          ))}
         </div>
       </div>
 
