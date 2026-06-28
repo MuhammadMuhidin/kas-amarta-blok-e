@@ -349,6 +349,30 @@ export default function AdminProfilePageClient() {
       </div>
 
       <div className={styles.section}>
+        <div className={styles.sectionTitle}>Tema Tampilan</div>
+        <p style={{ margin: "0 0 12px", color: "var(--admin-muted)", fontSize: 13, lineHeight: 1.5 }}>
+          Pilih warna tampilan dashboard yang nyaman untuk Anda.
+        </p>
+        <div className={styles.themeGrid}>
+          {themes.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => applyTheme(item.id)}
+              className={`${styles.themeCard} ${theme === item.id ? styles.themeCardActive : ""}`}
+            >
+              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+                {item.colors.map((color) => (
+                  <span key={color} style={{ width: 18, height: 18, borderRadius: 999, background: color, border: "1px solid rgba(255,255,255,.2)" }} />
+                ))}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 800 }}>{item.label}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={styles.section}>
         <div className={styles.sectionTitle}>Sesi Saat Ini</div>
         <div className={styles.currentSession}>
           <strong>{getDeviceLocation(currentSession)}</strong>
@@ -379,30 +403,6 @@ export default function AdminProfilePageClient() {
           <button type="button" onClick={() => setManageSessionsOpen(true)}>Kelola</button>
         </div>
         <AdminActionButton className={styles.logout} loading={loggingOut} loadingText="Sedang keluar..." onClick={logout}>Keluar dari Akun</AdminActionButton>
-      </div>
-
-      <div className={styles.section}>
-        <div className={styles.sectionTitle}>Tema Tampilan</div>
-        <p style={{ margin: "0 0 12px", color: "var(--admin-muted)", fontSize: 13, lineHeight: 1.5 }}>
-          Pilih warna tampilan dashboard yang nyaman untuk Anda.
-        </p>
-        <div className={styles.themeGrid}>
-          {themes.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => applyTheme(item.id)}
-              className={`${styles.themeCard} ${theme === item.id ? styles.themeCardActive : ""}`}
-            >
-              <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-                {item.colors.map((color) => (
-                  <span key={color} style={{ width: 18, height: 18, borderRadius: 999, background: color, border: "1px solid rgba(255,255,255,.2)" }} />
-                ))}
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 800 }}>{item.label}</div>
-            </button>
-          ))}
-        </div>
       </div>
     </section></div>
 
