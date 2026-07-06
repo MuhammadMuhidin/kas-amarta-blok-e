@@ -346,10 +346,10 @@ export default function AdminPageClient() {
                 className={tabClassName(module.key)}
                 onClick={() => handleTabClick(module.key)}
               >
-                {(module.key === "payment" || module.key === "monitoring" || module.key === "approval_center" || module.key === "complaint_suggestions") ? (
+                {(module.key === "payment" || module.key === "deposit" || module.key === "monitoring" || module.key === "approval_center" || module.key === "complaint_suggestions") ? (
                   <div className="admin-tab-content">
                     <span>{MODULE_ICONS[module.key]} {module.label}</span>
-                    {module.key === "payment" && pendingCurrentDeposits.length > 0 && (
+                    {module.key === "deposit" && pendingCurrentDeposits.length > 0 && (
                       <span className="admin-deposit-badge">
                         {pendingCurrentDeposits.length} booking pending
                       </span>
