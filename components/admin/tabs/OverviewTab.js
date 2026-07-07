@@ -884,38 +884,10 @@ export default function OverviewTab({
                   unpaid={derived.unpaidTrashMembers.length}
                   error={derived.unpaidTrashMembers.length > 0}
                   actions={[
-                    derived.unpaidTrashMembers.length > 0
-                      ? derived.paidTrashMembers.length > 0 && {
-                          label: "View Paid",
-                          onClick: () => setMemberDetail({
-                            id: "trash-paid",
-                            title: "Paid Trash Details",
-                            members: derived.paidTrashMembers,
-                            totalMembers: derived.activeTrashMembers.length,
-                            statusText: "Paid",
-                            paymentLabel: "Trash",
-                            amount: appConfig?.trash_fee,
-                            note: "Houses that have paid trash fees.",
-                          }),
-                        }
-                      : {
-                          label: "View All",
-                          onClick: () => setShowTrashDetail(true),
-                        },
-                    derived.unpaidTrashMembers.length > 0 && {
-                      label: "View Unpaid",
-                      onClick: () => setMemberDetail({
-                        id: "trash-unpaid",
-                        title: "Unpaid Trash Details",
-                        members: derived.unpaidTrashMembers,
-                        totalMembers: derived.activeTrashMembers.length,
-                        statusText: "Unpaid",
-                        paymentLabel: "Trash",
-                        amount: appConfig?.trash_fee,
-                        note: "Houses that have not paid trash fees.",
-                      }),
-                    },
-                  ]}
+                    { label: "View All", onClick: () => setShowTrashDetail(true) },
+                    derived.unpaidTrashMembers.length > 0 && { label: "View Unpaid", onClick: () => setMemberDetail({ id: "trash-unpaid", title: "Unpaid Trash Details", members: derived.unpaidTrashMembers, totalMembers: derived.activeTrashMembers.length, statusText: "Unpaid", paymentLabel: "Trash", amount: appConfig?.trash_fee, note: "Houses that have not paid trash fees." }) },
+                    derived.paidTrashMembers.length > 0 && { label: "View Paid", onClick: () => setMemberDetail({ id: "trash-paid", title: "Paid Trash Details", members: derived.paidTrashMembers, totalMembers: derived.activeTrashMembers.length, statusText: "Paid", paymentLabel: "Trash", amount: appConfig?.trash_fee, note: "Houses that have paid trash fees." }) },
+                  ].filter(Boolean)}
                 />
               </div>
             </Section>
