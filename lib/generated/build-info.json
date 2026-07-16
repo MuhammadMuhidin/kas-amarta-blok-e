@@ -1,11 +1,11 @@
 {
   "platform": "local",
-  "branch": "development",
-  "commit": "8907a1a742430fb2a830c1c591272bb0415f2840",
-  "commitShort": "8907a1a",
-  "commitMessage": "feat: pindahkan badge booking pending dari Payment ke Booking Payment",
-  "environment": "unknown",
+  "branch": "unknown",
+  "commit": "unknown",
+  "commitShort": "unknown",
+  "commitMessage": "unknown",
+  "environment": "development",
   "deployId": "local",
   "deployUrl": "",
-  "buildTime": "2026-07-07T13:55:29.560Z"
+  "buildTime": "unknown"
 }
