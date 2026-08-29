@@ -479,7 +479,7 @@ export default function DepositTab({
               {nextSixPeriods.map((period) => {
                 const active = selectedDepositPeriods.includes(period);
                 const alreadyBooked = selectedDepositPerson
-                  && deposits.some(
+                  && sortedDeposits.some(
                     (deposit) =>
                       normalize(deposit.person_id) === normalize(selectedDepositPerson.id)
                       && normalize(deposit.period) === period
