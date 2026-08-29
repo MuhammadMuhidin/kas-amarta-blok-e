@@ -6,6 +6,7 @@ import modalStyles from "@/components/admin/AdminModal.module.css";
 import useInfiniteRows from "@/components/admin/useInfiniteRows";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
+import { getCurrentPeriod, addMonths } from "@/lib/depositUtils";
 import { useMemo, useState } from "react";
 
 const pageSize = 10;
@@ -169,6 +170,27 @@ export default function DepositTab({
   const currentMonthlyFee = Number(appConfig?.monthly_fee || 0);
   const bookingPreviewTotal =
     (currentMonthlyFee + (trashEnabled ? currentTrashFee : 0)) * selectedDepositPeriods.length;
+
+  const unpaidPastPeriods = useMemo(() => {
+    if (!selectedDepositPerson) return [];
+    const currentPeriod = getCurrentPeriod();
+    const joinPeriod = normalize(selectedDepositPerson.join_date).slice(0, 7);
+    const start = joinPeriod && joinPeriod >= "2026-02" ? joinPeriod : "2026-02";
+    const lastPast = addMonths(currentPeriod, -1);
+    const result = [];
+    let period = start;
+    while (period <= lastPast) {
+      const alreadyPaid = payments.some(
+        (payment) =>
+          normalize(payment.person_id) === normalize(selectedDepositPerson.id) &&
+          normalize(payment.person_house) === normalize(selectedDepositPerson.house) &&
+          normalize(payment.period).slice(0, 7) === period,
+      );
+      if (!alreadyPaid) result.push(period);
+      period = addMonths(period, 1);
+    }
+    return result;
+  }, [selectedDepositPerson, payments]);
 
   const effectiveDeposits = useMemo(
     () => bookingRows.map((deposit) => ({ ...deposit, ...(snapshotOverrides[deposit.id] || {}) })),
@@ -431,6 +453,24 @@ export default function DepositTab({
               </div>
             )}
 
+            {selectedDepositPerson && unpaidPastPeriods.length > 0 && (
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  background: "#fee2e2",
+                  color: "#b91c1c",
+                  fontWeight: 800,
+                  fontSize: 14,
+                  lineHeight: 1.4,
+                }}
+              >
+                Rumah ini masih memiliki tunggakan ({unpaidPastPeriods.length} periode lewat:{" "}
+                {unpaidPastPeriods.map((period) => formatPeriod(period)).join(", ")})
+              </div>
+            )}
+
             <div className="admin-deposit-meta">
               Snapshot can be changed if cash or trash fees are adjusted before payment is made.
             </div>
@@ -438,6 +478,13 @@ export default function DepositTab({
             <div className="admin-deposit-chips">
               {nextSixPeriods.map((period) => {
                 const active = selectedDepositPeriods.includes(period);
+                const alreadyBooked = selectedDepositPerson
+                  && sortedDeposits.some(
+                    (deposit) =>
+                      normalize(deposit.person_id) === normalize(selectedDepositPerson.id)
+                      && normalize(deposit.period) === period
+                      && normalize(deposit.status) !== "cancelled",
+                  );
 
                 return (
                   <button
@@ -445,9 +492,11 @@ export default function DepositTab({
                     type="button"
                     className={active ? "admin-deposit-chip admin-deposit-chip-active" : "admin-deposit-chip"}
                     onClick={() => setDepositForm({ ...depositForm, end_period: period })}
-                    disabled={!depositForm.person_id}
+                    disabled={!depositForm.person_id || alreadyBooked}
+                    title={alreadyBooked ? "Sudah dibooking untuk periode ini" : ""}
                   >
                     {formatPeriod(period)}
+                    {alreadyBooked && <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#16a34a", opacity: 0.9 }}>sudah dibooking</span>}
                   </button>
                 );
               })}
