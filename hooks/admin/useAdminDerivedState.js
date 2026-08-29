@@ -34,6 +34,11 @@ export default function useAdminDerivedState({
     [currentPeriod],
   );
 
+  const selectedDepositPerson = useMemo(
+    () => personal.find((item) => item.id === depositForm.person_id),
+    [personal, depositForm.person_id],
+  );
+
   const selectedDepositPeriods = useMemo(
     () => {
       const bookedPeriods = selectedDepositPerson
@@ -57,11 +62,6 @@ export default function useAdminDerivedState({
   const activePersons = useMemo(
     () => sortPersonal(personal.filter((item) => item.active === "Y")),
     [personal],
-  );
-
-  const selectedDepositPerson = useMemo(
-    () => personal.find((item) => item.id === depositForm.person_id),
-    [personal, depositForm.person_id],
   );
 
   const depositAmount = useMemo(
