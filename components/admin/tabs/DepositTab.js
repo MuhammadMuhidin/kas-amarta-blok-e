@@ -478,6 +478,13 @@ export default function DepositTab({
             <div className="admin-deposit-chips">
               {nextSixPeriods.map((period) => {
                 const active = selectedDepositPeriods.includes(period);
+                const alreadyBooked = selectedDepositPerson
+                  && deposits.some(
+                    (deposit) =>
+                      normalize(deposit.person_id) === normalize(selectedDepositPerson.id)
+                      && normalize(deposit.period) === period
+                      && normalize(deposit.status) !== "cancelled",
+                  );
 
                 return (
                   <button
@@ -485,9 +492,11 @@ export default function DepositTab({
                     type="button"
                     className={active ? "admin-deposit-chip admin-deposit-chip-active" : "admin-deposit-chip"}
                     onClick={() => setDepositForm({ ...depositForm, end_period: period })}
-                    disabled={!depositForm.person_id}
+                    disabled={!depositForm.person_id || alreadyBooked}
+                    title={alreadyBooked ? "Sudah dibooking untuk periode ini" : ""}
                   >
                     {formatPeriod(period)}
+                    {alreadyBooked && <span style={{ display: "block", fontSize: 11, fontWeight: 600, opacity: 0.8 }}>sudah dibooking</span>}
                   </button>
                 );
               })}
