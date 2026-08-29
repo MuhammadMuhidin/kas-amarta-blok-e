@@ -35,8 +35,23 @@ export default function useAdminDerivedState({
   );
 
   const selectedDepositPeriods = useMemo(
-    () => (!depositForm.end_period ? [] : nextSixPeriods.filter((period) => period <= depositForm.end_period)),
-    [depositForm.end_period, nextSixPeriods],
+    () => {
+      const bookedPeriods = selectedDepositPerson
+        ? new Set(
+            deposits
+              .filter(
+                (item) =>
+                  normalize(item.person_id) === normalize(selectedDepositPerson.id)
+                  && normalize(item.status) !== "cancelled",
+              )
+              .map((item) => normalize(item.period)),
+          )
+        : new Set();
+      return !depositForm.end_period
+        ? []
+        : nextSixPeriods.filter((period) => period <= depositForm.end_period && !bookedPeriods.has(period));
+    },
+    [depositForm.end_period, nextSixPeriods, deposits, selectedDepositPerson, normalize],
   );
 
   const activePersons = useMemo(
