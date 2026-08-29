@@ -496,7 +496,7 @@ export default function DepositTab({
                     title={alreadyBooked ? "Sudah dibooking untuk periode ini" : ""}
                   >
                     {formatPeriod(period)}
-                    {alreadyBooked && <span style={{ display: "block", fontSize: 11, fontWeight: 600, opacity: 0.8 }}>sudah dibooking</span>}
+                    {alreadyBooked && <span style={{ display: "block", fontSize: 11, fontWeight: 600, color: "#16a34a", opacity: 0.9 }}>sudah dibooking</span>}
                   </button>
                 );
               })}
