@@ -594,47 +594,6 @@ function AlertItem({ alert, onNavigate }) {
   );
 }
 
-function ArrearsRow({ item, index, expanded, onToggle, currentPeriod }) {
-  const cashPerMonth = item.months > 0 ? Math.round(item.cashAmount / item.months) : 0;
-  const trashPerMonth = item.months > 0 ? Math.round(item.trashAmount / item.months) : 0;
-  return (
-    <>
-      <tr style={{ cursor: "pointer", background: expanded ? "var(--admin-row)" : "" }} onClick={onToggle}>
-        <td style={styles.arrearsTd}>{index + 1}</td>
-        <td style={styles.arrearsTd}><strong>{item.house}</strong></td>
-        <td style={styles.arrearsTd}>{item.name}</td>
-        <td style={{ ...styles.arrearsTd, textAlign: "right" }}>{item.months}</td>
-        <td style={{ ...styles.arrearsTd, textAlign: "right" }}>{money(item.totalAmount)}</td>
-        <td style={styles.arrearsTd}>{formatPeriodsList(item.periods)}</td>
-        <td style={styles.arrearsTd}>{item.lastPaid ? formatPeriodShort(item.lastPaid) : "Never"}</td>
-      </tr>
-      {expanded && (
-        <tr>
-          <td colSpan={7} style={styles.arrearsDetailCell}>
-            <div style={styles.arrearsDetailBox}>
-              <div style={styles.arrearsDetailHeader}>
-                <strong>{item.house} — {item.name}</strong>
-                <span style={styles.muted}>Trash: {item.trash ? "Y" : "N"}</span>
-              </div>
-              {item.periods.map((period) => (
-                <div key={period} style={styles.arrearsDetailRow}>
-                  <span>{formatPeriodShort(period)}</span>
-                  <span>Cash {money(cashPerMonth)}</span>
-                  {item.trash && <span>Trash {money(trashPerMonth)}</span>}
-                  <span style={{ color: "#dc2626", fontWeight: 700 }}>❌ Unpaid</span>
-                </div>
-              ))}
-              <div style={styles.arrearsDetailTotal}>
-                Total: {money(item.cashAmount)} cash{item.trash ? ` + ${money(item.trashAmount)} trash` : ""} = {money(item.totalAmount)}
-              </div>
-            </div>
-          </td>
-        </tr>
-      )}
-    </>
-  );
-}
-
 export default function OverviewTab({
   personal,
   payments,
@@ -662,7 +621,6 @@ export default function OverviewTab({
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
   const [showCashDetail, setShowCashDetail] = useState(false);
   const [cashDetailStatus, setCashDetailStatus] = useState("all");
-  const [expandedArrears, setExpandedArrears] = useState({});
 
   useModalScrollLock(showReportConfirm || showTrashAdvanceConfirm || showCashDetail);
 
@@ -820,11 +778,7 @@ export default function OverviewTab({
     )), 2800);
   }
 
-  function toggleArrears(id) {
-    setExpandedArrears((prev) => ({ ...prev, [id]: !prev[id] }));
-  }
-
-  async function copyArrearsText() {
+   async function copyArrearsText() {
     const text = copyArrearsAsText(derived.arrearsReport, currentPeriod);
     try {
       await navigator.clipboard.writeText(text);
@@ -1136,32 +1090,19 @@ export default function OverviewTab({
                     <span>🏠 {derived.arrearsReport.length} house{derived.arrearsReport.length === 1 ? "" : "s"} with arrears</span>
                     <span>💰 {money(derived.arrearsReport.reduce((s, a) => s + a.totalAmount, 0))}</span>
                   </div>
-                  <div style={styles.arrearsTableWrap}>
-                    <table style={styles.arrearsTable}>
-                      <thead>
-                        <tr>
-                          <th style={styles.arrearsTh}>#</th>
-                          <th style={styles.arrearsTh}>House</th>
-                          <th style={styles.arrearsTh}>Name</th>
-                          <th style={{ ...styles.arrearsTh, textAlign: "right" }}>Months</th>
-                          <th style={{ ...styles.arrearsTh, textAlign: "right" }}>Total</th>
-                          <th style={styles.arrearsTh}>Periods</th>
-                          <th style={styles.arrearsTh}>Last Paid</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {derived.arrearsReport.map((a, index) => (
-                          <ArrearsRow
-                            key={a.id}
-                            item={a}
-                            index={index}
-                            expanded={Boolean(expandedArrears[a.id])}
-                            onToggle={() => toggleArrears(a.id)}
-                            currentPeriod={currentPeriod}
-                          />
-                        ))}
-                      </tbody>
-                    </table>
+                  <div style={styles.arrearsCardList}>
+                    {derived.arrearsReport.map((a, index) => (
+                      <div key={a.id} style={styles.arrearsCard}>
+                        <div style={styles.arrearsCardHead}>
+                          <strong>{index + 1}. {a.house} ({a.name})</strong>
+                          <span style={styles.arrearsCardBadge}>{a.months} bulan</span>
+                        </div>
+                        <div style={styles.arrearsCardBody}>
+                          <span>Nunggak: {formatPeriodsList(a.periods)}</span>
+                          <span style={{ fontWeight: 800 }}>Total: {money(a.totalAmount)}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                   <div style={styles.arrearsActions}>
                     <button type="button" className="admin-small-btn" onClick={copyArrearsText}>
@@ -1529,59 +1470,39 @@ const styles = {
     fontWeight: 700,
     marginBottom: 14,
   },
-  arrearsTableWrap: {
-    overflowX: "auto",
-    borderRadius: 12,
-    border: "1px solid var(--admin-border)",
+  arrearsCardList: {
+    display: "grid",
+    gap: 10,
   },
-  arrearsTable: {
-    width: "100%",
-    borderCollapse: "collapse",
-    fontSize: 13,
-  },
-  arrearsTh: {
-    padding: "10px 12px",
-    textAlign: "left",
-    fontWeight: 800,
-    borderBottom: "1px solid var(--admin-border)",
-    background: "var(--admin-row)",
-    whiteSpace: "nowrap",
-  },
-  arrearsTd: {
-    padding: "10px 12px",
-    borderBottom: "1px solid var(--admin-border)",
-    verticalAlign: "top",
-  },
-  arrearsDetailCell: {
-    padding: 0,
-    borderBottom: "1px solid var(--admin-border)",
-  },
-  arrearsDetailBox: {
-    margin: "8px 12px 12px",
+  arrearsCard: {
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     border: "1px solid var(--admin-border)",
     background: "var(--admin-card)",
   },
-  arrearsDetailHeader: {
+  arrearsCardHead: {
     display: "flex",
     justifyContent: "space-between",
+    alignItems: "center",
     gap: 8,
-    marginBottom: 8,
-    fontSize: 13,
+    marginBottom: 6,
+    fontSize: 14,
   },
-  arrearsDetailRow: {
-    display: "flex",
-    gap: 16,
-    padding: "4px 0",
-    fontSize: 12,
-    borderBottom: "1px dashed var(--admin-border)",
-  },
-  arrearsDetailTotal: {
-    marginTop: 8,
-    fontSize: 13,
+  arrearsCardBadge: {
+    padding: "3px 8px",
+    borderRadius: 999,
+    background: "#fee2e2",
+    color: "#991b1b",
+    fontSize: 11,
     fontWeight: 800,
-    textAlign: "right",
+    whiteSpace: "nowrap",
+  },
+  arrearsCardBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    fontSize: 13,
+    color: "var(--admin-muted)",
   },
   arrearsActions: {
     marginTop: 14,
