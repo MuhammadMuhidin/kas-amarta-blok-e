@@ -337,6 +337,18 @@ function RecordPaymentPanel({
     return map;
   }, [availablePaymentPeriods, personal, payments, currentPeriod, normalize]);
 
+  // Arrears: unpaid past periods (before the selected period) per house.
+  const selectedPeriod = normalize(payment.period);
+  const arrearsByHouse = useMemo(() => {
+    const untilPeriod = selectedPeriod || currentPeriod;
+    const map = new Map();
+    personal.filter((person) => person.active === "Y").forEach((person) => {
+      const arrears = getPersonArrears(person, payments, untilPeriod, normalize);
+      if (arrears.length > 0) map.set(person.id, { house: person.house, arrears });
+    });
+    return map;
+  }, [personal, payments, selectedPeriod, currentPeriod, normalize]);
+
   const selectedCount = selectedResidents.length;
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
   const disabled = loadingPayment
