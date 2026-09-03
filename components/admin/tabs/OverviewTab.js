@@ -599,7 +599,7 @@ export default function OverviewTab({
     const trashPaidPersonIds = new Set(
       trashRecords
         .map((trash) => paymentById.get(normalize(trash.payment_id)))
-        .filter((payment) => payment && String(payment.date || "").slice(0, 7) === currentPeriod)
+        .filter((payment) => payment && String(payment.period || "").slice(0, 7) === currentPeriod)
         .map((payment) => normalize(payment.person_id))
         .filter(Boolean),
     );

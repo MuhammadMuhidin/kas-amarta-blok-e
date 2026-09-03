@@ -5,7 +5,7 @@ import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import PaymentProofReviewCard from "@/components/admin/PaymentProofReviewCard";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
-import { getCurrentPeriod } from "@/lib/depositUtils";
+import { getCurrentPeriod, addMonths } from "@/lib/depositUtils";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const START_PAYMENT_PERIOD = "2026-02";
@@ -42,6 +42,27 @@ function isDepositPaid(deposit, normalize) {
   return normalize(deposit.status).toLowerCase() === "paid"
     && normalize(deposit.paid_at) !== ""
     && normalize(deposit.payment_id) !== "";
+}
+
+// Returns unpaid past periods (before `untilPeriod`) for a person, derived from payments.
+function getPersonArrears(person, payments, untilPeriod, normalize) {
+  if (!person || !untilPeriod) return [];
+  const joinPeriod = normalize(person.join_date || "").slice(0, 7);
+  const start = joinPeriod && joinPeriod >= START_PAYMENT_PERIOD ? joinPeriod : START_PAYMENT_PERIOD;
+  const lastPast = addMonths(untilPeriod, -1);
+  const result = [];
+  let period = start;
+  while (period <= lastPast) {
+    const alreadyPaid = payments.some(
+      (item) =>
+        normalize(item.person_id) === normalize(person.id) &&
+        normalize(item.person_house) === normalize(person.house) &&
+        normalize(item.period).slice(0, 7) === period,
+    );
+    if (!alreadyPaid) result.push(period);
+    period = addMonths(period, 1);
+  }
+  return result;
 }
 
 function WakeLockInfo({ wakeLock }) {
@@ -171,7 +192,7 @@ function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sen
   );
 }
 
-function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset }) {
+function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset, arrearsByHouse }) {
   const [confirmingReset, setConfirmingReset] = useState(false);
   const selectedCount = selectedResidents.length;
 
@@ -203,11 +224,20 @@ function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset }) 
       </div>
       {selectedCount > 0 ? (
         <ul className="admin-selected-residents-list">
-          {selectedResidents.map((person) => (
-            <li key={person.id} className="admin-selected-residents-item">
-              {person.house} — {person.name}
-            </li>
-          ))}
+          {selectedResidents.map((person) => {
+            const arrears = arrearsByHouse?.get(person.id);
+            const arrearsCount = arrears ? arrears.arrears.length : 0;
+            return (
+              <li key={person.id} className="admin-selected-residents-item">
+                {person.house} — {person.name}
+                {arrearsCount > 0 && (
+                  <span className="admin-selected-residents-arrears">
+                    ({arrearsCount} tunggakan bulan lalu)
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <div className="admin-selected-residents-empty">
@@ -295,12 +325,16 @@ function RecordPaymentPanel({
   }
 
   const availablePaymentPeriods = useMemo(() => {
-    const candidatePeriods = [...new Set([
-      ...payments.map((pay) => normalize(pay.period).slice(0, 7)).filter(isValidPeriod),
-      currentPeriod,
-    ])].sort();
+    // Generate ALL periods from start to currentPeriod (inclusive).
+    const allPeriods = [];
+    let p = START_PAYMENT_PERIOD;
+    while (p <= currentPeriod) {
+      allPeriods.push(p);
+      p = addMonths(p, 1);
+    }
 
-    return candidatePeriods.filter((period) => personal
+    // Keep only periods where at least one active person is eligible and unpaid.
+    return allPeriods.filter((period) => personal
       .filter((person) => person.active === "Y")
       .some((person) => {
         const joinPeriod = normalize(person.join_date).slice(0, 7);
@@ -327,6 +361,18 @@ function RecordPaymentPanel({
     });
     return map;
   }, [availablePaymentPeriods, personal, payments, currentPeriod, normalize]);
+
+  // Arrears: unpaid past periods (before the selected period) per house.
+  const selectedPeriod = normalize(payment.period);
+  const arrearsByHouse = useMemo(() => {
+    const untilPeriod = selectedPeriod || currentPeriod;
+    const map = new Map();
+    personal.filter((person) => person.active === "Y").forEach((person) => {
+      const arrears = getPersonArrears(person, payments, untilPeriod, normalize);
+      if (arrears.length > 0) map.set(person.id, { house: person.house, arrears });
+    });
+    return map;
+  }, [personal, payments, selectedPeriod, currentPeriod, normalize]);
 
   const selectedCount = selectedResidents.length;
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
@@ -426,6 +472,7 @@ function RecordPaymentPanel({
             selectedResidents={selectedResidents}
             loadingPayment={loadingPayment}
             onReset={resetSelected}
+            arrearsByHouse={arrearsByHouse}
           />
           {loadingPayment && <PaymentProgressBar progress={paymentProgress} />}
           <button className="admin-btn" disabled={disabled}>

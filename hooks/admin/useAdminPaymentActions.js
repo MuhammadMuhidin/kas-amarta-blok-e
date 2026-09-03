@@ -258,11 +258,8 @@ export default function useAdminPaymentActions({
   useEffect(() => {
     if (loadingPayment) return;
 
-    setSelected((prev) => prev.filter((id) => {
-      const person = personal.find((item) => item.id === id);
-      return person && !isHousePaidForPeriod(person);
-    }));
-  }, [payment.period, payments, personal, loadingPayment]);
+    setSelected([]);
+  }, [payment.period, loadingPayment]);
 
   return {
     selected,
