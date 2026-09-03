@@ -325,12 +325,16 @@ function RecordPaymentPanel({
   }
 
   const availablePaymentPeriods = useMemo(() => {
-    const candidatePeriods = [...new Set([
-      ...payments.map((pay) => normalize(pay.period).slice(0, 7)).filter(isValidPeriod),
-      currentPeriod,
-    ])].sort();
+    // Generate ALL periods from start to currentPeriod (inclusive).
+    const allPeriods = [];
+    let p = START_PAYMENT_PERIOD;
+    while (p <= currentPeriod) {
+      allPeriods.push(p);
+      p = addMonths(p, 1);
+    }
 
-    return candidatePeriods.filter((period) => personal
+    // Keep only periods where at least one active person is eligible and unpaid.
+    return allPeriods.filter((period) => personal
       .filter((person) => person.active === "Y")
       .some((person) => {
         const joinPeriod = normalize(person.join_date).slice(0, 7);
