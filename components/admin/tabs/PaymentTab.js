@@ -44,6 +44,27 @@ function isDepositPaid(deposit, normalize) {
     && normalize(deposit.payment_id) !== "";
 }
 
+// Returns unpaid past periods (before `untilPeriod`) for a person, derived from payments.
+function getPersonArrears(person, payments, untilPeriod, normalize) {
+  if (!person || !untilPeriod) return [];
+  const joinPeriod = normalize(person.join_date || "").slice(0, 7);
+  const start = joinPeriod && joinPeriod >= START_PAYMENT_PERIOD ? joinPeriod : START_PAYMENT_PERIOD;
+  const lastPast = addMonths(untilPeriod, -1);
+  const result = [];
+  let period = start;
+  while (period <= lastPast) {
+    const alreadyPaid = payments.some(
+      (item) =>
+        normalize(item.person_id) === normalize(person.id) &&
+        normalize(item.person_house) === normalize(person.house) &&
+        normalize(item.period).slice(0, 7) === period,
+    );
+    if (!alreadyPaid) result.push(period);
+    period = addMonths(period, 1);
+  }
+  return result;
+}
+
 function WakeLockInfo({ wakeLock }) {
   if (!wakeLock) return null;
   const message = wakeLock.supported
