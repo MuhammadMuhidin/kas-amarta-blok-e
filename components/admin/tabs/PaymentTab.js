@@ -5,7 +5,7 @@ import LoadingButtonContent from "@/components/admin/LoadingButtonContent";
 import PaymentProofReviewCard from "@/components/admin/PaymentProofReviewCard";
 import { readJson, sendJson } from "@/components/admin/adminClientApi";
 import Toast from "@/components/Toast";
-import { getCurrentPeriod } from "@/lib/depositUtils";
+import { getCurrentPeriod, addMonths } from "@/lib/depositUtils";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const START_PAYMENT_PERIOD = "2026-02";
