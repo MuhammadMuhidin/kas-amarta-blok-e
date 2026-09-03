@@ -311,6 +311,23 @@ function RecordPaymentPanel({
       }));
   }, [personal, payments, currentPeriod, normalize]);
 
+  // Unpaid house count per period (for dropdown labels).
+  const unpaidCountByPeriod = useMemo(() => {
+    const map = new Map();
+    availablePaymentPeriods.forEach((period) => {
+      const count = personal.filter((person) => {
+        if (person.active !== "Y") return false;
+        const joinPeriod = normalize(person.join_date).slice(0, 7);
+        const effectiveStartPeriod = getEffectiveStartPeriod(joinPeriod);
+        return isValidPeriod(effectiveStartPeriod)
+          && period >= effectiveStartPeriod
+          && !isPaidForPeriod(person, period);
+      }).length;
+      map.set(period, count);
+    });
+    return map;
+  }, [availablePaymentPeriods, personal, payments, currentPeriod, normalize]);
+
   const selectedCount = selectedResidents.length;
   const hasPendingCurrentDeposit = pendingCurrentDeposits.length > 0;
   const disabled = loadingPayment
@@ -353,7 +370,7 @@ function RecordPaymentPanel({
           >
             <option value="">Select unpaid period</option>
             {availablePaymentPeriods.map((period) => (
-              <option key={period} value={period}>{formatPeriod(period)}</option>
+              <option key={period} value={period}>{formatPeriod(period)} ({unpaidCountByPeriod.get(period) || 0} unpaid)</option>
             ))}
           </select>
           <input
