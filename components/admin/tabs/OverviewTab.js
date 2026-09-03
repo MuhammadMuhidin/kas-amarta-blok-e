@@ -621,6 +621,7 @@ export default function OverviewTab({
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
   const [showCashDetail, setShowCashDetail] = useState(false);
   const [cashDetailStatus, setCashDetailStatus] = useState("all");
+  const [expandedArrears, setExpandedArrears] = useState({});
 
   useModalScrollLock(showReportConfirm || showTrashAdvanceConfirm || showCashDetail);
 
@@ -725,6 +726,11 @@ export default function OverviewTab({
       arrearsReport: (() => {
         const monthlyFee = Number(appConfig?.monthly_fee || 0);
         const trashFee = Number(appConfig?.trash_fee || 0);
+        const allAdvanceRefIds = new Set(
+          cashflows
+            .map((item) => normalize(item.ref_id))
+            .filter((refId) => refId.startsWith("TRASHADV-")),
+        );
         const result = [];
         activeCurrentMembers.forEach((person) => {
           const start = getEffectiveStart(normalize(person.join_date).slice(0, 7));
@@ -747,6 +753,12 @@ export default function OverviewTab({
           const unpaidPeriods = periods.filter((period) => !paidCash.has(period));
           if (!unpaidPeriods.length) return;
           const hasTrash = normalizeUpper(person.trash) === "Y";
+          const personId = normalize(person.id);
+          const unpaidDetail = unpaidPeriods.map((period) => {
+            const hasAdvance = hasTrash && allAdvanceRefIds.has(getTrashAdvanceRefId(personId, period));
+            return { period, hasAdvance };
+          });
+          const advancedCount = unpaidDetail.filter((d) => d.hasAdvance).length;
           const cashAmount = unpaidPeriods.length * monthlyFee;
           const trashAmount = hasTrash ? unpaidPeriods.length * trashFee : 0;
           const lastPaid = [...payments]
@@ -759,6 +771,8 @@ export default function OverviewTab({
             trash: hasTrash,
             months: unpaidPeriods.length,
             periods: unpaidPeriods,
+            unpaidDetail,
+            advancedCount,
             cashAmount,
             trashAmount,
             totalAmount: cashAmount + trashAmount,
@@ -786,6 +800,10 @@ export default function OverviewTab({
     } catch {
       showToast("error", "Failed to copy. Please select and copy manually.");
     }
+  }
+
+  function toggleArrears(id) {
+    setExpandedArrears((prev) => ({ ...prev, [id]: !prev[id] }));
   }
 
   async function openResidentReportConfirm() {
@@ -1087,20 +1105,32 @@ export default function OverviewTab({
               ) : (
                 <>
                   <div style={styles.arrearsSummary}>
-                    <span>🏠 {derived.arrearsReport.length} house{derived.arrearsReport.length === 1 ? "" : "s"} with arrears</span>
-                    <span>💰 {money(derived.arrearsReport.reduce((s, a) => s + a.totalAmount, 0))}</span>
+                    <span>🏠 {derived.arrearsReport.length} house{derived.arrearsReport.length === 1 ? "" : "s"} with total {money(derived.arrearsReport.reduce((s, a) => s + a.totalAmount, 0))}</span>
                   </div>
                   <div style={styles.arrearsCardList}>
                     {derived.arrearsReport.map((a, index) => (
-                      <div key={a.id} style={styles.arrearsCard}>
+                      <div key={a.id} style={{ ...styles.arrearsCard, cursor: "pointer" }} onClick={() => toggleArrears(a.id)}>
                         <div style={styles.arrearsCardHead}>
                           <strong>{index + 1}. {a.house} ({a.name})</strong>
-                          <span style={styles.arrearsCardBadge}>{a.months} bulan</span>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            {a.advancedCount > 0 && <span style={styles.arrearsAdvancedBadge}>⚡ {a.advancedCount} advanced</span>}
+                            <span style={styles.arrearsCardBadge}>{a.months} bulan</span>
+                          </div>
                         </div>
                         <div style={styles.arrearsCardBody}>
                           <span>Nunggak: {formatPeriodsList(a.periods)}</span>
                           <span style={{ fontWeight: 800 }}>Total: {money(a.totalAmount)}</span>
                         </div>
+                        {expandedArrears[a.id] && (
+                          <div style={styles.arrearsDetail}>
+                            {a.unpaidDetail.map((d) => (
+                              <div key={d.period} style={styles.arrearsDetailRow}>
+                                <span>{formatPeriodShort(d.period)}</span>
+                                <span>{d.hasAdvance ? <span style={{ color: "#d97706" }}>⚡ Advanced</span> : <span style={{ color: "#dc2626" }}>❌ Unpaid</span>}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1496,6 +1526,29 @@ const styles = {
     fontSize: 11,
     fontWeight: 800,
     whiteSpace: "nowrap",
+  },
+  arrearsAdvancedBadge: {
+    padding: "3px 8px",
+    borderRadius: 999,
+    background: "#fef3c7",
+    color: "#92400e",
+    fontSize: 11,
+    fontWeight: 800,
+    whiteSpace: "nowrap",
+  },
+  arrearsDetail: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTop: "1px solid var(--admin-border)",
+    display: "grid",
+    gap: 4,
+  },
+  arrearsDetailRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 8,
+    fontSize: 12,
+    padding: "2px 0",
   },
   arrearsCardBody: {
     display: "flex",
