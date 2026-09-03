@@ -171,7 +171,7 @@ function PaymentReminderCard({ sendingReminder, showPreview, setShowPreview, sen
   );
 }
 
-function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset }) {
+function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset, arrearsByHouse }) {
   const [confirmingReset, setConfirmingReset] = useState(false);
   const selectedCount = selectedResidents.length;
 
@@ -203,11 +203,20 @@ function SelectedResidentsPanel({ selectedResidents, loadingPayment, onReset }) 
       </div>
       {selectedCount > 0 ? (
         <ul className="admin-selected-residents-list">
-          {selectedResidents.map((person) => (
-            <li key={person.id} className="admin-selected-residents-item">
-              {person.house} — {person.name}
-            </li>
-          ))}
+          {selectedResidents.map((person) => {
+            const arrears = arrearsByHouse?.get(person.id);
+            const arrearsCount = arrears ? arrears.arrears.length : 0;
+            return (
+              <li key={person.id} className="admin-selected-residents-item">
+                {person.house} — {person.name}
+                {arrearsCount > 0 && (
+                  <span className="admin-selected-residents-arrears">
+                    ({arrearsCount} tunggakan bulan lalu)
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       ) : (
         <div className="admin-selected-residents-empty">
@@ -426,6 +435,7 @@ function RecordPaymentPanel({
             selectedResidents={selectedResidents}
             loadingPayment={loadingPayment}
             onReset={resetSelected}
+            arrearsByHouse={arrearsByHouse}
           />
           {loadingPayment && <PaymentProgressBar progress={paymentProgress} />}
           <button className="admin-btn" disabled={disabled}>

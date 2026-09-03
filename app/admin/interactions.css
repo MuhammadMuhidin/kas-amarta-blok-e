@@ -131,6 +131,13 @@
   line-height: 1.4;
 }
 
+.admin-selected-residents-arrears {
+  margin-left: 6px;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .admin-selected-residents-empty {
   margin-top: 8px;
   color: var(--admin-muted);
