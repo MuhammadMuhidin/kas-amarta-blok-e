@@ -7,6 +7,7 @@ import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson } from "@/components/admin/adminClientApi";
 import { shareMembersJpgReport, shareMembersJpgReportMinimalist } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
+import { addMonths } from "@/lib/depositUtils";
 import { useEffect, useMemo, useState } from "react";
 
 const DETAIL_PAGE_SIZE = 13;
@@ -53,6 +54,53 @@ function getTrashAdvanceRefId(personId, period) {
 }
 
 let modalScrollLockCount = 0;
+
+const START_PERIOD = "2026-02";
+
+function getEffectiveStart(joinPeriod) {
+  if (!joinPeriod) return START_PERIOD;
+  return joinPeriod >= START_PERIOD ? joinPeriod : START_PERIOD;
+}
+
+function formatPeriodShort(period) {
+  if (!period || period === "-") return "-";
+  const n = String(period).slice(0, 7);
+  if (!/^\d{4}-\d{2}$/.test(n)) return period;
+  const d = new Date(`${n}-01`);
+  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+// Returns display string: "Jan, Feb, Mar [2026]" or "Jan, Feb [2025], Mar [2026]"
+function formatPeriodsList(periods) {
+  if (!periods.length) return "-";
+  const byYear = {};
+  periods.forEach((p) => {
+    const y = p.slice(0, 4);
+    const m = new Date(`${p}-01`).toLocaleDateString("en-US", { month: "short" });
+    (byYear[y] ||= []).push(m);
+  });
+  const years = Object.keys(byYear).sort();
+  if (years.length === 1) {
+    return `${byYear[years[0]].join(", ")} [${years[0]}]`;
+  }
+  return years.map((y) => `${byYear[y].join(", ")} [${y}]`).join(", ");
+}
+
+function copyArrearsAsText(arrears, currentPeriod) {
+  const lines = [
+    `📋 ARREARS REPORT — ${formatPeriodShort(currentPeriod)}`,
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+    `🏠 ${arrears.length} house${arrears.length === 1 ? "" : "s"} · 💰 ${money(arrears.reduce((s, a) => s + a.totalAmount, 0))}`,
+    "",
+  ];
+  arrears.forEach((a, i) => {
+    lines.push(`${i + 1}. ${a.house} — ${a.name} — ${a.months} bulan`);
+    lines.push(`   ${formatPeriodsList(a.periods)}`);
+    lines.push(`   ${money(a.totalAmount)}`);
+    lines.push("");
+  });
+  return lines.join("\n");
+}
 
 function useModalScrollLock(open) {
   useEffect(() => {
@@ -573,6 +621,7 @@ export default function OverviewTab({
   const [toast, setToast] = useState({ show: false, type: "info", message: "" });
   const [showCashDetail, setShowCashDetail] = useState(false);
   const [cashDetailStatus, setCashDetailStatus] = useState("all");
+  const [expandedArrears, setExpandedArrears] = useState({});
 
   useModalScrollLock(showReportConfirm || showTrashAdvanceConfirm || showCashDetail);
 
@@ -674,6 +723,65 @@ export default function OverviewTab({
         ...member,
         paymentStatus: paidCurrentKeys.has(normalize(member.house)) || paidCurrentKeys.has(normalize(member.id)) ? 'Paid' : 'Unpaid',
       })),
+      arrearsReport: (() => {
+        const monthlyFee = Number(appConfig?.monthly_fee || 0);
+        const trashFee = Number(appConfig?.trash_fee || 0);
+        const allAdvanceRefIds = new Set(
+          cashflows
+            .map((item) => normalize(item.ref_id))
+            .filter((refId) => refId.startsWith("TRASHADV-")),
+        );
+        const result = [];
+        activeCurrentMembers.forEach((person) => {
+          const start = getEffectiveStart(normalize(person.join_date).slice(0, 7));
+          const periods = [];
+          let p = start;
+          while (p <= currentPeriod) {
+            periods.push(p);
+            p = addMonths(p, 1);
+          }
+          const paidCash = new Set(
+            payments
+              .filter((pay) => normalize(pay.person_id) === normalize(person.id) || normalize(pay.person_house) === normalize(person.house))
+              .map((pay) => normalize(pay.period).slice(0, 7)),
+          );
+          const paidTrash = new Set(
+            trashRecords
+              .filter((tr) => normalize(tr.person_id) === normalize(person.id) || normalize(tr.house) === normalize(person.house))
+              .map((tr) => normalize(tr.period).slice(0, 7)),
+          );
+          const unpaidPeriods = periods.filter((period) => !paidCash.has(period));
+          if (!unpaidPeriods.length) return;
+          const hasTrash = normalizeUpper(person.trash) === "Y";
+          const personId = normalize(person.id);
+          const unpaidDetail = unpaidPeriods.map((period) => {
+            const hasAdvance = hasTrash && allAdvanceRefIds.has(getTrashAdvanceRefId(personId, period));
+            return { period, hasAdvance };
+          });
+          const advancedCount = unpaidDetail.filter((d) => d.hasAdvance).length;
+          const cashAmount = unpaidPeriods.length * monthlyFee;
+          const trashAmount = hasTrash ? unpaidPeriods.length * trashFee : 0;
+          const lastPaid = [...payments]
+            .filter((pay) => (normalize(pay.person_id) === normalize(person.id) || normalize(pay.person_house) === normalize(person.house)) && normalize(pay.period).slice(0, 7) < currentPeriod)
+            .sort((a, b) => normalize(b.period).localeCompare(normalize(a.period)))[0];
+          result.push({
+            id: person.id,
+            house: person.house,
+            name: person.name,
+            trash: hasTrash,
+            months: unpaidPeriods.length,
+            periods: unpaidPeriods,
+            unpaidDetail,
+            advancedCount,
+            cashAmount,
+            trashAmount,
+            totalAmount: cashAmount + trashAmount,
+            lastPaid: lastPaid ? normalize(lastPaid.period).slice(0, 7) : "",
+          });
+        });
+        result.sort((a, b) => b.months - a.months || a.house.localeCompare(b.house, undefined, { numeric: true }));
+        return result;
+      })(),
     };
   }, [personal, payments, trashRecords, cashflows, sortedDeposits, currentPeriod, appConfig, getDepositStatus]);
 
@@ -682,6 +790,20 @@ export default function OverviewTab({
     setTimeout(() => setToast((current) => (
       current.message === message ? { ...current, show: false } : current
     )), 2800);
+  }
+
+   async function copyArrearsText() {
+    const text = copyArrearsAsText(derived.arrearsReport, currentPeriod);
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast("success", "Arrears report copied to clipboard.");
+    } catch {
+      showToast("error", "Failed to copy. Please select and copy manually.");
+    }
+  }
+
+  function toggleArrears(id) {
+    setExpandedArrears((prev) => ({ ...prev, [id]: !prev[id] }));
   }
 
   async function openResidentReportConfirm() {
@@ -838,6 +960,7 @@ export default function OverviewTab({
               panelId: "overview-actions-panel",
             },
             { value: "cashflow", label: "Recent Cashflow", panelId: "overview-cashflow-panel" },
+            { value: "reporting", label: "Reporting", badge: derived.arrearsReport.length || null, panelId: "overview-reporting-panel" },
           ]}
         />
 
@@ -969,6 +1092,54 @@ export default function OverviewTab({
                     </div>
                   ))}
                 </div>
+              )}
+            </Section>
+          </div>
+        )}
+
+        {activePanel === "reporting" && (
+          <div id="overview-reporting-panel" role="tabpanel" style={styles.panel}>
+            <Section title="Arrears Report">
+              {derived.arrearsReport.length === 0 ? (
+                <div className="admin-empty-state">No houses with arrears. All paid.</div>
+              ) : (
+                <>
+                  <div style={styles.arrearsSummary}>
+                    <span>🏠 {derived.arrearsReport.length} house{derived.arrearsReport.length === 1 ? "" : "s"} with total {money(derived.arrearsReport.reduce((s, a) => s + a.totalAmount, 0))}</span>
+                  </div>
+                  <div style={styles.arrearsCardList}>
+                    {derived.arrearsReport.map((a, index) => (
+                      <div key={a.id} style={{ ...styles.arrearsCard, cursor: "pointer" }} onClick={() => toggleArrears(a.id)}>
+                        <div style={styles.arrearsCardHead}>
+                          <strong>{index + 1}. {a.house} ({a.name})</strong>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            {a.advancedCount > 0 && <span style={styles.arrearsAdvancedBadge}>⚡ {a.advancedCount} advanced</span>}
+                            <span style={styles.arrearsCardBadge}>{a.months} bulan</span>
+                          </div>
+                        </div>
+                        <div style={styles.arrearsCardBody}>
+                          <span>Nunggak: {formatPeriodsList(a.periods)}</span>
+                          <span style={{ fontWeight: 800 }}>Total: {money(a.totalAmount)}</span>
+                        </div>
+                        {expandedArrears[a.id] && (
+                          <div style={styles.arrearsDetail}>
+                            {a.unpaidDetail.map((d) => (
+                              <div key={d.period} style={styles.arrearsDetailRow}>
+                                <span>{formatPeriodShort(d.period)}</span>
+                                <span>{d.hasAdvance ? <span style={{ color: "#d97706" }}>⚡ Advanced</span> : <span style={{ color: "#dc2626" }}>❌ Unpaid</span>}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div style={styles.arrearsActions}>
+                    <button type="button" className="admin-small-btn" onClick={copyArrearsText}>
+                      Copy as Text
+                    </button>
+                  </div>
+                </>
               )}
             </Section>
           </div>
@@ -1316,5 +1487,79 @@ const styles = {
     lineHeight: 1,
     flex: "0 0 auto",
     marginTop: 2,
+  },
+  arrearsSummary: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: "12px 14px",
+    borderRadius: 12,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-row)",
+    fontSize: 14,
+    fontWeight: 700,
+    marginBottom: 14,
+  },
+  arrearsCardList: {
+    display: "grid",
+    gap: 10,
+  },
+  arrearsCard: {
+    padding: 12,
+    borderRadius: 12,
+    border: "1px solid var(--admin-border)",
+    background: "var(--admin-card)",
+  },
+  arrearsCardHead: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+    fontSize: 14,
+  },
+  arrearsCardBadge: {
+    padding: "3px 8px",
+    borderRadius: 999,
+    background: "#fee2e2",
+    color: "#991b1b",
+    fontSize: 11,
+    fontWeight: 800,
+    whiteSpace: "nowrap",
+  },
+  arrearsAdvancedBadge: {
+    padding: "3px 8px",
+    borderRadius: 999,
+    background: "#fef3c7",
+    color: "#92400e",
+    fontSize: 11,
+    fontWeight: 800,
+    whiteSpace: "nowrap",
+  },
+  arrearsDetail: {
+    marginTop: 10,
+    paddingTop: 10,
+    borderTop: "1px solid var(--admin-border)",
+    display: "grid",
+    gap: 4,
+  },
+  arrearsDetailRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 8,
+    fontSize: 12,
+    padding: "2px 0",
+  },
+  arrearsCardBody: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 2,
+    fontSize: 13,
+    color: "var(--admin-muted)",
+  },
+  arrearsActions: {
+    marginTop: 14,
+    display: "flex",
+    gap: 8,
   },
 };
