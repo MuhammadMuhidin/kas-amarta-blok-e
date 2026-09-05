@@ -633,8 +633,8 @@ export default function OverviewTab({
 
   async function loadAuthConfig() {
     try {
-      const data = await readJson("/api/admin/wa-status");
-      setWaServicesEnabled(data.whatsappServicesEnabled !== false);
+      const data = await readJson("/api/admin/settings/status");
+      setWaServicesEnabled(data.whatsapp_services_enabled === true);
     } catch {
       setWaServicesEnabled(false);
     } finally {
