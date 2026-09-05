@@ -4,7 +4,7 @@ import AdminSubtabs from "@/components/admin/AdminSubtabs";
 import AdminActionButton from "@/components/admin/AdminActionButton";
 import AdminConfirmModal from "@/components/admin/AdminConfirmModal";
 import MonitoringCard from "@/components/admin/MonitoringCard";
-import { sendJson } from "@/components/admin/adminClientApi";
+import { sendJson, readJson } from "@/components/admin/adminClientApi";
 import { shareMembersJpgReport, shareMembersJpgReportMinimalist } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
 import { addMonths } from "@/lib/depositUtils";
@@ -622,8 +622,25 @@ export default function OverviewTab({
   const [showCashDetail, setShowCashDetail] = useState(false);
   const [cashDetailStatus, setCashDetailStatus] = useState("all");
   const [expandedArrears, setExpandedArrears] = useState({});
+  const [waServicesEnabled, setWaServicesEnabled] = useState(true);
+  const [loadingWaConfig, setLoadingWaConfig] = useState(true);
 
   useModalScrollLock(showReportConfirm || showTrashAdvanceConfirm || showCashDetail);
+
+  useEffect(() => {
+    loadAuthConfig();
+  }, []);
+
+  async function loadAuthConfig() {
+    try {
+      const data = await readJson("/api/admin/settings/auth");
+      setWaServicesEnabled(data.config?.whatsappServicesEnabled !== false);
+    } catch {
+      setWaServicesEnabled(false);
+    } finally {
+      setLoadingWaConfig(false);
+    }
+  }
 
   const derived = useMemo(() => {
     const activeMembers = personal.filter((person) => person.active === "Y");
@@ -1247,14 +1264,34 @@ export default function OverviewTab({
       <AdminConfirmModal
         open={showReportConfirm}
         title="Confirm resident report delivery"
-        description="Check the message before sending it to the WhatsApp group."
+        description={waServicesEnabled
+          ? "Check the message before sending it to the WhatsApp group."
+          : "Check the message. WhatsApp services are disabled — send manually."}
         confirmText="Send to Group"
-        cancelText="Check Again"
+        hideConfirm={loadingWaConfig || !waServicesEnabled}
+        cancelText="Close"
         loading={sendingReport}
         onCancel={() => !sendingReport && setShowReportConfirm(false)}
         onConfirm={sendResidentReport}
       >
-        <pre style={styles.previewBox}>{reportPreview}</pre>
+        <div style={styles.previewBoxWrap}>
+          <pre style={styles.previewBox}>{reportPreview}</pre>
+          <button
+            type="button"
+            className="admin-small-btn"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(reportPreview);
+                showToast("success", "Report preview copied to clipboard.");
+              } catch {
+                showToast("error", "Failed to copy. Please select and copy manually.");
+              }
+            }}
+            style={{ marginTop: 8 }}
+          >
+            Copy Text
+          </button>
+        </div>
       </AdminConfirmModal>
     </>
   );
@@ -1450,6 +1487,11 @@ const styles = {
     background: "var(--admin-row)",
     whiteSpace: "pre-wrap",
     lineHeight: 1.55,
+  },
+  previewBoxWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
   },
   formatChoiceDropdown: {
     position: "absolute",
