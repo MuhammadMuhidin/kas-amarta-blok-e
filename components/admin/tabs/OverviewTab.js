@@ -1254,7 +1254,24 @@ export default function OverviewTab({
         onCancel={() => !sendingReport && setShowReportConfirm(false)}
         onConfirm={sendResidentReport}
       >
-        <pre style={styles.previewBox}>{reportPreview}</pre>
+        <div style={styles.previewBoxWrap}>
+          <pre style={styles.previewBox}>{reportPreview}</pre>
+          <button
+            type="button"
+            className="admin-small-btn"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(reportPreview);
+                showToast("success", "Report preview copied to clipboard.");
+              } catch {
+                showToast("error", "Failed to copy. Please select and copy manually.");
+              }
+            }}
+            style={{ marginTop: 8 }}
+          >
+            Copy Text
+          </button>
+        </div>
       </AdminConfirmModal>
     </>
   );
@@ -1450,6 +1467,11 @@ const styles = {
     background: "var(--admin-row)",
     whiteSpace: "pre-wrap",
     lineHeight: 1.55,
+  },
+  previewBoxWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
   },
   formatChoiceDropdown: {
     position: "absolute",
