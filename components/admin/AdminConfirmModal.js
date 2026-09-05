@@ -8,6 +8,7 @@ export default function AdminConfirmModal({
   description,
   confirmText = "Confirm",
   confirmDisabled = false,
+  hideConfirm = false,
   cancelText = "Cancel",
   hideCancel = false,
   loading = false,
@@ -35,9 +36,11 @@ export default function AdminConfirmModal({
               {cancelText}
             </AdminActionButton>
           )}
-          <AdminActionButton onClick={onConfirm} disabled={confirmDisabled} loading={loading} loadingText={loadingText}>
-            {confirmText}
-          </AdminActionButton>
+          {!hideConfirm && (
+            <AdminActionButton onClick={onConfirm} disabled={confirmDisabled} loading={loading} loadingText={loadingText}>
+              {confirmText}
+            </AdminActionButton>
+          )}
         </div>
       </div>
     </div>
