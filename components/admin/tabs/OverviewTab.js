@@ -96,7 +96,7 @@ function copyArrearsAsText(arrears, currentPeriod) {
   arrears.forEach((a, i) => {
     lines.push(`${i + 1}. ${a.house} — ${a.name} — ${a.months} bulan`);
     lines.push(`   ${formatPeriodsList(a.periods)}`);
-    lines.push(`   ${money(a.totalAmount)}`);
+    lines.push(`   ${money(a.totalAmount)} · ${a.trash ? "Kas + Sampah" : "Kas"}`);
     lines.push("");
   });
   return lines.join("\n");
@@ -1138,7 +1138,7 @@ export default function OverviewTab({
                           <span>Nunggak: {formatPeriodsList(a.periods)}</span>
                           <div style={styles.arrearsCardFoot}>
                             <span style={{ fontWeight: 800 }}>Total: {money(a.totalAmount)}</span>
-                            <span style={styles.arrearsTrashBadge}>{a.trash ? "Kas + Sampah" : "Kas"}</span>
+                            <span style={a.trash ? styles.arrearsTrashBadgeCashTrash : styles.arrearsTrashBadgeCash}>{a.trash ? "Kas + Sampah" : "Kas"}</span>
                           </div>
                         </div>
                         {expandedArrears[a.id] && (
@@ -1613,11 +1613,29 @@ const styles = {
   arrearsTrashBadge: {
     padding: "2px 8px",
     borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 700,
+    whiteSpace: "nowrap",
+  },
+  arrearsTrashBadgeCash: {
+    padding: "2px 8px",
+    borderRadius: 999,
     background: "var(--admin-row)",
     border: "1px solid var(--admin-border)",
     fontSize: 11,
     fontWeight: 700,
     color: "var(--admin-muted)",
+    whiteSpace: "nowrap",
+  },
+  arrearsTrashBadgeCashTrash: {
+    padding: "2px 8px",
+    borderRadius: 999,
+    background: "#eff6ff",
+    border: "1px solid #bfdbfe",
+    fontSize: 11,
+    fontWeight: 700,
+    color: "#1d4ed8",
+    whiteSpace: "nowrap",
   },
   arrearsActions: {
     marginTop: 14,
