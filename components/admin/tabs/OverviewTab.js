@@ -96,7 +96,7 @@ function copyArrearsAsText(arrears, currentPeriod) {
   arrears.forEach((a, i) => {
     lines.push(`${i + 1}. ${a.house} — ${a.name} — ${a.months} bulan`);
     lines.push(`   ${formatPeriodsList(a.periods)}`);
-    lines.push(`   ${money(a.totalAmount)}${a.trash ? ` · ${a.advancedCount > 0 ? "Kas + Sampah ⚡" : "Kas + Sampah"}` : ""}`);
+    lines.push(`   ${money(a.totalAmount)}${a.trash ? ` · ${a.advancedCount > 0 ? "Kas + Sampah ⚡" : "Kas + Sampah"}` : " · Hanya Kas"}`);
     lines.push("");
   });
   return lines.join("\n");
