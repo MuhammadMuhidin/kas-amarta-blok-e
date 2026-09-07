@@ -96,7 +96,7 @@ function copyArrearsAsText(arrears, currentPeriod) {
   arrears.forEach((a, i) => {
     lines.push(`${i + 1}. ${a.house} — ${a.name} — ${a.months} bulan`);
     lines.push(`   ${formatPeriodsList(a.periods)}`);
-    lines.push(`   ${money(a.totalAmount)} · ${a.trash ? "Kas + Sampah" : "Kas"}`);
+    lines.push(`   ${money(a.totalAmount)} · ${a.trash ? (a.advancedCount > 0 ? "Kas + Sampah ⚡" : "Kas + Sampah") : "Kas"}`);
     lines.push("");
   });
   return lines.join("\n");
@@ -796,7 +796,9 @@ export default function OverviewTab({
             lastPaid: lastPaid ? normalize(lastPaid.period).slice(0, 7) : "",
           });
         });
-        result.sort((a, b) => b.months - a.months || a.house.localeCompare(b.house, undefined, { numeric: true }));
+        // group: kas+sampah advanced > kas+sampah > kas, then by total tunggakan desc, then house
+        const groupOf = (x) => (x.trash ? (x.advancedCount > 0 ? 0 : 1) : 2);
+        result.sort((a, b) => groupOf(a) - groupOf(b) || b.totalAmount - a.totalAmount || a.house.localeCompare(b.house, undefined, { numeric: true }));
         return result;
       })(),
     };
