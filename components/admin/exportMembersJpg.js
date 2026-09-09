@@ -510,20 +510,20 @@ export async function shareMembersJpgReportMinimalist({
 export async function shareArrearsJpgMinimalist({
   period = "",
   arrears = [],
-  footerNote = "Jika ada data yang kurang tepat, silakan konfirmasi ke kas.",
   fileName = "arrears-report.jpg",
   exportScale = DEFAULT_EXPORT_SCALE,
 } = {}) {
   if (typeof document === "undefined") throw new Error("JPG export is only available in the browser.");
 
   const scale = clampExportScale(exportScale);
-  const padding = 28;
-  const lineHeight = 22;
-  const sectionGap = 14;
-  const width = 720;
+  const padding = 20;
+  const lineHeight = 20;
+  const sectionGap = 12;
+  const width = 540;
   const contentW = width - padding * 2;
+  const columnGap = 20;
+  const columnW = (contentW - columnGap) / 2;
 
-  // Format periods list (same logic as OverviewTab formatPeriodsList)
   function fmtPeriodsList(periods) {
     if (!periods || !periods.length) return "-";
     const byYear = {};
@@ -537,12 +537,12 @@ export async function shareArrearsJpgMinimalist({
     return years.map((y) => `${byYear[y].join(", ")} [${y}]`).join(", ");
   }
 
-  // Calculate height: header ~80, separator, summary 2 lines, separator, entries, separator, footer 3 lines
-  const entryLines = arrears.reduce((sum, a) => sum + 3, 0); // 3 lines per entry + gap
-  const entryGaps = arrears.length; // blank line between entries
   const totalArrears = arrears.reduce((s, a) => s + (a.totalAmount || 0), 0);
-  const height = padding + 48 + sectionGap + lineHeight * 2 + sectionGap + lineHeight + sectionGap
-    + (entryLines + entryGaps) * lineHeight + sectionGap + lineHeight * 3 + padding;
+  const half = Math.ceil(arrears.length / 2);
+  const maxRows = Math.max(half, arrears.length - half);
+  // 3 lines per entry, plus entry gap lines between entries within each column
+  const entryBlockH = maxRows * 3 * lineHeight + Math.max(0, maxRows - 1) * lineHeight;
+  const height = padding + 44 + sectionGap + sectionGap + entryBlockH + sectionGap + 8 + lineHeight * 2 + padding;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -556,7 +556,6 @@ export async function shareArrearsJpgMinimalist({
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  // White background
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, width, height);
 
@@ -564,12 +563,12 @@ export async function shareArrearsJpgMinimalist({
   let y = padding;
 
   // ── Header ──
-  drawCenteredText(ctx, "LAPORAN TUNGGAKAN", width / 2, y + 10, "700 20px monospace", "#000000");
-  y += 30;
-  drawCenteredText(ctx, formatPeriod(period), width / 2, y + 4, "400 15px monospace", "#000000");
-  y += 24;
-  drawCenteredText(ctx, `${arrears.length} rumah \u2022 ${money(totalArrears)}`, width / 2, y, "700 14px monospace", "#333333");
-  y += sectionGap + 8;
+  drawCenteredText(ctx, "LAPORAN TUNGGAKAN", width / 2, y + 8, "700 18px monospace", "#000000");
+  y += 26;
+  drawCenteredText(ctx, formatPeriod(period), width / 2, y + 2, "400 13px monospace", "#000000");
+  y += 20;
+  drawCenteredText(ctx, `${arrears.length} rumah \u2022 ${money(totalArrears)}`, width / 2, y, "700 12px monospace", "#333333");
+  y += sectionGap + 4;
 
   // ── Separator ──
   ctx.strokeStyle = "#000000";
@@ -580,25 +579,31 @@ export async function shareArrearsJpgMinimalist({
   ctx.stroke();
   y += sectionGap;
 
-  // ── Entries ──
-  const numFont = "700 14px monospace";
-  const detailFont = "400 13px monospace";
+  // ── Entries (two columns) ──
+  const numFont = "700 12px monospace";
+  const detailFont = "400 11px monospace";
+  const colLeftX = contentX;
+  const colRightX = contentX + columnW + columnGap;
 
-  arrears.forEach((a, i) => {
-    y += lineHeight; // blank line before entry
+  function drawEntry(a, i, x, rowY) {
     const paymentType = a.trash
-      ? (a.advancedCount > 0 ? "Kas+Sampah (advanced)" : "Kas+Sampah")
+      ? (a.advancedCount > 0 ? "Kas+Sampah (adv)" : "Kas+Sampah")
       : "Hanya Kas";
+    drawText(ctx, `${i + 1}. ${a.house} \u2014 ${a.name}`, x, rowY, numFont, "#000000");
+    drawText(ctx, `   ${a.months} bln: ${fmtPeriodsList(a.periods)}`, x, rowY + lineHeight, detailFont, "#333333");
+    drawText(ctx, `   ${money(a.totalAmount)} \u2022 ${paymentType}`, x, rowY + lineHeight * 2, detailFont, "#333333");
+  }
 
-    drawText(ctx, `${i + 1}. ${a.house} \u2014 ${a.name}`, contentX, y, numFont, "#000000");
-    y += lineHeight;
-    drawText(ctx, `   ${a.months} bln: ${fmtPeriodsList(a.periods)}`, contentX, y, detailFont, "#333333");
-    y += lineHeight;
-    drawText(ctx, `   ${money(a.totalAmount)} \u2022 ${paymentType}`, contentX, y, detailFont, "#333333");
-  });
+  for (let r = 0; r < maxRows; r++) {
+    const blockY = y + r * (lineHeight * 3 + lineHeight);
+    if (r < half) drawEntry(arrears[r], r, colLeftX, blockY);
+    if (half + r < arrears.length) drawEntry(arrears[half + r], half + r, colRightX, blockY);
+  }
+
+  y += entryBlockH;
 
   // ── Separator ──
-  y += sectionGap + 4;
+  y += 4;
   ctx.beginPath();
   ctx.moveTo(contentX, y);
   ctx.lineTo(contentX + contentW, y);
@@ -606,11 +611,12 @@ export async function shareArrearsJpgMinimalist({
   y += sectionGap;
 
   // ── Footer ──
-  const footerFont = "400 12px monospace";
-  const exportDate = formatDate(new Date().toISOString());
-  drawCenteredText(ctx, `Printed: ${exportDate}`, width / 2, y, footerFont, "#666666");
-  y += lineHeight;
-  drawCenteredText(ctx, footerNote, width / 2, y, footerFont, "#666666");
+  const footerFont = "400 11px monospace";
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const yyyy = now.getFullYear();
+  drawCenteredText(ctx, `Printed: ${dd}${mm}${yyyy}`, width / 2, y, footerFont, "#666666");
   y += lineHeight;
   drawCenteredText(ctx, `ID: ${fileName.replace(/\.jpg$/i, "")}`, width / 2, y, footerFont, "#999999");
 
