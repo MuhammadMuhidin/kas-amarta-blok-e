@@ -101,7 +101,7 @@ function copyArrearsAsText(arrears, currentPeriod) {
     lines.push(`   ${a.months} bln: ${formatPeriodsList(a.periods)}`);
     lines.push(`   ${money(a.totalAmount)} • ${paymentType}`);
   });
-  return lines.join("\n");
+  return "```\n" + lines.join("\n") + "\n```";
 }
 
 function useModalScrollLock(open) {
