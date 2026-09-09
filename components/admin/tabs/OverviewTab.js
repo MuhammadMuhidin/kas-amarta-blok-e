@@ -5,7 +5,7 @@ import AdminActionButton from "@/components/admin/AdminActionButton";
 import AdminConfirmModal from "@/components/admin/AdminConfirmModal";
 import MonitoringCard from "@/components/admin/MonitoringCard";
 import { sendJson, readJson } from "@/components/admin/adminClientApi";
-import { shareMembersJpgReport, shareMembersJpgReportMinimalist } from "@/components/admin/exportMembersJpg";
+import { shareMembersJpgReport, shareMembersJpgReportMinimalist, shareArrearsJpgMinimalist } from "@/components/admin/exportMembersJpg";
 import Toast from "@/components/Toast";
 import { addMonths } from "@/lib/depositUtils";
 import { useEffect, useMemo, useState } from "react";
@@ -823,6 +823,23 @@ export default function OverviewTab({
     }
   }
 
+  const [sharingArrearsJpg, setSharingArrearsJpg] = useState(false);
+  async function shareArrearsJpg() {
+    if (sharingArrearsJpg) return;
+    setSharingArrearsJpg(true);
+    try {
+      await shareArrearsJpgMinimalist({
+        period: currentPeriod,
+        arrears: derived.arrearsReport,
+        fileName: `arrears-${currentPeriod}.jpg`,
+      });
+    } catch (err) {
+      showToast("error", err.message || "Failed to generate JPG.");
+    } finally {
+      setSharingArrearsJpg(false);
+    }
+  }
+
   function toggleArrears(id) {
     setExpandedArrears((prev) => ({ ...prev, [id]: !prev[id] }));
   }
@@ -1162,6 +1179,14 @@ export default function OverviewTab({
                     <button type="button" className="admin-small-btn" onClick={copyArrearsText}>
                       Copy as Text
                     </button>
+                    <AdminActionButton
+                      loading={sharingArrearsJpg}
+                      loadingText="Creating JPG..."
+                      disabled={sharingArrearsJpg}
+                      onClick={shareArrearsJpg}
+                    >
+                      Share as JPG
+                    </AdminActionButton>
                   </div>
                 </>
               )}

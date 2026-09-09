@@ -507,4 +507,115 @@ export async function shareMembersJpgReportMinimalist({
   return shareOrDownloadBlob(blob, fileName, title);
 }
 
+export async function shareArrearsJpgMinimalist({
+  period = "",
+  arrears = [],
+  footerNote = "Jika ada data yang kurang tepat, silakan konfirmasi ke kas.",
+  fileName = "arrears-report.jpg",
+  exportScale = DEFAULT_EXPORT_SCALE,
+} = {}) {
+  if (typeof document === "undefined") throw new Error("JPG export is only available in the browser.");
+
+  const scale = clampExportScale(exportScale);
+  const padding = 28;
+  const lineHeight = 22;
+  const sectionGap = 14;
+  const width = 720;
+  const contentW = width - padding * 2;
+
+  // Format periods list (same logic as OverviewTab formatPeriodsList)
+  function fmtPeriodsList(periods) {
+    if (!periods || !periods.length) return "-";
+    const byYear = {};
+    periods.forEach((p) => {
+      const y = String(p).slice(0, 4);
+      const m = new Date(`${p}-01`).toLocaleDateString("en-US", { month: "short" });
+      (byYear[y] ||= []).push(m);
+    });
+    const years = Object.keys(byYear).sort();
+    if (years.length === 1) return `${byYear[years[0]].join(", ")} [${years[0]}]`;
+    return years.map((y) => `${byYear[y].join(", ")} [${y}]`).join(", ");
+  }
+
+  // Calculate height: header ~80, separator, summary 2 lines, separator, entries, separator, footer 3 lines
+  const entryLines = arrears.reduce((sum, a) => sum + 3, 0); // 3 lines per entry + gap
+  const entryGaps = arrears.length; // blank line between entries
+  const totalArrears = arrears.reduce((s, a) => s + (a.totalAmount || 0), 0);
+  const height = padding + 48 + sectionGap + lineHeight * 2 + sectionGap + lineHeight + sectionGap
+    + (entryLines + entryGaps) * lineHeight + sectionGap + lineHeight * 3 + padding;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Browser does not support canvas export.");
+
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  // White background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  const contentX = padding;
+  let y = padding;
+
+  // ── Header ──
+  drawCenteredText(ctx, "LAPORAN TUNGGAKAN", width / 2, y + 10, "700 20px monospace", "#000000");
+  y += 30;
+  drawCenteredText(ctx, formatPeriod(period), width / 2, y + 4, "400 15px monospace", "#000000");
+  y += 24;
+  drawCenteredText(ctx, `${arrears.length} rumah \u2022 ${money(totalArrears)}`, width / 2, y, "700 14px monospace", "#333333");
+  y += sectionGap + 8;
+
+  // ── Separator ──
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += sectionGap;
+
+  // ── Entries ──
+  const numFont = "700 14px monospace";
+  const detailFont = "400 13px monospace";
+
+  arrears.forEach((a, i) => {
+    y += lineHeight; // blank line before entry
+    const paymentType = a.trash
+      ? (a.advancedCount > 0 ? "Kas+Sampah (advanced)" : "Kas+Sampah")
+      : "Hanya Kas";
+
+    drawText(ctx, `${i + 1}. ${a.house} \u2014 ${a.name}`, contentX, y, numFont, "#000000");
+    y += lineHeight;
+    drawText(ctx, `   ${a.months} bln: ${fmtPeriodsList(a.periods)}`, contentX, y, detailFont, "#333333");
+    y += lineHeight;
+    drawText(ctx, `   ${money(a.totalAmount)} \u2022 ${paymentType}`, contentX, y, detailFont, "#333333");
+  });
+
+  // ── Separator ──
+  y += sectionGap + 4;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += sectionGap;
+
+  // ── Footer ──
+  const footerFont = "400 12px monospace";
+  const exportDate = formatDate(new Date().toISOString());
+  drawCenteredText(ctx, `Printed: ${exportDate}`, width / 2, y, footerFont, "#666666");
+  y += lineHeight;
+  drawCenteredText(ctx, footerNote, width / 2, y, footerFont, "#666666");
+  y += lineHeight;
+  drawCenteredText(ctx, `ID: ${fileName.replace(/\.jpg$/i, "")}`, width / 2, y, footerFont, "#999999");
+
+  const blob = await canvasToBlob(canvas, "image/jpeg", 0.95);
+  return shareOrDownloadBlob(blob, fileName, "Laporan Tunggakan");
+}
+
 export { money, formatDate, formatPeriod };
