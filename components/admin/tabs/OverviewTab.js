@@ -87,23 +87,21 @@ function formatPeriodsList(periods) {
 }
 
 function copyArrearsAsText(arrears, currentPeriod) {
+  const total = arrears.reduce((s, a) => s + a.totalAmount, 0);
   const lines = [
-    `ARREARS REPORT — ${formatPeriodShort(currentPeriod)}`,
-    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-    `${arrears.length} house${arrears.length === 1 ? "" : "s"} · ${money(arrears.reduce((s, a) => s + a.totalAmount, 0))}`,
-    "",
+    `Laporan Tunggakan ${formatPeriodShort(currentPeriod)}`,
+    `${arrears.length} rumah • ${money(total)}`,
   ];
   arrears.forEach((a, i) => {
     const paymentType = a.trash
-      ? (a.advancedCount > 0 ? "Kas + Sampah (advanced)" : "Kas + Sampah")
+      ? (a.advancedCount > 0 ? "Kas+Sampah (advanced)" : "Kas+Sampah")
       : "Hanya Kas";
-    lines.push(`${i + 1}. ${a.house} (${a.name})`);
-    lines.push(`${a.months} bulan`);
-    lines.push(formatPeriodsList(a.periods));
-    lines.push(`${money(a.totalAmount)} • ${paymentType}`);
     lines.push("");
+    lines.push(`${i + 1}. ${a.house} — ${a.name}`);
+    lines.push(`   ${a.months} bln: ${formatPeriodsList(a.periods)}`);
+    lines.push(`   ${money(a.totalAmount)} • ${paymentType}`);
   });
-  return lines.join("\n");
+  return "```\n" + lines.join("\n") + "\n```";
 }
 
 function useModalScrollLock(open) {
