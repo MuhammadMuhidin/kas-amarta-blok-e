@@ -89,16 +89,17 @@ function formatPeriodsList(periods) {
 function copyArrearsAsText(arrears, currentPeriod) {
   const total = arrears.reduce((s, a) => s + a.totalAmount, 0);
   const lines = [
-    `Laporan Tunggakan ${formatPeriodShort(currentPeriod)}•${arrears.length} rumah• total semua ${money(total)}`,
+    `Laporan Tunggakan ${formatPeriodShort(currentPeriod)}`,
+    `${arrears.length} rumah • ${money(total)}`,
   ];
   arrears.forEach((a, i) => {
     const paymentType = a.trash
-      ? (a.advancedCount > 0 ? "Kas + Sampah (advanced)" : "Kas + Sampah")
+      ? (a.advancedCount > 0 ? "Kas+Sampah (advanced)" : "Kas+Sampah")
       : "Hanya Kas";
     lines.push("");
-    lines.push(`${i + 1}. ${a.house} (${a.name})`);
-    lines.push(`${a.months} bulan: ${formatPeriodsList(a.periods)}`);
-    lines.push(`${money(a.totalAmount)} • ${paymentType}`);
+    lines.push(`${i + 1}. ${a.house} — ${a.name}`);
+    lines.push(`   ${a.months} bln: ${formatPeriodsList(a.periods)}`);
+    lines.push(`   ${money(a.totalAmount)} • ${paymentType}`);
   });
   return lines.join("\n");
 }
