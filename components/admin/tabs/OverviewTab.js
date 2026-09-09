@@ -88,15 +88,19 @@ function formatPeriodsList(periods) {
 
 function copyArrearsAsText(arrears, currentPeriod) {
   const lines = [
-    `📋 ARREARS REPORT — ${formatPeriodShort(currentPeriod)}`,
+    `ARREARS REPORT — ${formatPeriodShort(currentPeriod)}`,
     "━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
-    `🏠 ${arrears.length} house${arrears.length === 1 ? "" : "s"} · 💰 ${money(arrears.reduce((s, a) => s + a.totalAmount, 0))}`,
+    `${arrears.length} house${arrears.length === 1 ? "" : "s"} · ${money(arrears.reduce((s, a) => s + a.totalAmount, 0))}`,
     "",
   ];
   arrears.forEach((a, i) => {
-    lines.push(`${i + 1}. ${a.house} — ${a.name} — ${a.months} bulan`);
-    lines.push(`   ${formatPeriodsList(a.periods)}`);
-    lines.push(`   ${money(a.totalAmount)}${a.trash ? ` · ${a.advancedCount > 0 ? "Kas + Sampah ⚡" : "Kas + Sampah"}` : " · Hanya Kas"}`);
+    const paymentType = a.trash
+      ? (a.advancedCount > 0 ? "Kas + Sampah (advanced)" : "Kas + Sampah")
+      : "Hanya Kas";
+    lines.push(`${i + 1}. ${a.house} (${a.name})`);
+    lines.push(`${a.months} bulan`);
+    lines.push(formatPeriodsList(a.periods));
+    lines.push(`${money(a.totalAmount)} • ${paymentType}`);
     lines.push("");
   });
   return lines.join("\n");
