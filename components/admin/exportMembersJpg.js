@@ -507,4 +507,121 @@ export async function shareMembersJpgReportMinimalist({
   return shareOrDownloadBlob(blob, fileName, title);
 }
 
+export async function shareArrearsJpgMinimalist({
+  period = "",
+  arrears = [],
+  fileName = "arrears-report.jpg",
+  exportScale = DEFAULT_EXPORT_SCALE,
+} = {}) {
+  if (typeof document === "undefined") throw new Error("JPG export is only available in the browser.");
+
+  const scale = clampExportScale(exportScale);
+  const padding = 20;
+  const lineHeight = 20;
+  const sectionGap = 12;
+  const width = 540;
+  const contentW = width - padding * 2;
+  const columnGap = 20;
+  const columnW = (contentW - columnGap) / 2;
+
+  function fmtPeriodsList(periods) {
+    if (!periods || !periods.length) return "-";
+    const byYear = {};
+    periods.forEach((p) => {
+      const y = String(p).slice(0, 4);
+      const m = new Date(`${p}-01`).toLocaleDateString("en-US", { month: "short" });
+      (byYear[y] ||= []).push(m);
+    });
+    const years = Object.keys(byYear).sort();
+    if (years.length === 1) return `${byYear[years[0]].join(", ")} [${years[0]}]`;
+    return years.map((y) => `${byYear[y].join(", ")} [${y}]`).join(", ");
+  }
+
+  const totalArrears = arrears.reduce((s, a) => s + (a.totalAmount || 0), 0);
+  const half = Math.ceil(arrears.length / 2);
+  const maxRows = Math.max(half, arrears.length - half);
+  // 3 lines per entry, plus entry gap lines between entries within each column
+  const entryBlockH = maxRows * 3 * lineHeight + Math.max(0, maxRows - 1) * lineHeight;
+  const height = padding + 44 + sectionGap + sectionGap + entryBlockH + sectionGap + 8 + lineHeight * 2 + padding;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Browser does not support canvas export.");
+
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  const contentX = padding;
+  let y = padding;
+
+  // ── Header ──
+  drawCenteredText(ctx, "LAPORAN TUNGGAKAN", width / 2, y + 8, "700 18px monospace", "#000000");
+  y += 26;
+  drawCenteredText(ctx, formatPeriod(period), width / 2, y + 2, "400 13px monospace", "#000000");
+  y += 20;
+  drawCenteredText(ctx, `${arrears.length} rumah \u2022 ${money(totalArrears)}`, width / 2, y, "700 12px monospace", "#333333");
+  y += sectionGap + 4;
+
+  // ── Separator ──
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += sectionGap;
+
+  // ── Entries (two columns) ──
+  const numFont = "700 12px monospace";
+  const detailFont = "400 11px monospace";
+  const colLeftX = contentX;
+  const colRightX = contentX + columnW + columnGap;
+
+  function drawEntry(a, i, x, rowY) {
+    const paymentType = a.trash
+      ? (a.advancedCount > 0 ? "Kas+Sampah (adv)" : "Kas+Sampah")
+      : "Hanya Kas";
+    drawText(ctx, `${i + 1}. ${a.house} \u2014 ${a.name}`, x, rowY, numFont, "#000000");
+    drawText(ctx, `   ${a.months} bln: ${fmtPeriodsList(a.periods)}`, x, rowY + lineHeight, detailFont, "#333333");
+    drawText(ctx, `   ${money(a.totalAmount)} \u2022 ${paymentType}`, x, rowY + lineHeight * 2, detailFont, "#333333");
+  }
+
+  for (let r = 0; r < maxRows; r++) {
+    const blockY = y + r * (lineHeight * 3 + lineHeight);
+    if (r < half) drawEntry(arrears[r], r, colLeftX, blockY);
+    if (half + r < arrears.length) drawEntry(arrears[half + r], half + r, colRightX, blockY);
+  }
+
+  y += entryBlockH;
+
+  // ── Separator ──
+  y += 4;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += sectionGap;
+
+  // ── Footer ──
+  const footerFont = "400 11px monospace";
+  const now = new Date();
+  const dd = String(now.getDate()).padStart(2, "0");
+  const mm = String(now.getMonth() + 1).padStart(2, "0");
+  const yyyy = now.getFullYear();
+  drawCenteredText(ctx, `Printed: ${dd}${mm}${yyyy}`, width / 2, y, footerFont, "#666666");
+  y += lineHeight;
+  drawCenteredText(ctx, `ID: ${fileName.replace(/\.jpg$/i, "")}`, width / 2, y, footerFont, "#999999");
+
+  const blob = await canvasToBlob(canvas, "image/jpeg", 0.95);
+  return shareOrDownloadBlob(blob, fileName, "Laporan Tunggakan");
+}
+
 export { money, formatDate, formatPeriod };
