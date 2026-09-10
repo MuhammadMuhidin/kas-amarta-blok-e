@@ -59,6 +59,14 @@ export default function PublicPageClient() {
     setReceiptPreviewError(false);
   }
 
+  const visiblePeriods = useMemo(() => {
+    const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" }));
+    const cutoff = new Date(now);
+    cutoff.setMonth(cutoff.getMonth() - 5);
+    const cutoffStr = cutoff.toISOString().slice(0, 7);
+    return data.periods.filter((p) => p.slice(0, 7) >= cutoffStr).sort();
+  }, [data.periods]);
+
   const paymentList = useMemo(
     () => buildPaymentList({
       persons: data.persons,
@@ -126,7 +134,7 @@ export default function PublicPageClient() {
 
         <PaymentStatusTab
           active={activeTab === "payment"}
-          periods={data.periods}
+          periods={visiblePeriods}
           selectedPeriod={selectedPeriod}
           setSelectedPeriod={setSelectedPeriod}
           paymentList={paymentList}
