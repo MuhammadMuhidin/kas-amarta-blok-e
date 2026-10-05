@@ -94,7 +94,7 @@ function buildText(data, publicKasUrl) {
     : [`Tidak ada pengeluaran pada bulan ${lastMonth.month || "lalu"}.`];
   const currentSummaryLines = [
     `- Iuran kas warga: ${money(currentPaymentIncome)} dari ${paidHouseCount} rumah`,
-    `- Pengeluaran operasional: ${money(operationalExpense)}`,
+    `- Pengeluaran bulan berjalan: ${money(operationalExpense)}`,
   ];
 
   if (trashAdvanceExpense > 0) {
