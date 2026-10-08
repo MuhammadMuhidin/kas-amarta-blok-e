@@ -1,5 +1,8 @@
 FROM node:20-alpine
 
+ARG BUILD_VERSION=dev
+ENV BUILD_VERSION=$BUILD_VERSION
+
 WORKDIR /app
 
 COPY package*.json ./
