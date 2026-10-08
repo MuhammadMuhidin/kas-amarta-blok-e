@@ -3,6 +3,7 @@ import { isAdmin, unauthorized } from "@/lib/auth";
 import { listAdminActivities } from "@/features/activity/activityService";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(req) {
   try {

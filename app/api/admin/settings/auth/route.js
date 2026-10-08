@@ -14,6 +14,7 @@ import {
 } from "@/features/settings/authSettingsService";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 export async function GET(req) {
   try {

@@ -1,11 +1,11 @@
 {
   "platform": "local",
-  "branch": "unknown",
-  "commit": "unknown",
-  "commitShort": "unknown",
-  "commitMessage": "unknown",
-  "environment": "development",
+  "branch": "development",
+  "commit": "c8adaa4bcdbc9ecb807f58581aa87c9c12eb7388",
+  "commitShort": "c8adaa4",
+  "commitMessage": "build: pass supabase secrets as docker build args",
+  "environment": "unknown",
   "deployId": "local",
   "deployUrl": "",
-  "buildTime": "unknown"
+  "buildTime": "2026-10-08T18:11:55.012Z"
 }
