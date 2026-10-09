@@ -17,7 +17,6 @@ build/
 .env.test.local
 .env.production.local
 .dev.vars
-.image.tag
 
 # Logs
 npm-debug.log*

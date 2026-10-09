@@ -13,14 +13,10 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -34,20 +30,7 @@ jobs:
       - name: Build and push Docker image
         run: |
           SHORT_SHA=$(git rev-parse --short=7 HEAD)
-          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
           docker buildx build \
             --tag ${{ env.IMAGE_NAME }}:${SHORT_SHA} \
             --push \
             .
-
-      - name: Update .image.tag and commit
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          echo "${{ env.IMAGE_NAME }}:${{ env.SHORT_SHA }}" > .image.tag
-          git add .image.tag
-          git commit -m "build: ${{ env.IMAGE_NAME }}:${{ env.SHORT_SHA }}" || true
-
-      - name: Push to development branch
-        run: |
-          git push origin HEAD:development
