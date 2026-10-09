@@ -19,5 +19,5 @@ up:
 	echo "✓ Started"
 
 down:
-	docker compose down && \
+	DOCKER_IMAGE=$$(cat .image.tag) docker compose down && \
 	echo "✓ Stopped"
