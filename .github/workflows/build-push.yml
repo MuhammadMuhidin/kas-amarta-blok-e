@@ -32,5 +32,10 @@ jobs:
           SHORT_SHA=$(git rev-parse --short=7 HEAD)
           docker buildx build \
             --tag ${{ env.IMAGE_NAME }}:${SHORT_SHA} \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }} \
+            --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }} \
+            --build-arg GIT_COMMIT=${{ github.sha }} \
+            --build-arg GIT_BRANCH=${{ github.ref_name }} \
+            --build-arg GIT_COMMIT_MESSAGE="${{ github.event.head_commit.message }}" \
             --push \
             .
