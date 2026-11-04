@@ -19,10 +19,6 @@ function normalize(value) {
   return String(value || "").trim();
 }
 
-function normalizeLower(value) {
-  return normalize(value).toLowerCase();
-}
-
 function getCurrentPeriod(data) {
   const periods = Array.isArray(data?.periods) ? data.periods : [];
   const currentPeriod = [...periods].sort((a, b) => a.localeCompare(b)).pop();
@@ -59,13 +55,6 @@ function getCurrentPaymentIncome(data) {
   );
 }
 
-function isAdvanceExpense(cashflow) {
-  const note = normalizeLower(cashflow?.note);
-  const refId = normalizeLower(cashflow?.ref_id || cashflow?.payment_id);
-
-  return note.includes("talangan") || note.includes("advance") || refId.startsWith("trashadv-");
-}
-
 function sumCashflows(items) {
   return items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
 }
@@ -73,10 +62,37 @@ function sumCashflows(items) {
 function getCurrentExpenseBreakdown(data) {
   const currentCashflows = getCurrentMonthCashflows(data);
   const expenseCashflows = currentCashflows.filter((cashflow) => cashflow.type === "expense");
-  const trashAdvanceExpense = sumCashflows(expenseCashflows.filter(isAdvanceExpense));
-  const operationalExpense = Math.max(0, sumCashflows(expenseCashflows) - trashAdvanceExpense);
+  const operationalExpense = sumCashflows(expenseCashflows);
 
-  return { operationalExpense, trashAdvanceExpense };
+  return { operationalExpense };
+}
+
+function getOtherIncome(data) {
+  const currentCashflows = getCurrentMonthCashflows(data);
+  const currentPeriod = getCurrentPeriod(data);
+  const payments = Array.isArray(data?.payments) ? data.payments : [];
+
+  // 1. Cashflow with payment_id prefix "trash" and type income
+  const trashIncome = currentCashflows
+    .filter((cf) => cf.type === "income" && String(cf.payment_id || "").toLowerCase().startsWith("trash"))
+    .reduce((sum, cf) => sum + Number(cf.amount || 0), 0);
+
+  // 2. Direct income (type income, no payment_id or empty payment_id)
+  const directIncome = currentCashflows
+    .filter((cf) => cf.type === "income" && !String(cf.payment_id || "").trim())
+    .reduce((sum, cf) => sum + Number(cf.amount || 0), 0);
+
+  // 3. Last month payments paid in current month (cashflow in current month, payment period != current month)
+  const paymentById = new Map(payments.map((p) => [String(p.id), p]));
+  const lastMonthPaidInCurrent = currentCashflows
+    .filter((cf) => cf.type === "income" && cf.payment_id)
+    .filter((cf) => {
+      const payment = paymentById.get(String(cf.payment_id));
+      return payment && String(payment.period || "").slice(0, 7) !== currentPeriod;
+    })
+    .reduce((sum, cf) => sum + Number(cf.amount || 0), 0);
+
+  return trashIncome + directIncome + lastMonthPaidInCurrent;
 }
 
 function buildText(data, publicKasUrl) {
@@ -86,7 +102,8 @@ function buildText(data, publicKasUrl) {
   const expenses = Array.isArray(lastMonth.expenses) ? lastMonth.expenses : [];
   const paidHouseCount = countPaidHouses(data);
   const currentPaymentIncome = getCurrentPaymentIncome(data);
-  const { operationalExpense, trashAdvanceExpense } = getCurrentExpenseBreakdown(data);
+  const { operationalExpense } = getCurrentExpenseBreakdown(data);
+  const otherIncome = getOtherIncome(data);
   const expenseLines = expenses.length
     ? [...expenses]
         .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
@@ -97,8 +114,8 @@ function buildText(data, publicKasUrl) {
     `- Pengeluaran operasional: ${money(operationalExpense)}`,
   ];
 
-  if (trashAdvanceExpense > 0) {
-    currentSummaryLines.push(`- Talangan iuran sampah: ${money(trashAdvanceExpense)}`);
+  if (otherIncome > 0) {
+    currentSummaryLines.push(`- Pemasukan lainnya: ${money(otherIncome)}`);
   }
 
   return [
