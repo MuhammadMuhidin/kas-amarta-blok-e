@@ -2,7 +2,7 @@ import { GET as getCashSummary } from "@/app/api/sheets/summary/route";
 import { getIntegrationConfigString } from "@/lib/integrationConfig";
 import { sendWaMessage } from "@/lib/waClient";
 
-const FALLBACK_PUBLIC_KAS_URL = "https://amarta-residence.vercel.app/kas";
+const FALLBACK_PUBLIC_KAS_URL = "https://www.amarta-2-blok-e.my.id/kas";
 const money = (value) => `Rp${Number(value || 0).toLocaleString("id-ID")}`;
 
 async function getSummary() {
