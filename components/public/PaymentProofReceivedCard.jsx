@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 function formatRupiah(value) {
   return `Rp${Number(value || 0).toLocaleString("id-ID")}`;
@@ -75,14 +76,28 @@ function CheckmarkCircle({ size = 56, color = "#10b981" }) {
   );
 }
 
+const OVERLAY_STYLE = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 9999,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 16,
+  background: "rgba(0, 0, 0, 0.5)",
+  backdropFilter: "blur(2px)",
+  WebkitBackdropFilter: "blur(2px)",
+};
+
 const CARD_STYLE = {
+  width: "100%",
   maxWidth: 400,
-  margin: "0 auto",
   padding: 24,
   borderRadius: 18,
   background: "#fff",
-  boxShadow: "0 16px 32px -8px rgba(0,0,0,0.12)",
+  boxShadow: "0 24px 48px -12px rgba(0,0,0,0.18)",
   border: "1px solid #eef2f7",
+  animation: "slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1)",
 };
 
 const HEADER_STYLE = {
@@ -197,7 +212,22 @@ const CLOSE_BTN_STYLE = {
   transition: "transform 0.1s ease",
 };
 
-export default function PaymentProofReceivedCard({
+const GLOBAL_STYLE_ID = "payment-proof-received-card-styles";
+
+function injectGlobalStyles() {
+  if (typeof document === "undefined" || document.getElementById(GLOBAL_STYLE_ID)) return;
+  const style = document.createElement("style");
+  style.id = GLOBAL_STYLE_ID;
+  style.textContent = `
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function PaymentProofReceivedCardContent({
   proof,
   resident,
   onClose,
@@ -205,6 +235,7 @@ export default function PaymentProofReceivedCard({
   const [show, setShow] = useState(false);
 
   useEffect(() => {
+    injectGlobalStyles();
     requestAnimationFrame(() => setShow(true));
     if (navigator.vibrate) {
       navigator.vibrate([30, 60, 30]);
@@ -219,12 +250,12 @@ export default function PaymentProofReceivedCard({
   const cardStyle = {
     ...CARD_STYLE,
     opacity: show ? 1 : 0,
-    transform: show ? "scale(1)" : "scale(0.95)",
+    transform: show ? "translateY(0) scale(1)" : "translateY(20px) scale(0.95)",
     transition: "opacity 0.4s, transform 0.4s cubic-bezier(0.34,1.56,0.64,1)",
   };
 
   return (
-    <div style={cardStyle} role="status" aria-live="polite">
+    <div style={cardStyle} role="status" aria-live="polite" aria-modal="true">
       <div style={HEADER_STYLE}>
         <CheckmarkCircle size={56} color="#10b981" />
         <h2 style={TITLE_STYLE}>Bukti Pembayaran Diterima</h2>
@@ -287,9 +318,35 @@ export default function PaymentProofReceivedCard({
         onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.98)")}
         onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
         onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
+        autoFocus
       >
         Kembali
       </button>
     </div>
   );
+}
+
+export default function PaymentProofReceivedCard({
+  proof,
+  resident,
+  onClose,
+}) {
+  const content = (
+    <PaymentProofReceivedCardContent
+      proof={proof}
+      resident={resident}
+      onClose={onClose}
+    />
+  );
+
+  if (typeof window !== "undefined") {
+    return createPortal(
+      <div style={OVERLAY_STYLE} onClick={onClose}>
+        <div onClick={(e) => e.stopPropagation()}>{content}</div>
+      </div>,
+      document.body
+    );
+  }
+
+  return null; // SSR: render nothing, will mount on client
 }
