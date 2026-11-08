@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import PaymentProofReceivedCard from "./PaymentProofReceivedCard";
 
 const SUBMIT_LABELS = {
   idle: "Kirim Bukti",
@@ -84,10 +85,11 @@ function maybeCompressImage(file) {
   return compressImage(file);
 }
 
-export default function PaymentProofUploadForm({ resident, selectedPeriod, onSubmitted }) {
+export default function PaymentProofUploadForm({ resident, selectedPeriod, onSubmitted, onClose }) {
   const [proofFile, setProofFile] = useState(null);
   const [submitStatus, setSubmitStatus] = useState("idle");
   const [submitted, setSubmitted] = useState(false);
+  const [proofData, setProofData] = useState(null);
   const [message, setMessage] = useState(null);
   const fileInputRef = useRef(null);
   const progressTimersRef = useRef([]);
@@ -145,9 +147,8 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
 
       clearProgressTimers();
       setProofFile(null);
-      setSubmitStatus("success");
       if (fileInputRef.current) fileInputRef.current.value = "";
-      setMessage({ type: "success", text: "Bukti pembayaran berhasil dikirim. Menunggu persetujuan admin." });
+      setProofData(data.proof); // simpan proof object dari response
 
       await Promise.all([
         Promise.resolve().then(() => onSubmitted?.()).catch(() => undefined),
@@ -162,11 +163,20 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
     }
   }
 
-  if (submitted) {
+  function handleCloseSuccess() {
+    setSubmitted(false);
+    setProofData(null);
+    onSubmitted?.();
+    onClose?.(); // tutup parent modal
+  }
+
+  if (submitted && proofData) {
     return (
-      <div className="admin-success-box">
-        Bukti pembayaran berhasil dikirim. Menunggu persetujuan admin.
-      </div>
+      <PaymentProofReceivedCard
+        proof={proofData}
+        resident={resident}
+        onClose={handleCloseSuccess}
+      />
     );
   }
 
