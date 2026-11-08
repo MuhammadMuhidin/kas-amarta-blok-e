@@ -258,7 +258,7 @@ function PaymentProofReceivedCardContent({
     <div style={cardStyle} role="status" aria-live="polite" aria-modal="true">
       <div style={HEADER_STYLE}>
         <CheckmarkCircle size={56} color="#10b981" />
-        <h2 style={TITLE_STYLE}>Bukti Pembayaran Diterima</h2>
+        <h2 style={TITLE_STYLE}>Bukti Pembayaran Terkirim</h2>
         <p style={SUBTITLE_STYLE}>
           Nomor referensi: <strong>{proof?.id || "-"}</strong>
         </p>
@@ -302,7 +302,7 @@ function PaymentProofReceivedCardContent({
       <div style={INFO_BOX_STYLE}>
         <div style={INFO_ICON_STYLE} aria-hidden="true">ℹ️</div>
         <div style={INFO_TEXT_STYLE}>
-          <strong>Yang terjadi selanjutnya:</strong>
+          <strong>Informasi Verifikasi</strong>
           <ul style={INFO_LIST_STYLE}>
             <li>Admin akan memverifikasi bukti transfer Anda</li>
             <li>Proses verifikasi biasanya 1×24 jam kerja</li>
