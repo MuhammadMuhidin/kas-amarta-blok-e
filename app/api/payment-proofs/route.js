@@ -4,9 +4,39 @@ import { enforceRateLimit, RATE_LIMIT_SCOPES } from "@/lib/rateLimit";
 import { listPublicPaymentConfirmations, submitPaymentProof } from "@/features/paymentProof/paymentProofService";
 import { findPaymentProofById } from "@/features/paymentProof/paymentProofRepository";
 import { queuePaymentProofSubmittedNotification } from "@/lib/notificationQueue";
+import { notifyAdminPaymentProofSubmitted } from "@/features/paymentProof/paymentProofService";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+async function deferTask(task) {
+  if (process.env.VERCEL) {
+    try {
+      const { waitUntil } = await import("@vercel/functions");
+      waitUntil(task.catch((error) => {
+        console.error("Background task failed", { error: error instanceof Error ? error.message : String(error) });
+      }));
+      return true;
+    } catch (error) {
+      console.error("Vercel waitUntil unavailable", error);
+    }
+  }
+
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    const context = getCloudflareContext();
+    if (context?.ctx?.waitUntil) {
+      context.ctx.waitUntil(task.catch((error) => {
+        console.error("Background task failed", { error: error instanceof Error ? error.message : String(error) });
+      }));
+      return true;
+    }
+  } catch {
+    // Non-Cloudflare runtime or context unavailable.
+  }
+
+  return false;
+}
 
 export async function GET() {
   try {
@@ -28,22 +58,59 @@ export async function POST(req) {
 
     const supabase = getSupabaseAdmin();
     const result = await submitPaymentProof({ supabase, formData });
-    let telegramQueue = { queued: false, reason: "business_not_completed" };
 
-    if (result.status < 400 && result.body?.proof?.id) {
-      try {
-        const proof = await findPaymentProofById(supabase, result.body.proof.id);
-        telegramQueue = await queuePaymentProofSubmittedNotification({
-          proof: proof || result.body.proof,
-          totalAmount: Number(proof?.amount || result.body.proof.amount || 0) + Number(proof?.trash_amount || result.body.proof.trash_amount || 0),
-        });
-      } catch (error) {
-        console.error("Payment proof saved but Telegram queue integration failed", error);
-        telegramQueue = { queued: false, reason: error instanceof Error ? error.message : "integration_failed" };
-      }
+    if (result.status >= 400) {
+      return NextResponse.json(result.body, { status: result.status });
     }
 
-    return NextResponse.json({ ...result.body, telegram_queue: telegramQueue }, { status: result.status });
+    const proof = result.body?.proof;
+
+    // Return 202 SEGERA ke user - proof sudah tersimpan di DB
+    const response = NextResponse.json(
+      { ...result.body, status: "accepted", message: "Bukti pembayaran diterima, sedang diproses" },
+      { status: 202 }
+    );
+
+    // Background: kirim email notifikasi ke admin
+    if (proof?.id) {
+      deferTask(
+        (async () => {
+          try {
+            const fullProof = await findPaymentProofById(supabase, proof.id);
+            if (fullProof) {
+              await notifyAdminPaymentProofSubmitted({
+                proof: fullProof,
+                member: { house: fullProof.person_house, name: fullProof.person_name || "-", trash: "N" },
+                appConfig: { monthly_fee: fullProof.amount, trash_fee: fullProof.trash_amount || 0 },
+              });
+            }
+          } catch (err) {
+            console.error("Email notification failed", err);
+          }
+        })()
+      );
+    }
+
+    // Background: queue Telegram notification
+    if (proof?.id) {
+      deferTask(
+        (async () => {
+          try {
+            const fullProof = await findPaymentProofById(supabase, proof.id);
+            if (fullProof) {
+              await queuePaymentProofSubmittedNotification({
+                proof: fullProof,
+                totalAmount: Number(fullProof.amount || 0) + Number(fullProof.trash_amount || 0),
+              });
+            }
+          } catch (error) {
+            console.error("Telegram queue failed", error);
+          }
+        })()
+      );
+    }
+
+    return response;
   } catch (err) {
     return NextResponse.json({ error: err.message || "Gagal mengirim bukti transfer" }, { status: 500 });
   }

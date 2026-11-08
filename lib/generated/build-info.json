@@ -1,11 +1,11 @@
 {
   "platform": "local",
-  "branch": "unknown",
-  "commit": "unknown",
-  "commitShort": "unknown",
-  "commitMessage": "unknown",
-  "environment": "development",
+  "branch": "development",
+  "commit": "c2c731f82be93cbe214cd8b4cffbd180fc155080",
+  "commitShort": "c2c731f",
+  "commitMessage": "Update fallback public kas URL to https://www.amarta-2-blok-e.my.id/kas",
+  "environment": "unknown",
   "deployId": "local",
   "deployUrl": "",
-  "buildTime": "unknown"
+  "buildTime": "2026-11-08T20:41:18.087Z"
 }

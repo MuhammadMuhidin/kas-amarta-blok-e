@@ -11,6 +11,10 @@ const SUBMIT_LABELS = {
   error: "Coba Lagi",
 };
 
+const MAX_IMAGE_SIZE = 1024 * 1024; // 1MB - compress jika lebih besar
+const MAX_DIMENSION = 1920;
+const IMAGE_QUALITY = 0.8;
+
 function getFileLabel(file) {
   if (!file?.name) return "Belum ada file dipilih";
 
@@ -19,6 +23,65 @@ function getFileLabel(file) {
 
 function wait(ms) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      resolve(file);
+      return;
+    }
+
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+
+      let { width, height } = img;
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+        width *= ratio;
+        height *= ratio;
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, width, height);
+
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: file.type,
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          } else {
+            resolve(file);
+          }
+        },
+        file.type,
+        IMAGE_QUALITY
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(file);
+    };
+
+    img.src = url;
+  });
+}
+
+function maybeCompressImage(file) {
+  if (!file || !file.type.startsWith("image/") || file.size <= MAX_IMAGE_SIZE) {
+    return Promise.resolve(file);
+  }
+  return compressImage(file);
 }
 
 export default function PaymentProofUploadForm({ resident, selectedPeriod, onSubmitted }) {
@@ -64,10 +127,13 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
     setMessage(null);
 
     try {
+      // Compress image jika perlu sebelum upload
+      const fileToUpload = await maybeCompressImage(proofFile);
+
       const formData = new FormData();
       formData.append("person_id", resident.id);
       formData.append("period", selectedPeriod);
-      formData.append("proof", proofFile);
+      formData.append("proof", fileToUpload);
 
       const res = await fetch("/api/payment-proofs", {
         method: "POST",
@@ -110,8 +176,14 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
         ref={fileInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,application/pdf"
-        onChange={(event) => {
-          setProofFile(event.target.files?.[0] || null);
+        onChange={async (event) => {
+          const file = event.target.files?.[0] || null;
+          if (file) {
+            const compressed = await maybeCompressImage(file);
+            setProofFile(compressed);
+          } else {
+            setProofFile(null);
+          }
           if (submitStatus === "error") setSubmitStatus("idle");
         }}
         style={hiddenFileInputStyle}

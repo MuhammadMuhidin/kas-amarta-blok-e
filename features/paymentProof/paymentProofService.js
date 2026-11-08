@@ -152,14 +152,17 @@ export async function submitPaymentProof({ supabase, formData }) {
     return { status: 400, body: { error: "Data rumah dan periode wajib diisi" } };
   }
 
-  const appConfig = await getAppConfig();
+  // Parallel: getAppConfig & findActiveMemberById independen
+  const [appConfig, member] = await Promise.all([
+    getAppConfig(),
+    findActiveMemberById(supabase, personId),
+  ]);
+
   const amount = Number(appConfig?.monthly_fee || 0);
 
   if (!Number.isFinite(amount) || amount <= 0) {
     return { status: 400, body: { error: "Nominal kas bulanan belum dikonfigurasi" } };
   }
-
-  const member = await findActiveMemberById(supabase, personId);
 
   if (!member || !isActiveMember(member)) {
     return { status: 404, body: { error: "Rumah tidak ditemukan atau tidak aktif" } };
@@ -169,17 +172,15 @@ export async function submitPaymentProof({ supabase, formData }) {
     return { status: 400, body: { error: "Rumah belum bergabung pada periode ini" } };
   }
 
-  const existingPayment = await findPaymentByPersonPeriod(supabase, {
-    personId,
-    house: member.house,
-    period,
-  });
+  // Parallel: existingPayment (butuh member.house) & existingProof (independen)
+  const [existingPayment, existingProof] = await Promise.all([
+    findPaymentByPersonPeriod(supabase, { personId, house: member.house, period }),
+    findOpenPaymentProof(supabase, { personId, period }),
+  ]);
 
   if (existingPayment) {
     return { status: 409, body: { error: "Pembayaran periode ini sudah tercatat" } };
   }
-
-  const existingProof = await findOpenPaymentProof(supabase, { personId, period });
 
   if (existingProof) {
     return { status: 409, body: { error: "Bukti pembayaran sudah dikirim dan menunggu persetujuan admin" } };
@@ -209,14 +210,14 @@ export async function submitPaymentProof({ supabase, formData }) {
     reject_reason: "",
   });
 
-  const email = await notifyAdminPaymentProofSubmitted({ proof, member, appConfig });
+  // Email dikirim background via waitUntil di API route, tidak di-await di sini
+  // notifyAdminPaymentProofSubmitted({ proof, member, appConfig });
 
   return {
     status: 200,
     body: {
       ok: true,
       status: proof.status,
-      email,
       proof: {
         id: proof.id,
         person_id: proof.person_id,
