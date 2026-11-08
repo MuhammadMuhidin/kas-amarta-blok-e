@@ -85,7 +85,7 @@ function maybeCompressImage(file) {
   return compressImage(file);
 }
 
-export default function PaymentProofUploadForm({ resident, selectedPeriod, onSubmitted }) {
+export default function PaymentProofUploadForm({ resident, selectedPeriod, onSubmitted, onClose }) {
   const [proofFile, setProofFile] = useState(null);
   const [submitStatus, setSubmitStatus] = useState("idle");
   const [submitted, setSubmitted] = useState(false);
@@ -167,6 +167,7 @@ export default function PaymentProofUploadForm({ resident, selectedPeriod, onSub
     setSubmitted(false);
     setProofData(null);
     onSubmitted?.();
+    onClose?.(); // tutup parent modal
   }
 
   if (submitted && proofData) {

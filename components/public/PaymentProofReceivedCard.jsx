@@ -91,9 +91,9 @@ const OVERLAY_STYLE = {
 
 const CARD_STYLE = {
   width: "100%",
-  maxWidth: 400,
-  padding: 24,
-  borderRadius: 18,
+  maxWidth: 360,
+  padding: 20,
+  borderRadius: 16,
   background: "#fff",
   boxShadow: "0 24px 48px -12px rgba(0,0,0,0.18)",
   border: "1px solid #eef2f7",
@@ -106,8 +106,8 @@ const HEADER_STYLE = {
 };
 
 const TITLE_STYLE = {
-  margin: "12px 0 6px",
-  fontSize: 20,
+  margin: "10px 0 4px",
+  fontSize: 18,
   fontWeight: 800,
   color: "#064e3b",
 };
@@ -115,21 +115,21 @@ const TITLE_STYLE = {
 const SUBTITLE_STYLE = {
   margin: 0,
   color: "#6b7280",
-  fontSize: 13,
+  fontSize: 12,
 };
 
 const RECEIPT_STYLE = {
   background: "#f0fdf4",
-  borderRadius: 12,
-  padding: 16,
-  marginBottom: 16,
+  borderRadius: 10,
+  padding: 14,
+  marginBottom: 14,
 };
 
 const ROW_STYLE = {
   display: "flex",
   justifyContent: "space-between",
-  padding: "8px 0",
-  fontSize: 14,
+  padding: "6px 0",
+  fontSize: 13,
 };
 
 const LABEL_STYLE = {
@@ -147,19 +147,19 @@ const VALUE_STYLE = {
 const TOTAL_ROW_STYLE = {
   ...ROW_STYLE,
   borderTop: "1px dashed #d1d5db",
-  paddingTop: 12,
-  marginTop: 8,
+  paddingTop: 10,
+  marginTop: 6,
 };
 
 const TOTAL_LABEL_STYLE = {
   ...LABEL_STYLE,
-  fontSize: 15,
+  fontSize: 14,
   fontWeight: 700,
 };
 
 const TOTAL_VALUE_STYLE = {
   ...VALUE_STYLE,
-  fontSize: 18,
+  fontSize: 17,
   fontWeight: 800,
   color: "#10b981",
 };
@@ -172,19 +172,19 @@ const STATUS_VALUE_STYLE = {
 
 const INFO_BOX_STYLE = {
   display: "flex",
-  gap: 10,
+  gap: 8,
   background: "#fffbeb",
-  borderRadius: 12,
-  padding: 14,
-  marginBottom: 20,
-  fontSize: 13,
+  borderRadius: 10,
+  padding: 12,
+  marginBottom: 16,
+  fontSize: 12,
   color: "#78350f",
 };
 
 const INFO_ICON_STYLE = {
-  fontSize: 18,
+  fontSize: 16,
   flexShrink: 0,
-  marginTop: 2,
+  marginTop: 1,
 };
 
 const INFO_TEXT_STYLE = {
@@ -192,21 +192,21 @@ const INFO_TEXT_STYLE = {
 };
 
 const INFO_LIST_STYLE = {
-  margin: "8px 0 0",
-  paddingLeft: 18,
-  fontSize: 13,
-  lineHeight: 1.7,
+  margin: "6px 0 0",
+  paddingLeft: 16,
+  fontSize: 12,
+  lineHeight: 1.6,
 };
 
 const CLOSE_BTN_STYLE = {
   width: "100%",
-  padding: "14px",
-  borderRadius: 12,
+  padding: "12px",
+  borderRadius: 10,
   border: 0,
   background: "#10b981",
   color: "#042f2e",
   fontWeight: 800,
-  fontSize: 16,
+  fontSize: 15,
   cursor: "pointer",
   boxShadow: "0 4px 14px rgba(16,185,129,0.3)",
   transition: "transform 0.1s ease",
@@ -307,7 +307,6 @@ function PaymentProofReceivedCardContent({
             <li>Admin akan memverifikasi bukti transfer Anda</li>
             <li>Proses verifikasi biasanya 1×24 jam kerja</li>
             <li>Status akan berubah jadi <strong>Disetujui</strong> atau <strong>Ditolak</strong></li>
-            <li>Cek riwayat di menu <strong>Riwayat Pembayaran</strong></li>
           </ul>
         </div>
       </div>

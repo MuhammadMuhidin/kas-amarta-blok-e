@@ -80,6 +80,7 @@ export default function ResidentDetailModal({ resident, selectedPeriod, onSubmit
                   resident={resident}
                   selectedPeriod={selectedPeriod}
                   onSubmitted={onSubmitted}
+                  onClose={onClose}
                 />
               )}
             </div>
