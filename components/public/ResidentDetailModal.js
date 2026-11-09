@@ -79,6 +79,8 @@ export default function ResidentDetailModal({
         totalAmount: receiptData.totalAmount,
         approvedBy: receiptData.approvedBy,
         approvedAt: receiptData.approvedAt,
+        paymentId: receiptData.paymentId,
+        proofId: receiptData.proofId,
         fileName: receiptData.fileName,
       });
     } catch (error) {

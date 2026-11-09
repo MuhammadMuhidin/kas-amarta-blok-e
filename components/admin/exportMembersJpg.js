@@ -635,6 +635,8 @@ export async function downloadSinglePaymentReceiptMinimalist({
   totalAmount = 0,
   approvedBy = "admin",
   approvedAt = "",
+  paymentId = "",
+  proofId = "",
   fileName = "kwitansi.jpg",
   exportScale = DEFAULT_EXPORT_SCALE,
 } = {}) {
@@ -648,15 +650,18 @@ export async function downloadSinglePaymentReceiptMinimalist({
   const contentW = width - padding * 2;
 
   const hasTrash = Number(trashAmount) > 0;
+  const hasPaymentId = Boolean(paymentId);
+  const hasProofId = Boolean(proofId);
 
   // Calculate dynamic height
   const headerLines = 3;
+  const refLines = (hasPaymentId ? 1 : 0) + (hasProofId ? 1 : 0);
   const statusLines = 2;
   const separatorLines = 2;
-  const amountLines = hasTrash ? 4 : 2; // kas (+ trash if any) + total
+  const amountLines = hasTrash ? 4 : 2;
   const approvalLines = 1;
-  const footerLines = 5; // printed, note, id, blank, signatures
-  const totalLines = headerLines + statusLines + separatorLines + amountLines + approvalLines + footerLines;
+  const footerLines = 3; // printed, note, id
+  const totalLines = headerLines + refLines + statusLines + separatorLines + amountLines + approvalLines + footerLines;
   const height = padding * 2 + totalLines * lineHeight + sectionGap * 4;
 
   const canvas = document.createElement("canvas");
@@ -676,6 +681,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
   ctx.fillRect(0, 0, width, height);
 
   const contentX = padding;
+  const contentRightX = contentX + contentW;
   let y = padding;
 
   // Fonts
@@ -687,7 +693,6 @@ export async function downloadSinglePaymentReceiptMinimalist({
   const totalLabelFont = "700 15px monospace";
   const totalValueFont = "700 16px monospace";
   const footerFont = "400 12px monospace";
-  const sigFont = "400 13px monospace";
 
   // ── Header ──
   drawCenteredText(ctx, subtitle, width / 2, y + 4, subtitleFont, "#000000");
@@ -705,6 +710,18 @@ export async function downloadSinglePaymentReceiptMinimalist({
   ctx.lineTo(contentX + contentW, y);
   ctx.stroke();
   y += sectionGap;
+
+  // ── Reference IDs ──
+  if (hasPaymentId) {
+    drawText(ctx, "Payment ID:", contentX, y, labelFont, "#000000");
+    drawText(ctx, clean(paymentId), contentRightX, y, valueFont, "#000000", "right");
+    y += lineHeight;
+  }
+  if (hasProofId) {
+    drawText(ctx, "Payment Proof ID:", contentX, y, labelFont, "#000000");
+    drawText(ctx, clean(proofId), contentRightX, y, valueFont, "#000000", "right");
+    y += lineHeight;
+  }
 
   // ── Status & House ──
   drawText(ctx, "Status:", contentX, y, labelFont, "#000000");
@@ -731,12 +748,12 @@ export async function downloadSinglePaymentReceiptMinimalist({
 
   // ── Amounts ──
   drawText(ctx, "Iuran Kas:", contentX, y, labelFont, "#000000");
-  drawText(ctx, money(cashAmount), contentX + contentW, y, valueFont, "#000000", "right");
+  drawText(ctx, money(cashAmount), contentRightX, y, valueFont, "#000000", "right");
   y += lineHeight;
 
   if (hasTrash) {
     drawText(ctx, "Iuran Sampah:", contentX, y, labelFont, "#000000");
-    drawText(ctx, money(trashAmount), contentX + contentW, y, valueFont, "#000000", "right");
+    drawText(ctx, money(trashAmount), contentRightX, y, valueFont, "#000000", "right");
     y += lineHeight;
   }
 
@@ -749,7 +766,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
   y += 8;
 
   drawText(ctx, "TOTAL:", contentX, y, totalLabelFont, "#000000");
-  drawText(ctx, money(totalAmount), contentX + contentW, y, totalValueFont, "#000000", "right");
+  drawText(ctx, money(totalAmount), contentRightX, y, totalValueFont, "#000000", "right");
   y += lineHeight + sectionGap;
 
   // ── Approval ──
@@ -757,7 +774,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
   drawText(ctx, approvedText, contentX, y, labelFont, "#333333");
   y += lineHeight + sectionGap;
 
-  // ── Footer ──
+  // ── Footer (no signature block) ──
   ctx.beginPath();
   ctx.moveTo(contentX, y);
   ctx.lineTo(contentX + contentW, y);
@@ -772,19 +789,6 @@ export async function downloadSinglePaymentReceiptMinimalist({
   y += lineHeight;
 
   drawCenteredText(ctx, `ID: ${fileName.replace(/\.jpg$/i, "")}`, width / 2, y, footerFont, "#999999");
-  y += lineHeight * 1.5;
-
-  // Signature lines
-  const sigLabelFont = "700 13px monospace";
-  const sigGap = 180;
-  const sigStartX = contentX + 20;
-  
-  drawCenteredText(ctx, "Mengetahui,", width / 2, y, sigLabelFont, "#000000");
-  y += 40;
-  
-  drawCenteredText(ctx, "Ketua", sigStartX + sigGap * 0, y, sigFont, "#000000");
-  drawCenteredText(ctx, "Pengurus Kas", sigStartX + sigGap * 1, y, sigFont, "#000000");
-  drawCenteredText(ctx, "Bendahara", sigStartX + sigGap * 2, y, sigFont, "#000000");
 
   const blob = await canvasToBlob(canvas, "image/jpeg", 0.95);
   downloadBlob(blob, fileName);
