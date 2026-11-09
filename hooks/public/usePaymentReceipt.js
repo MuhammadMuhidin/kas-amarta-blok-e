@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { formatPeriod } from "@/lib/public/publicFormatters";
 
 function normalize(value) {
@@ -31,7 +31,40 @@ function formatDateTimeIndo(value) {
   }) + " WIB";
 }
 
+async function fetchPaymentProof(paymentId) {
+  if (!paymentId) return null;
+  try {
+    const res = await fetch(`/api/public/payment-proof?payment_id=${encodeURIComponent(paymentId)}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.ok ? data.proof : null;
+  } catch {
+    return null;
+  }
+}
+
 export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentConfirmations, appConfig }) {
+  const [proofData, setProofData] = useState(null);
+
+  // Fetch proof when payment ID is available
+  useEffect(() => {
+    const periodKey = selectedPeriod?.slice(0, 7);
+    const confirmation = paymentConfirmations?.find(
+      (c) =>
+        normalize(c.person_id) === normalize(resident?.id) &&
+        normalize(c.period || "").slice(0, 7) === periodKey
+    );
+    const paymentId = confirmation?.approved_payment_id;
+
+    if (paymentId) {
+      fetchPaymentProof(paymentId).then((proof) => {
+        setProofData(proof);
+      });
+    }
+  }, [resident, selectedPeriod, paymentConfirmations]);
+
   const receiptData = useMemo(() => {
     if (!resident || !resident.paid || !selectedPeriod) return null;
 
@@ -58,12 +91,9 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
     // Nominal kas dari payment atau config
     const cashAmount = payment ? Number(payment.amount || 0) : Number(config.monthly_fee || 0);
 
-    // Nominal sampah: dari trashAmount di confirmation/payment_proofs, atau hitung dari config
-    // Karena di public tidak ada akses ke payment_proofs, pakai heuristic:
-    // jika resident.trash === 'Y' → pakai trash_fee dari config
-    const trashAmount = normalize(resident.trash).toUpperCase() === "Y"
-      ? Number(config.trash_fee || 0)
-      : 0;
+    // Nominal sampah: berdasarkan resident.trash field
+    const isTrashUser = normalize(resident.trash).toUpperCase() === "Y";
+    const trashAmount = isTrashUser ? Number(config.trash_fee || 0) : 0;
 
     const totalAmount = cashAmount + trashAmount;
 
@@ -78,6 +108,19 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
         ? formatDateTimeIndo(paymentDate)
         : "";
 
+    // Payment ID & Receipt No
+    const paymentId = payment?.id || confirmation?.approved_payment_id || "";
+    const receiptNo = paymentId
+      ? `KWT-${paymentId.slice(-6).toUpperCase()}-${periodKey.replace("-", "")}`
+      : "";
+
+    // Proof data (from API)
+    const proofId = proofData?.id || "";
+    const proofFilename = proofData?.original_filename || "";
+    const proofSubmittedAt = proofData?.submitted_at
+      ? formatDateTimeIndo(proofData.submitted_at)
+      : "";
+
     return {
       period: periodKey,
       house: resident.house,
@@ -87,9 +130,14 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
       totalAmount,
       approvedBy,
       approvedAt,
+      paymentId,
+      receiptNo,
+      proofId,
+      proofFilename,
+      proofSubmittedAt,
       fileName: `kwitansi-${resident.house}-${periodKey}.jpg`,
     };
-  }, [resident, selectedPeriod, payments, paymentConfirmations, appConfig]);
+  }, [resident, selectedPeriod, payments, paymentConfirmations, appConfig, proofData]);
 
   return receiptData;
 }
