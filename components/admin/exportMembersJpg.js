@@ -640,7 +640,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
   fileName = "kwitansi.jpg",
   exportScale = DEFAULT_EXPORT_SCALE,
 } = {}) {
-  if (typeof document === "undefined") throw new Error("JPG export is only available in the browser.");
+  if (typeof document === "undefined") throw new Error("Ekspor JPG hanya tersedia di browser.");
 
   const scale = clampExportScale(exportScale);
   // Portrait: narrower width, more height
@@ -726,8 +726,8 @@ export async function downloadSinglePaymentReceiptMinimalist({
   y += sectionGap;
 
   // ── Reference IDs ──
-  if (hasPaymentId) drawField("Payment ID", clean(paymentId));
-  if (hasProofId) drawField("Payment Proof ID", clean(proofId));
+  if (hasPaymentId) drawField("ID Pembayaran", clean(paymentId));
+  if (hasProofId) drawField("ID Bukti Pembayaran", clean(proofId));
 
   // ── Transaction Details ──
   drawField("Status", "DISETUJUI ADMIN", "#000000", "#168044", valueFont, true);
