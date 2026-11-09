@@ -193,6 +193,8 @@ export default function PublicPageClient() {
         <ResidentDetailModal
           resident={selectedResident}
           payments={data.payments}
+          paymentConfirmations={data.payment_confirmations}
+          appConfig={data.appConfig}
           selectedPeriod={selectedPeriod}
           onSubmitted={reload}
           onClose={() => setSelectedResident(null)}

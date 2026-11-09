@@ -36,6 +36,8 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
     if (!resident || !resident.paid || !selectedPeriod) return null;
 
     const periodKey = selectedPeriod.slice(0, 7);
+    const confirmations = paymentConfirmations || [];
+    const config = appConfig || {};
 
     // Cari payment record untuk rumah & periode ini
     const payment = payments.find(
@@ -45,7 +47,7 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
     );
 
     // Cari confirmation record
-    const confirmation = paymentConfirmations.find(
+    const confirmation = confirmations.find(
       (c) =>
         normalize(c.person_id) === normalize(resident.id) &&
         normalize(c.period || "").slice(0, 7) === periodKey
@@ -54,13 +56,13 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
     if (!payment && !confirmation) return null;
 
     // Nominal kas dari payment atau config
-    const cashAmount = payment ? Number(payment.amount || 0) : Number(appConfig?.monthly_fee || 0);
+    const cashAmount = payment ? Number(payment.amount || 0) : Number(config.monthly_fee || 0);
 
     // Nominal sampah: dari trashAmount di confirmation/payment_proofs, atau hitung dari config
     // Karena di public tidak ada akses ke payment_proofs, pakai heuristic:
     // jika resident.trash === 'Y' → pakai trash_fee dari config
     const trashAmount = normalize(resident.trash).toUpperCase() === "Y"
-      ? Number(appConfig?.trash_fee || 0)
+      ? Number(config.trash_fee || 0)
       : 0;
 
     const totalAmount = cashAmount + trashAmount;
