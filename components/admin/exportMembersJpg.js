@@ -624,7 +624,7 @@ export async function shareArrearsJpgMinimalist({
   return shareOrDownloadBlob(blob, fileName, "Laporan Tunggakan");
 }
 
-export async function shareSinglePaymentReceiptMinimalist({
+export async function downloadSinglePaymentReceiptMinimalist({
   title = "KWITANSI PEMBAYARAN KAS",
   subtitle = "AMARTA RESIDENCE 2 BLOK E",
   period = "",
@@ -787,7 +787,7 @@ export async function shareSinglePaymentReceiptMinimalist({
   drawCenteredText(ctx, "Bendahara", sigStartX + sigGap * 2, y, sigFont, "#000000");
 
   const blob = await canvasToBlob(canvas, "image/jpeg", 0.95);
-  return shareOrDownloadBlob(blob, fileName, title);
+  downloadBlob(blob, fileName);
 }
 
 export { money, formatDate, formatPeriod };

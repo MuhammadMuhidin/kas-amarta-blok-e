@@ -2,7 +2,7 @@
 
 import PaymentProofUploadForm from "@/components/public/PaymentProofUploadForm";
 import { usePaymentReceipt } from "@/hooks/public/usePaymentReceipt";
-import { shareSinglePaymentReceiptMinimalist } from "@/components/admin/exportMembersJpg";
+import { downloadSinglePaymentReceiptMinimalist } from "@/components/admin/exportMembersJpg";
 import {
   canUploadPaymentProof,
   getPaymentConfirmationStatus,
@@ -70,7 +70,7 @@ export default function ResidentDetailModal({
   const handleDownloadReceipt = async () => {
     if (!receiptData) return;
     try {
-      await shareSinglePaymentReceiptMinimalist({
+      await downloadSinglePaymentReceiptMinimalist({
         period: receiptData.period,
         house: receiptData.house,
         paymentDate: receiptData.paymentDate,
@@ -110,31 +110,29 @@ export default function ResidentDetailModal({
         </div>
 
         {resident.paid && receiptData && (
-          <div className="resident-section">
-            <div className="resident-label">Kwitansi</div>
-            <div className="resident-value" style={{ display: "grid", gap: 10 }}>
-              <button
-                type="button"
-                onClick={handleDownloadReceipt}
-                style={{
-                  padding: "10px 16px",
-                  background: "#16a34a",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: 8,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                  justifyContent: "center",
-                }}
-              >
-                🧾 Unduh Kwitansi
-              </button>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={handleDownloadReceipt}
+            style={{
+              width: "100%",
+              padding: "14px 16px",
+              marginTop: 8,
+              background: "#16a34a",
+              color: "#fff",
+              border: "none",
+              borderRadius: 10,
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(22, 163, 74, 0.3)",
+            }}
+          >
+            🧾 Unduh Kwitansi
+          </button>
         )}
 
         {showUploadSection && (
