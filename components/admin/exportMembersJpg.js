@@ -624,4 +624,170 @@ export async function shareArrearsJpgMinimalist({
   return shareOrDownloadBlob(blob, fileName, "Laporan Tunggakan");
 }
 
+export async function shareSinglePaymentReceiptMinimalist({
+  title = "KWITANSI PEMBAYARAN KAS",
+  subtitle = "AMARTA RESIDENCE 2 BLOK E",
+  period = "",
+  house = "",
+  paymentDate = "",
+  cashAmount = 0,
+  trashAmount = 0,
+  totalAmount = 0,
+  approvedBy = "admin",
+  approvedAt = "",
+  fileName = "kwitansi.jpg",
+  exportScale = DEFAULT_EXPORT_SCALE,
+} = {}) {
+  if (typeof document === "undefined") throw new Error("JPG export is only available in the browser.");
+
+  const scale = clampExportScale(exportScale);
+  const padding = 28;
+  const lineHeight = 24;
+  const sectionGap = 16;
+  const width = 720;
+  const contentW = width - padding * 2;
+
+  const hasTrash = Number(trashAmount) > 0;
+
+  // Calculate dynamic height
+  const headerLines = 3;
+  const statusLines = 2;
+  const separatorLines = 2;
+  const amountLines = hasTrash ? 4 : 2; // kas (+ trash if any) + total
+  const approvalLines = 1;
+  const footerLines = 5; // printed, note, id, blank, signatures
+  const totalLines = headerLines + statusLines + separatorLines + amountLines + approvalLines + footerLines;
+  const height = padding * 2 + totalLines * lineHeight + sectionGap * 4;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Browser does not support canvas export.");
+
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  // White background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  const contentX = padding;
+  let y = padding;
+
+  // Fonts
+  const titleFont = "700 20px monospace";
+  const subtitleFont = "700 14px monospace";
+  const periodFont = "400 13px monospace";
+  const labelFont = "700 14px monospace";
+  const valueFont = "400 14px monospace";
+  const totalLabelFont = "700 15px monospace";
+  const totalValueFont = "700 16px monospace";
+  const footerFont = "400 12px monospace";
+  const sigFont = "400 13px monospace";
+
+  // ── Header ──
+  drawCenteredText(ctx, subtitle, width / 2, y + 4, subtitleFont, "#000000");
+  y += 24;
+  drawCenteredText(ctx, title, width / 2, y + 4, titleFont, "#000000");
+  y += 28;
+  drawCenteredText(ctx, `Periode: ${formatPeriod(period)}`, width / 2, y, periodFont, "#333333");
+  y += sectionGap + 4;
+
+  // ── Separator ──
+  ctx.strokeStyle = "#000000";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += sectionGap;
+
+  // ── Status & House ──
+  drawText(ctx, "Status:", contentX, y, labelFont, "#000000");
+  drawText(ctx, "DISETUJUI ADMIN", contentX + 180, y, valueFont, "#168044");
+  y += lineHeight;
+
+  drawText(ctx, "Rumah:", contentX, y, labelFont, "#000000");
+  drawText(ctx, clean(house) || "-", contentX + 180, y, valueFont, "#000000");
+  y += lineHeight;
+
+  if (paymentDate) {
+    drawText(ctx, "Tanggal Bayar:", contentX, y, labelFont, "#000000");
+    drawText(ctx, clean(paymentDate), contentX + 180, y, valueFont, "#000000");
+    y += lineHeight;
+  }
+
+  // ── Separator ──
+  y += 4;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += sectionGap;
+
+  // ── Amounts ──
+  drawText(ctx, "Iuran Kas:", contentX, y, labelFont, "#000000");
+  drawText(ctx, money(cashAmount), contentX + contentW, y, valueFont, "#000000", "right");
+  y += lineHeight;
+
+  if (hasTrash) {
+    drawText(ctx, "Iuran Sampah:", contentX, y, labelFont, "#000000");
+    drawText(ctx, money(trashAmount), contentX + contentW, y, valueFont, "#000000", "right");
+    y += lineHeight;
+  }
+
+  // Total separator
+  y += 4;
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += 8;
+
+  drawText(ctx, "TOTAL:", contentX, y, totalLabelFont, "#000000");
+  drawText(ctx, money(totalAmount), contentX + contentW, y, totalValueFont, "#000000", "right");
+  y += lineHeight + sectionGap;
+
+  // ── Approval ──
+  const approvedText = `Disetujui: ${clean(approvedBy)} • ${clean(approvedAt) || "-"}`;
+  drawText(ctx, approvedText, contentX, y, labelFont, "#333333");
+  y += lineHeight + sectionGap;
+
+  // ── Footer ──
+  ctx.beginPath();
+  ctx.moveTo(contentX, y);
+  ctx.lineTo(contentX + contentW, y);
+  ctx.stroke();
+  y += sectionGap;
+
+  const exportDate = formatDate(new Date().toISOString());
+  drawCenteredText(ctx, `Dicetak: ${exportDate}`, width / 2, y, footerFont, "#666666");
+  y += lineHeight;
+
+  drawCenteredText(ctx, "Data otomatis dari Sistem Kas Amarta Blok E", width / 2, y, footerFont, "#999999");
+  y += lineHeight;
+
+  drawCenteredText(ctx, `ID: ${fileName.replace(/\.jpg$/i, "")}`, width / 2, y, footerFont, "#999999");
+  y += lineHeight * 1.5;
+
+  // Signature lines
+  const sigLabelFont = "700 13px monospace";
+  const sigGap = 180;
+  const sigStartX = contentX + 20;
+  
+  drawCenteredText(ctx, "Mengetahui,", width / 2, y, sigLabelFont, "#000000");
+  y += 40;
+  
+  drawCenteredText(ctx, "Ketua", sigStartX + sigGap * 0, y, sigFont, "#000000");
+  drawCenteredText(ctx, "Pengurus Kas", sigStartX + sigGap * 1, y, sigFont, "#000000");
+  drawCenteredText(ctx, "Bendahara", sigStartX + sigGap * 2, y, sigFont, "#000000");
+
+  const blob = await canvasToBlob(canvas, "image/jpeg", 0.95);
+  return shareOrDownloadBlob(blob, fileName, title);
+}
+
 export { money, formatDate, formatPeriod };
