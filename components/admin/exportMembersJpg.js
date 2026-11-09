@@ -647,7 +647,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
   const padding = 32;
   const lineHeight = 26;
   const sectionGap = 18;
-  const width = 580;  // Narrower for portrait
+  const width = 580;
   const contentW = width - padding * 2;
 
   const hasTrash = Number(trashAmount) > 0;
@@ -658,20 +658,23 @@ export async function downloadSinglePaymentReceiptMinimalist({
   const labelWidth = 160;
   const valueX = padding + labelWidth;
 
-  // Calculate dynamic height
-  const headerLines = 3;
-  const refLines = (hasPaymentId ? 1 : 0) + (hasProofId ? 1 : 0);
-  const statusLines = 3; // Status, Rumah, Tanggal Bayar
-  const separatorLines = 2;
-  const amountLines = hasTrash ? 2 : 1;
-  const approvalLines = 1;
-  const footerLines = 3;
-  const totalLines = headerLines + refLines + statusLines + separatorLines + amountLines + approvalLines + footerLines;
-  const height = padding * 2 + totalLines * lineHeight + sectionGap * 4;
+  // Count lines for dynamic height
+  let totalLines = 0;
+  totalLines += 3; // Header block
+  totalLines += (hasPaymentId ? 1 : 0) + (hasProofId ? 1 : 0); // Reference IDs
+  totalLines += 3; // Status, Rumah, Tanggal Bayar
+  totalLines += 2; // Amounts (Kas + optional Sampah)
+  totalLines += 1; // TOTAL
+  totalLines += 1; // Approval
+  totalLines += 3; // Footer
+  totalLines += 3; // Signature block (Mengetahui + 3 signatures)
+
+  const separators = 4; // 4 separator lines
+  const height = padding * 2 + totalLines * lineHeight + sectionGap * 6 + separators * 8;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("JPG export is only available in the browser.");
+  if (!ctx) throw new Error("Ekspor JPG hanya tersedia di browser.");
 
   canvas.width = Math.round(width * scale);
   canvas.height = Math.round(height * scale);
@@ -696,88 +699,203 @@ export async function downloadSinglePaymentReceiptMinimalist({
   const periodFont = `500 12px ${fontFamily}`;
   const labelFont = `500 12px ${fontFamily}`;
   const valueFont = `400 12px ${fontFamily}`;
+  const boldValueFont = `600 12px ${fontFamily}`;
   const totalLabelFont = `600 13px ${fontFamily}`;
-  const totalValueFont = `700 15px ${fontFamily}`;
+  const totalValueFont = `700 16px ${fontFamily}`;
   const footerFont = `400 10px ${fontFamily}`;
+  const sigLabelFont = `600 11px ${fontFamily}`;
+  const sigValueFont = `400 11px ${fontFamily}`;
+
+  // Colors
+  const green = "#16a34a";
+  const greenBg = "#dcfce7";
+  const greenBorder = "#86efac";
+  const dark = "#111827";
+  const medium = "#374151";
+  const light = "#6b7280";
+  const muted = "#9ca3af";
+  const border = "#000000";
 
   // Helper: draw label:value with consistent spacing
-  function drawField(label, value, labelColor = "#000000", valueColor = "#000000", valueFontLocal = valueFont, bold = false) {
+  function drawField(label, value, labelColor = dark, valueColor = dark, valueFontLocal = valueFont, bold = false) {
     const vFont = bold ? valueFontLocal.replace("400", "600") : valueFontLocal;
     drawText(ctx, label, contentX, y, labelFont, labelColor);
     drawText(ctx, value, valueX, y, vFont, valueColor);
     y += lineHeight;
   }
 
-  // ── Header ──
-  drawCenteredText(ctx, subtitle, width / 2, y + 4, subtitleFont, "#000000");
+  // Helper: draw solid separator
+  function drawSolidSep() {
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(contentX, y);
+    ctx.lineTo(contentRightX, y);
+    ctx.stroke();
+    y += sectionGap;
+  }
+
+  // Helper: draw dashed separator
+  function drawDashedSep() {
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(contentX, y);
+    ctx.lineTo(contentRightX, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    y += sectionGap;
+  }
+
+  // Helper: draw double separator (for total)
+  function drawDoubleSep() {
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(contentX, y);
+    ctx.lineTo(contentRightX, y);
+    ctx.stroke();
+    y += 3;
+    ctx.beginPath();
+    ctx.moveTo(contentX, y);
+    ctx.lineTo(contentRightX, y);
+    ctx.stroke();
+    y += 10;
+  }
+
+  // Helper: draw status badge
+  function drawStatusBadge(text) {
+    drawText(ctx, "Status", contentX, y, labelFont, dark);
+    const badgePadX = 12, badgePadY = 4;
+    ctx.font = boldValueFont;
+    const badgeW = Math.ceil(ctx.measureText(text).width) + badgePadX * 2;
+    const badgeH = 24;
+    const badgeX = valueX;
+    drawRoundRect(badgeX, y - 2, badgeW, badgeH, 12, greenBg, greenBorder, 1.5);
+    drawCenteredText(ctx, text, badgeX + badgeW / 2, y + badgeH / 2, boldValueFont, green);
+    y += lineHeight;
+  }
+
+  // Helper: draw rounded rect
+  function drawRoundRect(x, y, w, h, r, fill, stroke = "", sw = 1) {
+    const radius = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + w - radius, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + radius);
+    ctx.lineTo(x + w, y + h - radius);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+    ctx.lineTo(x + radius, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = sw; ctx.stroke(); }
+  }
+
+  // ==================== HEADER ====================
+  drawCenteredText(ctx, subtitle, width / 2, y + 4, subtitleFont, dark);
   y += 22;
-  drawCenteredText(ctx, title, width / 2, y + 4, titleFont, "#000000");
+  drawCenteredText(ctx, title, width / 2, y + 4, titleFont, dark);
   y += 26;
-  drawCenteredText(ctx, `Periode: ${formatPeriod(period)}`, width / 2, y, periodFont, "#333333");
+
+  // Format period: "Agustus 2026"
+  const periodDisplay = formatPeriod(period);
+  drawCenteredText(ctx, `Periode: ${periodDisplay}`, width / 2, y, periodFont, "#333333");
   y += sectionGap + 4;
 
-  // ── Separator ──
-  ctx.strokeStyle = "#000000";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(contentX, y);
-  ctx.lineTo(contentRightX, y);
-  ctx.stroke();
-  y += sectionGap;
+  // Solid separator after header
+  drawSolidSep();
 
-  // ── Reference IDs ──
+  // ==================== REFERENCE IDs ====================
   if (hasPaymentId) drawField("ID Pembayaran", clean(paymentId));
   if (hasProofId) drawField("ID Bukti Pembayaran", clean(proofId));
 
-  // ── Transaction Details ──
-  drawField("Status", "DISETUJUI ADMIN", "#000000", "#168044", valueFont, true);
+  // Solid separator after reference IDs
+  drawSolidSep();
+
+  // ==================== TRANSACTION DETAILS ====================
+  drawStatusBadge("DISETUJUI ADMIN");
   drawField("Rumah", clean(house) || "-");
   if (paymentDate) drawField("Tanggal Bayar", clean(paymentDate));
 
-  // ── Separator ──
-  y += 4;
-  ctx.beginPath();
-  ctx.moveTo(contentX, y);
-  ctx.lineTo(contentRightX, y);
-  ctx.stroke();
-  y += sectionGap;
+  // Dashed separator before amounts
+  drawDashedSep();
 
-  // ── Amounts ──
-  drawField("Iuran Kas", money(cashAmount));
-  if (hasTrash) drawField("Iuran Sampah", money(trashAmount));
+  // ==================== AMOUNTS ====================
+  drawField("Iuran Kas", money(cashAmount), dark, dark, boldValueFont);
+  if (hasTrash) drawField("Iuran Sampah", money(trashAmount), dark, dark, boldValueFont);
 
-  // Total separator
-  y += 4;
-  ctx.beginPath();
-  ctx.moveTo(contentX, y);
-  ctx.lineTo(contentRightX, y);
-  ctx.stroke();
-  y += 8;
+  // Double separator before TOTAL
+  drawDoubleSep();
 
-  drawField("TOTAL", money(totalAmount), "#000000", "#000000", totalValueFont, true);
+  drawField("TOTAL", money(totalAmount), dark, dark, totalValueFont, true);
 
   y += sectionGap + 4;
 
-  // ── Approval ──
-  const approvedText = `Disetujui: ${clean(approvedBy)} • ${clean(approvedAt) || "-"}`;
-  drawText(ctx, approvedText, contentX, y, labelFont, "#333333");
+  // ==================== APPROVAL (centered) ====================
+  // Format: "Disetujui: admin • Pada: 10 Nov 2026, 01.16 WIB"
+  const approvalParts = [];
+  if (approvedBy && approvedBy !== "-") approvalParts.push(`Disetujui: ${clean(approvedBy)}`);
+  if (approvedAt && approvedAt !== "-") approvalParts.push(`Pada: ${clean(approvedAt)}`);
+  const approvalText = approvalParts.join("  •  ");
+  drawCenteredText(ctx, approvalText, width / 2, y, labelFont, medium);
   y += lineHeight + sectionGap;
 
-  // ── Footer (no signature block) ──
+  // Solid separator before footer
+  drawSolidSep();
+
+  // ==================== FOOTER ====================
+  // Dicetak: November 10, 2026
+  const now = new Date();
+  const printDate = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  drawCenteredText(ctx, `Dicetak: ${printDate}`, width / 2, y, footerFont, muted);
+  y += lineHeight;
+
+  drawCenteredText(ctx, "Data otomatis dari Sistem Kas Amarta Blok E", width / 2, y, footerFont, muted);
+  y += lineHeight;
+
+  // ID: kwitansi-E2-4-2026-08
+  const idDisplay = fileName.replace(/\.jpg$/i, "");
+  drawCenteredText(ctx, `ID: ${idDisplay}`, width / 2, y, footerFont, muted);
+  y += lineHeight * 2;
+
+  // ==================== SIGNATURE BLOCK ====================
+  drawCenteredText(ctx, "Mengetahui,", width / 2, y, sigLabelFont, dark);
+  y += 32;
+
+  const sigY = y;
+  const sigW = contentW * 0.28;
+  const sigLeftX = contentX + sigW / 2;
+  const sigCenterX = width / 2;
+  const sigRightX = contentRightX - sigW / 2;
+
+  // Signature lines
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 1.5;
+
+  // Left - Ketua
   ctx.beginPath();
-  ctx.moveTo(contentX, y);
-  ctx.lineTo(contentRightX, y);
+  ctx.moveTo(sigLeftX - sigW / 2, sigY);
+  ctx.lineTo(sigLeftX + sigW / 2, sigY);
   ctx.stroke();
-  y += sectionGap;
+  drawCenteredText(ctx, "Ketua", sigLeftX, sigY + 10, sigValueFont, dark);
 
-  const exportDate = formatDate(new Date().toISOString());
-  drawCenteredText(ctx, `Dicetak: ${exportDate}`, width / 2, y, footerFont, "#666666");
-  y += lineHeight;
+  // Center - Pengurus Kas
+  ctx.beginPath();
+  ctx.moveTo(sigCenterX - sigW / 2, sigY);
+  ctx.lineTo(sigCenterX + sigW / 2, sigY);
+  ctx.stroke();
+  drawCenteredText(ctx, "Pengurus Kas", sigCenterX, sigY + 10, sigValueFont, dark);
 
-  drawCenteredText(ctx, "Data otomatis dari Sistem Kas Amarta Blok E", width / 2, y, footerFont, "#999999");
-  y += lineHeight;
-
-  drawCenteredText(ctx, `ID: ${fileName.replace(/\.jpg$/i, "")}`, width / 2, y, footerFont, "#999999");
+  // Right - Bendahara
+  ctx.beginPath();
+  ctx.moveTo(sigRightX - sigW / 2, sigY);
+  ctx.lineTo(sigRightX + sigW / 2, sigY);
+  ctx.stroke();
+  drawCenteredText(ctx, "Bendahara", sigRightX, sigY + 10, sigValueFont, dark);
 
   const blob = await canvasToBlob(canvas, "image/jpeg", 0.95);
   downloadBlob(blob, fileName);
