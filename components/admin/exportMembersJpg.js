@@ -643,10 +643,10 @@ export async function downloadSinglePaymentReceiptMinimalist({
   if (typeof document === "undefined") throw new Error("Ekspor JPG hanya tersedia di browser.");
 
   const scale = clampExportScale(exportScale);
-  const padding = 28;
-  const lineHeight = 24;
-  const sectionGap = 14;
-  const width = 600;
+  const padding = 24;
+  const lineHeight = 22;
+  const sectionGap = 10;
+  const width = 580;
   const contentW = width - padding * 2;
 
   const hasTrash = Number(trashAmount) > 0;
@@ -655,17 +655,16 @@ export async function downloadSinglePaymentReceiptMinimalist({
 
   // Calculate dynamic height
   let totalLines = 0;
-  totalLines += 6; // Header block (logo placeholder, subtitle, title, period, blank, blank)
+  totalLines += 4; // Header block (subtitle, title, period, blank)
   totalLines += 2; // Reference table header + data
   totalLines += 2; // Rumah/Tanggal header + data
   totalLines += 1; // Separator
   totalLines += hasTrash ? 4 : 2; // Amount lines + separators
   totalLines += 3; // TOTAL + double separator
-  totalLines += 3; // Approval section
-  totalLines += 2; // Badges
-  totalLines += 3; // Footer
+  totalLines += 4; // Approval section (2 lines left + 2 lines right)
+  totalLines += 2; // Footer
 
-  const height = padding * 2 + totalLines * lineHeight + sectionGap * 10;
+  const height = padding * 2 + totalLines * lineHeight + sectionGap * 8;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -687,17 +686,16 @@ export async function downloadSinglePaymentReceiptMinimalist({
   const contentRightX = contentX + contentW;
   let y = padding;
 
-  // Fonts
+  // Fonts - precise sizing
   const fontFamily = "'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace";
-  const titleFont = `700 20px ${fontFamily}`;
-  const subtitleFont = `600 14px ${fontFamily}`;
-  const periodFont = `500 12px ${fontFamily}`;
-  const headerFont = `600 11px ${fontFamily}`;
-  const dataFont = `400 11px ${fontFamily}`;
-  const boldDataFont = `600 11px ${fontFamily}`;
-  const totalFont = `700 14px ${fontFamily}`;
-  const footerFont = `400 9px ${fontFamily}`;
-  const badgeFont = `600 10px ${fontFamily}`;
+  const titleFont = `700 18px ${fontFamily}`;
+  const subtitleFont = `600 13px ${fontFamily}`;
+  const periodFont = `500 11px ${fontFamily}`;
+  const headerFont = `600 10px ${fontFamily}`;
+  const dataFont = `400 10px ${fontFamily}`;
+  const boldDataFont = `600 10px ${fontFamily}`;
+  const totalFont = `700 13px ${fontFamily}`;
+  const footerFont = `400 8px ${fontFamily}`;
 
   // Colors
   const green = "#16a34a";
@@ -721,7 +719,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
     ctx.moveTo(contentX, y);
     ctx.lineTo(contentRightX, y);
     ctx.stroke();
-    y += 8;
+    y += 6;
   }
 
   function drawDoubleSep() {
@@ -731,23 +729,11 @@ export async function downloadSinglePaymentReceiptMinimalist({
     ctx.moveTo(contentX, y);
     ctx.lineTo(contentRightX, y);
     ctx.stroke();
-    y += 4;
+    y += 3;
     ctx.beginPath();
     ctx.moveTo(contentX, y);
     ctx.lineTo(contentRightX, y);
     ctx.stroke();
-    y += 10;
-  }
-
-  function drawDashedSep() {
-    ctx.strokeStyle = border;
-    ctx.lineWidth = 1;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(contentX, y);
-    ctx.lineTo(contentRightX, y);
-    ctx.stroke();
-    ctx.setLineDash([]);
     y += 8;
   }
 
@@ -769,26 +755,21 @@ export async function downloadSinglePaymentReceiptMinimalist({
   }
 
   // ==================== HEADER ====================
-  // Logo placeholder
-  drawRoundRect(width / 2 - 30, y, 60, 60, 12, "#f3f4f6", border, 2);
-  drawCenteredText(ctx, "🏠", width / 2, y + 30, "24px sans-serif", "#6b7280");
-  y += 70;
-
   drawCenteredText(ctx, subtitle, width / 2, y, subtitleFont, dark);
-  y += lineHeight - 2;
+  y += lineHeight - 1;
   drawCenteredText(ctx, title, width / 2, y, titleFont, dark);
-  y += lineHeight + 2;
+  y += lineHeight;
 
   const periodDisplay = formatPeriod(period);
   drawCenteredText(ctx, `Periode: ${periodDisplay}`, width / 2, y, periodFont, medium);
-  y += sectionGap + 6;
+  y += sectionGap + 4;
 
   // ==================== REFERENCE TABLE ====================
   // Header row
   drawText(ctx, "ID Pembayaran", col1X, y, headerFont, medium);
   drawText(ctx, "ID Bukti Pembayaran", col2X, y, headerFont, medium);
   drawText(ctx, "Status", col3X, y, headerFont, medium);
-  y += lineHeight + 2;
+  y += lineHeight + 1;
 
   // Data row
   if (hasPaymentId) drawText(ctx, clean(paymentId), col1X, y, boldDataFont, dark);
@@ -796,21 +777,21 @@ export async function downloadSinglePaymentReceiptMinimalist({
   // Status badge
   const statusText = "✓ DISETUJUI ADMIN";
   ctx.font = boldDataFont;
-  const badgeW = Math.ceil(ctx.measureText(statusText).width) + 16;
-  const badgeH = 22;
+  const badgeW = Math.ceil(ctx.measureText(statusText).width) + 14;
+  const badgeH = 20;
   const badgeX = col3X;
-  drawRoundRect(badgeX, y - 3, badgeW, badgeH, 11, greenBg, green, 1.5);
+  drawRoundRect(badgeX, y - 2, badgeW, badgeH, 10, greenBg, green, 1.5);
   drawCenteredText(ctx, statusText, badgeX + badgeW / 2, y + badgeH / 2, boldDataFont, green);
-  y += lineHeight + 10;
+  y += lineHeight + 8;
 
   // ==================== RUMAH / TANGGAL TABLE ====================
   drawText(ctx, "Rumah", col1X, y, headerFont, medium);
   drawText(ctx, "Tanggal Bayar", col2X, y, headerFont, medium);
-  y += lineHeight + 2;
+  y += lineHeight + 1;
 
   drawText(ctx, clean(house) || "-", col1X, y, boldDataFont, dark);
   if (paymentDate) drawText(ctx, clean(paymentDate), col2X, y, dataFont, dark);
-  y += lineHeight + 10;
+  y += lineHeight + 8;
 
   // ==================== SEPARATOR ====================
   drawSolidSep();
@@ -820,13 +801,13 @@ export async function downloadSinglePaymentReceiptMinimalist({
   drawSolidSep();
   drawText(ctx, "Iuran Kas", col1X, y, dataFont, dark);
   drawText(ctx, money(cashAmount), colAmountX, y, boldDataFont, dark, "right");
-  y += lineHeight + 6;
+  y += lineHeight + 4;
 
   if (hasTrash) {
     drawSolidSep();
     drawText(ctx, "Iuran Sampah", col1X, y, dataFont, dark);
     drawText(ctx, money(trashAmount), colAmountX, y, boldDataFont, dark, "right");
-    y += lineHeight + 6;
+    y += lineHeight + 4;
   }
 
   // Double separator before TOTAL
@@ -834,7 +815,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
 
   drawText(ctx, "TOTAL", col1X, y, totalFont, dark);
   drawText(ctx, money(totalAmount), colAmountX, y, totalFont, green, "right");
-  y += lineHeight + 4;
+  y += lineHeight + 2;
 
   // Double separator after TOTAL
   drawDoubleSep();
@@ -860,28 +841,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
   drawText(ctx, "Tanggal Cetak:", rightColX, y - lineHeight * 3, headerFont, medium);
   drawText(ctx, printDate, rightColX, y - lineHeight * 2, boldDataFont, dark);
 
-  y += sectionGap + 4;
-
-  // ==================== BADGES ====================
-  // [APPROVED] [AMARTA] centered
-  const badgeY = y;
-  const approvedBadgeText = "[APPROVED]";
-  const amartaBadgeText = "[AMARTA]";
-  ctx.font = badgeFont;
-  const b1W = Math.ceil(ctx.measureText(approvedBadgeText).width) + 20;
-  const b2W = Math.ceil(ctx.measureText(amartaBadgeText).width) + 20;
-  const totalBadgeW = b1W + b2W + 20;
-  const startX = (width - totalBadgeW) / 2;
-
-  // [APPROVED] - green
-  drawRoundRect(startX, badgeY, b1W, 26, 13, green, "", 0);
-  drawCenteredText(ctx, approvedBadgeText, startX + b1W / 2, badgeY + 13, badgeFont, "#ffffff");
-
-  // [AMARTA] - dark
-  drawRoundRect(startX + b1W + 20, badgeY, b2W, 26, 13, dark, "", 0);
-  drawCenteredText(ctx, amartaBadgeText, startX + b1W + 20 + b2W / 2, badgeY + 13, badgeFont, "#ffffff");
-
-  y += 40;
+  y += sectionGap + 2;
 
   // ==================== FOOTER ====================
   drawCenteredText(ctx, "Data otomatis dari Sistem Kas Amarta Blok E", width / 2, y, footerFont, muted);
