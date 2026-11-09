@@ -643,30 +643,35 @@ export async function downloadSinglePaymentReceiptMinimalist({
   if (typeof document === "undefined") throw new Error("JPG export is only available in the browser.");
 
   const scale = clampExportScale(exportScale);
-  const padding = 28;
-  const lineHeight = 24;
-  const sectionGap = 16;
-  const width = 720;
+  // Portrait: narrower width, more height
+  const padding = 32;
+  const lineHeight = 26;
+  const sectionGap = 18;
+  const width = 580;  // Narrower for portrait
   const contentW = width - padding * 2;
 
   const hasTrash = Number(trashAmount) > 0;
   const hasPaymentId = Boolean(paymentId);
   const hasProofId = Boolean(proofId);
 
+  // Label column width for consistent alignment
+  const labelWidth = 160;
+  const valueX = padding + labelWidth;
+
   // Calculate dynamic height
   const headerLines = 3;
   const refLines = (hasPaymentId ? 1 : 0) + (hasProofId ? 1 : 0);
-  const statusLines = 2;
+  const statusLines = 3; // Status, Rumah, Tanggal Bayar
   const separatorLines = 2;
-  const amountLines = hasTrash ? 4 : 2;
+  const amountLines = hasTrash ? 2 : 1;
   const approvalLines = 1;
-  const footerLines = 3; // printed, note, id
+  const footerLines = 3;
   const totalLines = headerLines + refLines + statusLines + separatorLines + amountLines + approvalLines + footerLines;
   const height = padding * 2 + totalLines * lineHeight + sectionGap * 4;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("Browser does not support canvas export.");
+  if (!ctx) throw new Error("JPG export is only available in the browser.");
 
   canvas.width = Math.round(width * scale);
   canvas.height = Math.round(height * scale);
@@ -684,21 +689,30 @@ export async function downloadSinglePaymentReceiptMinimalist({
   const contentRightX = contentX + contentW;
   let y = padding;
 
-  // Fonts
-  const titleFont = "700 20px monospace";
-  const subtitleFont = "700 14px monospace";
-  const periodFont = "400 13px monospace";
-  const labelFont = "700 14px monospace";
-  const valueFont = "400 14px monospace";
-  const totalLabelFont = "700 15px monospace";
-  const totalValueFont = "700 16px monospace";
-  const footerFont = "400 12px monospace";
+  // Fonts - consistent monospace for alignment
+  const fontFamily = "'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace";
+  const titleFont = `700 18px ${fontFamily}`;
+  const subtitleFont = `600 13px ${fontFamily}`;
+  const periodFont = `500 12px ${fontFamily}`;
+  const labelFont = `500 12px ${fontFamily}`;
+  const valueFont = `400 12px ${fontFamily}`;
+  const totalLabelFont = `600 13px ${fontFamily}`;
+  const totalValueFont = `700 15px ${fontFamily}`;
+  const footerFont = `400 10px ${fontFamily}`;
+
+  // Helper: draw label:value with consistent spacing
+  function drawField(label, value, labelColor = "#000000", valueColor = "#000000", valueFontLocal = valueFont, bold = false) {
+    const vFont = bold ? valueFontLocal.replace("400", "600") : valueFontLocal;
+    drawText(ctx, label, contentX, y, labelFont, labelColor);
+    drawText(ctx, value, valueX, y, vFont, valueColor);
+    y += lineHeight;
+  }
 
   // ── Header ──
   drawCenteredText(ctx, subtitle, width / 2, y + 4, subtitleFont, "#000000");
-  y += 24;
+  y += 22;
   drawCenteredText(ctx, title, width / 2, y + 4, titleFont, "#000000");
-  y += 28;
+  y += 26;
   drawCenteredText(ctx, `Periode: ${formatPeriod(period)}`, width / 2, y, periodFont, "#333333");
   y += sectionGap + 4;
 
@@ -707,67 +721,42 @@ export async function downloadSinglePaymentReceiptMinimalist({
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(contentX, y);
-  ctx.lineTo(contentX + contentW, y);
+  ctx.lineTo(contentRightX, y);
   ctx.stroke();
   y += sectionGap;
 
   // ── Reference IDs ──
-  if (hasPaymentId) {
-    drawText(ctx, "Payment ID:", contentX, y, labelFont, "#000000");
-    drawText(ctx, clean(paymentId), contentRightX, y, valueFont, "#000000", "right");
-    y += lineHeight;
-  }
-  if (hasProofId) {
-    drawText(ctx, "Payment Proof ID:", contentX, y, labelFont, "#000000");
-    drawText(ctx, clean(proofId), contentRightX, y, valueFont, "#000000", "right");
-    y += lineHeight;
-  }
+  if (hasPaymentId) drawField("Payment ID", clean(paymentId));
+  if (hasProofId) drawField("Payment Proof ID", clean(proofId));
 
-  // ── Status & House ──
-  drawText(ctx, "Status:", contentX, y, labelFont, "#000000");
-  drawText(ctx, "DISETUJUI ADMIN", contentX + 180, y, valueFont, "#168044");
-  y += lineHeight;
-
-  drawText(ctx, "Rumah:", contentX, y, labelFont, "#000000");
-  drawText(ctx, clean(house) || "-", contentX + 180, y, valueFont, "#000000");
-  y += lineHeight;
-
-  if (paymentDate) {
-    drawText(ctx, "Tanggal Bayar:", contentX, y, labelFont, "#000000");
-    drawText(ctx, clean(paymentDate), contentX + 180, y, valueFont, "#000000");
-    y += lineHeight;
-  }
+  // ── Transaction Details ──
+  drawField("Status", "DISETUJUI ADMIN", "#000000", "#168044", valueFont, true);
+  drawField("Rumah", clean(house) || "-");
+  if (paymentDate) drawField("Tanggal Bayar", clean(paymentDate));
 
   // ── Separator ──
   y += 4;
   ctx.beginPath();
   ctx.moveTo(contentX, y);
-  ctx.lineTo(contentX + contentW, y);
+  ctx.lineTo(contentRightX, y);
   ctx.stroke();
   y += sectionGap;
 
   // ── Amounts ──
-  drawText(ctx, "Iuran Kas:", contentX, y, labelFont, "#000000");
-  drawText(ctx, money(cashAmount), contentRightX, y, valueFont, "#000000", "right");
-  y += lineHeight;
-
-  if (hasTrash) {
-    drawText(ctx, "Iuran Sampah:", contentX, y, labelFont, "#000000");
-    drawText(ctx, money(trashAmount), contentRightX, y, valueFont, "#000000", "right");
-    y += lineHeight;
-  }
+  drawField("Iuran Kas", money(cashAmount));
+  if (hasTrash) drawField("Iuran Sampah", money(trashAmount));
 
   // Total separator
   y += 4;
   ctx.beginPath();
   ctx.moveTo(contentX, y);
-  ctx.lineTo(contentX + contentW, y);
+  ctx.lineTo(contentRightX, y);
   ctx.stroke();
   y += 8;
 
-  drawText(ctx, "TOTAL:", contentX, y, totalLabelFont, "#000000");
-  drawText(ctx, money(totalAmount), contentRightX, y, totalValueFont, "#000000", "right");
-  y += lineHeight + sectionGap;
+  drawField("TOTAL", money(totalAmount), "#000000", "#000000", totalValueFont, true);
+
+  y += sectionGap + 4;
 
   // ── Approval ──
   const approvedText = `Disetujui: ${clean(approvedBy)} • ${clean(approvedAt) || "-"}`;
@@ -777,7 +766,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
   // ── Footer (no signature block) ──
   ctx.beginPath();
   ctx.moveTo(contentX, y);
-  ctx.lineTo(contentX + contentW, y);
+  ctx.lineTo(contentRightX, y);
   ctx.stroke();
   y += sectionGap;
 
