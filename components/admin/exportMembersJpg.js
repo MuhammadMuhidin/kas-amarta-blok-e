@@ -643,34 +643,29 @@ export async function downloadSinglePaymentReceiptMinimalist({
   if (typeof document === "undefined") throw new Error("Ekspor JPG hanya tersedia di browser.");
 
   const scale = clampExportScale(exportScale);
-  // Portrait: narrower width, more height
-  const padding = 32;
-  const lineHeight = 26;
-  const sectionGap = 18;
-  const width = 580;
+  const padding = 28;
+  const lineHeight = 24;
+  const sectionGap = 14;
+  const width = 600;
   const contentW = width - padding * 2;
 
   const hasTrash = Number(trashAmount) > 0;
   const hasPaymentId = Boolean(paymentId);
   const hasProofId = Boolean(proofId);
 
-  // Label column width for consistent alignment
-  const labelWidth = 160;
-  const valueX = padding + labelWidth;
-
-  // Count lines for dynamic height
+  // Calculate dynamic height
   let totalLines = 0;
-  totalLines += 3; // Header block
-  totalLines += (hasPaymentId ? 1 : 0) + (hasProofId ? 1 : 0); // Reference IDs
-  totalLines += 3; // Status, Rumah, Tanggal Bayar
-  totalLines += 2; // Amounts (Kas + optional Sampah)
-  totalLines += 1; // TOTAL
-  totalLines += 1; // Approval
+  totalLines += 6; // Header block (logo placeholder, subtitle, title, period, blank, blank)
+  totalLines += 2; // Reference table header + data
+  totalLines += 2; // Rumah/Tanggal header + data
+  totalLines += 1; // Separator
+  totalLines += hasTrash ? 4 : 2; // Amount lines + separators
+  totalLines += 3; // TOTAL + double separator
+  totalLines += 3; // Approval section
+  totalLines += 2; // Badges
   totalLines += 3; // Footer
-  totalLines += 3; // Signature block (Mengetahui + 3 signatures)
 
-  const separators = 4; // 4 separator lines
-  const height = padding * 2 + totalLines * lineHeight + sectionGap * 6 + separators * 8;
+  const height = padding * 2 + totalLines * lineHeight + sectionGap * 10;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -692,50 +687,58 @@ export async function downloadSinglePaymentReceiptMinimalist({
   const contentRightX = contentX + contentW;
   let y = padding;
 
-  // Fonts - consistent monospace for alignment
+  // Fonts
   const fontFamily = "'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', monospace";
-  const titleFont = `700 18px ${fontFamily}`;
-  const subtitleFont = `600 13px ${fontFamily}`;
+  const titleFont = `700 20px ${fontFamily}`;
+  const subtitleFont = `600 14px ${fontFamily}`;
   const periodFont = `500 12px ${fontFamily}`;
-  const labelFont = `500 12px ${fontFamily}`;
-  const valueFont = `400 12px ${fontFamily}`;
-  const boldValueFont = `600 12px ${fontFamily}`;
-  const totalLabelFont = `600 13px ${fontFamily}`;
-  const totalValueFont = `700 16px ${fontFamily}`;
-  const footerFont = `400 10px ${fontFamily}`;
-  const sigLabelFont = `600 11px ${fontFamily}`;
-  const sigValueFont = `400 11px ${fontFamily}`;
+  const headerFont = `600 11px ${fontFamily}`;
+  const dataFont = `400 11px ${fontFamily}`;
+  const boldDataFont = `600 11px ${fontFamily}`;
+  const totalFont = `700 14px ${fontFamily}`;
+  const footerFont = `400 9px ${fontFamily}`;
+  const badgeFont = `600 10px ${fontFamily}`;
 
   // Colors
   const green = "#16a34a";
   const greenBg = "#dcfce7";
-  const greenBorder = "#86efac";
   const dark = "#111827";
   const medium = "#374151";
-  const light = "#6b7280";
   const muted = "#9ca3af";
   const border = "#000000";
 
-  // Helper: draw label:value with consistent spacing
-  function drawField(label, value, labelColor = dark, valueColor = dark, valueFontLocal = valueFont, bold = false) {
-    const vFont = bold ? valueFontLocal.replace("400", "600") : valueFontLocal;
-    drawText(ctx, label, contentX, y, labelFont, labelColor);
-    drawText(ctx, value, valueX, y, vFont, valueColor);
-    y += lineHeight;
-  }
+  // Table column positions
+  const col1X = contentX;
+  const col2X = contentX + contentW * 0.38;
+  const col3X = contentX + contentW * 0.75;
+  const colAmountX = contentRightX;
 
-  // Helper: draw solid separator
+  // Helpers
   function drawSolidSep() {
     ctx.strokeStyle = border;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(contentX, y);
     ctx.lineTo(contentRightX, y);
     ctx.stroke();
-    y += sectionGap;
+    y += 8;
   }
 
-  // Helper: draw dashed separator
+  function drawDoubleSep() {
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(contentX, y);
+    ctx.lineTo(contentRightX, y);
+    ctx.stroke();
+    y += 4;
+    ctx.beginPath();
+    ctx.moveTo(contentX, y);
+    ctx.lineTo(contentRightX, y);
+    ctx.stroke();
+    y += 10;
+  }
+
   function drawDashedSep() {
     ctx.strokeStyle = border;
     ctx.lineWidth = 1;
@@ -745,39 +748,9 @@ export async function downloadSinglePaymentReceiptMinimalist({
     ctx.lineTo(contentRightX, y);
     ctx.stroke();
     ctx.setLineDash([]);
-    y += sectionGap;
+    y += 8;
   }
 
-  // Helper: draw double separator (for total)
-  function drawDoubleSep() {
-    ctx.strokeStyle = border;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(contentX, y);
-    ctx.lineTo(contentRightX, y);
-    ctx.stroke();
-    y += 3;
-    ctx.beginPath();
-    ctx.moveTo(contentX, y);
-    ctx.lineTo(contentRightX, y);
-    ctx.stroke();
-    y += 10;
-  }
-
-  // Helper: draw status badge
-  function drawStatusBadge(text) {
-    drawText(ctx, "Status", contentX, y, labelFont, dark);
-    const badgePadX = 12, badgePadY = 4;
-    ctx.font = boldValueFont;
-    const badgeW = Math.ceil(ctx.measureText(text).width) + badgePadX * 2;
-    const badgeH = 24;
-    const badgeX = valueX;
-    drawRoundRect(badgeX, y - 2, badgeW, badgeH, 12, greenBg, greenBorder, 1.5);
-    drawCenteredText(ctx, text, badgeX + badgeW / 2, y + badgeH / 2, boldValueFont, green);
-    y += lineHeight;
-  }
-
-  // Helper: draw rounded rect
   function drawRoundRect(x, y, w, h, r, fill, stroke = "", sw = 1) {
     const radius = Math.min(r, w / 2, h / 2);
     ctx.beginPath();
@@ -796,106 +769,126 @@ export async function downloadSinglePaymentReceiptMinimalist({
   }
 
   // ==================== HEADER ====================
-  drawCenteredText(ctx, subtitle, width / 2, y + 4, subtitleFont, dark);
-  y += 22;
-  drawCenteredText(ctx, title, width / 2, y + 4, titleFont, dark);
-  y += 26;
+  // Logo placeholder
+  drawRoundRect(width / 2 - 30, y, 60, 60, 12, "#f3f4f6", border, 2);
+  drawCenteredText(ctx, "🏠", width / 2, y + 30, "24px sans-serif", "#6b7280");
+  y += 70;
 
-  // Format period: "Agustus 2026"
+  drawCenteredText(ctx, subtitle, width / 2, y, subtitleFont, dark);
+  y += lineHeight - 2;
+  drawCenteredText(ctx, title, width / 2, y, titleFont, dark);
+  y += lineHeight + 2;
+
   const periodDisplay = formatPeriod(period);
-  drawCenteredText(ctx, `Periode: ${periodDisplay}`, width / 2, y, periodFont, "#333333");
-  y += sectionGap + 4;
+  drawCenteredText(ctx, `Periode: ${periodDisplay}`, width / 2, y, periodFont, medium);
+  y += sectionGap + 6;
 
-  // Solid separator after header
+  // ==================== REFERENCE TABLE ====================
+  // Header row
+  drawText(ctx, "ID Pembayaran", col1X, y, headerFont, medium);
+  drawText(ctx, "ID Bukti Pembayaran", col2X, y, headerFont, medium);
+  drawText(ctx, "Status", col3X, y, headerFont, medium);
+  y += lineHeight + 2;
+
+  // Data row
+  if (hasPaymentId) drawText(ctx, clean(paymentId), col1X, y, boldDataFont, dark);
+  if (hasProofId) drawText(ctx, clean(proofId), col2X, y, boldDataFont, dark);
+  // Status badge
+  const statusText = "✓ DISETUJUI ADMIN";
+  ctx.font = boldDataFont;
+  const badgeW = Math.ceil(ctx.measureText(statusText).width) + 16;
+  const badgeH = 22;
+  const badgeX = col3X;
+  drawRoundRect(badgeX, y - 3, badgeW, badgeH, 11, greenBg, green, 1.5);
+  drawCenteredText(ctx, statusText, badgeX + badgeW / 2, y + badgeH / 2, boldDataFont, green);
+  y += lineHeight + 10;
+
+  // ==================== RUMAH / TANGGAL TABLE ====================
+  drawText(ctx, "Rumah", col1X, y, headerFont, medium);
+  drawText(ctx, "Tanggal Bayar", col2X, y, headerFont, medium);
+  y += lineHeight + 2;
+
+  drawText(ctx, clean(house) || "-", col1X, y, boldDataFont, dark);
+  if (paymentDate) drawText(ctx, clean(paymentDate), col2X, y, dataFont, dark);
+  y += lineHeight + 10;
+
+  // ==================== SEPARATOR ====================
   drawSolidSep();
-
-  // ==================== REFERENCE IDs ====================
-  if (hasPaymentId) drawField("ID Pembayaran", clean(paymentId));
-  if (hasProofId) drawField("ID Bukti Pembayaran", clean(proofId));
-
-  // Solid separator after reference IDs
-  drawSolidSep();
-
-  // ==================== TRANSACTION DETAILS ====================
-  drawStatusBadge("DISETUJUI ADMIN");
-  drawField("Rumah", clean(house) || "-");
-  if (paymentDate) drawField("Tanggal Bayar", clean(paymentDate));
-
-  // Dashed separator before amounts
-  drawDashedSep();
 
   // ==================== AMOUNTS ====================
-  drawField("Iuran Kas", money(cashAmount), dark, dark, boldValueFont);
-  if (hasTrash) drawField("Iuran Sampah", money(trashAmount), dark, dark, boldValueFont);
+  // Iuran Kas with separator above
+  drawSolidSep();
+  drawText(ctx, "Iuran Kas", col1X, y, dataFont, dark);
+  drawText(ctx, money(cashAmount), colAmountX, y, boldDataFont, dark, "right");
+  y += lineHeight + 6;
+
+  if (hasTrash) {
+    drawSolidSep();
+    drawText(ctx, "Iuran Sampah", col1X, y, dataFont, dark);
+    drawText(ctx, money(trashAmount), colAmountX, y, boldDataFont, dark, "right");
+    y += lineHeight + 6;
+  }
 
   // Double separator before TOTAL
   drawDoubleSep();
 
-  drawField("TOTAL", money(totalAmount), dark, dark, totalValueFont, true);
+  drawText(ctx, "TOTAL", col1X, y, totalFont, dark);
+  drawText(ctx, money(totalAmount), colAmountX, y, totalFont, green, "right");
+  y += lineHeight + 4;
+
+  // Double separator after TOTAL
+  drawDoubleSep();
+
+  // ==================== APPROVAL SECTION ====================
+  // Two column layout
+  const leftColX = contentX;
+  const rightColX = contentX + contentW * 0.55;
+
+  // Left: Disetujui oleh
+  drawText(ctx, "Disetujui oleh:", leftColX, y, headerFont, medium);
+  y += lineHeight;
+  drawText(ctx, clean(approvedBy) || "admin", leftColX, y, boldDataFont, dark);
+  y += lineHeight;
+  if (approvedAt) {
+    drawText(ctx, clean(approvedAt), leftColX, y, dataFont, medium);
+    y += lineHeight;
+  }
+
+  // Right: Tanggal Cetak
+  const now = new Date();
+  const printDate = now.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  drawText(ctx, "Tanggal Cetak:", rightColX, y - lineHeight * 3, headerFont, medium);
+  drawText(ctx, printDate, rightColX, y - lineHeight * 2, boldDataFont, dark);
 
   y += sectionGap + 4;
 
-  // ==================== APPROVAL (centered) ====================
-  // Format: "Disetujui: admin • Pada: 10 Nov 2026, 01.16 WIB"
-  const approvalParts = [];
-  if (approvedBy && approvedBy !== "-") approvalParts.push(`Disetujui: ${clean(approvedBy)}`);
-  if (approvedAt && approvedAt !== "-") approvalParts.push(`Pada: ${clean(approvedAt)}`);
-  const approvalText = approvalParts.join("  •  ");
-  drawCenteredText(ctx, approvalText, width / 2, y, labelFont, medium);
-  y += lineHeight + sectionGap;
+  // ==================== BADGES ====================
+  // [APPROVED] [AMARTA] centered
+  const badgeY = y;
+  const approvedBadgeText = "[APPROVED]";
+  const amartaBadgeText = "[AMARTA]";
+  ctx.font = badgeFont;
+  const b1W = Math.ceil(ctx.measureText(approvedBadgeText).width) + 20;
+  const b2W = Math.ceil(ctx.measureText(amartaBadgeText).width) + 20;
+  const totalBadgeW = b1W + b2W + 20;
+  const startX = (width - totalBadgeW) / 2;
 
-  // Solid separator before footer
-  drawSolidSep();
+  // [APPROVED] - green
+  drawRoundRect(startX, badgeY, b1W, 26, 13, green, "", 0);
+  drawCenteredText(ctx, approvedBadgeText, startX + b1W / 2, badgeY + 13, badgeFont, "#ffffff");
+
+  // [AMARTA] - dark
+  drawRoundRect(startX + b1W + 20, badgeY, b2W, 26, 13, dark, "", 0);
+  drawCenteredText(ctx, amartaBadgeText, startX + b1W + 20 + b2W / 2, badgeY + 13, badgeFont, "#ffffff");
+
+  y += 40;
 
   // ==================== FOOTER ====================
-  // Dicetak: November 10, 2026
-  const now = new Date();
-  const printDate = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  drawCenteredText(ctx, `Dicetak: ${printDate}`, width / 2, y, footerFont, muted);
-  y += lineHeight;
-
   drawCenteredText(ctx, "Data otomatis dari Sistem Kas Amarta Blok E", width / 2, y, footerFont, muted);
   y += lineHeight;
 
-  // ID: kwitansi-E2-4-2026-08
   const idDisplay = fileName.replace(/\.jpg$/i, "");
   drawCenteredText(ctx, `ID: ${idDisplay}`, width / 2, y, footerFont, muted);
-  y += lineHeight * 2;
-
-  // ==================== SIGNATURE BLOCK ====================
-  drawCenteredText(ctx, "Mengetahui,", width / 2, y, sigLabelFont, dark);
-  y += 32;
-
-  const sigY = y;
-  const sigW = contentW * 0.28;
-  const sigLeftX = contentX + sigW / 2;
-  const sigCenterX = width / 2;
-  const sigRightX = contentRightX - sigW / 2;
-
-  // Signature lines
-  ctx.strokeStyle = border;
-  ctx.lineWidth = 1.5;
-
-  // Left - Ketua
-  ctx.beginPath();
-  ctx.moveTo(sigLeftX - sigW / 2, sigY);
-  ctx.lineTo(sigLeftX + sigW / 2, sigY);
-  ctx.stroke();
-  drawCenteredText(ctx, "Ketua", sigLeftX, sigY + 10, sigValueFont, dark);
-
-  // Center - Pengurus Kas
-  ctx.beginPath();
-  ctx.moveTo(sigCenterX - sigW / 2, sigY);
-  ctx.lineTo(sigCenterX + sigW / 2, sigY);
-  ctx.stroke();
-  drawCenteredText(ctx, "Pengurus Kas", sigCenterX, sigY + 10, sigValueFont, dark);
-
-  // Right - Bendahara
-  ctx.beginPath();
-  ctx.moveTo(sigRightX - sigW / 2, sigY);
-  ctx.lineTo(sigRightX + sigW / 2, sigY);
-  ctx.stroke();
-  drawCenteredText(ctx, "Bendahara", sigRightX, sigY + 10, sigValueFont, dark);
 
   const blob = await canvasToBlob(canvas, "image/jpeg", 0.95);
   downloadBlob(blob, fileName);
