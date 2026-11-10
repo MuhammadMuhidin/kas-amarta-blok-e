@@ -643,22 +643,22 @@ export async function downloadSinglePaymentReceiptMinimalist({
   if (typeof document === "undefined") throw new Error("Ekspor JPG hanya tersedia di browser.");
 
   const scale = clampExportScale(exportScale);
-  const padding = 36;
-  const width = 600;
+  const padding = 28;
+  const width = 440; // Dipersempit agar menjadi Portrait (Rasio ala Struk/Invoice)
   const contentW = width - padding * 2;
 
   const hasTrash = Number(trashAmount) > 0;
   const hasPaymentId = Boolean(paymentId);
   const hasProofId = Boolean(proofId);
 
-  // Kalkulasi tinggi exact pixel-perfect (mencegah terpotong atau ruang kosong berlebih)
+  // Kalkulasi tinggi dinamis yang presisi
   const height = padding * 2 + 
-    16 + 20 + 28 + 32 + // Area Header
-    18 + 26 + 24 +      // Area Referensi + Garis pemisah
-    18 + 26 + 24 +      // Area Rumah + Garis pemisah
-    24 + (hasTrash ? 40 : 0) + // Area Iuran (24 = Kas, 40 = Garis + Sampah)
+    16 + 20 + 26 + 32 + // Area Header
+    18 + 26 + 24 +      // Area Referensi + Garis
+    18 + 26 + 24 +      // Area Rumah + Garis
+    24 + (hasTrash ? 40 : 0) + // Area Iuran
     24 + 32 +           // Area Garis Tebal + Total
-    18 + 20 + (approvedAt ? 20 : 0) + 24 + // Area Approval + Jarak ke footer
+    18 + 20 + (approvedAt ? 20 : 0) + 24 + // Area Approval
     18 + 18;            // Area Footer
 
   const canvas = document.createElement("canvas");
@@ -673,46 +673,41 @@ export async function downloadSinglePaymentReceiptMinimalist({
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
 
-  // Background Putih Bersih
+  // Background
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, width, height);
 
-  // Aksen garis hijau (Emerald) di bagian atas
+  // Aksen garis Emerald
   const emerald = "#10b981";
   ctx.fillStyle = emerald;
   ctx.fillRect(0, 0, width, 8);
 
   const contentX = padding;
-  const contentRightX = contentX + contentW;
+  const contentRightX = contentX + contentW; // Batas paling kanan untuk right-alignment
   let y = padding + 16;
 
-  // Font Stack Konsisten (mencegah font browser merusak margin canvas)
+  // Font
   const sansFont = "Arial, Helvetica, sans-serif";
   const monoFont = "'SF Mono', Monaco, Consolas, 'Courier New', monospace";
   
-  const titleFont = `800 22px ${sansFont}`;
+  const titleFont = `800 20px ${sansFont}`; // Diperkecil sedikit agar fit di portrait
   const subtitleFont = `600 13px ${sansFont}`;
   const periodFont = `500 13px ${sansFont}`;
   const headerFont = `600 11px ${sansFont}`;
   const dataFont = `400 14px ${sansFont}`;
   const boldDataFont = `700 14px ${sansFont}`;
-  const monoDataFont = `600 14px ${monoFont}`;
+  const monoDataFont = `600 13px ${monoFont}`;
   const totalFont = `800 20px ${sansFont}`;
-  const footerFont = `400 11px ${sansFont}`;
+  const footerFont = `400 10px ${sansFont}`;
 
-  // Warna modern minimalis
+  // Warna
   const greenBg = "#d1fae5"; 
   const dark = "#0f172a";    
   const medium = "#475569";  
   const muted = "#64748b";   
   const border = "#cbd5e1";  
 
-  const col1X = contentX;
-  const col2X = contentX + contentW * 0.42;
-  const col3X = contentX + contentW * 0.75;
-  const colAmountX = contentRightX;
-
-  // Helpers untuk menggambar garis
+  // Helpers Garis
   function drawDashedSep(spacing) {
     y += spacing / 2;
     ctx.strokeStyle = border;
@@ -741,103 +736,93 @@ export async function downloadSinglePaymentReceiptMinimalist({
   drawCenteredText(ctx, subtitle, width / 2, y, subtitleFont, medium);
   y += 20;
   drawCenteredText(ctx, title, width / 2, y, titleFont, dark);
-  y += 28;
+  y += 26;
 
   const periodDisplay = formatPeriod(period);
   drawCenteredText(ctx, `Periode: ${periodDisplay}`, width / 2, y, periodFont, emerald);
   y += 32;
 
   // ==================== REFERENCE TABLE ====================
-  drawText(ctx, "ID Pembayaran", col1X, y, headerFont, muted);
-
-  let statusBadgeX;
-  let dataProofX;
-
-  if (hasProofId) {
-    drawText(ctx, "ID Bukti (Ref)", col2X, y, headerFont, muted);
-    drawText(ctx, "Status", col3X, y, headerFont, muted);
-    statusBadgeX = col3X;
-    dataProofX = col2X;
-  } else {
-    drawText(ctx, "Status", col2X, y, headerFont, muted);
-    statusBadgeX = col2X;
-    dataProofX = null;
-  }
-  y += 18; // Spasi sebelum data ditaruh
-
-  if (hasPaymentId) drawText(ctx, clean(paymentId), col1X, y, monoDataFont, dark);
-  if (hasProofId && dataProofX) drawText(ctx, clean(proofId), dataProofX, y, monoDataFont, dark);
+  // Menggunakan right-alignment untuk kolom sebelah kanan agar tidak tabrakan
+  drawText(ctx, "ID Pembayaran", contentX, y, headerFont, muted);
   
-  // Status Badge - Diperbaiki posisinya agar presisi dengan teks
+  if (hasProofId) {
+    drawText(ctx, "ID Bukti", contentX + contentW * 0.45, y, headerFont, muted);
+  }
+  
+  drawText(ctx, "Status", contentRightX, y, headerFont, muted, "right");
+  y += 18;
+
+  if (hasPaymentId) drawText(ctx, clean(paymentId), contentX, y, monoDataFont, dark);
+  if (hasProofId) drawText(ctx, clean(proofId), contentX + contentW * 0.45, y, monoDataFont, dark);
+  
+  // Status Badge ditarik ke kanan penuh (right-aligned)
   const statusText = "✓ LUNAS";
   ctx.font = boldDataFont;
   const badgeW = Math.ceil(ctx.measureText(statusText).width) + 24;
   const badgeH = 26;
-  const badgeY = y - 5; // Mundur 5px ke atas agar box simetris mengelilingi teks (text baseline = top)
+  const badgeY = y - 5; 
+  const badgeX = contentRightX - badgeW; // Menempel ke batas kanan margin
   
-  // Menggunakan global function yang sudah Anda miliki di bagian atas file
-  fillRoundedRect(ctx, statusBadgeX, badgeY, badgeW, badgeH, 13, greenBg, emerald, 1);
-  drawCenteredText(ctx, statusText, statusBadgeX + badgeW / 2, badgeY + badgeH / 2, boldDataFont, emerald);
+  fillRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 13, greenBg, emerald, 1);
+  drawCenteredText(ctx, statusText, badgeX + badgeW / 2, badgeY + badgeH / 2, boldDataFont, emerald);
   
   y += 26;
   drawDashedSep(24);
 
   // ==================== RUMAH / TANGGAL TABLE ====================
-  drawText(ctx, "Rumah", col1X, y, headerFont, muted);
-  drawText(ctx, "Tanggal Bayar", col2X, y, headerFont, muted);
+  drawText(ctx, "Rumah", contentX, y, headerFont, muted);
+  drawText(ctx, "Tanggal Bayar", contentRightX, y, headerFont, muted, "right");
   y += 18;
 
-  drawText(ctx, clean(house) || "-", col1X, y, boldDataFont, dark);
-  if (paymentDate) drawText(ctx, clean(paymentDate), col2X, y, dataFont, dark);
+  drawText(ctx, clean(house) || "-", contentX, y, boldDataFont, dark);
+  if (paymentDate) drawText(ctx, clean(paymentDate), contentRightX, y, dataFont, dark, "right");
   
   y += 26;
   drawDashedSep(24);
 
   // ==================== AMOUNTS ====================
-  drawText(ctx, "Iuran Kas", col1X, y, dataFont, medium);
-  drawText(ctx, money(cashAmount), colAmountX, y, boldDataFont, dark, "right");
+  drawText(ctx, "Iuran Kas", contentX, y, dataFont, medium);
+  drawText(ctx, money(cashAmount), contentRightX, y, boldDataFont, dark, "right");
   y += 24;
 
   if (hasTrash) {
     drawDashedSep(16);
-    drawText(ctx, "Iuran Sampah", col1X, y, dataFont, medium);
-    drawText(ctx, money(trashAmount), colAmountX, y, boldDataFont, dark, "right");
+    drawText(ctx, "Iuran Sampah", contentX, y, dataFont, medium);
+    drawText(ctx, money(trashAmount), contentRightX, y, boldDataFont, dark, "right");
     y += 24;
   }
 
   drawThickSep(24);
 
-  drawText(ctx, "TOTAL", col1X, y, totalFont, dark);
-  drawText(ctx, money(totalAmount), colAmountX, y, totalFont, emerald, "right");
+  drawText(ctx, "TOTAL", contentX, y, totalFont, dark);
+  drawText(ctx, money(totalAmount), contentRightX, y, totalFont, emerald, "right");
   y += 32;
 
   // ==================== APPROVAL SECTION ====================
-  const leftColX = contentX;
-  const rightColX = contentX + contentW * 0.55;
-
-  drawText(ctx, "Disetujui oleh:", leftColX, y, headerFont, muted);
-  drawText(ctx, "Dicetak pada:", rightColX, y, headerFont, muted);
+  // Posisi tanggal cetak rata kanan agar aman meskipun panjang
+  drawText(ctx, "Disetujui oleh:", contentX, y, headerFont, muted);
+  drawText(ctx, "Dicetak pada:", contentRightX, y, headerFont, muted, "right");
   y += 18;
   
-  drawText(ctx, clean(approvedBy) || "Admin", leftColX, y, boldDataFont, dark);
+  drawText(ctx, clean(approvedBy) || "Admin", contentX, y, boldDataFont, dark);
   
-  // Format waktu ala Indonesia seperti di gambar
   const now = new Date();
-  const idDate = now.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+  const idDate = now.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
   const idTime = now.toLocaleTimeString("id-ID", { hour: '2-digit', minute:'2-digit' }).replace(':', '.');
-  drawText(ctx, `${idDate} pukul ${idTime}`, rightColX, y, dataFont, dark);
+  drawText(ctx, `${idDate}, ${idTime}`, contentRightX, y, dataFont, dark, "right");
   y += 20;
   
   if (approvedAt) {
-    drawText(ctx, clean(approvedAt), leftColX, y, dataFont, muted);
+    drawText(ctx, clean(approvedAt), contentX, y, dataFont, muted);
     y += 20;
   }
 
   y += 24;
 
   // ==================== FOOTER ====================
-  drawCenteredText(ctx, "Dokumen ini sah dan diterbitkan otomatis oleh Sistem Kas Amarta Blok E.", width / 2, y, footerFont, muted);
-  y += 18;
+  drawCenteredText(ctx, "Dokumen ini diterbitkan otomatis oleh Sistem Kas Amarta", width / 2, y, footerFont, muted);
+  y += 16;
 
   const idDisplay = fileName.replace(/\.jpg$/i, "");
   drawCenteredText(ctx, `Ref: ${idDisplay}`, width / 2, y, footerFont, muted);
