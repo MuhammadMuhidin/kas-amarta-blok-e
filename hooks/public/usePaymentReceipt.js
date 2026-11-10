@@ -62,6 +62,7 @@ async function fetchTrashAmount(paymentId) {
 export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentConfirmations }) {
   const [proofData, setProofData] = useState(null);
   const [trashAmount, setTrashAmount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Fetch proof when payment ID is available
   useEffect(() => {
@@ -79,17 +80,41 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
     );
     const paymentId = payment?.id || confirmation?.approved_payment_id;
 
-    if (paymentId) {
-      fetchPaymentProof(paymentId).then((proof) => {
-        setProofData(proof);
-      });
-      fetchTrashAmount(paymentId).then((amount) => {
-        setTrashAmount(amount);
-      });
+    if (!paymentId) {
+      setProofData(null);
+      setTrashAmount(0);
+      setIsLoading(false);
+      return;
     }
+
+    setIsLoading(true);
+    let cancelled = false;
+
+    Promise.all([
+      fetchPaymentProof(paymentId),
+      fetchTrashAmount(paymentId),
+    ]).then(([proof, amount]) => {
+      if (!cancelled) {
+        setProofData(proof);
+        setTrashAmount(amount);
+        setIsLoading(false);
+      }
+    }).catch(() => {
+      if (!cancelled) {
+        setProofData(null);
+        setTrashAmount(0);
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [resident, selectedPeriod, payments, paymentConfirmations]);
 
   const receiptData = useMemo(() => {
+    // Jangan generate kwitansi kalau masih loading data bukti/sampah
+    if (isLoading) return null;
     if (!resident || !resident.paid || !selectedPeriod) return null;
 
     const periodKey = selectedPeriod.slice(0, 7);
@@ -163,5 +188,5 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
     };
   }, [resident, selectedPeriod, payments, paymentConfirmations, proofData, trashAmount]);
 
-  return receiptData;
+  return { receiptData, isLoading };
 }
