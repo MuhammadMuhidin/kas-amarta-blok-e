@@ -17,6 +17,20 @@ function formatDateIndo(value) {
   });
 }
 
+function formatDateTimeIndo(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("id-ID", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta",
+  }) + " WIB";
+}
+
 async function fetchPaymentProof(paymentId) {
   if (!paymentId) return null;
   try {
@@ -138,9 +152,11 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
 
     // Approved by/at dari confirmation
     const approvedBy = confirmation?.reviewed_by || "admin";
-    const approvedAt = paymentDate
-      ? formatDateIndo(paymentDate)
-      : "";
+    const approvedAt = confirmation?.reviewed_at
+      ? formatDateIndo(confirmation.reviewed_at)
+      : paymentDate
+        ? formatDateIndo(paymentDate)
+        : "";
 
     // Receipt No
     const receiptNo = paymentId
