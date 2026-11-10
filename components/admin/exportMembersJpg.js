@@ -637,7 +637,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
   approvedAt = "",
   paymentId = "",
   proofId = "",
-  fileName = "kwitansi.jpg",
+  fileName = "kuitansi.jpg",
   exportScale = DEFAULT_EXPORT_SCALE,
 } = {}) {
   if (typeof document === "undefined") throw new Error("Ekspor JPG hanya tersedia di browser.");
