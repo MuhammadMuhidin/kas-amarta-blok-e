@@ -58,7 +58,7 @@ export default function ResidentDetailModal({
   const showUploadSection = !resident.paid && !resident.notApplicable;
 
   // Receipt data untuk kwitansi
-  const receiptData = usePaymentReceipt({
+  const { receiptData, isLoading } = usePaymentReceipt({
     resident,
     selectedPeriod,
     payments,
@@ -66,7 +66,7 @@ export default function ResidentDetailModal({
   });
 
   const handleDownloadReceipt = async () => {
-    if (!receiptData) return;
+    if (!receiptData || isLoading) return;
     try {
       await downloadSinglePaymentReceiptMinimalist({
         period: receiptData.period,
@@ -113,25 +113,27 @@ export default function ResidentDetailModal({
           <button
             type="button"
             onClick={handleDownloadReceipt}
+            disabled={isLoading}
             style={{
               width: "100%",
               padding: "14px 16px",
               marginTop: 8,
-              background: "#16a34a",
+              background: isLoading ? "#94a3b8" : "#16a34a",
               color: "#fff",
               border: "none",
               borderRadius: 10,
               fontSize: 15,
               fontWeight: 700,
-              cursor: "pointer",
+              cursor: isLoading ? "not-allowed" : "pointer",
               display: "inline-flex",
               alignItems: "center",
               gap: 10,
               justifyContent: "center",
-              boxShadow: "0 2px 8px rgba(22, 163, 74, 0.3)",
+              boxShadow: isLoading ? "none" : "0 2px 8px rgba(22, 163, 74, 0.3)",
+              opacity: isLoading ? 0.7 : 1,
             }}
           >
-            🧾 Unduh Kwitansi
+            {isLoading ? "⏳ Memuat data..." : "🧾 Unduh Kwitansi"}
           </button>
         )}
 
