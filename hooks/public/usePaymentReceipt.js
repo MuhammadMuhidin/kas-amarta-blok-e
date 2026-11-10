@@ -113,7 +113,7 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
   }, [resident, selectedPeriod, payments, paymentConfirmations]);
 
   const receiptData = useMemo(() => {
-    // Jangan generate kwitansi kalau masih loading data bukti/sampah
+    // Jangan generate kuitansi kalau masih loading data bukti/sampah
     if (isLoading) return null;
     if (!resident || !resident.paid || !selectedPeriod) return null;
 
@@ -138,7 +138,7 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
 
     // Nominal kas wajib dari payment.amount (history)
     if (!payment || payment.amount === undefined || payment.amount === null || Number(payment.amount) === 0) {
-      return null; // Data pembayaran tidak lengkap, kwitansi tidak bisa digenerate
+      return null; // Data pembayaran tidak lengkap, kuitansi tidak bisa digenerate
     }
     const cashAmount = Number(payment.amount);
 
@@ -184,7 +184,7 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
       proofId,
       proofFilename,
       proofSubmittedAt,
-      fileName: `kwitansi-${resident.house}-${periodKey}.jpg`,
+      fileName: `kuitansi-${resident.house}-${periodKey}.jpg`,
     };
   }, [resident, selectedPeriod, payments, paymentConfirmations, proofData, trashAmount]);
 

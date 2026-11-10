@@ -57,7 +57,7 @@ export default function ResidentDetailModal({
   const helperText = getProofHelperText(resident);
   const showUploadSection = !resident.paid && !resident.notApplicable;
 
-  // Receipt data untuk kwitansi
+  // Receipt data untuk kuitansi
   const { receiptData, isLoading } = usePaymentReceipt({
     resident,
     selectedPeriod,
@@ -82,8 +82,8 @@ export default function ResidentDetailModal({
         fileName: receiptData.fileName,
       });
     } catch (error) {
-      console.error("Gagal generate kwitansi:", error);
-      alert("Gagal membuat kwitansi. Silakan coba lagi.");
+      console.error("Gagal generate kuitansi:", error);
+      alert("Gagal membuat kuitansi. Silakan coba lagi.");
     }
   };
 
@@ -133,7 +133,7 @@ export default function ResidentDetailModal({
               opacity: isLoading ? 0.7 : 1,
             }}
           >
-            {isLoading ? "⏳ Memuat data..." : "🧾 Unduh Kwitansi"}
+            {isLoading ? "⏳ Memuat data..." : "🧾 Unduh Kuitansi"}
           </button>
         )}
 

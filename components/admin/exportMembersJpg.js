@@ -625,7 +625,7 @@ export async function shareArrearsJpgMinimalist({
 }
 
 export async function downloadSinglePaymentReceiptMinimalist({
-  title = "KWITANSI PEMBAYARAN KAS",
+  title = "KUITANSI PEMBAYARAN KAS",
   subtitle = "AMARTA RESIDENCE 2 BLOK E",
   period = "",
   house = "",
@@ -637,7 +637,7 @@ export async function downloadSinglePaymentReceiptMinimalist({
   approvedAt = "",
   paymentId = "",
   proofId = "",
-  fileName = "kwitansi.jpg",
+  fileName = "kuitansi.jpg",
   exportScale = DEFAULT_EXPORT_SCALE,
 } = {}) {
   if (typeof document === "undefined") throw new Error("Ekspor JPG hanya tersedia di browser.");
