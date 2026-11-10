@@ -644,17 +644,17 @@ export async function downloadSinglePaymentReceiptMinimalist({
 
   const scale = clampExportScale(exportScale);
   const padding = 28;
-  const width = 440; // Dipersempit agar menjadi Portrait (Rasio ala Struk/Invoice)
+  const width = 440; // Portrait mode
   const contentW = width - padding * 2;
 
   const hasTrash = Number(trashAmount) > 0;
   const hasPaymentId = Boolean(paymentId);
   const hasProofId = Boolean(proofId);
 
-  // Kalkulasi tinggi dinamis yang presisi
+  // Kalkulasi tinggi dinamis yang presisi (termasuk kondisi jika ada ID Bukti)
   const height = padding * 2 + 
     16 + 20 + 26 + 32 + // Area Header
-    18 + 26 + 24 +      // Area Referensi + Garis
+    (42 + (hasProofId ? 42 : 0) + 24) + // Area Referensi (Struktur bersusun dinamis) + Garis
     18 + 26 + 24 +      // Area Rumah + Garis
     24 + (hasTrash ? 40 : 0) + // Area Iuran
     24 + 32 +           // Area Garis Tebal + Total
@@ -683,14 +683,14 @@ export async function downloadSinglePaymentReceiptMinimalist({
   ctx.fillRect(0, 0, width, 8);
 
   const contentX = padding;
-  const contentRightX = contentX + contentW; // Batas paling kanan untuk right-alignment
+  const contentRightX = contentX + contentW;
   let y = padding + 16;
 
-  // Font
+  // Font Stack
   const sansFont = "Arial, Helvetica, sans-serif";
   const monoFont = "'SF Mono', Monaco, Consolas, 'Courier New', monospace";
   
-  const titleFont = `800 20px ${sansFont}`; // Diperkecil sedikit agar fit di portrait
+  const titleFont = `800 20px ${sansFont}`;
   const subtitleFont = `600 13px ${sansFont}`;
   const periodFont = `500 13px ${sansFont}`;
   const headerFont = `600 11px ${sansFont}`;
@@ -742,32 +742,35 @@ export async function downloadSinglePaymentReceiptMinimalist({
   drawCenteredText(ctx, `Periode: ${periodDisplay}`, width / 2, y, periodFont, emerald);
   y += 32;
 
-  // ==================== REFERENCE TABLE ====================
-  // Menggunakan right-alignment untuk kolom sebelah kanan agar tidak tabrakan
+  // ==================== REFERENCE TABLE (PERBAIKAN STACKING) ====================
+  // Baris 1: ID Pembayaran & Status Badge
   drawText(ctx, "ID Pembayaran", contentX, y, headerFont, muted);
-  
-  if (hasProofId) {
-    drawText(ctx, "ID Bukti", contentX + contentW * 0.45, y, headerFont, muted);
-  }
-  
   drawText(ctx, "Status", contentRightX, y, headerFont, muted, "right");
   y += 18;
 
   if (hasPaymentId) drawText(ctx, clean(paymentId), contentX, y, monoDataFont, dark);
-  if (hasProofId) drawText(ctx, clean(proofId), contentX + contentW * 0.45, y, monoDataFont, dark);
   
-  // Status Badge ditarik ke kanan penuh (right-aligned)
+  // Status Badge di sisi kanan
   const statusText = "✓ LUNAS";
   ctx.font = boldDataFont;
   const badgeW = Math.ceil(ctx.measureText(statusText).width) + 24;
   const badgeH = 26;
   const badgeY = y - 5; 
-  const badgeX = contentRightX - badgeW; // Menempel ke batas kanan margin
+  const badgeX = contentRightX - badgeW;
   
   fillRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 13, greenBg, emerald, 1);
   drawCenteredText(ctx, statusText, badgeX + badgeW / 2, badgeY + badgeH / 2, boldDataFont, emerald);
   
-  y += 26;
+  y += 24;
+
+  // Baris 2: ID Bukti (Hanya dirender jika ada, diletakkan di baris baru agar bebas tabrakan)
+  if (hasProofId) {
+    drawText(ctx, "ID Bukti (Ref)", contentX, y, headerFont, muted);
+    y += 18;
+    drawText(ctx, clean(proofId), contentX, y, monoDataFont, dark);
+    y += 24;
+  }
+  
   drawDashedSep(24);
 
   // ==================== RUMAH / TANGGAL TABLE ====================
@@ -800,7 +803,6 @@ export async function downloadSinglePaymentReceiptMinimalist({
   y += 32;
 
   // ==================== APPROVAL SECTION ====================
-  // Posisi tanggal cetak rata kanan agar aman meskipun panjang
   drawText(ctx, "Disetujui oleh:", contentX, y, headerFont, muted);
   drawText(ctx, "Dicetak pada:", contentRightX, y, headerFont, muted, "right");
   y += 18;
