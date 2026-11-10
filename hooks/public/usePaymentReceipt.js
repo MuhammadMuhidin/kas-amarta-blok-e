@@ -71,7 +71,13 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
         normalize(c.person_id) === normalize(resident?.id) &&
         normalize(c.period || "").slice(0, 7) === periodKey
     );
-    const paymentId = confirmation?.approved_payment_id;
+    // Also find payment record to get payment.id as fallback (for trash amount when no proof exists)
+    const payment = payments?.find(
+      (p) =>
+        normalize(p.person_id) === normalize(resident?.id) &&
+        normalize(p.period || "").slice(0, 7) === periodKey
+    );
+    const paymentId = payment?.id || confirmation?.approved_payment_id;
 
     if (paymentId) {
       fetchPaymentProof(paymentId).then((proof) => {
@@ -81,7 +87,7 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
         setTrashAmount(amount);
       });
     }
-  }, [resident, selectedPeriod, paymentConfirmations]);
+  }, [resident, selectedPeriod, payments, paymentConfirmations]);
 
   const receiptData = useMemo(() => {
     if (!resident || !resident.paid || !selectedPeriod) return null;
