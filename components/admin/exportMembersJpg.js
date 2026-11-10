@@ -765,21 +765,36 @@ export async function downloadSinglePaymentReceiptMinimalist({
   y += sectionGap + 4;
 
   // ==================== REFERENCE TABLE ====================
-  // Header row
+  // Header row - conditionally show "ID Bukti Pembayaran" column
   drawText(ctx, "ID Pembayaran", col1X, y, headerFont, medium);
-  drawText(ctx, "ID Bukti Pembayaran", col2X, y, headerFont, medium);
-  drawText(ctx, "Status", col3X, y, headerFont, medium);
+
+  let statusHeaderX;
+  let statusBadgeX;
+  let dataProofX;
+
+  if (hasProofId) {
+    drawText(ctx, "ID Bukti Pembayaran", col2X, y, headerFont, medium);
+    drawText(ctx, "Status", col3X, y, headerFont, medium);
+    statusHeaderX = col3X;
+    statusBadgeX = col3X;
+    dataProofX = col2X;
+  } else {
+    drawText(ctx, "Status", col2X, y, headerFont, medium);
+    statusHeaderX = col2X;
+    statusBadgeX = col2X;
+    dataProofX = null;
+  }
   y += lineHeight + 1;
 
   // Data row
   if (hasPaymentId) drawText(ctx, clean(paymentId), col1X, y, boldDataFont, dark);
-  if (hasProofId) drawText(ctx, clean(proofId), col2X, y, boldDataFont, dark);
+  if (hasProofId && dataProofX) drawText(ctx, clean(proofId), dataProofX, y, boldDataFont, dark);
   // Status badge
   const statusText = "✓ DISETUJUI ADMIN";
   ctx.font = boldDataFont;
   const badgeW = Math.ceil(ctx.measureText(statusText).width) + 14;
   const badgeH = 20;
-  const badgeX = col3X;
+  const badgeX = statusBadgeX;
   drawRoundRect(badgeX, y - 2, badgeW, badgeH, 10, greenBg, green, 1.5);
   drawCenteredText(ctx, statusText, badgeX + badgeW / 2, y + badgeH / 2, boldDataFont, green);
   y += lineHeight + 8;
