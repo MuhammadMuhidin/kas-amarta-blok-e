@@ -625,7 +625,7 @@ export async function shareArrearsJpgMinimalist({
 }
 
 export async function downloadSinglePaymentReceiptMinimalist({
-  title = "KWITANSI PEMBAYARAN KAS",
+  title = "KUITANSI PEMBAYARAN KAS",
   subtitle = "AMARTA RESIDENCE 2 BLOK E",
   period = "",
   house = "",

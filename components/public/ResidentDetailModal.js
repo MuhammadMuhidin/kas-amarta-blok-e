@@ -133,7 +133,7 @@ export default function ResidentDetailModal({
               opacity: isLoading ? 0.7 : 1,
             }}
           >
-            {isLoading ? "⏳ Memuat data..." : "🧾 Unduh Kwitansi"}
+            {isLoading ? "⏳ Memuat data..." : "🧾 Unduh Kuitansi"}
           </button>
         )}
 
