@@ -153,9 +153,9 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
     // Approved by/at dari confirmation
     const approvedBy = confirmation?.reviewed_by || "admin";
     const approvedAt = confirmation?.reviewed_at
-      ? formatDateTimeIndo(confirmation.reviewed_at)
+      ? formatDateIndo(confirmation.reviewed_at)
       : paymentDate
-        ? formatDateTimeIndo(paymentDate)
+        ? formatDateIndo(paymentDate)
         : "";
 
     // Receipt No
