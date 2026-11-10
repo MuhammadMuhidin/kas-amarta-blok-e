@@ -48,7 +48,6 @@ export default function ResidentDetailModal({
   selectedPeriod,
   payments,
   paymentConfirmations,
-  appConfig,
   onSubmitted,
   onClose,
 }) {
@@ -64,7 +63,6 @@ export default function ResidentDetailModal({
     selectedPeriod,
     payments,
     paymentConfirmations,
-    appConfig,
   });
 
   const handleDownloadReceipt = async () => {

@@ -45,8 +45,23 @@ async function fetchPaymentProof(paymentId) {
   }
 }
 
-export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentConfirmations, appConfig }) {
+async function fetchTrashAmount(paymentId) {
+  if (!paymentId) return 0;
+  try {
+    const res = await fetch(`/api/public/trash-amount?payment_id=${encodeURIComponent(paymentId)}`, {
+      cache: "no-store",
+    });
+    if (!res.ok) return 0;
+    const data = await res.json();
+    return data.ok ? Number(data.trash_amount || 0) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentConfirmations }) {
   const [proofData, setProofData] = useState(null);
+  const [trashAmount, setTrashAmount] = useState(0);
 
   // Fetch proof when payment ID is available
   useEffect(() => {
@@ -62,6 +77,9 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
       fetchPaymentProof(paymentId).then((proof) => {
         setProofData(proof);
       });
+      fetchTrashAmount(paymentId).then((amount) => {
+        setTrashAmount(amount);
+      });
     }
   }, [resident, selectedPeriod, paymentConfirmations]);
 
@@ -70,7 +88,6 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
 
     const periodKey = selectedPeriod.slice(0, 7);
     const confirmations = paymentConfirmations || [];
-    const config = appConfig || {};
 
     // Cari payment record untuk rumah & periode ini
     const payment = payments.find(
@@ -88,12 +105,14 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
 
     if (!payment && !confirmation) return null;
 
-    // Nominal kas dari payment atau config
-    const cashAmount = payment ? Number(payment.amount || 0) : Number(config.monthly_fee || 0);
+    // Nominal kas wajib dari payment.amount (history)
+    if (!payment || payment.amount === undefined || payment.amount === null || Number(payment.amount) === 0) {
+      return null; // Data pembayaran tidak lengkap, kwitansi tidak bisa digenerate
+    }
+    const cashAmount = Number(payment.amount);
 
-    // Nominal sampah: berdasarkan resident.trash field
-    const isTrashUser = normalize(resident.trash).toUpperCase() === "Y";
-    const trashAmount = isTrashUser ? Number(config.trash_fee || 0) : 0;
+    // Nominal sampah: ambil dari table trash via payment_id
+    const paymentId = payment?.id || confirmation?.approved_payment_id || "";
 
     const totalAmount = cashAmount + trashAmount;
 
@@ -108,8 +127,7 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
         ? formatDateTimeIndo(paymentDate)
         : "";
 
-    // Payment ID & Receipt No
-    const paymentId = payment?.id || confirmation?.approved_payment_id || "";
+    // Receipt No
     const receiptNo = paymentId
       ? `KWT-${paymentId.slice(-6).toUpperCase()}-${periodKey.replace("-", "")}`
       : "";
@@ -137,7 +155,7 @@ export function usePaymentReceipt({ resident, selectedPeriod, payments, paymentC
       proofSubmittedAt,
       fileName: `kwitansi-${resident.house}-${periodKey}.jpg`,
     };
-  }, [resident, selectedPeriod, payments, paymentConfirmations, appConfig, proofData]);
+  }, [resident, selectedPeriod, payments, paymentConfirmations, proofData, trashAmount]);
 
   return receiptData;
 }

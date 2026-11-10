@@ -194,7 +194,6 @@ export default function PublicPageClient() {
           resident={selectedResident}
           payments={data.payments}
           paymentConfirmations={data.payment_confirmations}
-          appConfig={data.appConfig}
           selectedPeriod={selectedPeriod}
           onSubmitted={reload}
           onClose={() => setSelectedResident(null)}
