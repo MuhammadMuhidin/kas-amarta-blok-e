@@ -1,6 +1,8 @@
 "use client";
 
 import PaymentProofUploadForm from "@/components/public/PaymentProofUploadForm";
+import { usePaymentReceipt } from "@/hooks/public/usePaymentReceipt";
+import { downloadSinglePaymentReceiptMinimalist } from "@/components/admin/exportMembersJpg";
 import {
   canUploadPaymentProof,
   getPaymentConfirmationStatus,
@@ -41,12 +43,49 @@ function getConfirmationStyle(resident) {
   return { fontWeight: 800 };
 }
 
-export default function ResidentDetailModal({ resident, selectedPeriod, onSubmitted, onClose }) {
+export default function ResidentDetailModal({
+  resident,
+  selectedPeriod,
+  payments,
+  paymentConfirmations,
+  onSubmitted,
+  onClose,
+}) {
   if (!resident) return null;
 
   const canUpload = canUploadPaymentProof(resident);
   const helperText = getProofHelperText(resident);
   const showUploadSection = !resident.paid && !resident.notApplicable;
+
+  // Receipt data untuk kwitansi
+  const receiptData = usePaymentReceipt({
+    resident,
+    selectedPeriod,
+    payments,
+    paymentConfirmations,
+  });
+
+  const handleDownloadReceipt = async () => {
+    if (!receiptData) return;
+    try {
+      await downloadSinglePaymentReceiptMinimalist({
+        period: receiptData.period,
+        house: receiptData.house,
+        paymentDate: receiptData.paymentDate,
+        cashAmount: receiptData.cashAmount,
+        trashAmount: receiptData.trashAmount,
+        totalAmount: receiptData.totalAmount,
+        approvedBy: receiptData.approvedBy,
+        approvedAt: receiptData.approvedAt,
+        paymentId: receiptData.paymentId,
+        proofId: receiptData.proofId,
+        fileName: receiptData.fileName,
+      });
+    } catch (error) {
+      console.error("Gagal generate kwitansi:", error);
+      alert("Gagal membuat kwitansi. Silakan coba lagi.");
+    }
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -69,6 +108,32 @@ export default function ResidentDetailModal({ resident, selectedPeriod, onSubmit
             {getPaymentConfirmationStatus(resident)}
           </div>
         </div>
+
+        {resident.paid && receiptData && (
+          <button
+            type="button"
+            onClick={handleDownloadReceipt}
+            style={{
+              width: "100%",
+              padding: "14px 16px",
+              marginTop: 8,
+              background: "#16a34a",
+              color: "#fff",
+              border: "none",
+              borderRadius: 10,
+              fontSize: 15,
+              fontWeight: 700,
+              cursor: "pointer",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 10,
+              justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(22, 163, 74, 0.3)",
+            }}
+          >
+            🧾 Unduh Kwitansi
+          </button>
+        )}
 
         {showUploadSection && (
           <div className="resident-section">

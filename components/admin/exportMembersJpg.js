@@ -624,4 +624,213 @@ export async function shareArrearsJpgMinimalist({
   return shareOrDownloadBlob(blob, fileName, "Laporan Tunggakan");
 }
 
+export async function downloadSinglePaymentReceiptMinimalist({
+  title = "KWITANSI PEMBAYARAN KAS",
+  subtitle = "AMARTA RESIDENCE 2 BLOK E",
+  period = "",
+  house = "",
+  paymentDate = "",
+  cashAmount = 0,
+  trashAmount = 0,
+  totalAmount = 0,
+  approvedBy = "admin",
+  approvedAt = "",
+  paymentId = "",
+  proofId = "",
+  fileName = "kwitansi.jpg",
+  exportScale = DEFAULT_EXPORT_SCALE,
+} = {}) {
+  if (typeof document === "undefined") throw new Error("Ekspor JPG hanya tersedia di browser.");
+
+  const scale = clampExportScale(exportScale);
+  const padding = 28;
+  const width = 440; // Portrait mode
+  const contentW = width - padding * 2;
+
+  const hasTrash = Number(trashAmount) > 0;
+  const hasPaymentId = Boolean(paymentId);
+  const hasProofId = Boolean(proofId);
+
+  // Kalkulasi tinggi dinamis yang presisi (termasuk kondisi jika ada ID Bukti)
+  const height = padding * 2 + 
+    16 + 20 + 26 + 32 + // Area Header
+    (42 + (hasProofId ? 42 : 0) + 24) + // Area Referensi (Struktur bersusun dinamis) + Garis
+    18 + 26 + 24 +      // Area Rumah + Garis
+    24 + (hasTrash ? 40 : 0) + // Area Iuran
+    24 + 32 +           // Area Garis Tebal + Total
+    18 + 20 + (approvedAt ? 20 : 0) + 24 + // Area Approval
+    18 + 18;            // Area Footer
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Ekspor JPG hanya tersedia di browser.");
+
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  ctx.scale(scale, scale);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  // Background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  // Aksen garis Emerald
+  const emerald = "#10b981";
+  ctx.fillStyle = emerald;
+  ctx.fillRect(0, 0, width, 8);
+
+  const contentX = padding;
+  const contentRightX = contentX + contentW;
+  let y = padding + 16;
+
+  // Font Stack
+  const sansFont = "Arial, Helvetica, sans-serif";
+  const monoFont = "'SF Mono', Monaco, Consolas, 'Courier New', monospace";
+  
+  const titleFont = `800 20px ${sansFont}`;
+  const subtitleFont = `600 13px ${sansFont}`;
+  const periodFont = `500 13px ${sansFont}`;
+  const headerFont = `600 11px ${sansFont}`;
+  const dataFont = `400 14px ${sansFont}`;
+  const boldDataFont = `700 14px ${sansFont}`;
+  const monoDataFont = `600 13px ${monoFont}`;
+  const totalFont = `800 20px ${sansFont}`;
+  const footerFont = `400 10px ${sansFont}`;
+
+  // Warna
+  const greenBg = "#d1fae5"; 
+  const dark = "#0f172a";    
+  const medium = "#475569";  
+  const muted = "#64748b";   
+  const border = "#cbd5e1";  
+
+  // Helpers Garis
+  function drawDashedSep(spacing) {
+    y += spacing / 2;
+    ctx.strokeStyle = border;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(contentX, Math.round(y) + 0.5);
+    ctx.lineTo(contentRightX, Math.round(y) + 0.5);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    y += spacing / 2;
+  }
+
+  function drawThickSep(spacing) {
+    y += (spacing / 2) - 4;
+    ctx.strokeStyle = dark;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(contentX, Math.round(y));
+    ctx.lineTo(contentRightX, Math.round(y));
+    ctx.stroke();
+    y += (spacing / 2) + 4;
+  }
+
+  // ==================== HEADER ====================
+  drawCenteredText(ctx, subtitle, width / 2, y, subtitleFont, medium);
+  y += 20;
+  drawCenteredText(ctx, title, width / 2, y, titleFont, dark);
+  y += 26;
+
+  const periodDisplay = formatPeriod(period);
+  drawCenteredText(ctx, `Periode: ${periodDisplay}`, width / 2, y, periodFont, emerald);
+  y += 32;
+
+  // ==================== REFERENCE TABLE (PERBAIKAN STACKING) ====================
+  // Baris 1: ID Pembayaran & Status Badge
+  drawText(ctx, "ID Pembayaran", contentX, y, headerFont, muted);
+  drawText(ctx, "Status", contentRightX, y, headerFont, muted, "right");
+  y += 18;
+
+  if (hasPaymentId) drawText(ctx, clean(paymentId), contentX, y, monoDataFont, dark);
+  
+  // Status Badge di sisi kanan
+  const statusText = "✓ LUNAS";
+  ctx.font = boldDataFont;
+  const badgeW = Math.ceil(ctx.measureText(statusText).width) + 24;
+  const badgeH = 26;
+  const badgeY = y - 5; 
+  const badgeX = contentRightX - badgeW;
+  
+  fillRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 13, greenBg, emerald, 1);
+  drawCenteredText(ctx, statusText, badgeX + badgeW / 2, badgeY + badgeH / 2, boldDataFont, emerald);
+  
+  y += 24;
+
+  // Baris 2: ID Bukti (Hanya dirender jika ada, diletakkan di baris baru agar bebas tabrakan)
+  if (hasProofId) {
+    drawText(ctx, "ID Bukti (Ref)", contentX, y, headerFont, muted);
+    y += 18;
+    drawText(ctx, clean(proofId), contentX, y, monoDataFont, dark);
+    y += 24;
+  }
+  
+  drawDashedSep(24);
+
+  // ==================== RUMAH / TANGGAL TABLE ====================
+  drawText(ctx, "Rumah", contentX, y, headerFont, muted);
+  drawText(ctx, "Tanggal Bayar", contentRightX, y, headerFont, muted, "right");
+  y += 18;
+
+  drawText(ctx, clean(house) || "-", contentX, y, boldDataFont, dark);
+  if (paymentDate) drawText(ctx, clean(paymentDate), contentRightX, y, dataFont, dark, "right");
+  
+  y += 26;
+  drawDashedSep(24);
+
+  // ==================== AMOUNTS ====================
+  drawText(ctx, "Iuran Kas", contentX, y, dataFont, medium);
+  drawText(ctx, money(cashAmount), contentRightX, y, boldDataFont, dark, "right");
+  y += 24;
+
+  if (hasTrash) {
+    drawDashedSep(16);
+    drawText(ctx, "Iuran Sampah", contentX, y, dataFont, medium);
+    drawText(ctx, money(trashAmount), contentRightX, y, boldDataFont, dark, "right");
+    y += 24;
+  }
+
+  drawThickSep(24);
+
+  drawText(ctx, "TOTAL", contentX, y, totalFont, dark);
+  drawText(ctx, money(totalAmount), contentRightX, y, totalFont, emerald, "right");
+  y += 32;
+
+  // ==================== APPROVAL SECTION ====================
+  drawText(ctx, "Disetujui oleh:", contentX, y, headerFont, muted);
+  drawText(ctx, "Dicetak pada:", contentRightX, y, headerFont, muted, "right");
+  y += 18;
+  
+  drawText(ctx, clean(approvedBy) || "Admin", contentX, y, boldDataFont, dark);
+  
+  const now = new Date();
+  const idDate = now.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  const idTime = now.toLocaleTimeString("id-ID", { hour: '2-digit', minute:'2-digit' }).replace(':', '.');
+  drawText(ctx, `${idDate}, ${idTime}`, contentRightX, y, dataFont, dark, "right");
+  y += 20;
+  
+  if (approvedAt) {
+    drawText(ctx, clean(approvedAt), contentX, y, dataFont, muted);
+    y += 20;
+  }
+
+  y += 24;
+
+  // ==================== FOOTER ====================
+  drawCenteredText(ctx, "Dokumen ini diterbitkan otomatis oleh Sistem Kas Amarta", width / 2, y, footerFont, muted);
+  y += 16;
+
+  const idDisplay = fileName.replace(/\.jpg$/i, "");
+  drawCenteredText(ctx, `Ref: ${idDisplay}`, width / 2, y, footerFont, muted);
+
+  const blob = await canvasToBlob(canvas, "image/jpeg", 1.0);
+  downloadBlob(blob, fileName);
+}
+
 export { money, formatDate, formatPeriod };
